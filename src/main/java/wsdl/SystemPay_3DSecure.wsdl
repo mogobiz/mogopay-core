@@ -1,0 +1,149 @@
+
+<definitions name='ThreeDSecure' targetNamespace='http://threedsecure.ws.vads.lyra.com/'
+	xmlns='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/'
+	xmlns:tns='http://threedsecure.ws.vads.lyra.com/' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
+	<types>
+		<xs:schema targetNamespace='http://threedsecure.ws.vads.lyra.com/'
+			version='1.0' xmlns:tns='http://threedsecure.ws.vads.lyra.com/'
+			xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+			<xs:complexType name='veResPAReqInfo'>
+				<xs:complexContent>
+					<xs:extension base='tns:abstractThreeDSecureResponse'>
+						<xs:sequence>
+							<xs:element minOccurs='0' name='acctId' type='xs:string' />
+							<xs:element minOccurs='0' name='acsUrl' type='xs:string' />
+							<xs:element minOccurs='0' name='brand' type='xs:string' />
+							<xs:element minOccurs='0' name='encodedPareq' type='xs:string' />
+							<xs:element minOccurs='0' name='enrolled' type='xs:string' />
+							<xs:element minOccurs='0' name='requestId' type='xs:string' />
+						</xs:sequence>
+					</xs:extension>
+				</xs:complexContent>
+			</xs:complexType>
+			<xs:complexType abstract='true'
+				name='abstractThreeDSecureResponse'>
+				<xs:sequence>
+					<xs:element minOccurs='0' name='errorCode' type='xs:string' />
+					<xs:element minOccurs='0' name='errorDetail' type='xs:string' />
+					<xs:element minOccurs='0' name='signature' type='xs:string' />
+					<xs:element name='timestamp' type='xs:long' />
+				</xs:sequence>
+			</xs:complexType>
+			<xs:complexType name='paResInfo'>
+				<xs:complexContent>
+					<xs:extension base='tns:abstractThreeDSecureResponse'>
+						<xs:sequence>
+							<xs:element minOccurs='0' name='brand' type='xs:string' />
+							<xs:element minOccurs='0' name='cavv' type='xs:string' />
+							<xs:element minOccurs='0' name='cavvAlgorithm' type='xs:string' />
+							<xs:element minOccurs='0' name='eci' type='xs:string' />
+							<xs:element minOccurs='0' name='enrolled' type='xs:string' />
+							<xs:element minOccurs='0' name='status' type='xs:string' />
+							<xs:element minOccurs='0' name='xid' type='xs:string' />
+						</xs:sequence>
+					</xs:extension>
+				</xs:complexContent>
+			</xs:complexType>
+		</xs:schema>
+	</types>
+	<message name='ThreeDSecure_sendVEReqAndbuildPAReqByIdentifierTxResponse'>
+		<part name='return' type='tns:veResPAReqInfo'></part>
+	</message>
+	<message name='ThreeDSecure_sendVEReqAndbuildPAReqTxResponse'>
+		<part name='return' type='tns:veResPAReqInfo'></part>
+	</message>
+	<message name='ThreeDSecure_analyzePAResTxResponse'>
+		<part name='return' type='tns:paResInfo'></part>
+	</message>
+	<message name='ThreeDSecure_sendVEReqAndbuildPAReqByIdentifierTx'>
+		<part name='shopId' type='xsd:string'></part>
+		<part name='contractNumber' type='xsd:string'></part>
+		<part name='ctxMode' type='xsd:string'></part>
+		<part name='identifier' type='xsd:string'></part>
+		<part name='browserUserAgent' type='xsd:string'></part>
+		<part name='browserAccept' type='xsd:string'></part>
+		<part name='purchaseAmount' type='xsd:string'></part>
+		<part name='purchaseCurrency' type='xsd:string'></part>
+		<part name='wsSignature' type='xsd:string'></part>
+	</message>
+	<message name='ThreeDSecure_analyzePAResTx'>
+		<part name='shopId' type='xsd:string'></part>
+		<part name='contractNumber' type='xsd:string'></part>
+		<part name='ctxMode' type='xsd:string'></part>
+		<part name='requestId' type='xsd:string'></part>
+		<part name='pares' type='xsd:string'></part>
+		<part name='wsSignature' type='xsd:string'></part>
+	</message>
+	<message name='ThreeDSecure_sendVEReqAndbuildPAReqTx'>
+		<part name='shopId' type='xsd:string'></part>
+		<part name='contractNumber' type='xsd:string'></part>
+		<part name='ctxMode' type='xsd:string'></part>
+		<part name='cardNumber' type='xsd:string'></part>
+		<part name='browserUserAgent' type='xsd:string'></part>
+		<part name='browserAccept' type='xsd:string'></part>
+		<part name='purchaseAmount' type='xsd:string'></part>
+		<part name='purchaseCurrency' type='xsd:string'></part>
+		<part name='cardExpiry' type='xsd:string'></part>
+		<part name='wsSignature' type='xsd:string'></part>
+	</message>
+	<portType name='ThreeDSecure'>
+		<operation name='analyzePAResTx'
+			parameterOrder='shopId contractNumber ctxMode requestId pares wsSignature'>
+			<input message='tns:ThreeDSecure_analyzePAResTx'></input>
+			<output message='tns:ThreeDSecure_analyzePAResTxResponse'></output>
+		</operation>
+		<operation name='sendVEReqAndbuildPAReqByIdentifierTx'
+			parameterOrder='shopId contractNumber ctxMode identifier browserUserAgent browserAccept purchaseAmount purchaseCurrency wsSignature'>
+			<input message='tns:ThreeDSecure_sendVEReqAndbuildPAReqByIdentifierTx'></input>
+			<output
+				message='tns:ThreeDSecure_sendVEReqAndbuildPAReqByIdentifierTxResponse'></output>
+		</operation>
+		<operation name='sendVEReqAndbuildPAReqTx'
+			parameterOrder='shopId contractNumber ctxMode cardNumber browserUserAgent browserAccept purchaseAmount purchaseCurrency cardExpiry wsSignature'>
+			<input message='tns:ThreeDSecure_sendVEReqAndbuildPAReqTx'></input>
+			<output message='tns:ThreeDSecure_sendVEReqAndbuildPAReqTxResponse'></output>
+		</operation>
+	</portType>
+	<binding name='ThreeDSecureBinding' type='tns:ThreeDSecure'>
+		<soap:binding style='rpc'
+			transport='http://schemas.xmlsoap.org/soap/http' />
+		<operation name='analyzePAResTx'>
+			<soap:operation soapAction='' />
+			<input>
+				<soap:body namespace='http://threedsecure.ws.vads.lyra.com/'
+					use='literal' />
+			</input>
+			<output>
+				<soap:body namespace='http://threedsecure.ws.vads.lyra.com/'
+					use='literal' />
+			</output>
+		</operation>
+		<operation name='sendVEReqAndbuildPAReqByIdentifierTx'>
+			<soap:operation soapAction='' />
+			<input>
+				<soap:body namespace='http://threedsecure.ws.vads.lyra.com/'
+					use='literal' />
+			</input>
+			<output>
+				<soap:body namespace='http://threedsecure.ws.vads.lyra.com/'
+					use='literal' />
+			</output>
+		</operation>
+		<operation name='sendVEReqAndbuildPAReqTx'>
+			<soap:operation soapAction='' />
+			<input>
+				<soap:body namespace='http://threedsecure.ws.vads.lyra.com/'
+					use='literal' />
+			</input>
+			<output>
+				<soap:body namespace='http://threedsecure.ws.vads.lyra.com/'
+					use='literal' />
+			</output>
+		</operation>
+	</binding>
+	<service name='ThreeDSecure'>
+		<port binding='tns:ThreeDSecureBinding' name='ThreeDSecureServicePort'>
+			<soap:address location='https://paiement.systempay.fr/vads-ws/threeds-v1' />
+		</port>
+	</service>
+</definitions>

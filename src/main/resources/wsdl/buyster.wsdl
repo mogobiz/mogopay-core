@@ -1,0 +1,171 @@
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions name="MNOPServicePayment" targetNamespace="urn:mnop:acceptor:contract" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="urn:mnop:acceptor:contract" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <wsdl:types>
+<xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="urn:mnop:acceptor:contract" xmlns="urn:mnop:acceptor:contract" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:complexType name="authenticationHeader">
+<xs:sequence>
+<xs:element minOccurs="0" name="merchantSignature" type="xs:string" />
+<xs:element minOccurs="0" name="merchantPassword" type="xs:string" />
+<xs:element minOccurs="0" name="merchantId" type="xs:string" />
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="initializePaymentRequest">
+<xs:sequence>
+<xs:element minOccurs="0" name="amount" type="xs:string" />
+<xs:element minOccurs="0" name="automaticResponseUrl" type="xs:string" />
+<xs:element minOccurs="0" name="context" type="xs:string" />
+<xs:element minOccurs="0" name="currencyCode" type="xs:string" />
+
+<xs:element minOccurs="0" name="customerId" type="xs:string" />
+<xs:element minOccurs="0" name="customerIpAddress" type="xs:string" />
+<xs:element minOccurs="0" name="customerLanguage" type="xs:string" />
+<xs:element minOccurs="0" name="merchantSessionId" type="xs:string" />
+<xs:element minOccurs="0" name="merchantTransactionDateTime" type="xs:string" />
+<xs:element minOccurs="0" name="orderChannel" type="xs:string" />
+<xs:element minOccurs="0" name="orderId" type="xs:string" />
+<xs:element minOccurs="0" name="paymentReceiverId" type="xs:string" />
+<xs:element minOccurs="0" name="requestVersion" type="xs:string" />
+<xs:element minOccurs="0" name="returnUrl" type="xs:string" />
+<xs:element minOccurs="0" name="stylesheet" type="xs:string" />
+<xs:element minOccurs="0" name="transactionOrigin" type="xs:string" />
+<xs:element minOccurs="0" name="transactionParameters" type="xs:string" />
+<xs:element minOccurs="0" name="transactionReference" type="xs:string" />
+<xs:element minOccurs="0" name="transactionType" type="xs:string" />
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="initializePaymentResponse">
+<xs:sequence>
+<xs:element minOccurs="0" name="responseCode" type="xs:string" />
+<xs:element minOccurs="0" name="redirectionURL" type="xs:string" />
+<xs:element minOccurs="0" name="requestVersion" type="xs:string" />
+<xs:element minOccurs="0" name="merchantSessionId" type="xs:string" />
+<xs:element minOccurs="0" name="tokenId" type="xs:string" />
+<xs:element minOccurs="0" name="responseDescription" type="xs:string" />
+<xs:element minOccurs="0" name="transactionParameters" type="xs:string" />
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="cashManagementOperationRequest">
+<xs:sequence>
+<xs:element minOccurs="0" name="amount" type="xs:string" />
+<xs:element minOccurs="0" name="merchantSessionId" type="xs:string" />
+<xs:element minOccurs="0" name="operationName" type="xs:string" />
+<xs:element minOccurs="0" name="operationSequence" type="xs:string" />
+
+<xs:element minOccurs="0" name="operationOrigin" type="xs:string" />
+<xs:element minOccurs="0" name="paymentReceiverId" type="xs:string" />
+<xs:element minOccurs="0" name="requestVersion" type="xs:string" />
+<xs:element minOccurs="0" name="operationParameters" type="xs:string" />
+<xs:element minOccurs="0" name="transactionReference" type="xs:string" />
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="cashManagementOperationResponse">
+<xs:sequence>
+<xs:element minOccurs="0" name="merchantSessionId" type="xs:string" />
+<xs:element minOccurs="0" name="status" type="xs:string" />
+<xs:element minOccurs="0" name="amount" type="xs:string" />
+<xs:element minOccurs="0" name="authorisationId" type="xs:string" />
+<xs:element minOccurs="0" name="autoResponseStatusCode" type="xs:string" />
+<xs:element minOccurs="0" name="autoResponseStatusMessage" type="xs:string" />
+<xs:element minOccurs="0" name="captureDelay" type="xs:string" />
+<xs:element minOccurs="0" name="context" type="xs:string" />
+
+<xs:element minOccurs="0" name="currencyCode" type="xs:string" />
+<xs:element minOccurs="0" name="customerId" type="xs:string" />
+<xs:element minOccurs="0" name="customerIpAddress" type="xs:string" />
+<xs:element minOccurs="0" name="enrollmentIndicator" type="xs:string" />
+<xs:element minOccurs="0" name="guaranteeIndicator" type="xs:string" />
+<xs:element minOccurs="0" name="operationDateTime" type="xs:string" />
+<xs:element minOccurs="0" name="operationParameters" type="xs:string" />
+<xs:element minOccurs="0" name="operationSequence" type="xs:string" />
+<xs:element minOccurs="0" name="orderId" type="xs:string" />
+<xs:element minOccurs="0" name="responseCode" type="xs:string" />
+<xs:element minOccurs="0" name="detailResponseCode" type="xs:string" />
+<xs:element minOccurs="0" name="transactionDateTime" type="xs:string" />
+<xs:element minOccurs="0" name="transactionResponseCode" type="xs:string" />
+<xs:element minOccurs="0" name="transactionDetailResponseCode" type="xs:string" />
+<xs:element minOccurs="0" name="responseDescription" type="xs:string" />
+<xs:element minOccurs="0" name="transactionOrigin" type="xs:string" />
+<xs:element minOccurs="0" name="transactionType" type="xs:string" />
+
+<xs:element minOccurs="0" name="validationDelay" type="xs:string" />
+</xs:sequence>
+</xs:complexType>
+<xs:element name="authenticationHeader" nillable="true" type="authenticationHeader" />
+<xs:element name="initializePaymentRequest" nillable="true" type="initializePaymentRequest" />
+<xs:element name="initializePaymentResponse" nillable="true" type="initializePaymentResponse" />
+<xs:element name="cashManagementOperationRequest" nillable="true" type="cashManagementOperationRequest" />
+<xs:element name="cashManagementOperationResponse" nillable="true" type="cashManagementOperationResponse" />
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="initializePaymentResponse">
+    <wsdl:part element="tns:initializePaymentResponse" name="initializePaymentResponse">
+    </wsdl:part>
+
+  </wsdl:message>
+  <wsdl:message name="cashManagementOperation">
+    <wsdl:part element="tns:authenticationHeader" name="authenticationHeader">
+    </wsdl:part>
+    <wsdl:part element="tns:cashManagementOperationRequest" name="cashManagementOperationRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="cashManagementOperationResponse">
+    <wsdl:part element="tns:cashManagementOperationResponse" name="cashManagementOperationResponse">
+
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="initializePayment">
+    <wsdl:part element="tns:authenticationHeader" name="authenticationHeader">
+    </wsdl:part>
+    <wsdl:part element="tns:initializePaymentRequest" name="initializePaymentRequest">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="ServicePayment">
+
+    <wsdl:operation name="initializePayment">
+      <wsdl:input message="tns:initializePayment" name="initializePayment">
+    </wsdl:input>
+      <wsdl:output message="tns:initializePaymentResponse" name="initializePaymentResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="cashManagementOperation">
+      <wsdl:input message="tns:cashManagementOperation" name="cashManagementOperation">
+    </wsdl:input>
+
+      <wsdl:output message="tns:cashManagementOperationResponse" name="cashManagementOperationResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="MNOPServicePaymentSoapBinding" type="tns:ServicePayment">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="initializePayment">
+      <soap:operation soapAction="initializePayment" style="document" />
+      <wsdl:input name="initializePayment">
+
+        <soap:header message="tns:initializePayment" part="authenticationHeader" use="literal">
+        </soap:header>
+        <soap:body parts="initializePaymentRequest" use="literal" />
+      </wsdl:input>
+      <wsdl:output name="initializePaymentResponse">
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="cashManagementOperation">
+
+      <soap:operation soapAction="cashManagementOperation" style="document" />
+      <wsdl:input name="cashManagementOperation">
+        <soap:header message="tns:cashManagementOperation" part="authenticationHeader" use="literal">
+        </soap:header>
+        <soap:body parts="cashManagementOperationRequest" use="literal" />
+      </wsdl:input>
+      <wsdl:output name="cashManagementOperationResponse">
+        <soap:body use="literal" />
+      </wsdl:output>
+
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="MNOPServicePayment">
+    <wsdl:port binding="tns:MNOPServicePaymentSoapBinding" name="port">
+      <soap:address location="https://mnop-acceptor.aw.atosorigin.com:443/net.atos.mnop.ServicePayment" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

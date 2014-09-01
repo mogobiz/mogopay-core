@@ -1,0 +1,88 @@
+{
+    "ESSession": {
+        "_ttl" : {
+            "enabled" : true,
+            "index":"not_analyzed"
+        },
+        "properties": {
+            "data": {
+                "type": "string",
+                "index":"no"
+            },
+            "expires": {
+                "properties": {
+                    "clicks": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "day": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "hour": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "isLeapYear": {
+                        "index":"no",
+                        "type": "boolean"
+                    },
+                    "minute": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "month": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "second": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "weekday": {
+                        "index":"no",
+                        "type": "long"
+                    },
+                    "year": {
+                        "index":"no",
+                        "type": "long"
+                    }
+                }
+            },
+            "httpOnly": {
+                "index":"no",
+                "type": "boolean"
+            },
+            "maxAge": {
+                "index":"no",
+                "type": "long"
+            },
+            "path": {
+                "index":"no",
+                "type": "string"
+            },
+            "domain": {
+                "index":"no",
+                "type": "string"
+            },
+            "extension": {
+                "index":"no",
+                "type": "string"
+            },
+            "secure": {
+                "index":"no",
+                "type": "boolean"
+            },
+            "dateCreated": {
+                "type": "date",
+                "index": "no",
+                "format": "dateOptionalTime"
+            },
+            "lastUpdated": {
+                "type": "date",
+                "index": "no",
+                "format": "dateOptionalTime"
+            }
+        }
+    }
+}

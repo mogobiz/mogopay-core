@@ -1,0 +1,298 @@
+{
+    "BOTransaction": {
+        "properties": {
+            "amount": {
+                "type": "long"
+            },
+            "creationDate": {
+                "type": "date",
+                "index": "not_analyzed"
+            },
+            "creditCard": {
+                "properties": {
+                    "cardType": {
+                        "type": "string"
+                    },
+                    "expiryDate": {
+                        "type": "long"
+                    },
+                    "holder": {
+                        "type": "string"
+                    },
+                    "number": {
+                        "type": "string"
+                    }
+                }
+            },
+            "currency": {
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "fractionDigits": {
+                        "type": "long"
+                    },
+                    "numericCode": {
+                        "type": "long"
+                    },
+                    "rate": {
+                        "type": "double"
+                    }
+                }
+            },
+            "customer": {
+                "properties": {
+                    "address": {
+                        "properties": {
+                            "city": {
+                                "type": "string"
+                            },
+                            "country": {
+                                "type": "string"
+                            },
+                            "road": {
+                                "type": "string"
+                            },
+                            "zipCode": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "civility": {
+                        "type": "string"
+                    },
+                    "company": {
+                        "type": "string"
+                    },
+                    "dateCreated": {
+                        "type": "date",
+                        "index": "no",
+                        "format": "dateOptionalTime"
+                    },
+                    "email": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "firstName": {
+                        "type": "string"
+                    },
+                    "lastName": {
+                        "type": "string"
+                    },
+                    "lastUpdated": {
+                        "type": "date",
+                        "index": "no",
+                        "format": "dateOptionalTime"
+                    },
+                    "loginFailedCount": {
+                        "type": "long"
+                    },
+                    "owner": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "roles": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "waitingEmailSince": {
+                        "type": "long"
+                    },
+                    "waitingPhoneSince": {
+                        "type": "long"
+                    },
+                    "website": {
+                        "type": "string"
+                    }
+                }
+            },
+            "dateCreated": {
+                "type": "long"
+            },
+            "email": {
+                "type": "string",
+                "index": "not_analyzed"
+            },
+            "endDate": {
+                "type": "date",
+                "index": "no"
+            },
+            "errorCodeOrigin": {
+                "type": "string"
+            },
+            "errorMessageOrigin": {
+                "type": "string"
+            },
+            "extra": {
+                "type": "string"
+            },
+            "lastUpdated": {
+                "type": "date",
+                "index": "no",
+                "format": "dateOptionalTime"
+            },
+            "merchantConfirmation": {
+                "type": "boolean"
+            },
+            "paymentData": {
+                "properties": {
+                    "authorizationId": {
+                        "type": "string"
+                    },
+                    "cbProvider": {
+                        "type": "string"
+                    },
+                    "dateCommandCB": {
+                        "type": "long"
+                    },
+                    "idCommandCB": {
+                        "type": "long"
+                    },
+                    "paymentType": {
+                        "type": "string"
+                    },
+                    "status3DS": {
+                        "type": "string"
+                    },
+                    "transactionDate": {
+                        "type": "long"
+                    },
+                    "transactionId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "status": {
+                "type": "string"
+            },
+            "transactionUUID": {
+                "type": "string",
+                "index": "not_analyzed"
+            },
+            "uuid": {
+                "type": "string",
+                "index": "not_analyzed"
+            },
+            "vendor": {
+                "properties": {
+                    "address": {
+                        "properties": {
+                            "city": {
+                                "type": "string"
+                            },
+                            "country": {
+                                "type": "string"
+                            },
+                            "road": {
+                                "type": "string"
+                            },
+                            "zipCode": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "civility": {
+                        "type": "string"
+                    },
+                    "company": {
+                        "type": "string"
+                    },
+                    "dateCreated": {
+                        "type": "date",
+                        "index": "no",
+                        "format": "dateOptionalTime"
+                    },
+                    "email": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "firstName": {
+                        "type": "string"
+                    },
+                    "lastName": {
+                        "type": "string"
+                    },
+                    "lastUpdated": {
+                        "type": "date",
+                        "index": "no",
+                        "format": "dateOptionalTime"
+                    },
+                    "loginFailedCount": {
+                        "type": "long"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "paymentConfig": {
+                        "properties": {
+                            "buysterParam": {
+                                "type": "string"
+                            },
+                            "cbParam": {
+                                "type": "string"
+                            },
+                            "cbProvider": {
+                                "type": "string"
+                            },
+                            "dateCreated": {
+                                "type": "date",
+                                "index": "no",
+                                "format": "dateOptionalTime"
+                            },
+                            "emailField": {
+                                "type": "string"
+                            },
+                            "kwixoParam": {
+                                "type": "string"
+                            },
+                            "lastUpdated": {
+                                "type": "date",
+                                "index": "no",
+                                "format": "dateOptionalTime"
+                            },
+                            "passwordField": {
+                                "type": "string"
+                            },
+                            "passwordPattern": {
+                                "type": "string"
+                            },
+                            "paymentMethod": {
+                                "type": "string"
+                            },
+                            "paypalParam": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "roles": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "waitingEmailSince": {
+                        "type": "long"
+                    },
+                    "waitingPhoneSince": {
+                        "type": "long"
+                    },
+                    "website": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
