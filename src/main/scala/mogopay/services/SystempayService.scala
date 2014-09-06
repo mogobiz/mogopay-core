@@ -2,10 +2,9 @@ package mogopay.services
 
 import akka.actor.ActorRef
 import mogopay.actors.SystempayActor._
-import mogopay.es.EsClient
 import mogopay.model.Mogopay._
 import mogopay.services.Util._
-import mogopay.session.{SessionESDirectives, ESSession, Session}
+import mogopay.session.{SessionESDirectives}
 import mogopay.session.SessionESDirectives._
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
@@ -32,11 +31,11 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val startPayment = path("start-payment") {
+  lazy val startPayment = path("start-payment" / Segment) { xtoken =>
     import mogopay.config.Implicits._
     get {
       parameterMap { params =>
-        session { session =>
+        val session = SessionESDirectives.load(xtoken).get
           println("start-payment:" + session.sessionData.uuid)
           val message = StartPayment(session.sessionData)
           onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) {
@@ -58,7 +57,6 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
                     }
                   }
               }
-          }
         }
       }
     }

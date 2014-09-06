@@ -452,7 +452,7 @@ object Mogopay {
                          var pageNum: Integer = 0,
                          var shippingPrices: Option[List[ShippingPrice]] = None,
                          var selectShippingPrice: Option[ShippingPrice] = None,
-                         var id3d: Option[String]
+                         var id3d: Option[String] = None
                           )
 
 

@@ -17,7 +17,7 @@ object Settings {
 
   val PayboxMPIEndPoint =config.getString("paybox.mpiendpoint")
   val PayboxSystemEndPoint =config.getString("paybox.systemendpoint")
-  val PayboxWebEndPoint =config.getString("paybox.webendpoint")
+  val PayboxDirectEndPoint =config.getString("paybox.directendpoint")
   val PayboxPEMFile =config.getString("paybox.pemfile")
   val PayboxPBXPorteur =config.getString("paybox.pbxporteur")
 

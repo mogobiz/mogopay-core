@@ -3,17 +3,13 @@ package mogopay.services
 import akka.actor.ActorRef
 import mogopay.actors.PayPalActor._
 import mogopay.config.Implicits._
-import mogopay.model.Mogopay._
 import mogopay.services.Util._
-import mogopay.session.Session
+import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
-import mogopay.util.GlobalUtil._
 import spray.http.{Uri, StatusCodes}
-import spray.routing._
-import spray.routing.directives.RouteDirectives._
 import spray.routing.Directives
 
-import scala.concurrent.{Future, Await, ExecutionContext}
+import scala.concurrent.{ExecutionContext}
 import scala.util._
 
 class PayPalService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
@@ -33,10 +29,10 @@ class PayPalService(actor: ActorRef)(implicit executionContext: ExecutionContext
     }
   }
 
-  lazy val startPayment = path("start-payment") {
+  lazy val startPayment = path("start-payment" / Segment) { xtoken =>
     get {
       parameterMap { params =>
-        session { session =>
+          val session = SessionESDirectives.load(xtoken).get
           val message = StartPayment(session.sessionData, params)
           onComplete((actor ? message).mapTo[Try[Uri]]) {
             case Failure(t) => complete(StatusCodes.InternalServerError)
@@ -47,7 +43,6 @@ class PayPalService(actor: ActorRef)(implicit executionContext: ExecutionContext
                   case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
                 }
               }
-          }
         }
       }
     }

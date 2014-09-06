@@ -32,6 +32,7 @@ trait MogopayRoutes extends Directives {
       new GithubService().route ~
       new SystempayService(systempayActor).route ~
       new PayPalService(payPalActor).route ~
+      new PayboxService(payboxActor).route ~
       new UserService(userActor).route
   }
   val routesServices = system.actorOf(Props(new RoutedHttpService(routes)))

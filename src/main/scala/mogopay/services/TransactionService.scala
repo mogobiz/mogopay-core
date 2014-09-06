@@ -12,12 +12,8 @@ import mogopay.config.Settings
 import mogopay.handlers.shipping.ShippingPrice
 import mogopay.model.Mogopay.{TransactionStatus, BOTransaction}
 import mogopay.services.Util._
-import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
-import mogopay.util.GlobalUtil._
 import spray.can.Http
-import spray.can.client.{ClientConnectionSettings, HostConnectorSettings}
-import spray.http.HttpHeaders.{`Content-Type`, Cookie}
 import spray.http._
 import spray.routing.Directives
 
@@ -80,8 +76,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
     get {
       val params = parameters('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?)
       params { (secret, amount, code, rate, extra) =>
-        val message: Init = Init(secret, amount, code, rate, extra)
-        onComplete((actor ? message).mapTo[Try[String]]) { res =>
+        onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { res =>
           res match {
             case Failure(t) => complete(toHTTPResponse(t) -> Map('error -> t.toString))
             case Success(id) => complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
@@ -102,8 +97,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
               StatusCodes.Forbidden -> Map('error -> "Not logged in")
             }
             case Some(id) =>
-              val message = GetShippingPrices(currencyCode, transactionExtra, id)
-              val result = (actor ? message).mapTo[Try[Seq[ShippingPrice]]]
+              val result = (actor ? GetShippingPrices(currencyCode, transactionExtra, id)).mapTo[Try[Seq[ShippingPrice]]]
               val tryShippingPrices = Await.result(result, Duration.Inf)
               tryShippingPrices match {
                 case Success(shippingPrices) =>
@@ -198,8 +192,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
           session {
             session =>
               import mogopay.config.Implicits._
-              val message = Submit(session, submitParams, None, None)
-              val r = (actor ? message).mapTo[Try[(String, String)]]
+              val r = (actor ? Submit(session, submitParams, None, None)).mapTo[Try[(String, String)]]
               onComplete(r) {
                 case Failure(e) => complete(StatusCodes.InternalServerError)
                 case Success(ta) => {
@@ -209,9 +202,10 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         toHTTPResponse(t) -> Map('error -> t.toString)
                       }
                     case Success((serviceName, methodName)) =>
-                      val csrfToken = session.sessionData.csrfToken
-                      val sessionId = session.id
-                      killSession(session) {
+                      setSession(session) {
+                        val csrfToken = session.sessionData.csrfToken
+                        val sessionId = session.id
+                        println(s"SessionId=$sessionId")
                         val pipeline: Future[SendReceive] =
                           for (
                             Http.HostConnectorInfo(connector, _) <-
@@ -219,7 +213,8 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
                           ) yield sendReceive(connector)
                         //                    redirect(s"/pay/$serviceName/$methodName?csrf_token=${session.sessionData.csrfToken}", StatusCodes.TemporaryRedirect)
-                        val request = Get(s"/pay/$serviceName/$methodName?csrf_token=${csrfToken}") ~> addHeader(Cookie(HttpCookie(Settings.SessionCookieName, sessionId)))
+                        println(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
+                        val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val response = pipeline.flatMap(_(request))
                         onComplete(response) {
                           case Failure(t) => complete(toHTTPResponse(t), t.toString)

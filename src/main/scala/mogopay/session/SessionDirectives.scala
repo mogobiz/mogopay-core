@@ -27,11 +27,21 @@ trait SessionDirectives {
 
   def session: Directive[Session :: HNil] = headerValue {
     case Cookie(cookies) =>
+      val xx = cookies.find(_.name == Settings.SessionCookieName).map { cookie =>
+        println(cookie.name + "=" + cookie.content)
+        "Found"
+      }.getOrElse("NotFound")
+      println(xx)
+
       cookies.find(_.name == Settings.SessionCookieName) map { cookie =>
         sessionFromCookie(cookie)
       }
     case _ => None
-  } | provide(Session())
+  } | provide {
+    val session = Session()
+    backend.store(session)
+    session
+  }
 
   def optionalSession: Directive[Option[Session] :: HNil] =
     session.hmap(_.map(shapeless.option)) | provide(None)
@@ -50,6 +60,7 @@ trait SessionDirectives {
     Session(backend.load(cookie.content).map(_.data).getOrElse(Map.empty[String, Any]), cookie.expires, cookie.maxAge, cookie.domain, cookie.path, cookie.secure, cookie.httpOnly, cookie.extension)
 
   implicit def sessionToCookie(session: Session): HttpCookie = {
+    println("storing cokkie" + session.id)
     val res = HttpCookie(Settings.SessionCookieName, backend.store(session), session.expires, session.maxAge, session.domain, session.path, session.secure, session.httpOnly, session.extension)
     res
   }

@@ -308,18 +308,18 @@ class TransactionHandler {
       return Failure(new AccountDoesNotExistError)
     }
 
-    val tr: TransactionRequest = EsClient.load[TransactionRequest](transactionUUID).orNull
-    if (tr == null) {
+    val transactionRequest: TransactionRequest = EsClient.load[TransactionRequest](transactionUUID).orNull
+    if (transactionRequest == null) {
       return Failure(new TransactionNotFoundException)
     }
-    if (tr.amount != amount) {
+    if (transactionRequest.amount != amount) {
       return Failure(new UnexpectedAmountException)
     }
 
-    var transactionExtra = tr.extra.orNull
+    var transactionExtra = transactionRequest.extra.orNull
 
     val listShipping = sessionData.accountId.map { accountId =>
-      shippingPrices(tr.currency.code, transactionExtra, accountId)
+      shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
     } getOrElse (Success(Seq[ShippingPrice]()))
 
     var selectedShippingPrice: Option[ShippingPrice] = None
@@ -351,9 +351,9 @@ class TransactionHandler {
       transactionExtra = render(cart1).toString
     }
 
-    val transactionCurrency: TransactionCurrency = tr.currency
+    val transactionCurrency: TransactionCurrency = transactionRequest.currency
     //transactionRequestHandler.update(tr.copy(currency = null)) TODO: uncomment this
-    EsClient.delete[TransactionRequest](tr.uuid)
+    EsClient.delete[TransactionRequest](transactionRequest.uuid)
 
     val transaction: Option[BOTransaction] = EsClient.load[BOTransaction](transactionUUID)
     if (transaction.isDefined) return Failure(new BOTransactionNotFoundException)
@@ -401,7 +401,7 @@ class TransactionHandler {
       if (transactionType == "CREDIT_CARD") {
         // only credit card payments are supported through mogopay
         if (submit.params.customerCVV.nonEmpty) {
-          val paymentRequest = initPaymentRequest(vendor, transactionType, true, tr.tid,
+          val paymentRequest = initPaymentRequest(vendor, transactionType, true, transactionRequest.tid,
             transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
             submit.params.customerCVV.orNull, submit.params.ccNum.orNull, submit.params.ccMonth.orNull, submit.params.ccYear.orNull,
             submit.params.ccType.orNull)
@@ -421,7 +421,7 @@ class TransactionHandler {
                 // User submitted a password we authenticate him
                 // we redirect the user to authentication screen
                 // but we need first to recreate the transaction request
-                EsClient.index(tr, false)
+                EsClient.index(transactionRequest, false)
                 //forward(controller: "mogopay", action: "authenticate", params: params + [xtoken: sessionData.csrfToken])
                 //Success((build{ewSubmit(submit, newSession), "authenticate"))
                 Success(("mogopay", "authenticate"))
@@ -437,7 +437,7 @@ class TransactionHandler {
         return Failure(new NotACreditCardTransactionException)
       }
     } else {
-      val paymentRequest = initPaymentRequest(vendor, transactionType, false, tr.tid,
+      val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
         transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
         submit.params.customerCVV.orNull, submit.params.ccNum.orNull, submit.params.ccMonth.orNull, submit.params.ccYear.orNull,
         submit.params.ccType.orNull)
@@ -503,7 +503,7 @@ class TransactionHandler {
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
     var paymentProvider = CBPaymentProvider.NONE
-    var demande: PaymentRequest = PaymentRequest("-1", null, -1L, "", "",
+    var paymentRequest: PaymentRequest = PaymentRequest("-1", null, -1L, "", "",
       null, null, "", "", "", "", "", "",
       sessionData.csrfToken.orNull, transactionCurrency)
 
@@ -536,7 +536,7 @@ class TransactionHandler {
           return Failure(new SomeParameterIsMissingException(MogopayConstant.CreditCardExpiryDateInvalid))
         }
         else {
-          demande = demande.copy(
+          paymentRequest = paymentRequest.copy(
             cardType = cc_type,
             ccNumber = cc_num,
             expirationDate = cc_date,
@@ -546,13 +546,13 @@ class TransactionHandler {
       }
     }
 
-    demande = demande.copy(
+    paymentRequest = paymentRequest.copy(
       transactionEmail = transactionEmail,
       transactionExtra = transactionExtra,
       id = transactionSequence.toString,
       orderDate = new Date,
       amount = amount
     )
-    Success(demande)
+    Success(paymentRequest)
   }
 }

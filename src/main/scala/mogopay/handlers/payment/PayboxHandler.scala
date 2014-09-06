@@ -1,34 +1,214 @@
 package mogopay.handlers.payment
 
+import java.io.StringReader
+import java.net.URLDecoder
+import java.security.interfaces.RSAPublicKey
+import java.security.{Signature, NoSuchAlgorithmException, MessageDigest, Security}
 import java.text.SimpleDateFormat
 import java.util.Date
 
 import akka.actor.ActorSystem
+import akka.io.IO
+import akka.util.Timeout
 import mogopay.config.HandlersConfig._
 import mogopay.config.{Environment, Settings}
 import mogopay.es.EsClient
 import mogopay.handlers.UtilHandler
+import mogopay.model.Mogopay.CreditCardType.CreditCardType
+import mogopay.model.Mogopay.TransactionStatus
 import mogopay.model.Mogopay._
-import mogopay.util.{Sha512, GlobalUtil}
+import mogopay.util.{CustomSslConfiguration, Sha512, GlobalUtil}
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openssl.PEMReader
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
 import mogopay.util.GlobalUtil._
+import spray.can.Http
+import spray.can.Http.{HostConnectorInfo, HostConnectorSetup}
 import spray.http.{HttpResponse, Uri}
 import spray.http.Uri.Query
+import sun.misc.BASE64Decoder
+import akka.pattern.ask
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import spray.http._
 import spray.client.pipelining._
+import scala.concurrent.duration._
 
 import scala.util._
 
-class PayboxHandler extends PaymentHandler {
-  def done(data: SessionData, stringToString: Map[String, String]): Any = ???
+class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
+  implicit val timeout: Timeout = 30.seconds
 
-  def callbackPayment(stringToString: Map[String, String]): Any = ???
+  def verifySha1(data: String, sign: String, pemdata: String): Boolean = {
+    val Charset = "UTF-8"
+    val HashEncryptionAlgorithm = "SHA1withRSA"
 
-  def done3DSecureCheck(data: SessionData, stringToString: Map[String, String]): Any = ???
+    val decoder = new BASE64Decoder()
+    Security.addProvider(new BouncyCastleProvider())
+    val signature = decoder.decodeBuffer(URLDecoder.decode(sign, Charset))
+    try {
+      val md = MessageDigest.getInstance("SHA-1")
+      md.digest(data.getBytes(Charset))
+    } catch {
+      case e: NoSuchAlgorithmException => e.printStackTrace()
+    }
+    val reader = new StringReader(pemdata)
+    val pem = new PEMReader(reader)
+    val pubKey = pem.readObject().asInstanceOf[RSAPublicKey]
+    pem.close()
+    reader.close()
+    val sig = Signature.getInstance(HashEncryptionAlgorithm, "BC")
+    sig.initVerify(pubKey)
+    sig.update(data.getBytes(Charset))
+    sig.verify(signature)
+  }
+
+  def donePayment(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+    val transactionUuid = sessionData.transactionUuid.get
+    val vendorId = sessionData.vendorId.get
+    val transaction = EsClient.load[BOTransaction](transactionUuid).get
+    val amount = sessionData.amount
+    val paymentRequest = sessionData.paymentRequest.get
+    val errorUrl = sessionData.errorURL
+    val successUrl = sessionData.successURL
+    if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.PAYMENT_REFUSED) {
+      val signature = params.getOrElse("SIGNATURE", throw new Exception("Unexpected payment chain"))
+      val vendorAndUuid = params("REFERENCE")
+      val vendorAndUuidArray = vendorAndUuid.split("--")
+      val paramVendorId = vendorAndUuidArray(0)
+      val paramTransactionUuid = vendorAndUuidArray(1)
+      val ccNumber = if (params.getOrElse("CARTEDEBUT", null) != null) params("CARTEDEBUT") + "XXXXXXXX" + params("CARTEFIN") else "XXXXXXXX"
+      val simpleDateFormat = new SimpleDateFormat("ddMMyy")
+      val expirationDate = try {
+        simpleDateFormat.parse("01" + params("DATEFIN"))
+      }
+      catch {
+        case e: Exception =>
+          // The customer did not give his card number
+          null
+      }
+
+      //val ok = verifySha1()
+      val ok = paramTransactionUuid == transactionUuid && vendorId == paramVendorId
+      if (ok) {
+        val codeReponse = params("CODEREPONSE")
+        val bankErrorCode = if (codeReponse == "00000") "00" else if (codeReponse.startsWith("001")) codeReponse.substring(3) else ""
+        val paymentResult = PaymentResult(
+          id = paymentRequest.id,
+          orderDate = paymentRequest.orderDate,
+          amount = paymentRequest.amount,
+          ccNumber = ccNumber,
+          cardType = PayboxHandler.toCardType(params("CARTE")),
+          expirationDate = expirationDate,
+          cvv = "",
+          transactionId = transaction.uuid,
+          transactionDate = new Date(),
+          transactionCertificate = null,
+          authorizationId = null,
+          status = if (codeReponse == "00000") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
+          errorCodeOrigin = codeReponse,
+          errorMessageOrigin = Some(PayboxHandler.errorMessages(if (codeReponse.startsWith("001")) "001xx" else codeReponse)),
+          data = "",
+          bankErrorCode = bankErrorCode,
+          bankErrorMessage = Some(BankErrorCodes.getErrorMessage(bankErrorCode)),
+          token = ""
+        )
+        transactionHandler.finishPayment(vendorId, transactionUuid, if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, codeReponse)
+        Success(finishPayment(sessionData, paymentResult))
+      }
+      else {
+        Failure(throw new Exception("Invalid signature"))
+      }
+    }
+    else {
+      val paymentResult = PaymentResult(
+        id = paymentRequest.id,
+        orderDate = paymentRequest.orderDate,
+        amount = paymentRequest.amount,
+        ccNumber = "",
+        cardType = null,
+        expirationDate = null,
+        cvv = "",
+        transactionId = "",
+        transactionDate = null,
+        transactionCertificate = null,
+        authorizationId = null,
+        status = if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) PaymentStatus.COMPLETE else PaymentStatus.FAILED,
+        errorCodeOrigin = transaction.errorCodeOrigin.getOrElse(""),
+        errorMessageOrigin = transaction.errorMessageOrigin,
+        data = "",
+        bankErrorCode = "",
+        bankErrorMessage = Some(""),
+        token = ""
+      )
+      Success(finishPayment(sessionData, paymentResult))
+    }
+
+  }
+
+  def callbackPayment(sessionData: SessionData, stringToString: Map[String, String]): Try[Unit] = {
+    Success()
+  }
+
+  def done3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+    val statusPBX = params("StatusPBX")
+    val vendorAndUuid = params("IdSession")
+    val vendorAndUuidArray = vendorAndUuid.split("--")
+    val paramVendorId = vendorAndUuidArray(0)
+    val paramTransactionUuid = vendorAndUuidArray(1)
+    val transaction = EsClient.load[BOTransaction](paramTransactionUuid).get
+    val id3d = params("ID3D")
+    val transactionUuid = sessionData.transactionUuid.get
+    val vendorId = sessionData.vendorId.get
+
+    val paymentConfig = sessionData.paymentConfig.get
+    val paymentRequest = sessionData.paymentRequest.get
+    val ctxMode = if (Settings.environment == Environment.PROD) "PRODUCTION" else "TEST"
+    if (vendorId != paramVendorId || transactionUuid != paramTransactionUuid) {
+      Failure(new Exception("Invalid vendorid or transactionid"))
+    } else {
+      if (ctxMode == "TEST" || transaction.paymentData.status3DS == ResponseCode3DS.APPROVED) {
+        sessionData.id3d = Some(id3d)
+        startPayment(sessionData) match {
+          case Failure(t) => Failure(t)
+          case Success(Right(uri)) => Success(uri)
+          case Success(Left(form)) => Failure(new Exception("Unexpected payment chaining"))
+        }
+      } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
+        sessionData.id3d = Some("") /* empty string for id3d means fallback to 2DS */
+        startPayment(sessionData) match {
+          case Failure(t) => Failure(t)
+          case Success(Right(uri)) => Success(uri)
+          case Success(Left(form)) => Failure(new Exception("Unexpected payment chaining"))
+        }
+      } else {
+        val errorCode = "12"
+        val paymentResult = PaymentResult(
+          id = paymentRequest.id,
+          orderDate = paymentRequest.orderDate,
+          amount = paymentRequest.amount,
+          ccNumber = "",
+          cardType = null,
+          expirationDate = null,
+          cvv = "",
+          transactionId = "",
+          transactionDate = null,
+          transactionCertificate = null,
+          authorizationId = null,
+          status = null,
+          errorCodeOrigin = errorCode,
+          errorMessageOrigin = Some("ThreeDSecure required"),
+          data = "",
+          bankErrorCode = errorCode,
+          bankErrorMessage = Some(BankErrorCodes.getErrorMessage(errorCode)),
+          token = ""
+        )
+        Success(finishPayment(sessionData, paymentResult))
+      }
+    }
+  }
 
   def callback3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Try[Unit] = {
     val statusPBX = params("StatusPBX")
@@ -63,7 +243,13 @@ class PayboxHandler extends PaymentHandler {
     val paymentRequest = sessionData.paymentRequest.get
     val id3d = sessionData.id3d.getOrElse(null)
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-    val transaction = EsClient.load[BOTransaction](transactionUUID).get
+
+    val transaction =
+      if (id3d != null)
+        EsClient.load[BOTransaction](transactionUUID).get
+      else
+        transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
+
     val vendor = EsClient.load[Account](vendorId).get
 
     val context = if (Settings.environment == Environment.DEV) "TEST" else "PRODUCTION"
@@ -73,11 +259,11 @@ class PayboxHandler extends PaymentHandler {
       id = paymentRequest.id,
       orderDate = paymentRequest.orderDate,
       amount = paymentRequest.amount,
-      ccNumber = "",
-      cardType = null,
-      expirationDate = null,
-      cvv = "",
-      transactionId = "",
+      ccNumber = paymentRequest.ccNumber,
+      cardType = paymentRequest.cardType,
+      expirationDate = paymentRequest.expirationDate,
+      cvv = paymentRequest.cvv,
+      transactionId = transactionUUID,
       transactionDate = null,
       transactionCertificate = null,
       authorizationId = null,
@@ -106,8 +292,8 @@ class PayboxHandler extends PaymentHandler {
     val CCNumber = paymentRequest.ccNumber
     val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
     val CVVCode = paymentRequest.cvv
-    val URLRetour = Settings.MogopayEndPoint + "paybox/done3DSecureCheck"
-    val URLHttpDirect = Settings.MogopayEndPoint + "paybox/callback3DSecureCheck"
+    val URLRetour = s"${Settings.MogopayEndPoint}paybox/done-3ds"
+    val URLHttpDirect = s"${Settings.MogopayEndPoint}paybox/callback-3ds/${sessionData.uuid}"
     if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
       if (id3d == null && (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)) {
         val query = Map(
@@ -141,12 +327,13 @@ class PayboxHandler extends PaymentHandler {
                   </body>
               </html>
               """
+        // We redirect the user to the paybox payment form
         Success(Left(form))
       }
       else {
         val query = scala.collection.mutable.Map(
-          "NUMQUESTION" -> "idTransaction",
-          "REFERENCE=" -> IdSession,
+          "NUMQUESTION" -> String.format("%010d", paymentRequest.id.toInt.asInstanceOf[AnyRef]),
+          "REFERENCE" -> IdSession,
           "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date()),
           "DEVISE" -> currency.toString,
           "MONTANT" -> Amount,
@@ -163,10 +350,7 @@ class PayboxHandler extends PaymentHandler {
           "NUMAPPEL" -> "",
           "NUMTRANS" -> "",
           "AUTORISATION" -> "",
-          "PAYS=" -> "",
           "VERSION" -> (if (parametres("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
-
-
         if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED)
           query += "ID3D" -> id3d
         else if (id3d != "" && paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
@@ -174,8 +358,21 @@ class PayboxHandler extends PaymentHandler {
 
         val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
         EsClient.index(botlog, false)
-        val response: Future[HttpResponse] = pipeline(Post(Uri(Settings.PayboxWebEndPoint).withQuery(Query(query.toSeq: _*))))
-        val responseHttp = response
+
+        val uri = Uri(Settings.PayboxDirectEndPoint)
+        val host = uri.authority.host
+
+        val logRequest: HttpRequest => HttpRequest = { r => println(r); r }
+        val logResponse: HttpResponse => HttpResponse = { r => println(r); r }
+        val pipeline: Future[SendReceive] =
+          for (
+            Http.HostConnectorInfo(connector, _) <-
+            IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
+          ) yield logRequest ~> sendReceive(connector) ~> logResponse
+
+        val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query.toMap)))
+        val response = pipeline.flatMap(_(request))
+
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
 
         val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(tuples))
@@ -199,6 +396,7 @@ class PayboxHandler extends PaymentHandler {
             authorizationId = authorisation,
             transactionCertificate = null)
         }
+        // We redirect the user to the merchant website
         Success(Right(finishPayment(sessionData, paymentResult)))
       }
     }
@@ -209,35 +407,23 @@ class PayboxHandler extends PaymentHandler {
         "PBX_SITE" -> site,
         "PBX_RANG" -> rank,
         "PBX_IDENTIFIANT" -> key,
-        "PBX_TOTAL" -> String.format("%010d", paymentRequest.amount),
+        "PBX_TOTAL" -> String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef]),
         "PBX_DEVISE" -> paymentRequest.currency.numericCode,
-        "PBX_CMD" -> s"${
-          vendorId
-        }--${
-          transactionUUID
-        }",
+        "PBX_CMD" -> s"${vendorId}--${transactionUUID}",
         "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
         "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;STATUSTHREEDS:F;THREEDS:G;CARTEFIN:J;DATEFIN:D;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
-        "PBX_EFFECTUE" -> s"${
-          Settings.MogopayEndPoint
-        }paybox/done",
-        "PBX_REFUSE" -> s"${
-          Settings.MogopayEndPoint
-        }paybox/done",
-        "PBX_ANNULE" -> s"${
-          Settings.MogopayEndPoint
-        }paybox/done",
-        "PBX_REPONDRE_A" -> s"${
-          Settings.MogopayEndPoint
-        }paybox/callback")
+        "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
+        "PBX_REFUSE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
+        "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
+        "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback-payment/${sessionData.uuid}")
       val queryString = mapToQueryString(query.toMap)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
       EsClient.index(botlog, false)
       val action = Settings.PayboxSystemEndPoint
-      val amountString = String.format("%010d", paymentRequest.amount)
+      val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
 
 
       //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
@@ -260,20 +446,77 @@ class PayboxHandler extends PaymentHandler {
 		<INPUT TYPE="hidden" NAME ="PBX_RETOUR" VALUE = "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DATE_PAYBOX:W;HEURE_PAYBOX:Q;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_HASH" VALUE = "SHA512"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_TIME" VALUE = "${pbxtime}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_EFFECTUE" VALUE = "${Settings.MogopayEndPoint}paybox/done"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_REFUSE" VALUE = "${Settings.MogopayEndPoint}paybox/refuse"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_ANNULE" VALUE = "${Settings.MogopayEndPoint}paybox/cancel"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_REPONDRE_A" VALUE = "${Settings.MogopayEndPoint}paybox/callback"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_EFFECTUE" VALUE = "${query("PBX_EFFECTUE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_REFUSE" VALUE = "${query("PBX_REFUSE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_ANNULE" VALUE = "${query("PBX_ANNULE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_REPONDRE_A" VALUE = "${query("PBX_REPONDRE_A")}"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_HMAC" VALUE = "${hmac}"><br>
 	</FORM>
     	<script>document.getElementById("formpaybox").submit();</script>
     </body>
 </html>
 """
+      // We redirect the user to the payment server
       Success(Left(form))
     }
     else {
       Failure(throw new Exception("Invalid Paybox payment mode"))
     }
   }
+}
+
+object PayboxHandler {
+  val errorMessages = Map(
+    "00000" -> "Opération ré́ussie.",
+    "00016" -> "Abonné déjà existant (inscription nouvel abonné).",
+    "00001" -> "La connexion au centre d‟autorisation a échoué.",
+    "00017" -> "Abonné inexistant.",
+    "001xx" -> "Paiement refusé par le centre d‟autorisation",
+    "00018" -> "Transaction non trouvée.",
+    "00002" -> "Une erreur de cohérence est survenue.",
+    "00019" -> "Réservé.",
+    "00003" -> "Erreur Paybox.",
+    "00020" -> "Cryptogramme visuel non présent.",
+    "00004" -> "Numéro de porteur invalide.",
+    "00021" -> "Carte non autorisée.",
+    "00005" -> "Numéro de question invalide.",
+    "00022" -> "Réservé.",
+    "00006" -> "Accès refusé ou site / rang incorrect.",
+    "00023" -> "Réservé.",
+    "00007" -> "Date invalide.",
+    "00024" -> "Erreur de chargement de la clé ->Réservé Usage Futur.",
+    "00008" -> "Date de fin de validité incorrecte.",
+    "00025" -> "Signature manquante ->Réservé Usage Futur.",
+    "00009" -> "Type d‟opération invalide.",
+    "00026" -> "Clé manquante mais la signature est présente ->Réservé Usage Futur.",
+    "00010" -> "Devise inconnue.",
+    "00027" -> "Erreur OpenSSL durant la vérification de la signature ->Réservé Usage Futur.",
+    "00011" -> "Montant incorrect.",
+    "00028" -> "Signature invalide ->Réservé Usage Futur.",
+    "00012" -> "Référence commande invalide.",
+    "00097" -> "Timeout de connexion atteint.",
+    "00013" -> "Cette version n‟est plus soutenue.",
+    "00098" -> "Erreur de connexion interne.",
+    "00014" -> "Trame reçue incohérente.",
+    "00099" -> "Incohérence entre la question et la réponse. Refaire une nouvelle tentative ultérieurement.",
+    "00015" -> "Erreur d‟accès aux données précédemment référencées."
+  )
+
+  def toCardType(xtype: String): CreditCardType = {
+    val typ = if (xtype == null) "CB" else xtype.toUpperCase()
+    if (typ == "CB") {
+      return CreditCardType.CB
+    } else if (typ == "VISA") {
+      return CreditCardType.VISA
+    } else if (typ == "AMEX") {
+      return CreditCardType.AMEX
+    } else if (typ.indexOf("MASTERCARD") >= 0) {
+      return CreditCardType.MASTER_CARD
+    } else if (typ == "VISA_ELECTRON") {
+      return CreditCardType.VISA
+    } else {
+      return CreditCardType.CB
+    }
+  }
+
 }
