@@ -28,7 +28,7 @@ import scala.collection.mutable
 import scala.util._
 import mogopay.config.{Environment, Settings}
 
-class SystempayClient  {
+class SystempayClient {
   implicit val formats = new DefaultFormats {}
 
   def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
@@ -39,14 +39,14 @@ class SystempayClient  {
     val ctxMode = context
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
     var paymentResult: PaymentResult = PaymentResult(
-      id = paymentRequest.id,
+      transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
       amount = paymentRequest.amount,
       ccNumber = "",
       cardType = null,
       expirationDate = null,
       cvv = "",
-      transactionId = "",
+      gatewayTransactionId = "",
       transactionDate = null,
       transactionCertificate = null,
       authorizationId = null,
@@ -68,7 +68,7 @@ class SystempayClient  {
       val transDate: String = new SimpleDateFormat("yyyyMMddHHmmss").format(paymentRequest.orderDate)
       //      val xx: String = URLEncoder.encode(Settings.MogopayEndPoint + "systempay/done/" + paymentRequest.csrfToken, "UTF-8")
 
-      val url: String = Settings.Systempay.url
+      val url: String = Settings.Systempay.Url
       val vads_action_mode: String = "INTERACTIVE"
       val vads_amount: String = "" + paymentRequest.amount
       val vads_ctx_mode: String = context
@@ -83,9 +83,9 @@ class SystempayClient  {
       val vads_return_mode: String = "GET"
       val vads_site_id: String = shopId
       val vads_trans_date: String = transDate
-      val vads_trans_id: String = "%06d".format(paymentRequest.id.toLong)
+      val vads_trans_id: String = "%06d".format(paymentRequest.transactionSequence.toLong)
       val vads_url_return: String = Settings.MogopayEndPoint + "systempay/done"
-      val vads_version: String = Settings.Systempay.xversion
+      val vads_version: String = Settings.Systempay.Version
       val signature: String =
         SystempayUtilities.encode(Seq(
           vads_action_mode,
@@ -155,7 +155,7 @@ class SystempayClient  {
       payment.setShopId(shopId)
       payment.setTransmissionDate(xmlCalendar)
       payment.setContractNumber(contractNumber)
-      payment.setTransactionId("%06d".format(paymentRequest.id.toLong))
+      payment.setTransactionId("%06d".format(paymentRequest.transactionSequence.toLong))
       payment.setOrderId(transactionUUID)
       payment.setOrderInfo(vendorId + "-" + transactionUUID)
       payment.setAmount(paymentRequest.amount)
@@ -212,10 +212,10 @@ class SystempayClient  {
       val code: Int = info.getErrorCode
 
       paymentResult = paymentResult.copy(
-        transactionId = info.getTransactionId,
+        gatewayTransactionId = info.getTransactionId,
         transactionDate = payment.getTransmissionDate.toGregorianCalendar.getTime,
         transactionCertificate = null,
-        id = paymentRequest.id,
+        transactionSequence = paymentRequest.transactionSequence,
         amount = paymentRequest.amount,
         cardType = paymentRequest.cardType,
         ccNumber = paymentRequest.ccNumber,
@@ -240,7 +240,7 @@ class SystempayClient  {
     paymentResult
   }
 
-  def check3DSecure(sessionDataUuid:String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
+  def check3DSecure(sessionDataUuid: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException
@@ -412,7 +412,7 @@ class SystempayHandler extends PaymentHandler {
 
     val resultatPaiement: Try[PaymentResult] =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
-          handleResponse(params)
+        handleResponse(params)
       } else {
         Success(PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
@@ -474,7 +474,7 @@ class SystempayHandler extends PaymentHandler {
 
       pr = pr.copy(
         cvv = null,
-        transactionId = transaction.uuid,
+        gatewayTransactionId = transaction.uuid,
         transactionDate = new Date,
         status = if (params("vads_result") == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED
       )
@@ -491,7 +491,7 @@ class SystempayHandler extends PaymentHandler {
     }
   }
 
-  def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] =
+  def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
     if (!sessionData.waitFor3DS || sessionData.transactionUuid.isEmpty) {
       Failure(new Exception( """Not verified: sessionData.waitFor3DS || !sessionData.transactionUUID"""))
     } else {
@@ -548,8 +548,8 @@ class SystempayHandler extends PaymentHandler {
           Success(buildURL(errorURL, queryString))
       }
     }
+  }
 
-  private def buildURL(url: String, params: Map[String, String]) =
-    url + "?" + mapToQueryString(params)
+  private def buildURL(url: String, params: Map[String, String]) =  url + "?" + mapToQueryString(params)
 
 }

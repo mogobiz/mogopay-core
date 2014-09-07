@@ -82,7 +82,7 @@ class TransactionHandler {
       }
       transaction = transaction.copy(
         paymentData = transaction.paymentData.copy(
-          idCommandCB = Option(paymentRequest.id),
+          idCommandCB = Option(paymentRequest.transactionSequence),
           dateCommandCB = Option(paymentRequest.orderDate)
         )
       )
@@ -146,7 +146,7 @@ class TransactionHandler {
         val newTx = transaction.copy(
           status = newStatus,
           endDate = computeEndDate(newStatus),
-          transactionUUID = paymentResult.id,
+          transactionUUID = paymentResult.transactionSequence,
           authorizationId = paymentResult.authorizationId,
           errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
           errorMessageOrigin = paymentResult.errorMessageOrigin,
@@ -549,7 +549,7 @@ class TransactionHandler {
     paymentRequest = paymentRequest.copy(
       transactionEmail = transactionEmail,
       transactionExtra = transactionExtra,
-      id = transactionSequence.toString,
+      transactionSequence = transactionSequence.toString,
       orderDate = new Date,
       amount = amount
     )

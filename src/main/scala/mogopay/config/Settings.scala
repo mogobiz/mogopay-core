@@ -15,12 +15,6 @@ object Settings {
   val ServerPort = config.getInt("spray.port")
 
 
-  val PayboxMPIEndPoint =config.getString("paybox.mpiendpoint")
-  val PayboxSystemEndPoint =config.getString("paybox.systemendpoint")
-  val PayboxDirectEndPoint =config.getString("paybox.directendpoint")
-  val PayboxPEMFile =config.getString("paybox.pemfile")
-  val PayboxPBXPorteur =config.getString("paybox.pbxporteur")
-
   val AccountValidateMerchantPhone = config.getBoolean("account.validate.merchantphone")
   val AccountValidateMerchantEmail = config.getBoolean("account.validate.merchantemail")
   val AccountValidateCustomerPhone = config.getBoolean("account.validate.customerphone")
@@ -34,7 +28,6 @@ object Settings {
   val TransactionDuration = config.getInt("transaction.duration")
   val SelectForUpdate = config.getString("db.select.forupdate")
   val MaxQueryResults = config.getInt("maxQueryResults")
-  val SipsCertifDir = config.getString("sips.certif.dir")
   val sharedCustomers = false
   val EmailTemplatesDir = "emailtemplates/"
   val SecretKeysDir = "secretkeys/"
@@ -164,18 +157,43 @@ object Settings {
   }
 
   object Transaction {
-    val maxInactiveInterval = 300
+    val MaxInactiveInterval = 300
   }
 
-  object Systempay {
-    val xversion = "V2"
-    val url = "https://paiement.systempay.fr/vads-payment/"
+  object Payline {
+    val PaymentAction = config.getString("payline.paymentAction")
+    val PaymentMode = config.getString("payline.paymentMode")
+    val LanguageCode = config.getString("payline.languageCode")
+    val SecurityMode = config.getString("payline.securityMode")
+    val Version = config.getString("payline.xversion")
+    val DirectEndPoint = config.getString("payline.directendpoint")
+    val WebEndPoint = config.getString("payline.webendpoint")
   }
 
   object PayPal {
-    val urlExpresschout = "https://www.sandbox.paypal.com/webscr"
-    val urlNvpApi = "https://api-3t.sandbox.paypal.com/nvp"
-    val paypalVersion = "78"
+    val UrlExpresschout = config.getString("paypal.urlExpresschout")
+    val UrlNvpApi = config.getString("paypal.urlNvpApi")
+    val Version = config.getString("paypal.xversion")
+  }
+
+  object Paybox {
+    val MPIEndPoint = config.getString("paybox.mpiendpoint")
+    val SystemEndPoint = config.getString("paybox.systemendpoint")
+    val DirectEndPoint = config.getString("paybox.directendpoint")
+    val PEMFile = config.getString("paybox.pemfile")
+    val PBXPorteur = config.getString("paybox.pbxporteur")
+
+  }
+
+  object Systempay {
+    val Version = "V2"
+    val Url = "https://paiement.systempay.fr/vads-payment/"
+  }
+
+  object Sips {
+    val CertifDir = config.getString("sips.certif.dir")
+    val PathFile = config.getString("sips.pathfile")
+
   }
 
   require(ApplicationSecret.nonEmpty, "application.secret must be non-empty")
@@ -185,7 +203,7 @@ object Settings {
   require(0 < Port && Port < 65536, "illegal port")
   require(applicationUIURL.endsWith("/"), "applicationUIURL must end with a '/'.")
   require(MogopayEndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
-  require(SipsCertifDir.endsWith("/"), "SipsCertifDir must end with a '/'.")
+  require(Sips.CertifDir.endsWith("/"), "SipsCertifDir must end with a '/'.")
 }
 
 object Environment extends Enumeration {

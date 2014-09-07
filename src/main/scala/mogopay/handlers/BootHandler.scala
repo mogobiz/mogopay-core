@@ -468,7 +468,7 @@ __FIN__*/
   }
 
   private def getCertifDir(merchant: Account): File = {
-    new File(Settings.SipsCertifDir + merchant.uuid.toString)
+    new File(Settings.Sips.CertifDir + merchant.uuid.toString)
   }
 }
 

@@ -56,7 +56,7 @@ class PayPalHandler extends PaymentHandler {
           Failure(new MogopayError(MogopayConstant.PaypalTokenError))
         } else {
           sessionData.token = token
-          Success(Uri(Settings.PayPal.urlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token.get)))
+          Success(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token.get)))
         }
     }
   }
@@ -77,13 +77,13 @@ class PayPalHandler extends PaymentHandler {
         "USER" -> user,
         "PWD" -> password,
         "SIGNATURE" -> signature,
-        "VERSION" -> Settings.PayPal.paypalVersion,
+        "VERSION" -> Settings.PayPal.Version,
         "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
         "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount.toDouble.asInstanceOf[AnyRef]),
         "PAYMENTREQUEST_0_CURRENCYCODE" -> paymentRequest.currency.code,
         "RETURNURL" -> successURL,
         "CANCELURL" -> failureURL)
-      val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.urlNvpApi).withQuery(query)))
+      val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(query)))
       val tuples = fromHttResponse(response)
       val res = tuples map { tuples =>
         tuples.get("ACK") flatMap { ack =>
@@ -155,9 +155,9 @@ class PayPalHandler extends PaymentHandler {
       "USER" -> user,
       "PWD" -> password,
       "SIGNATURE" -> signature,
-      "VERSION" -> Settings.PayPal.paypalVersion,
+      "VERSION" -> Settings.PayPal.Version,
       "TOKEN" -> token)
-    val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.urlNvpApi).withQuery(query)))
+    val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(query)))
     val tuples = GlobalUtil.fromHttResponse(response)
     val res = tuples map { tuples =>
       tuples.get("ACK") flatMap { ack =>
@@ -186,14 +186,14 @@ class PayPalHandler extends PaymentHandler {
         val signature = parameters("paypalSignature")
 
         val paymentResult = PaymentResult(
-          id = infosPaiement.id,
+          transactionSequence = infosPaiement.transactionSequence,
           orderDate = infosPaiement.orderDate,
           amount = infosPaiement.amount,
           ccNumber = infosPaiement.ccNumber,
           cardType = infosPaiement.cardType,
           expirationDate = infosPaiement.expirationDate,
           cvv = infosPaiement.cvv,
-          transactionId = transactionUUID,
+          gatewayTransactionId = transactionUUID,
           transactionDate = null,
           transactionCertificate = null,
           authorizationId = null,
@@ -210,7 +210,7 @@ class PayPalHandler extends PaymentHandler {
           "USER" -> user,
           "PWD" -> password,
           "SIGNATURE" -> signature,
-          "VERSION" -> Settings.PayPal.paypalVersion,
+          "VERSION" -> Settings.PayPal.Version,
           "METHOD" -> "DoExpressCheckoutPayment",
           "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
           "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", infosPaiement.amount.toDouble.asInstanceOf[AnyRef]),
@@ -227,7 +227,7 @@ class PayPalHandler extends PaymentHandler {
         )
         boTransactionLogHandler.save(bot1)
 
-        val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.urlNvpApi).withQuery(Query(paramMap))))
+        val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(Query(paramMap))))
         val tuples = fromHttResponse(response)
         val res = tuples map { tuples =>
           val bot2 = BOTransactionLog(
@@ -247,7 +247,7 @@ class PayPalHandler extends PaymentHandler {
             val updatedPaymentResult = paymentResult.copy(
               status = PaymentStatus.COMPLETE,
               transactionDate = c2.getTime(),
-              transactionId = transactionId,
+              gatewayTransactionId = transactionId,
               transactionCertificate = null
             )
             transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack)

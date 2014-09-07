@@ -760,7 +760,7 @@ class AccountHandler {
         .map(_.asInstanceOf[Map[String, String]])
       val paymentProviderParam = basePaymentProviderParam.map {
         ppp =>
-          val dir = new File(Settings.SipsCertifDir, account.uuid)
+          val dir = new File(Settings.Sips.CertifDir, account.uuid)
           dir.mkdirs
           val targetFile = new File(dir, "certif.fr." + ppp.get("sipsMerchantId"))
 

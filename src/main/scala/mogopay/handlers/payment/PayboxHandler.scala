@@ -94,14 +94,14 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
         val codeReponse = params("CODEREPONSE")
         val bankErrorCode = if (codeReponse == "00000") "00" else if (codeReponse.startsWith("001")) codeReponse.substring(3) else ""
         val paymentResult = PaymentResult(
-          id = paymentRequest.id,
+          transactionSequence = paymentRequest.transactionSequence,
           orderDate = paymentRequest.orderDate,
           amount = paymentRequest.amount,
           ccNumber = ccNumber,
           cardType = PayboxHandler.toCardType(params("CARTE")),
           expirationDate = expirationDate,
           cvv = "",
-          transactionId = transaction.uuid,
+          gatewayTransactionId = transaction.uuid,
           transactionDate = new Date(),
           transactionCertificate = null,
           authorizationId = null,
@@ -122,14 +122,14 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
     }
     else {
       val paymentResult = PaymentResult(
-        id = paymentRequest.id,
+        transactionSequence = paymentRequest.transactionSequence,
         orderDate = paymentRequest.orderDate,
         amount = paymentRequest.amount,
         ccNumber = "",
         cardType = null,
         expirationDate = null,
         cvv = "",
-        transactionId = "",
+        gatewayTransactionId = "",
         transactionDate = null,
         transactionCertificate = null,
         authorizationId = null,
@@ -184,14 +184,14 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
       } else {
         val errorCode = "12"
         val paymentResult = PaymentResult(
-          id = paymentRequest.id,
+          transactionSequence = paymentRequest.transactionSequence,
           orderDate = paymentRequest.orderDate,
           amount = paymentRequest.amount,
           ccNumber = "",
           cardType = null,
           expirationDate = null,
           cvv = "",
-          transactionId = "",
+          gatewayTransactionId = "",
           transactionDate = null,
           transactionCertificate = null,
           authorizationId = null,
@@ -254,14 +254,14 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
     val ctxMode = context
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
     var paymentResult: PaymentResult = PaymentResult(
-      id = paymentRequest.id,
+      transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
       amount = paymentRequest.amount,
       ccNumber = paymentRequest.ccNumber,
       cardType = paymentRequest.cardType,
       expirationDate = paymentRequest.expirationDate,
       cvv = paymentRequest.cvv,
-      transactionId = transactionUUID,
+      gatewayTransactionId = transactionUUID,
       transactionDate = null,
       transactionCertificate = null,
       authorizationId = null,
@@ -282,7 +282,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
     //      val xx: String = URLEncoder.encode(Settings.MogopayEndPoint + "systempay/done/" + paymentRequest.csrfToken, "UTF-8")
 
 
-    val action = Settings.PayboxMPIEndPoint
+    val action = Settings.Paybox.MPIEndPoint
     val IdMerchant = idMerchant
     val IdSession = vendorId + "--" + transactionUUID
     val Amount = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
@@ -330,7 +330,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
       }
       else {
         val query = scala.collection.mutable.Map(
-          "NUMQUESTION" -> String.format("%010d", paymentRequest.id.toInt.asInstanceOf[AnyRef]),
+          "NUMQUESTION" -> String.format("%010d", paymentRequest.transactionSequence.toInt.asInstanceOf[AnyRef]),
           "REFERENCE" -> IdSession,
           "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date()),
           "DEVISE" -> currency.toString,
@@ -357,7 +357,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
         val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
         EsClient.index(botlog, false)
 
-        val uri = Uri(Settings.PayboxDirectEndPoint)
+        val uri = Uri(Settings.Paybox.DirectEndPoint)
         val host = uri.authority.host
 
         val logRequest: HttpRequest => HttpRequest = { r => println(r); r }
@@ -390,7 +390,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
           paymentResult = paymentResult.copy(
             status = PaymentStatus.COMPLETE,
             transactionDate = new Date(),
-            transactionId = transaction,
+            gatewayTransactionId = transaction,
             authorizationId = authorisation,
             transactionCertificate = null)
         }
@@ -421,7 +421,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
       EsClient.index(botlog, false)
-      val action = Settings.PayboxSystemEndPoint
+      val action = Settings.Paybox.SystemEndPoint
       val query = queryList.toMap
 
       //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???

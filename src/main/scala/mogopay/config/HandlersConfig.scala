@@ -1,6 +1,6 @@
 package mogopay.config
 
-import com.ebiznext.mogopay.payment.SipsPaymentHandler
+import com.ebiznext.mogopay.payment.SipsHandler
 import mogopay.handlers._
 import mogopay.handlers.payment._
 import mogopay.handlers.shipping._
@@ -25,8 +25,9 @@ object HandlersConfig {
 
   val kialaShippingHandler = new KialaShippingHandler
   val systempayHandler = new SystempayHandler
-  val sipsHandler = new SipsPaymentHandler
+  val sipsHandler = new SipsHandler
   val payPalHandler = new PayPalHandler
+  val paylineHandler = new PaylineHandler
   val userHandler = new UserHandler
   val payboxHandler = new PayboxHandler
 }

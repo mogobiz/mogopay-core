@@ -57,14 +57,14 @@ object GlobalUtil {
   }
   def createThreeDSNotEnrolledResult(): PaymentResult = {
     PaymentResult(
-      id = newUUID,
+      transactionSequence = newUUID,
       orderDate = null,
       amount = -1L,
       ccNumber = "",
       cardType = null,
       expirationDate = null,
       cvv = "",
-      transactionId = "",
+      gatewayTransactionId = "",
       transactionDate = null,
       transactionCertificate = "",
       authorizationId = "",

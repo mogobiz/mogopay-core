@@ -395,14 +395,14 @@ object Mogopay {
   case class CancelRequest(id:String, currency : TransactionCurrency)
 
   case class CancelResult(id:String, status : PaymentStatus, errorCodeOrigin : String, errorMessageOrigin : Option[String])
-  case class PaymentResult(id: String,
+  case class PaymentResult(transactionSequence: String,
                            orderDate: Date,
                            amount: Long,
                            ccNumber: String,
                            cardType: CreditCardType,
                            expirationDate: Date,
                            cvv: String,
-                           transactionId: String,
+                           gatewayTransactionId: String,
                            transactionDate: Date,
                            transactionCertificate: String,
                            authorizationId: String,
@@ -414,7 +414,7 @@ object Mogopay {
                            bankErrorMessage: Option[String],
                            token: String)
 
-  case class PaymentRequest(id: String,
+  case class PaymentRequest(transactionSequence: String,
                             orderDate: Date,
                             amount: Long,
                             ccNumber: String,
