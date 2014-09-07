@@ -34,7 +34,7 @@ object Settings {
   val TransactionDuration = config.getInt("transaction.duration")
   val SelectForUpdate = config.getString("db.select.forupdate")
   val MaxQueryResults = config.getInt("maxQueryResults")
-  val SipsCertifDir = "/data/mogopay/sips/paramtest/"
+  val SipsCertifDir = config.getString("sips.certif.dir")
   val sharedCustomers = false
   val EmailTemplatesDir = "emailtemplates/"
   val SecretKeysDir = "secretkeys/"

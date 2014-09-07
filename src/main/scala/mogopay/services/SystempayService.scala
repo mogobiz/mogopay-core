@@ -90,7 +90,7 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
     get {
       parameterMap {
         params =>
-          val message = HandleResponse(params)
+          val message = CallbackPayment(params)
           onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
             case Failure(t) => complete(StatusCodes.InternalServerError)
             case Success(r) =>

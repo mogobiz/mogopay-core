@@ -24,9 +24,7 @@ import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
 import mogopay.util.GlobalUtil._
 import spray.can.Http
-import spray.can.Http.{HostConnectorInfo, HostConnectorSetup}
 import spray.http.{HttpResponse, Uri}
-import spray.http.Uri.Query
 import sun.misc.BASE64Decoder
 import akka.pattern.ask
 
@@ -290,11 +288,11 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
     val Amount = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
     val XCurrency = currency.toString
     val CCNumber = paymentRequest.ccNumber
-    val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
     val CVVCode = paymentRequest.cvv
     val URLRetour = s"${Settings.MogopayEndPoint}paybox/done-3ds"
     val URLHttpDirect = s"${Settings.MogopayEndPoint}paybox/callback-3ds/${sessionData.uuid}"
     if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
+      val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
       if (id3d == null && (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)) {
         val query = Map(
           "IdMerchant=" -> idMerchant,
@@ -403,28 +401,28 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
     else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
       val hmackey = idMerchant
       val pbxtime = ISODateTimeFormat.dateTimeNoMillis().print(org.joda.time.DateTime.now())
-      val query = scala.collection.mutable.Map(
+      val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
+      val queryList = List(
         "PBX_SITE" -> site,
         "PBX_RANG" -> rank,
         "PBX_IDENTIFIANT" -> key,
-        "PBX_TOTAL" -> String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef]),
-        "PBX_DEVISE" -> paymentRequest.currency.numericCode,
+        "PBX_TOTAL" -> amountString,
+        "PBX_DEVISE" -> s"${paymentRequest.currency.numericCode}",
         "PBX_CMD" -> s"${vendorId}--${transactionUUID}",
         "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
-        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;STATUSTHREEDS:F;THREEDS:G;CARTEFIN:J;DATEFIN:D;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
+        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:S;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DATE_PAYBOX:W;HEURE_PAYBOX:Q;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
         "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
         "PBX_REFUSE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
         "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
         "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback-payment/${sessionData.uuid}")
-      val queryString = mapToQueryString(query.toMap)
+      val queryString = mapToQueryString(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
       EsClient.index(botlog, false)
       val action = Settings.PayboxSystemEndPoint
-      val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
-
+      val query = queryList.toMap
 
       //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
       //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
@@ -438,14 +436,14 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
 	<FORM id="formpaybox" ACTION = "${action}" METHOD="POST">
 	  <INPUT TYPE="hidden" NAME ="PBX_SITE" VALUE = "${site}"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_RANG" VALUE = "${rank}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_IDENTIFIANT" VALUE = "${key}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_TOTAL" VALUE = "${amountString}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_DEVISE" VALUE = "${paymentRequest.currency.numericCode}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_CMD" VALUE = "${vendorId + "--" + transactionUUID}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_PORTEUR" VALUE = "${transaction.email.getOrElse(vendor.email)}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_RETOUR" VALUE = "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DATE_PAYBOX:W;HEURE_PAYBOX:Q;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_IDENTIFIANT" VALUE =  "${key}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_TOTAL" VALUE = "${query("PBX_TOTAL")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_DEVISE" VALUE = "${query("PBX_DEVISE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_CMD" VALUE = "${query("PBX_CMD")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_PORTEUR" VALUE = "${query("PBX_PORTEUR")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_RETOUR" VALUE = "${query("PBX_RETOUR")}"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_HASH" VALUE = "SHA512"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_TIME" VALUE = "${pbxtime}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_TIME" VALUE = "${query("PBX_TIME")}"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_EFFECTUE" VALUE = "${query("PBX_EFFECTUE")}"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_REFUSE" VALUE = "${query("PBX_REFUSE")}"><br>
 		<INPUT TYPE="hidden" NAME ="PBX_ANNULE" VALUE = "${query("PBX_ANNULE")}"><br>

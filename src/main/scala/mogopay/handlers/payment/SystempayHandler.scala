@@ -17,6 +17,7 @@ import mogopay.es.EsClient
 import mogopay.exceptions.Exceptions.{BOTransactionNotFoundException, MogopayError}
 import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.TransactionStatus._
+import mogopay.util.GlobalUtil
 import mogopay.util.GlobalUtil._
 import org.json4s.{StringInput, DefaultFormats}
 import org.json4s.jackson.JsonMethods._
@@ -250,7 +251,7 @@ class SystempayClient  {
     val certificat: String = parametres("systempayCertificate")
 
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.VERIFICATION_THREEDS, null)
-    var result: ThreeDSResult = ThreeDSResult(code = ResponseCode3DS.ERROR, url = null, methode = null, mdName = null,
+    var result: ThreeDSResult = ThreeDSResult(code = ResponseCode3DS.ERROR, url = null, method = null, mdName = null,
       mdValue = null, pareqName = null, pareqValue = null, termUrlName = null, termUrlValue = null)
     val context = if (Settings.environment == Environment.DEV) "TEST" else "PRODUCTION"
     val browserUserAgent = ""
@@ -305,7 +306,7 @@ class SystempayClient  {
           termUrlName = "TermUrl",
           termUrlValue = s"${Settings.MogopayEndPoint}systempay/3ds-callback/${sessionDataUuid}",
           url = acsURL,
-          methode = "POST"
+          method = "POST"
         )
 
         val form = s"""
@@ -314,7 +315,7 @@ class SystempayClient  {
           </head>
           <body>
             Redirection vers la banque en cours...
-            <form id="formpay" action="${result.url}" method="${result.methode}" >
+            <form id="formpay" action="${result.url}" method="${result.method}" >
             <input type="hidden" name="${result.pareqName}" value="${result.pareqValue}" />
             <input type="hidden" name="${result.termUrlName}" value="${result.termUrlValue}" />
             <input type="hidden" name="${result.mdName}" value="${result.mdValue}" />
@@ -338,6 +339,7 @@ class SystempayClient  {
 
 class SystempayHandler extends PaymentHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
+  val systempayClient = new SystempayClient
 
   /**
    * Right for a redirect, Left for a complete
@@ -359,17 +361,17 @@ class SystempayHandler extends PaymentHandler {
       var threeDSResult: ThreeDSResult = null
 
       if (sessionData.mogopay) {
-        val paymentResult = systempayPaymentHandler.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
         Success(Right(finishPayment(sessionData, paymentResult)))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val paymentResult = systempayPaymentHandler.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
         if (paymentResult.data.nonEmpty) {
           Success(Left(paymentResult.data))
         } else {
           Success(Right(finishPayment(sessionData, paymentResult)))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
-        threeDSResult = systempayPaymentHandler.check3DSecure(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest)
+        threeDSResult = systempayClient.check3DSecure(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest)
 
         if (Option(threeDSResult).map(_.code) == Some(ResponseCode3DS.APPROVED)) {
           sessionData.waitFor3DS = true
@@ -379,7 +381,7 @@ class SystempayHandler extends PaymentHandler {
               </head>
               <body>
                 Redirection vers la banque en cours...
-                <form id="formpay" action="${threeDSResult.url}" method="${threeDSResult.methode}" >
+                <form id="formpay" action="${threeDSResult.url}" method="${threeDSResult.method}" >
                 <input type="hidden" name="${threeDSResult.pareqName}" value="${threeDSResult.pareqValue}" />
                 <input type="hidden" name="${threeDSResult.termUrlName}" value="${threeDSResult.termUrlValue}" />
                 <input type="hidden" name="${threeDSResult.mdName}" value="${threeDSResult.mdValue}" />
@@ -389,13 +391,13 @@ class SystempayHandler extends PaymentHandler {
             </html>"""
           Success(Left(form))
         } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
-          val paymentResult = systempayPaymentHandler.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+          val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
           Success(Right(finishPayment(sessionData, paymentResult)))
         } else {
-          Success(Right(finishPayment(sessionData, createThreeDSNotEnrolledResult())))
+          Success(Right(finishPayment(sessionData, GlobalUtil.createThreeDSNotEnrolledResult())))
         }
       } else {
-        val paymentResult = systempayPaymentHandler.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
         Success(Right(finishPayment(sessionData, paymentResult)))
       }
     }
@@ -410,12 +412,7 @@ class SystempayHandler extends PaymentHandler {
 
     val resultatPaiement: Try[PaymentResult] =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
-        try {
           handleResponse(params)
-        }
-        catch {
-          case e: Throwable => Failure(e)
-        }
       } else {
         Success(PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
@@ -433,7 +430,11 @@ class SystempayHandler extends PaymentHandler {
     }
   }
 
-  def handleResponse(params: Map[String, String]): Try[PaymentResult] = {
+  def callbackPayment(params: Map[String, String]): Try[PaymentResult] = {
+    handleResponse(params)
+  }
+
+  private def handleResponse(params: Map[String, String]): Try[PaymentResult] = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -536,7 +537,7 @@ class SystempayHandler extends PaymentHandler {
           val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
           Success(buildURL(errorURL, map))
         } else if ("Y" == status || "A" == status) {
-          val resultatPaiement = systempayPaymentHandler.submit(vendorId, transactionUUID, paymentConfig, newPReq)
+          val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
           Success(finishPayment(sessionData, resultatPaiement))
         } else {
           Failure(new Exception())
@@ -551,26 +552,4 @@ class SystempayHandler extends PaymentHandler {
   private def buildURL(url: String, params: Map[String, String]) =
     url + "?" + mapToQueryString(params)
 
-  private def createThreeDSNotEnrolledResult(): PaymentResult = {
-    PaymentResult(
-      id = newUUID,
-      orderDate = null,
-      amount = -1L,
-      ccNumber = "",
-      cardType = null,
-      expirationDate = null,
-      cvv = "",
-      transactionId = "",
-      transactionDate = null,
-      transactionCertificate = "",
-      authorizationId = "",
-      status = PaymentStatus.FAILED,
-      errorCodeOrigin = "12",
-      errorMessageOrigin = Some("ThreeDSecure required"),
-      data = "",
-      bankErrorCode = "12",
-      bankErrorMessage = Some(BankErrorCodes.getErrorMessage("12")),
-      token = ""
-    )
-  }
 }
