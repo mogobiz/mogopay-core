@@ -64,22 +64,20 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
 
   lazy val done = path("done") {
     import mogopay.config.Implicits._
-    post {
-      post {
-        entity(as[FormData]) { formData =>
-          session { session =>
-            println("done:" + session.sessionData.uuid)
-            val message = Done(session.sessionData, formData.fields.toMap)
-            onComplete((actor ? message).mapTo[Try[Uri]]) {
-              case Failure(t) => complete(StatusCodes.InternalServerError)
-              case Success(r) =>
-                setSession(session) {
-                  r match {
-                    case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-                    case Success(x) => redirect(x, StatusCodes.TemporaryRedirect)
-                  }
+    get {
+      parameterMap { params =>
+        session { session =>
+          println("done:" + session.sessionData.uuid)
+          val message = Done(session.sessionData, params)
+          onComplete((actor ? message).mapTo[Try[Uri]]) {
+            case Failure(t) => complete(StatusCodes.InternalServerError)
+            case Success(r) =>
+              setSession(session) {
+                r match {
+                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+                  case Success(x) => redirect(x, StatusCodes.TemporaryRedirect)
                 }
-            }
+              }
           }
         }
       }
@@ -88,11 +86,10 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
 
 
   lazy val callback = path("callback" / Segment) { vendorUuid =>
-    post {
-      entity(as[FormData]) { formData =>
-        import mogopay.config.Implicits._
-        params =>
-          val message = CallbackPayment(formData.fields.toMap, vendorUuid)
+    import mogopay.config.Implicits._
+    get {
+      parameterMap { params =>
+          val message = CallbackPayment(params, vendorUuid)
           onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
             case Failure(t) => complete(StatusCodes.InternalServerError)
             case Success(r) =>
@@ -107,12 +104,11 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
   }
 
   lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
-    post {
-      entity(as[FormData]) { formData =>
-        import mogopay.config.Implicits._
-        import mogopay.config.Implicits.MogopaySession
+    import mogopay.config.Implicits._
+    get {
+      parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        val message = ThreeDSCallback(session.sessionData, formData.fields.toMap)
+        val message = ThreeDSCallback(session.sessionData, params)
         onComplete((actor ? message).mapTo[Try[Uri]]) {
           case Failure(t) => complete(StatusCodes.InternalServerError)
           case Success(data) =>
