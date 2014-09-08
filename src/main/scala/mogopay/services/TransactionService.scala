@@ -153,8 +153,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
     get {
       val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
       params { (secret, amount, transactionUUID) =>
-        val message = Verify(secret, amount, transactionUUID)
-        val res = (actor ? message).mapTo[Try[BOTransaction]]
+        val res = (actor ? Verify(secret, amount, transactionUUID)).mapTo[Try[BOTransaction]]
         onComplete(res) { transaction =>
           transaction match {
             case Failure(t) => complete(StatusCodes.InternalServerError)

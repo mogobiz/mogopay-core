@@ -203,7 +203,6 @@ object Settings {
   require(0 < Port && Port < 65536, "illegal port")
   require(applicationUIURL.endsWith("/"), "applicationUIURL must end with a '/'.")
   require(MogopayEndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
-  require(Sips.CertifDir.endsWith("/"), "SipsCertifDir must end with a '/'.")
 }
 
 object Environment extends Enumeration {

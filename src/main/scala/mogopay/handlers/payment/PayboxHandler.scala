@@ -343,11 +343,11 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
           "PORTEUR" -> CCNumber,
           "DATEVAL" -> CCExpDate,
           "CVV" -> CVVCode,
-          "ARCHIVAGE" -> "",
           "DIFFERE" -> "000",
-          "NUMAPPEL" -> "",
-          "NUMTRANS" -> "",
-          "AUTORISATION" -> "",
+//          "ARCHIVAGE" -> "",
+//          "NUMAPPEL" -> "",
+//          "NUMTRANS" -> "",
+//          "AUTORISATION" -> "",
           "VERSION" -> (if (parametres("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
         if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED)
           query += "ID3D" -> id3d
@@ -394,6 +394,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
             authorizationId = authorisation,
             transactionCertificate = null)
         }
+        transactionHandler.finishPayment(vendorId, transactionUUID, if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, errorCode)
         // We redirect the user to the merchant website
         Success(Right(finishPayment(sessionData, paymentResult)))
       }
@@ -410,13 +411,14 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
         "PBX_DEVISE" -> s"${paymentRequest.currency.numericCode}",
         "PBX_CMD" -> s"${vendorId}--${transactionUUID}",
         "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
-        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:S;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DATE_PAYBOX:W;HEURE_PAYBOX:Q;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
+        "PBX_RETOUR" ->   "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
         "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
         "PBX_REFUSE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
         "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
-        "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback-payment/${sessionData.uuid}")
+        "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback-payment/${sessionData.uuid}"
+      )
       val queryString = mapToQueryString(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
