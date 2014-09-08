@@ -31,7 +31,7 @@ class NotificationHandler {
       )
     }
     // We delete the existing device if any && upsert
-    EsClient.update(device)
+    EsClient.update(device, true, false)
   }
 
   def unregister(storeCode: String, regId: String): Boolean = {
@@ -42,7 +42,7 @@ class NotificationHandler {
       )
     }
     val devices = EsClient.search[Device](req)
-    devices.foreach(d => EsClient.delete[Device](d.uuid))
+    devices.foreach(d => EsClient.delete[Device](d.uuid, false))
     true
   }
 

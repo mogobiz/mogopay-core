@@ -44,17 +44,6 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
     pathPrefix(serviceName) {
       searchByCustomer ~
         init ~
-        path("test") {
-          get {
-            session { session =>
-              setSession(session) {
-                complete {
-                  "hello"
-                }
-              }
-            }
-          }
-        } ~
         listShipping ~
         selectShipping ~
         verify ~

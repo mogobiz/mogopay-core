@@ -353,7 +353,7 @@ class TransactionHandler {
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
     //transactionRequestHandler.update(tr.copy(currency = null)) TODO: uncomment this
-    EsClient.delete[TransactionRequest](transactionRequest.uuid)
+    EsClient.delete[TransactionRequest](transactionRequest.uuid, false)
 
     val transaction: Option[BOTransaction] = EsClient.load[BOTransaction](transactionUUID)
     if (transaction.isDefined) return Failure(new BOTransactionNotFoundException)

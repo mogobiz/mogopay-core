@@ -45,7 +45,7 @@ class LoginException(msg: String) extends Exception(msg)
 class AccountHandler {
   import Token._
 
-  def update(account: Account) = EsClient.update(account)
+  def update(account: Account) = EsClient.update(account, true, false)
 
   def findByEmail(email: String): Option[Account] = {
     val req = search in Settings.DB.INDEX types "Account" limit 1 from 0 filter {
@@ -145,11 +145,11 @@ class AccountHandler {
         else if (userAccount.status == AccountStatus.INACTIVE)
           Failure(new InactiveAccountException)
         else if (userAccount.password != new Sha256Hash(password).toString) {
-          EsClient.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1))
+          EsClient.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true)
           Failure(new InvalidPasswordErrorException)
         } else {
           val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
-          EsClient.update(userAccountToIndex)
+          EsClient.update(userAccountToIndex, false, true)
           Success(userAccountToIndex.copy(password = ""))
         }
       }.getOrElse(Failure(new AccountDoesNotExistError))
@@ -1062,7 +1062,7 @@ class AccountHandler {
     } filter {
       termFilter("status", AccountStatus.WAITING_ENROLLMENT)
     }
-    EsClient.searchAllRaw(req) map (_.getId) foreach (EsClient.delete[Account](_))
+    EsClient.searchAllRaw(req) map (_.getId) foreach (EsClient.delete[Account](_, false))
   }
 
   def enroll(accountId: String, lPhone: String, pinCode: String): Try[Unit] = {

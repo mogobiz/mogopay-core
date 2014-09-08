@@ -10,7 +10,7 @@ import mogopay.model.Mogopay.TransactionRequest
 class TransactionRequestHandler {
   def save(txRequest: TransactionRequest) = EsClient.index(txRequest)
 
-  def update(txRequest: TransactionRequest) = EsClient.update(txRequest)
+  def update(txRequest: TransactionRequest) = EsClient.update(txRequest, true, false)
 
   def find(uuid: String) = EsClient.load[TransactionRequest](uuid)
 

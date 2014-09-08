@@ -50,13 +50,13 @@ object EsClient {
     maybeT map ((_, res.getVersion))
   }
 
-  def delete[T: Manifest](uuid: String, refresh: Boolean = true): Boolean = {
+  def delete[T: Manifest](uuid: String, refresh: Boolean): Boolean = {
     val req = com.sksamuel.elastic4s.ElasticDsl.delete id uuid from Settings.DB.INDEX -> manifest[T].runtimeClass.getSimpleName refresh refresh
     val res = client.sync.execute(req)
     res.isFound
   }
 
-  def update[T <: Timestamped : Manifest](t: T, upsert: Boolean = true, refresh: Boolean = true): Boolean = {
+  def update[T <: Timestamped : Manifest](t: T, upsert: Boolean, refresh: Boolean): Boolean = {
     val now = Calendar.getInstance().getTime
     t.lastUpdated = now
     val js = JacksonConverter.serialize(t)
