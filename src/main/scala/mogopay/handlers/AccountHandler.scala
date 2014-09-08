@@ -1006,8 +1006,12 @@ class AccountHandler {
           address.copy(
             telephone = Some(telephone),
             road = profile.billingAddress.road,
+            road2 = profile.billingAddress.road2,
             city = profile.billingAddress.city,
-            zipCode = profile.billingAddress.zipCode
+            zipCode = profile.billingAddress.zipCode,
+            country = profile.billingAddress.country,
+            admin1 = profile.billingAddress.admin1,
+            admin2 = profile.billingAddress.admin2
           )
         }
 
@@ -1045,6 +1049,8 @@ class AccountHandler {
               generateAndSendPincode3(newAccount.uuid)
             }
           }
+
+          update(newAccount)
         }
     }
   }

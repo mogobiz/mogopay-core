@@ -69,7 +69,7 @@ object AccountActor {
   case class MerchantComId(seller: String)
   case class MerchantComSecret(seller: String)
   case class Enroll(accountId: String, lPhone: String, pinCode: String)
-  case class UpdateProfile(id: String, email: String, password: Option[(String, String)],
+  case class UpdateProfile(id: String, password: Option[(String, String)],
                            company: String, website: String, lphone: String, civility: String,
                            firstName: String, lastName: String, birthDate: String,
                            billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean)
