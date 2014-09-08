@@ -557,12 +557,12 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       session { session =>
         session.sessionData.accountId match {
           case Some(accountId: String) =>
-            val fields = formFields('email, 'password?, 'password2?, 'company,
+            val fields = formFields('password?, 'password2?, 'company,
               'website, 'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-              'road, 'city, 'zipCode, 'vendor?)
-            fields { (email, password, password2, company, website, lphone,
-                      civility, firstname, lastname, birthday, road, city, zipCode,
-                      vendor) =>
+              'road, 'road2?, 'city, 'zipCode, 'country, 'admin1, 'admin2, 'vendor?)
+            fields { (password, password2, company, website, lphone,
+                      civility, firstname, lastname, birthday, road, road2,
+                      city, zipCode, country, admin1, admin2, vendor) =>
               val validPassword: Option[(String, String)] = (password, password2) match {
                 case (Some(p), Some(p2)) => Some((p, p2))
                 case _ => None
@@ -570,13 +570,16 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
 
               val billingAddress = AccountAddress(
                 road = road,
+                road2 = road2,
                 city = city,
-                zipCode = Some(zipCode)
+                zipCode = Some(zipCode),
+                country = Some(country),
+                admin1 = Some(admin1),
+                admin2 = Some(admin2)
               )
 
               val profile = UpdateProfile(
                 id = accountId,
-                email = email,
                 password = validPassword,
                 company = company,
                 website = website,

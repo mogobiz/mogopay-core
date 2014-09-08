@@ -58,6 +58,7 @@ object Util {
     case AccountAlreadyExistsException()  => StatusCodes.Conflict
     case NotACreditCardTransactionException() => StatusCodes.BadRequest
     case SomeParameterIsMissingException(_) => StatusCodes.BadRequest
+    case PasswordsDontMatchError() => StatusCodes.BadRequest
     case e: NumberParseException => StatusCodes.BadRequest
     case _ => StatusCodes.InternalServerError
   }

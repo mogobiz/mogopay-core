@@ -193,7 +193,6 @@ object Settings {
   object Sips {
     val CertifDir = config.getString("sips.certif.dir")
     val PathFile = config.getString("sips.pathfile")
-
   }
 
   require(ApplicationSecret.nonEmpty, "application.secret must be non-empty")
