@@ -104,8 +104,14 @@ object AccountActor {
   case class UpdateProfile(id: String, password: Option[(String, String)],
                            company: String, website: String, lphone: String, civility: String,
                            firstName: String, lastName: String, birthDate: String,
-                           billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean)
-
+                           billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
+                           passwordSubject: Option[String], passwordContent: Option[String],
+                           passwordPattern: Option[String], callbackPrefix: Option[String],
+                           paymentMethod: String, cbProvider: String, cbParam: CBParam, payPalParam: PayPalParam, kwixoParam: KwixoParam)
+  case class CBParam(payline: Map[String, Option[String]], paybox: Map[String, Option[String]],
+                     sips: Map[String, Option[String]], systempay: Map[String, Option[String]])
+  case class PayPalParam(paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String])
+  case class KwixoParam(kwixoParams: Option[String])
   case class Signup(email: String, password: String, password2: String,
                     lphone: String, civility: String, firstName: String,
                     lastName: String, birthDate: String, address: AccountAddress,

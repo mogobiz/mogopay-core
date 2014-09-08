@@ -22,7 +22,8 @@ import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.RoleName.RoleName
 import mogopay.model.Mogopay.TokenValidity.TokenValidity
 import mogopay.session.Session
-import mogopay.util.{RSA, JacksonConverter}
+import mogopay.util.RSA
+import mogopay.util.GlobalUtil._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.action.index.IndexRequest
 import org.elasticsearch.action.search.SearchResponse
@@ -45,6 +46,8 @@ class LoginException(msg: String) extends Exception(msg)
 class AccountHandler {
 
   import Token._
+
+  implicit val formats = new org.json4s.DefaultFormats {}
 
   def update(account: Account) = EsClient.update(account, true, false)
 
@@ -1025,6 +1028,29 @@ class AccountHandler {
           else Success(new Sha256Hash(p1).toHex)
         } getOrElse Success(account.password)
 
+        val cbParam = CBPaymentProvider.withName(profile.cbProvider) match {
+          case CBPaymentProvider.PAYBOX    => profile.cbParam.paybox
+          case CBPaymentProvider.PAYLINE   => profile.cbParam.payline
+          case CBPaymentProvider.SIPS      => profile.cbParam.sips
+          case CBPaymentProvider.SYSTEMPAY => profile.cbParam.systempay
+        }
+
+        import org.json4s.native.Serialization.write
+
+        val paymentConfig = PaymentConfig(
+          cbProvider = CBPaymentProvider.withName(profile.cbProvider),
+          paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
+          kwixoParam  = Some(write(caseClassToMap(profile.kwixoParam))),
+          paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
+          buysterParam = None,
+          cbParam  = Some(write(cbParam)),
+          pwdEmailContent = profile.passwordContent,
+          pwdEmailSubject = profile.passwordSubject,
+          callbackPrefix = profile.callbackPrefix,
+          passwordPattern = profile.passwordPattern)
+
+        // handle sips files
+
         (for {
           c <- civility
           p <- password
@@ -1037,7 +1063,8 @@ class AccountHandler {
             firstName = Some(profile.firstName),
             lastName = Some(profile.lastName),
             birthDate = birthDate,
-            address = address
+            address   = address,
+            paymentConfig = Some(paymentConfig)
           )
 
           val validateMerchantPhone: Boolean = false // From the Groovy version
@@ -1242,10 +1269,6 @@ case class PaymentProviderParamEx(sipsMerchantCertificateFile: String,
 case class PaypalProviderParam(paypaluser: String,
                                paypalPassword: String,
                                paypalSignature: String)
-
-case class BuysterProviderParam(buysteruser: String,
-                                buysterPassword: String,
-                                buysterSignature: String)
 
 case class KwixoProviderParam(kwixoParam: String)
 
