@@ -1,4 +1,4 @@
-package mogopay.services
+package mogopay.services.payment
 
 import akka.actor.ActorRef
 import mogopay.actors.PaylineActor._
@@ -18,7 +18,7 @@ class PaylineService(actor: ActorRef)(implicit executionContext: ExecutionContex
   import akka.pattern.ask
   import akka.util.Timeout
 
-  import scala.concurrent.duration._
+import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 

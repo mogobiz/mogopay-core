@@ -2,6 +2,7 @@ package mogopay.services
 
 import mogoauth.services._
 import mogopay.model.Mogopay.SessionData
+import mogopay.services.payment._
 import spray.routing._
 import akka.actor.{ActorLogging, Actor, Props}
 import mogopay.actors.{MogopaySystem, MogopayActors}

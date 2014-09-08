@@ -1,4 +1,4 @@
-package mogopay.services
+package mogopay.services.payment
 
 import akka.actor.ActorRef
 import mogopay.actors.PayPalActor._
@@ -6,10 +6,10 @@ import mogopay.config.Implicits._
 import mogopay.services.Util._
 import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
-import spray.http.{Uri, StatusCodes}
+import spray.http.{StatusCodes, Uri}
 import spray.routing.Directives
 
-import scala.concurrent.{ExecutionContext}
+import scala.concurrent.ExecutionContext
 import scala.util._
 
 class PayPalService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
@@ -17,7 +17,7 @@ class PayPalService(actor: ActorRef)(implicit executionContext: ExecutionContext
   import akka.pattern.ask
   import akka.util.Timeout
 
-  import scala.concurrent.duration._
+import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 

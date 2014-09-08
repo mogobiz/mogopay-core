@@ -1,10 +1,9 @@
-package mogopay.services
+package mogopay.services.payment
 
 import akka.actor.ActorRef
-import mogopay.actors.SystempayActor._
-import mogopay.model.Mogopay._
+import mogopay.actors.PayboxActor.{CallbackPayment, Done3DSecureCheck, _}
 import mogopay.services.Util._
-import mogopay.session.{SessionESDirectives}
+import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
@@ -13,21 +12,22 @@ import spray.routing.Directives
 import scala.concurrent.ExecutionContext
 import scala.util._
 
-class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
 
   import akka.pattern.ask
   import akka.util.Timeout
 
-  import scala.concurrent.duration._
+import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
   val route = {
-    pathPrefix("systempay") {
+    pathPrefix("paybox") {
       startPayment ~
         done ~
-        callback ~
-        threeDSCallback
+        callbackPayment ~
+        callback3DSecureCheck ~
+        done3DSecureCheck
     }
   }
 
@@ -36,9 +36,8 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        println("start-payment:" + session.sessionData.uuid)
-        val message = StartPayment(session.sessionData)
-        onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) {
+        println("start-payment:" + xtoken)
+        onComplete((actor ? StartPayment(session.sessionData)).mapTo[Try[Either[String, Uri]]]) {
           case Failure(t) => complete(StatusCodes.InternalServerError)
           case Success(r) =>
             r match {
@@ -49,7 +48,6 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
                 setSession(session) {
                   data match {
                     case Left(content) =>
-                      println(content)
                       complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
                     case Right(url) =>
                       println(url)
@@ -62,20 +60,18 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val done = path("done") {
+  lazy val done = path("done-payment") {
     import mogopay.config.Implicits._
     get {
       session { session =>
-        println("done:" + session.sessionData.uuid)
         parameterMap { params =>
-          val message = Done(session.sessionData, params)
-          onComplete((actor ? message).mapTo[Try[Uri]]) {
+          onComplete((actor ? Done(session.sessionData, params)).mapTo[Try[Uri]]) {
             case Failure(t) => complete(StatusCodes.InternalServerError)
             case Success(r) =>
               setSession(session) {
                 r match {
                   case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-                  case Success(x) => redirect(x, StatusCodes.TemporaryRedirect)
+                  case Success(uri) => redirect(uri, StatusCodes.TemporaryRedirect)
                 }
               }
           }
@@ -84,41 +80,48 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-
-  lazy val callback = path("callback") {
-    import mogopay.config.Implicits._
+  lazy val callbackPayment = path("callback-payment" / Segment) { xtoken =>
+    import mogopay.config.Implicits.MogopaySession
     get {
       parameterMap {
         params =>
-          val message = CallbackPayment(params)
-          onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
+          val session = SessionESDirectives.load(xtoken).get
+          onComplete((actor ? CallbackPayment(session.sessionData, params)).mapTo[Try[Unit]]) {
             case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              r match {
-                case Success(pr) => complete(StatusCodes.OK, pr)
-                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-              }
+            case Success(data) => complete(StatusCodes.OK)
           }
       }
     }
   }
 
-  lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
+  lazy val done3DSecureCheck = path("done-3ds") {
     post {
       entity(as[FormData]) { formData =>
-        import mogopay.config.Implicits.MogopaySession
-        val session = SessionESDirectives.load(xtoken).get
-        val message = ThreeDSCallback(session.sessionData, formData.fields.toMap)
-        onComplete((actor ? message).mapTo[Try[Uri]]) {
-          case Failure(t) => complete(StatusCodes.InternalServerError)
-          case Success(data) =>
-            setSession(session) {
-              import mogopay.config.Implicits._
-              data match {
-                case Success(u) => redirect(u, StatusCodes.TemporaryRedirect)
-                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+        session { session =>
+          import mogopay.config.Implicits._
+          onComplete((actor ? Done3DSecureCheck(session.sessionData, formData.fields.toMap)).mapTo[Try[Uri]]) {
+            case Failure(t) => complete(StatusCodes.InternalServerError)
+            case Success(r) =>
+              setSession(session) {
+                r match {
+                  case Success(uri) => redirect(uri, StatusCodes.TemporaryRedirect)
+                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+                }
               }
-            }
+          }
+        }
+      }
+    }
+  }
+
+  lazy val callback3DSecureCheck = path("callback-3ds" / Segment) { xtoken =>
+    import mogopay.config.Implicits.MogopaySession
+    get {
+      parameterMap { params =>
+        val session = SessionESDirectives.load(xtoken).get
+        onComplete((actor ? Callback3DSecureCheck(session.sessionData, params)).mapTo[Try[Unit]]) {
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(data) => complete(StatusCodes.OK)
         }
       }
     }

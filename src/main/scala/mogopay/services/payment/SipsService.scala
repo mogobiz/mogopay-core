@@ -1,4 +1,4 @@
-package mogopay.services
+package mogopay.services.payment
 
 import akka.actor.ActorRef
 import mogopay.actors.SipsActor._
@@ -18,7 +18,7 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
   import akka.pattern.ask
   import akka.util.Timeout
 
-  import scala.concurrent.duration._
+import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -86,13 +86,13 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
 
 
   lazy val callback = path("callback" / Segment) { vendorUuid =>
-    import mogopay.config.Implicits._
     get {
       parameterMap { params =>
         val message = CallbackPayment(params, vendorUuid)
         onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
           case Failure(t) => complete(StatusCodes.InternalServerError)
           case Success(r) =>
+            import mogopay.config.Implicits._
             r match {
               case Success(pr) => complete(StatusCodes.OK, pr)
               case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
