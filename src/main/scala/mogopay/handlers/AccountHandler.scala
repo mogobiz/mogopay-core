@@ -43,6 +43,7 @@ import scala.util.parsing.json.JSON
 class LoginException(msg: String) extends Exception(msg)
 
 class AccountHandler {
+
   import Token._
 
   def update(account: Account) = EsClient.update(account, true, false)
@@ -691,7 +692,7 @@ class AccountHandler {
       address <- account.shippingAddresses.find(_.uuid == addressId)
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
-      val newAccount   = account.copy(shippingAddresses = newAddresses)
+      val newAccount = account.copy(shippingAddresses = newAddresses)
       update(newAccount)
     }
 
@@ -1021,7 +1022,7 @@ class AccountHandler {
 
         lazy val password = profile.password.map { case (p1, p2) =>
           if (p1 != p2) Failure(new PasswordsDontMatchError)
-          else          Success(new Sha256Hash(p1).toHex)
+          else Success(new Sha256Hash(p1).toHex)
         } getOrElse Success(account.password)
 
         (for {
@@ -1029,18 +1030,18 @@ class AccountHandler {
           p <- password
         } yield (c, p)) map { case (civility, password) =>
           val newAccount = account.copy(
-            password  = password,
-            company   = Some(profile.company),
-            website   = Some(profile.website),
-            civility  = Some(civility),
+            password = password,
+            company = Some(profile.company),
+            website = Some(profile.website),
+            civility = Some(civility),
             firstName = Some(profile.firstName),
-            lastName  = Some(profile.lastName),
+            lastName = Some(profile.lastName),
             birthDate = birthDate,
-            address   = address
+            address = address
           )
 
           val validateMerchantPhone: Boolean = false // From the Groovy version
-          val validateCustomerPhone: Boolean = false // …
+        val validateCustomerPhone: Boolean = false // …
 
           if ((profile.isMerchant && validateMerchantPhone) || (!profile.isMerchant && validateCustomerPhone)) {
             val lphone: Option[String] = newAccount.address.map(_.telephone.map(_.lphone)).flatten
@@ -1149,9 +1150,9 @@ class AccountHandler {
       }
 
       lazy val account = for {
-        b    <- birthdate
-        civ  <- civility
-        p    <- password
+        b <- birthdate
+        civ <- civility
+        p <- password
         coun <- country
         addr <- address(coun)
       } yield Account(
@@ -1190,6 +1191,7 @@ object Token {
     val Signup = Value(0)
     val BypassLogin = Value(1)
   }
+
   import TokenType._
 
   def generateAndSaveToken(accountId: String, tokenType: TokenType): Option[String] = {

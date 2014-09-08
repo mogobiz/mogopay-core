@@ -11,7 +11,9 @@ import com.google.i18n.phonenumbers.NumberParseException
 object Util {
   def getPath(pathString: String)(f: RequestContext => Unit) = {
     PathDirectives.path(pathString) {
-      MethodDirectives.get { f }
+      MethodDirectives.get {
+        f
+      }
     }
   }
 
@@ -51,11 +53,11 @@ object Util {
     case InactiveAccountException() => StatusCodes.BadRequest
     case InvalidPasswordErrorException() => StatusCodes.BadRequest
     case InvalidMerchantAccountException() => StatusCodes.BadRequest
-    case BOTransactionNotFoundException()  => StatusCodes.NotFound
-    case MogopayError(message: String)  => StatusCodes.BadRequest
-    case InactiveMerchantException()  => StatusCodes.BadRequest
-    case UserOrPasswordIsNullError()  => StatusCodes.BadRequest
-    case AccountAlreadyExistsException()  => StatusCodes.Conflict
+    case BOTransactionNotFoundException() => StatusCodes.NotFound
+    case MogopayError(message: String) => StatusCodes.BadRequest
+    case InactiveMerchantException() => StatusCodes.BadRequest
+    case UserOrPasswordIsNullError() => StatusCodes.BadRequest
+    case AccountAlreadyExistsException() => StatusCodes.Conflict
     case NotACreditCardTransactionException() => StatusCodes.BadRequest
     case SomeParameterIsMissingException(_) => StatusCodes.BadRequest
     case PasswordsDontMatchError() => StatusCodes.BadRequest

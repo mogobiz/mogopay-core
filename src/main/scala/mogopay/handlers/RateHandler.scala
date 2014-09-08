@@ -44,7 +44,7 @@ class RateHandler {
       (findByCurrencyCode(originCurrency), findByCurrencyCode(destinationCurrency)) match {
         case (Some(src), Some(dst)) => Option(amount /
           (src.currencyRate * Math.pow(10, src.currencyFractionDigits.toDouble)) *
-          (dst.currencyRate * Math.pow(10, dst.currencyFractionDigits.toDouble))) map(_.toLong)
+          (dst.currencyRate * Math.pow(10, dst.currencyFractionDigits.toDouble))) map (_.toLong)
         case _ => None
       }
     }

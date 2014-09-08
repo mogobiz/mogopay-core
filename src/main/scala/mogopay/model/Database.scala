@@ -392,9 +392,10 @@ object Mogopay {
                                  var dateCreated: Date = Calendar.getInstance().getTime,
                                  var lastUpdated: Date = Calendar.getInstance().getTime)
 
-  case class CancelRequest(id:String, currency : TransactionCurrency)
+  case class CancelRequest(id: String, currency: TransactionCurrency)
 
-  case class CancelResult(id:String, status : PaymentStatus, errorCodeOrigin : String, errorMessageOrigin : Option[String])
+  case class CancelResult(id: String, status: PaymentStatus, errorCodeOrigin: String, errorMessageOrigin: Option[String])
+
   case class PaymentResult(transactionSequence: String,
                            orderDate: Date,
                            amount: Long,

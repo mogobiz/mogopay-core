@@ -50,5 +50,7 @@ class BackofficeHandler {
   }
 
   def getTransaction(uuid: String): Option[BOTransaction] =
-    EsClient.search[BOTransaction](search in Settings.DB.INDEX -> "BOTransaction" filter { termFilter("uuid", uuid) })
+    EsClient.search[BOTransaction](search in Settings.DB.INDEX -> "BOTransaction" filter {
+      termFilter("uuid", uuid)
+    })
 }

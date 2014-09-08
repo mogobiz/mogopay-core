@@ -15,7 +15,7 @@ object GlobalUtil {
 
   // From: http://stackoverflow.com/a/1227643/604041
   def caseClassToMap(cc: AnyRef) =
-    (Map[String, Any]() /: cc.getClass.getDeclaredFields) {(a, f) =>
+    (Map[String, Any]() /: cc.getClass.getDeclaredFields) { (a, f) =>
       f.setAccessible(true)
       a + (f.getName -> f.get(cc))
     }
@@ -44,7 +44,7 @@ object GlobalUtil {
     }
   }
 
-  def computeTransactionStatus(paymentStatus: PaymentStatus) : TransactionStatus = {
+  def computeTransactionStatus(paymentStatus: PaymentStatus): TransactionStatus = {
     paymentStatus match {
       case PaymentStatus.CANCEL_FAILED => TransactionStatus.CANCEL_FAILED
       case PaymentStatus.CANCELED => TransactionStatus.CANCEL_CONFIRMED
@@ -55,6 +55,7 @@ object GlobalUtil {
       case _ => null
     }
   }
+
   def createThreeDSNotEnrolledResult(): PaymentResult = {
     PaymentResult(
       transactionSequence = newUUID,

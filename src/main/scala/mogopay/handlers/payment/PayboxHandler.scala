@@ -344,10 +344,10 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
           "DATEVAL" -> CCExpDate,
           "CVV" -> CVVCode,
           "DIFFERE" -> "000",
-//          "ARCHIVAGE" -> "",
-//          "NUMAPPEL" -> "",
-//          "NUMTRANS" -> "",
-//          "AUTORISATION" -> "",
+          //          "ARCHIVAGE" -> "",
+          //          "NUMAPPEL" -> "",
+          //          "NUMTRANS" -> "",
+          //          "AUTORISATION" -> "",
           "VERSION" -> (if (parametres("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
         if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED)
           query += "ID3D" -> id3d
@@ -360,8 +360,8 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
         val uri = Uri(Settings.Paybox.DirectEndPoint)
         val host = uri.authority.host
 
-        val logRequest: HttpRequest => HttpRequest = { r => println(r); r }
-        val logResponse: HttpResponse => HttpResponse = { r => println(r); r }
+        val logRequest: HttpRequest => HttpRequest = { r => println(r); r}
+        val logResponse: HttpResponse => HttpResponse = { r => println(r); r}
         val pipeline: Future[SendReceive] =
           for (
             Http.HostConnectorInfo(connector, _) <-
@@ -411,7 +411,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
         "PBX_DEVISE" -> s"${paymentRequest.currency.numericCode}",
         "PBX_CMD" -> s"${vendorId}--${transactionUUID}",
         "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
-        "PBX_RETOUR" ->   "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
+        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
         "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",

@@ -26,7 +26,7 @@ class CountryImportHandler {
     val req = search in Settings.DB.INDEX -> "Country" aggs {
       aggregation max "agg" field "lastUpdated"
     }
-    EsClient.search[Country](req) map(_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
+    EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
       if (lastUpdated >= countriesFile.lastModified) {
         EsClient.client.client
           .prepareDeleteByQuery(Settings.DB.INDEX)
@@ -40,7 +40,7 @@ class CountryImportHandler {
               val field = line.trim.split('\t')
               Some((field(0).trim, field(1).trim))
             case _ => None
-          }.collect { case Some(x) => x }.toMap[String, String]
+          }.collect { case Some(x) => x}.toMap[String, String]
 
         scala.io.Source.fromFile(countriesFile, "utf-8").getLines().foreach { line =>
           val field = line.split('\t')
@@ -91,7 +91,9 @@ class CountryImportHandler {
             try {
               val cls = this.getClass.getClassLoader.loadClass(countryCode + ".Import")
               cls.getMethod("importAdmin1", classOf[File]).invoke(cls.newInstance(), localAdmin1)
-            } catch { case _: Throwable => }
+            } catch {
+              case _: Throwable =>
+            }
           } else {
             val countryAdmin = findCountryAdmin(code, 1)
             if (countryAdmin.isEmpty) {
@@ -132,7 +134,9 @@ class CountryImportHandler {
             try {
               val cls = this.getClass.getClassLoader.loadClass(countryCode + ".Import")
               cls.getMethod("importAdmin2", classOf[File]).invoke(cls.newInstance(), localAdmin2)
-            } catch { case _: Throwable => }
+            } catch {
+              case _: Throwable =>
+            }
           } else {
             val countryAdmin2 = findCountryAdmin(code, 2)
             if (countryAdmin2.isEmpty) {
@@ -187,12 +191,14 @@ class CountryImportHandler {
             try {
               val cls = this.getClass.getClassLoader.loadClass(countryCode + ".Import")
               cls.getMethod("importCities", classOf[File]).invoke(cls.newInstance(), localCities)
-            } catch { case _: Throwable => }
+            } catch {
+              case _: Throwable =>
+            }
           } else {
             val cityFullCode = s"$countryCode.$a1code.$a2code.$cityCode"
             val findCityReq = search in Settings.DB.INDEX -> "CountryAdmin" filter {
               and(
-                termFilter("code"  -> cityFullCode),
+                termFilter("code" -> cityFullCode),
                 termFilter("level" -> 3)
               )
             }
@@ -202,7 +208,7 @@ class CountryImportHandler {
               val admin2Code = s"$countryCode.$a1code.$a2code"
               val findAdmin2Req = search in Settings.DB.INDEX -> "CountryAdmin" filter {
                 and(
-                  termFilter("code"  -> admin2Code),
+                  termFilter("code" -> admin2Code),
                   termFilter("level" -> 2)
                 )
               }

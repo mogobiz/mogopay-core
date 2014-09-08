@@ -3,6 +3,7 @@ package mogopay.util
 /**
  * Created by hayssams on 04/03/14.
  */
+
 import java.io.{InputStream, ObjectInputStream, ObjectStreamClass}
 
 import scala.Array.canBuildFrom
@@ -18,9 +19,10 @@ class CustomObjectInputStream(in: InputStream, cl: ClassLoader) extends ObjectIn
       case cnf: ClassNotFoundException =>
         super.resolveClass(cd)
     }
+
   override def resolveProxyClass(interfaces: Array[String]): Class[_] =
     try {
-      val ifaces = interfaces map { iface => cl.loadClass(iface) }
+      val ifaces = interfaces map { iface => cl.loadClass(iface)}
       java.lang.reflect.Proxy.getProxyClass(cl, ifaces: _*)
     } catch {
       case e: ClassNotFoundException =>

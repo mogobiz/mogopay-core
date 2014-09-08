@@ -8,11 +8,13 @@ import spray.httpx.unmarshalling.{MalformedContent, FromStringDeserializer}
 
 object MogoNotify {
   type Document = String
+
   object Platform extends Enumeration {
     type Platform = Value
     val ANDROID = Value("ANDROID")
     val IOS = Value("IOS")
   }
+
   import Platform._
 
   implicit def PlatformUnmarshaller = new FromStringDeserializer[Platform] {
@@ -27,17 +29,17 @@ object MogoNotify {
   import mogonotify.model.MogoNotify.Platform._
 
   case class Device(uuid: String,
-                    deviceUuid:String,
+                    deviceUuid: String,
                     storeCode: String,
                     regId: String,
                     platform: Platform,
-                    lang:String,
+                    lang: String,
                     clientId: Option[String] = None,
                     var dateCreated: Date = Calendar.getInstance().getTime,
                     var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class Notification[T](uuid: String,
-                             store : String,
+                             store: String,
                              regIds: List[String],
                              lang: String,
                              payload: T,
@@ -46,7 +48,9 @@ object MogoNotify {
 
 
   object Device {
-    def isAndroid(regId:String) = !isIOS(regId)
-    def isIOS(regId:String) = regId.length == Settings.ApnsTokenSize
+    def isAndroid(regId: String) = !isIOS(regId)
+
+    def isIOS(regId: String) = regId.length == Settings.ApnsTokenSize
   }
+
 }

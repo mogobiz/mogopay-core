@@ -7,11 +7,15 @@ import mogopay.config.Settings
  */
 object EmailHandler {
   implicit def stringToSeq(single: String): Seq[String] = Seq(single)
+
   implicit def liftToOption[T](t: T): Option[T] = Some(t)
 
   sealed abstract class MailType
+
   case object Plain extends MailType
+
   case object Rich extends MailType
+
   case object MultiPart extends MailType
 
   case class Mail(from: (String, String), // (email -> name)
@@ -62,4 +66,5 @@ object EmailHandler {
         send()
     }
   }
+
 }

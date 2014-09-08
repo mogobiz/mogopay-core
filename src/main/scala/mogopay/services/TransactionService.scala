@@ -63,15 +63,15 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   lazy val init = path("init") {
     import mogopay.config.Implicits._
     get {
-        val params = parameters('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?)
-        params { (secret, amount, code, rate, extra) =>
-          onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { res =>
-            res match {
-              case Failure(t) => complete(toHTTPResponse(t) -> Map('error -> t.toString))
-              case Success(id) => complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
+      val params = parameters('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?)
+      params { (secret, amount, code, rate, extra) =>
+        onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { res =>
+          res match {
+            case Failure(t) => complete(toHTTPResponse(t) -> Map('error -> t.toString))
+            case Success(id) => complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
 
-            }
           }
+        }
       }
     }
   }

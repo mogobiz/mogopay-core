@@ -57,7 +57,7 @@ class NotificationService(notificationActor: ActorRef)(implicit executionContext
 
   lazy val notification = path("notify") {
     get {
-      parameterMultiMap{ params =>
+      parameterMultiMap { params =>
         val notification = Notify(params("store")(0), params("regId"), params("payload")(0))
         complete {
           val response = (notificationActor ? notification).mapTo[HttpResponse]

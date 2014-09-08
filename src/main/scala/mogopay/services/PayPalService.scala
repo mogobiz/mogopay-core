@@ -32,17 +32,17 @@ class PayPalService(actor: ActorRef)(implicit executionContext: ExecutionContext
   lazy val startPayment = path("start-payment" / Segment) { xtoken =>
     get {
       parameterMap { params =>
-          val session = SessionESDirectives.load(xtoken).get
-          val message = StartPayment(session.sessionData, params)
-          onComplete((actor ? message).mapTo[Try[Uri]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              setSession(session) {
-                r match {
-                  case Success(url) => redirect(url, StatusCodes.TemporaryRedirect)
-                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-                }
+        val session = SessionESDirectives.load(xtoken).get
+        val message = StartPayment(session.sessionData, params)
+        onComplete((actor ? message).mapTo[Try[Uri]]) {
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(r) =>
+            setSession(session) {
+              r match {
+                case Success(url) => redirect(url, StatusCodes.TemporaryRedirect)
+                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
               }
+            }
         }
       }
     }

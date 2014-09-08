@@ -18,6 +18,7 @@ import mogopay.model.Mogopay.TokenValidity._
 import mogopay.config.Settings
 
 class AccountService(account: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+
   import mogopay.config.Implicits._
 
   import akka.pattern.ask
@@ -134,7 +135,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       parameters('seller) { seller =>
         complete {
           (account ? MerchantComId(seller)).mapTo[Option[String]] map {
-            case None    => 404 -> Map()
+            case None => 404 -> Map()
             case Some(x) => 200 -> Map("result" -> x)
           }
         }
@@ -147,7 +148,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       parameters('seller) { seller =>
         complete {
           (account ? MerchantComSecret(seller)).mapTo[Option[String]] map {
-            case None    => 404 -> Map()
+            case None => 404 -> Map()
             case Some(x) => 200 -> Map("result" -> x)
           }
         }
@@ -195,7 +196,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       parameters('id).as(IsValidAccountId) { isValidAccountId =>
         complete {
           (account ? isValidAccountId).mapTo[Boolean] map {
-            case true  => StatusCodes.OK       -> Map('result -> true)
+            case true => StatusCodes.OK -> Map('result -> true)
             case false => StatusCodes.NotFound -> Map('result -> false)
           }
         }
@@ -332,8 +333,8 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
         confirmSignup =>
           complete {
             (account ? confirmSignup).mapTo[Try[Boolean]] map {
-              case Failure(e)     => toHTTPResponse(e) -> Map('error -> e.toString)
-              case Success(true)  => StatusCodes.OK -> Map()
+              case Failure(e) => toHTTPResponse(e) -> Map('error -> e.toString)
+              case Success(true) => StatusCodes.OK -> Map()
               case Success(false) => StatusCodes.Gone ->
                 """{"error": "The token is either not for signup, or expired."}"""
             }
@@ -537,6 +538,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
 }
 
 class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+
   import mogopay.config.Implicits.MogopaySession
 
   import akka.pattern.ask
@@ -548,7 +550,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   val route = {
     pathPrefix("account") {
       updateProfile ~
-      signup
+        signup
     }
   }
 
@@ -557,9 +559,9 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       session { session =>
         session.sessionData.accountId match {
           case Some(accountId: String) =>
-            val fields = formFields('password?, 'password2?, 'company,
+            val fields = formFields('password ?, 'password2 ?, 'company,
               'website, 'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-              'road, 'road2?, 'city, 'zipCode, 'country, 'admin1, 'admin2, 'vendor?)
+              'road, 'road2 ?, 'city, 'zipCode, 'country, 'admin1, 'admin2, 'vendor ?)
             fields { (password, password2, company, website, lphone,
                       civility, firstname, lastname, birthday, road, road2,
                       city, zipCode, country, admin1, admin2, vendor) =>
@@ -597,8 +599,12 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               onComplete(actor ? profile) {
                 case Failure(e) => complete(500, e.toString)
                 case Success(x) => x match {
-                  case Failure(e) => complete { toHTTPResponse(e) -> Map('error -> e.toString) }
-                  case Success(_) => complete { 200 -> Map }
+                  case Failure(e) => complete {
+                    toHTTPResponse(e) -> Map('error -> e.toString)
+                  }
+                  case Success(_) => complete {
+                    200 -> Map
+                  }
                 }
               }
             }
@@ -619,11 +625,11 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       val fields = formFields('email, 'password, 'password2,
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
         'road, 'city, 'zipCode, 'admin1, 'admin2, 'country,
-        'isMerchant.as[Boolean], 'merchantId?)
+        'isMerchant.as[Boolean], 'merchantId ?)
 
       fields { (email, password, password2, lphone, civility, firstname,
-        lastname, birthday, road, city, zipCode, admin1, admin2, country,
-        isMerchant, merchantId: Option[String]) =>
+                lastname, birthday, road, city, zipCode, admin1, admin2, country,
+                isMerchant, merchantId: Option[String]) =>
         val address = AccountAddress(
           road = road,
           city = city,
@@ -650,12 +656,20 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
         import mogopay.config.Implicits._
         val r = (actor ? signup).mapTo[Try[(Token, Account)]]
         onComplete(r) {
-          case Failure(e) => complete { 500 -> Map('error -> e.toString) }
+          case Failure(e) => complete {
+            500 -> Map('error -> e.toString)
+          }
           case Success(x) => x match {
             case Failure(e: AccountWithSameEmailAddressAlreadyExistsError) =>
-              complete { 409 -> Map('error -> e.toString) }
-            case Failure(e) => complete { toHTTPResponse(e) -> Map('error -> e.toString) }
-            case Success(p) => complete { 200 -> Map('token -> p._1, 'account -> p._2) }
+              complete {
+                409 -> Map('error -> e.toString)
+              }
+            case Failure(e) => complete {
+              toHTTPResponse(e) -> Map('error -> e.toString)
+            }
+            case Success(p) => complete {
+              200 -> Map('token -> p._1, 'account -> p._2)
+            }
           }
         }
       }

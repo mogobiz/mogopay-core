@@ -34,7 +34,7 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
     }
     catch {
       case e: Exception => {
-//        getProperty("log").invokeMethod("error", Array[AnyRef]("write soap stream", e))
+        //        getProperty("log").invokeMethod("error", Array[AnyRef]("write soap stream", e))
       }
     }
     finally {
@@ -43,7 +43,7 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
       }
       catch {
         case e: IOException => {
-//          getProperty("log").invokeMethod("info", Array[AnyRef]("close soap stream", e))
+          //          getProperty("log").invokeMethod("info", Array[AnyRef]("close soap stream", e))
         }
       }
       val log: BOTransactionLog = BOTransactionLog(
@@ -74,14 +74,14 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
         val ite: Iterator[_] = soapHeader.extractAllHeaderElements
         while (ite.hasNext) {
           val header: SOAPHeader = ite.next.asInstanceOf[SOAPHeader]
-//          getProperty("log").invokeMethod("info", Array[AnyRef](header.getLocalName + "=" + header.getValue))
+          //          getProperty("log").invokeMethod("info", Array[AnyRef](header.getLocalName + "=" + header.getValue))
         }
       }
       message.writeTo(soapReq)
     }
     catch {
       case e: Exception => {
-//        getProperty("log").invokeMethod("error", Array[AnyRef]("write soap stream", e))
+        //        getProperty("log").invokeMethod("error", Array[AnyRef]("write soap stream", e))
       }
     }
     finally {
@@ -90,10 +90,10 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
       }
       catch {
         case e: IOException => {
-//          getProperty("log").invokeMethod("info", Array[AnyRef]("close soap stream", e))
+          //          getProperty("log").invokeMethod("info", Array[AnyRef]("close soap stream", e))
         }
       }
-//      getProperty("log").invokeMethod("info", Array[AnyRef]("soapbody=" + new String(soapReq.toByteArray)))
+      //      getProperty("log").invokeMethod("info", Array[AnyRef]("soapbody=" + new String(soapReq.toByteArray)))
       try {
         val log: BOTransactionLog = BOTransactionLog(
           uuid = newUUID,

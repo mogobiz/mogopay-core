@@ -20,9 +20,9 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
 
   val route = pathPrefix("backoffice") {
     listCustomers ~
-    listTransactionLogs ~
-    listTransactions ~
-    getTransaction
+      listTransactionLogs ~
+      listTransactions ~
+      getTransaction
   }
 
   lazy val listCustomers = getPath("listCustomers") {
@@ -56,7 +56,7 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
 
   lazy val listTransactions = getPath("listTransanctions") {
     session { session =>
-      val params = parameters('startDate.as[Long]?, 'endDate.as[Long]?, 'amount.as[Int]?, 'transactionUuid?)
+      val params = parameters('startDate.as[Long] ?, 'endDate.as[Long] ?, 'amount.as[Int] ?, 'transactionUuid ?)
       params { (startDate, endDate, amount, transaction) =>
         complete {
           if (session.contains("accountId")) {

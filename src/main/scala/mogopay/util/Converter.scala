@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
  */
 trait Converter[T] {
   def toDomain[T: Manifest](obj: Array[Byte]): T
+
   def fromDomain[T: Manifest](value: T): Array[Byte]
 }
 
@@ -31,8 +32,8 @@ trait BinaryConverter[T] extends Converter[T] {
     val bos = new ByteArrayOutputStream()
     val out = new ObjectOutputStream(new BufferedOutputStream(bos))
     out writeObject (value)
-    out close ()
-    bos toByteArray ()
+    out close()
+    bos toByteArray()
   }
 
   def safeDecode[T: Manifest](bytes: Array[Byte]) = {
@@ -56,13 +57,16 @@ trait JSONConverter[T] extends Converter[T] {
   }
 
   def fromDomain[T: Manifest](value: T): Array[Byte] = {
-    JacksonConverter.serialize(value) map (_.toChar) toCharArray () map (_.toByte)
+    JacksonConverter.serialize(value) map (_.toChar) toCharArray() map (_.toByte)
   }
 }
 
 object JacksonConverter {
+
   import java.lang.reflect._
+
   lazy val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
+
   def serialize(value: Any): String = {
     mapper.writeValueAsString(value)
   }

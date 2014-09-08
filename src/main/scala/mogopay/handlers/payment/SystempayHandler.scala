@@ -550,6 +550,6 @@ class SystempayHandler extends PaymentHandler {
     }
   }
 
-  private def buildURL(url: String, params: Map[String, String]) =  url + "?" + mapToQueryString(params)
+  private def buildURL(url: String, params: Map[String, String]) = url + "?" + mapToQueryString(params)
 
 }

@@ -11,7 +11,7 @@ trait ClickatellSMSHandler {
   val sendFlashUrlPattern = Settings.clickatell.sendFlashUrlPattern
 
   def sendSms(message: String, receiver: String): Try[Unit] = Try {
-    val encodedMessage = URLEncoder.encode(message,"UTF-8")
+    val encodedMessage = URLEncoder.encode(message, "UTF-8")
     val urlSession = new URL(sessionIdUrl)
 
     val sessionIdConnection: URLConnection = urlSession.openConnection()

@@ -7,5 +7,5 @@ case class ShippingPrice(provider: String, service: String, rateType: String, pr
                          currencyCode: String, currencyFractionDigits: Int)
 
 trait ShippingService {
-  def calculatePrice(shippingAddress: ShippingAddress , currencyCode: String, cart: JValue): Seq[ShippingPrice]
+  def calculatePrice(shippingAddress: ShippingAddress, currencyCode: String, cart: JValue): Seq[ShippingPrice]
 }

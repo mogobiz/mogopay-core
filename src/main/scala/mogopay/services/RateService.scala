@@ -16,7 +16,7 @@ class RateService(rateActor: ActorRef)(implicit executionContext: ExecutionConte
 
   val route = pathPrefix("rate") {
     list ~
-    format
+      format
   }
 
   lazy val list = path("list") {

@@ -14,6 +14,7 @@ import mogopay.handlers.PhoneVerification
 import mogopay.config.Implicits._
 
 class CountryService(country: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+
   import akka.pattern.ask
   import akka.util.Timeout
   import scala.concurrent.duration._
@@ -23,19 +24,19 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
   val route = {
     pathPrefix("country") {
       countriesForShipping ~
-      countriesForBilling ~
-      countryPath ~
-      admins1 ~
-      admins2 ~
-      cities ~
-      checkPhoneNumber
+        countriesForBilling ~
+        countryPath ~
+        admins1 ~
+        admins2 ~
+        cities ~
+        checkPhoneNumber
     }
   }
 
   lazy val countriesForShipping = path("countriesForShipping") {
     get {
       complete {
-          (country ? CountriesForShipping).mapTo[List[Country]]
+        (country ? CountriesForShipping).mapTo[List[Country]]
       }
     }
   }
@@ -48,7 +49,9 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
 
   lazy val countryPath = getPath("country") {
     parameters('code).as(Country) { c =>
-      complete { (country ? c).mapTo[Option[Country]] }
+      complete {
+        (country ? c).mapTo[Option[Country]]
+      }
     }
   }
 
@@ -56,7 +59,9 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     get {
       parameter('country).as(Admins1) {
         admins1: Admins1 =>
-          complete { (country ? admins1).mapTo[List[CountryAdmin]] }
+          complete {
+            (country ? admins1).mapTo[List[CountryAdmin]]
+          }
       }
     }
   }
@@ -66,7 +71,9 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
       val params = parameters('country.?, 'parentAdmin1Code.?, 'parentAdmin1Code.?, 'city.?)
       params { (c, a1, a2, city) =>
         val cities = Cities(c, a1, a2, city)
-        complete { (country ? cities).mapTo[Seq[CountryAdmin]] }
+        complete {
+          (country ? cities).mapTo[Seq[CountryAdmin]]
+        }
       }
     }
   }
@@ -75,7 +82,9 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     get {
       parameters('country, 'parentAdmin1Code.?).as(Admins2) {
         admins2: Admins2 =>
-          complete { (country ? admins2).mapTo[Seq[CountryAdmin]] }
+          complete {
+            (country ? admins2).mapTo[Seq[CountryAdmin]]
+          }
       }
     }
   }
@@ -83,7 +92,9 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
   lazy val checkPhoneNumber = path("checkPhoneNumber") {
     get {
       parameters('phone, 'country).as(CheckPhoneNumber) { checkPhoneNumber =>
-          complete { (country ? checkPhoneNumber).mapTo[PhoneVerification] }
+        complete {
+          (country ? checkPhoneNumber).mapTo[PhoneVerification]
+        }
       }
     }
   }

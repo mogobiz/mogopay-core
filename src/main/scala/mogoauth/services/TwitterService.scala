@@ -30,7 +30,7 @@ class TwitterService(implicit executionContext: ExecutionContext) extends Direct
     .build()
 
   lazy val signin = get {
-      path("signin") {
+    path("signin") {
       session { session =>
         val service = buildService()
         val requestToken = service.getRequestToken()

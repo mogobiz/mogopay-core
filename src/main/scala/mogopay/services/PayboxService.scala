@@ -97,7 +97,6 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
   }
 
   lazy val done3DSecureCheck = path("done-3ds") {
-    import mogopay.config.Implicits.MogopaySession
     post {
       entity(as[FormData]) { formData =>
         session { session =>

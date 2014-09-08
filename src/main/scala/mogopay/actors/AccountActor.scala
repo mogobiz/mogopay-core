@@ -7,28 +7,48 @@ import org.json4s.JObject
 import mogopay.session.Session
 
 object AccountActor {
+
   case class DoesAccountExistByEmail(email: String, merchantId: Option[String])
+
   case class IsPatternValid(pattern: String)
+
   case class IsValidAccountId(id: String)
+
   case class RequestPasswordChange(email: String, merchantId: String,
                                    passwordCB: String, isCustomer: Boolean)
+
   case class GenerateLostPasswordToken(email: String, merchantId: Option[String])
+
   case class CheckTokenValidity(token: String)
+
   case class SelectShippingAddress(accountId: String, addressId: String)
+
   case class UpdatePassword(password: String, vendorId: String, accountId: String)
+
   case class Verify(email: String, merchantSecret: String, mogopayToken: String)
+
   case class Login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean)
+
   case class GenerateAndSendPincode3(accountId: String)
-//  case class GenerateNewEmailCode(accountId: String)
+
+  //  case class GenerateNewEmailCode(accountId: String)
   case class SendSignupConfirmationEmail(accountId: String)
+
   case class ConfirmSignup(token: String)
+
   case class BypassLogin(token: String, session: Session)
+
   case class GenerateNewSecret(accountId: String)
+
   case class AddCreditCard(accountId: String, ccId: Option[String], holder: String,
                            number: String, expiry: String, ccType: String)
+
   case class DeleteCreditCard(accountId: String, cardId: String)
+
   case class GetBillingAddress(accountId: String)
+
   case class GetShippingAddresses(accountId: String)
+
   case class GetShippingAddress(accountId: String)
 
   case class AddressToUpdateFromGetParams(id: String, road: String,
@@ -37,6 +57,7 @@ object AccountActor {
                                           civility: Option[String], firstName: Option[String],
                                           lastName: Option[String], country: Option[String],
                                           admin1: Option[String], admin2: Option[String])
+
   case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
                                        zipCode: Option[String], extra: Option[String],
                                        civility: Option[String], firstName: Option[String],
@@ -48,6 +69,7 @@ object AccountActor {
         lastName, None, country, admin1, admin2)
     }
   }
+
   case class AddressToAssignFromGetParams(road: String, city: String,
                                           road2: Option[String], zipCode: Option[String],
                                           extra: Option[String], civility: Option[String],
@@ -60,26 +82,39 @@ object AccountActor {
         lastName, None, country, admin1, admin2)
     }
   }
+
   case class AssignBillingAddress(accountId: String, address: AddressToAssignFromGetParams)
+
   case class AddShippingAddress(accountId: String, address: AddressToAddFromGetParams)
+
   case class DeleteShippingAddress(accountId: String, addressId: String)
+
   case class UpdateShippingAddress(accountId: String, address: AddressToUpdateFromGetParams)
+
   case class GetActiveCountryState(accountId: String)
+
   case class ProfileInfo(accountId: String)
+
   case class MerchantComId(seller: String)
+
   case class MerchantComSecret(seller: String)
+
   case class Enroll(accountId: String, lPhone: String, pinCode: String)
+
   case class UpdateProfile(id: String, password: Option[(String, String)],
                            company: String, website: String, lphone: String, civility: String,
                            firstName: String, lastName: String, birthDate: String,
                            billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean)
+
   case class Signup(email: String, password: String, password2: String,
                     lphone: String, civility: String, firstName: String,
                     lastName: String, birthDate: String, address: AccountAddress,
                     isMerchant: Boolean, vendor: Option[String])
+
 }
 
 class AccountActor extends Actor {
+
   import AccountActor._
 
   def receive: Receive = {

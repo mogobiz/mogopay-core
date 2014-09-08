@@ -20,8 +20,9 @@ case class Session(data: Session.Data = Map((Settings.SessionCookieName, UUID.ra
   def clear() = {
     val theId = id
     data.clear()
-    this += Settings.SessionCookieName ->  theId
+    this += Settings.SessionCookieName -> theId
   }
+
   def isDirty = dirty
 
   def get(key: String): Option[Any] = data.get(key)
