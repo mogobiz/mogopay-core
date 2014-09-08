@@ -15,7 +15,7 @@ object UtilHandler {
   def generateNonce(): String = {
     val random: Array[Byte] = Array.fill[Byte](16)(0)
     val buffer: StringBuilder = new StringBuilder()
-    val randomSource: SecureRandom  = new SecureRandom()
+    val randomSource: SecureRandom = new SecureRandom()
 
     val zero: Int = '0'
     val A: Int = 'A'
@@ -25,9 +25,9 @@ object UtilHandler {
       val b1 = ((random(j) & 0xf0) >> 4).toByte
       val b2 = (random(j) & 0x0f).toByte
       if (b1 < 10) buffer.append((zero + b1).toChar)
-      else         buffer.append((A + (b1 - 10)).toChar)
+      else buffer.append((A + (b1 - 10)).toChar)
       if (b2 < 10) buffer.append((zero + b2).toChar)
-      else         buffer.append( (A + (b2 - 10)).toChar)
+      else buffer.append((A + (b2 - 10)).toChar)
     }
 
     buffer.toString()
@@ -54,13 +54,20 @@ object UtilHandler {
   }
 
   def hideCardNumber(number: String, replacement: String): String = {
-    replacement * (number.length - 4) + number.substring(number.length() - 4)
+    if (number == null || number.length < 4)
+      number
+    else
+      replacement * (number.length - 4) + number.substring(number.length() - 4)
   }
 
   // From https://stackoverflow.com/a/4608061
   def writeToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
     val p = new java.io.PrintWriter(f, "UTF-8")
-    try { op(p) } finally { p.close() }
+    try {
+      op(p)
+    } finally {
+      p.close()
+    }
   }
 
   def buildDate(date: String, format: String): java.sql.Timestamp = {

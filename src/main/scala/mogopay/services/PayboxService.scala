@@ -18,7 +18,7 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
   import akka.pattern.ask
   import akka.util.Timeout
 
-import scala.concurrent.duration._
+  import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -39,23 +39,23 @@ import scala.concurrent.duration._
         val session = SessionESDirectives.load(xtoken).get
         println("start-payment:" + xtoken)
         onComplete((actor ? StartPayment(session.sessionData)).mapTo[Try[Either[String, Uri]]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              r match {
-                case Failure(t) =>
-                  println(t)
-                  complete(toHTTPResponse(t), Map('error -> t.toString))
-                case Success(data) =>
-                  setSession(session) {
-                    data match {
-                      case Left(content) =>
-                        complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                      case Right(url) =>
-                        println(url)
-                        redirect(url, StatusCodes.TemporaryRedirect)
-                    }
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(r) =>
+            r match {
+              case Failure(t) =>
+                println(t)
+                complete(toHTTPResponse(t), Map('error -> t.toString))
+              case Success(data) =>
+                setSession(session) {
+                  data match {
+                    case Left(content) =>
+                      complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+                    case Right(url) =>
+                      println(url)
+                      redirect(url, StatusCodes.TemporaryRedirect)
                   }
-              }
+                }
+            }
         }
       }
     }
@@ -105,9 +105,11 @@ import scala.concurrent.duration._
           onComplete((actor ? Done3DSecureCheck(session.sessionData, formData.fields.toMap)).mapTo[Try[Uri]]) {
             case Failure(t) => complete(StatusCodes.InternalServerError)
             case Success(r) =>
-              r match {
-                case Success(uri) => redirect(uri, StatusCodes.TemporaryRedirect)
-                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+              setSession(session) {
+                r match {
+                  case Success(uri) => redirect(uri, StatusCodes.TemporaryRedirect)
+                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+                }
               }
           }
         }

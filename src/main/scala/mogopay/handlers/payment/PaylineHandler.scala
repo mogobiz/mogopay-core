@@ -17,7 +17,7 @@ import mogopay.exceptions.Exceptions.MogopayError
 import mogopay.handlers.UtilHandler
 import mogopay.model.Mogopay.CreditCardType.CreditCardType
 import mogopay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
-import mogopay.util.GlobalUtil
+import mogopay.util.{NaiveHostnameVerifier, TrustedSSLFactory, GlobalUtil}
 import mogopay.util.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
@@ -74,7 +74,7 @@ object PaylineHandler {
 
   val ACTION_AUTHORISATION_VALIDATION: String = "101"
   val MODE_COMPTANT: String = "CPT"
-  val SERVICE_NAME: QName = new QName("http ://impl.ws.payline.experian.com", "WebPaymentAPI")
+  val ServiceName: QName = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
 }
 
 class PaylineHandler extends PaymentHandler {
@@ -99,12 +99,12 @@ class PaylineHandler extends PaymentHandler {
       var threeDSResult: ThreeDSResult = null
 
       if (sessionData.mogopay) {
-        val paymentResult = paylineHandler.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
         Success(Right(finishPayment(sessionData, paymentResult)))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val paymentResult = paylineHandler.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
         sessionData.token = Option(paymentResult.token)
-        if (paymentResult.data.nonEmpty) {
+        if (paymentResult.data != null && paymentResult.data.nonEmpty) {
           Success(Left(paymentResult.data))
         } else {
           Success(Right(finishPayment(sessionData, paymentResult)))
@@ -192,7 +192,6 @@ class PaylineHandler extends PaymentHandler {
   }
 
 
-
   def check3DSecure(sessionUuid: String, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest): ThreeDSResult = {
     val vendor = EsClient.load[Account](vendorUuid).get
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
@@ -268,7 +267,7 @@ class PaylineHandler extends PaymentHandler {
         pareqName = response.getPareqFieldName,
         pareqValue = response.getPareqFieldValue,
         termUrlName = response.getTermUrlName,
-        termUrlValue = s"${Settings.MogopayEndPoint}systempay/3ds-callback/${sessionUuid}" //response.getTermUrlValue
+        termUrlValue = s"${Settings.MogopayEndPoint}payline/3ds-callback/${sessionUuid}" //response.getTermUrlValue
       )
 
     }
@@ -343,7 +342,7 @@ class PaylineHandler extends PaymentHandler {
     val card: Card = new Card
     card.setNumber(infosPaiement.ccNumber)
     card.setType(fromCreditCardType(infosPaiement.cardType))
-    card.setExpirationDate(formatDatePayline.format(infosPaiement.expirationDate))
+    card.setExpirationDate(if (infosPaiement.expirationDate != null) formatDatePayline.format(infosPaiement.expirationDate) else null)
     card.setCvx(infosPaiement.cvv)
 
     logdata += "&card.number=" + UtilHandler.hideCardNumber(card.getNumber, "X")
@@ -401,11 +400,11 @@ class PaylineHandler extends PaymentHandler {
       transactionCertificate = null,
       authorizationId = null,
       status = null,
-      errorCodeOrigin = null,
-      errorMessageOrigin = null,
+      errorCodeOrigin = "",
+      errorMessageOrigin = None,
       data = null,
-      bankErrorCode = null,
-      bankErrorMessage = null,
+      bankErrorCode = "",
+      bankErrorMessage = None,
       token = null
     )
 
@@ -471,7 +470,6 @@ class PaylineHandler extends PaymentHandler {
 
   private def createProxy(transaction: BOTransaction, parametres: Map[String, String]): DirectPaymentAPI = {
     val accountId: String = parametres("paylineAccount")
-
     val cleAccess: String = parametres("paylineKey")
     val endpoint: String = Settings.Payline.DirectEndPoint
     val url: URL = classOf[PaylineHandler].getResource("/wsdl/DirectPaymentAPI_v4.38.wsdl")
@@ -480,7 +478,9 @@ class PaylineHandler extends PaymentHandler {
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.username", accountId)
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.password", cleAccess)
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.service.endpoint.address", endpoint)
-    //val binding: javax.xml.ws.Binding = (proxy.asInstanceOf[BindingProvider]).getBinding
+    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put(TrustedSSLFactory.JaxwsSslSockeetFactory, TrustedSSLFactory.getTrustingSSLSocketFactory)
+    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put(NaiveHostnameVerifier.JaxwsHostNameVerifier, new NaiveHostnameVerifier)
+    val binding: javax.xml.ws.Binding = (proxy.asInstanceOf[BindingProvider]).getBinding
     proxy
   }
 
@@ -516,7 +516,7 @@ class PaylineHandler extends PaymentHandler {
     parameters.setVersion(Settings.Payline.Version)
     parameters.setPayment(payment)
     parameters.setReturnURL(Settings.MogopayEndPoint + "payline/done/" + sessionId)
-    parameters.setCancelURL(Settings.MogopayEndPoint + "payline/cancel/" + sessionId)
+    parameters.setCancelURL(Settings.MogopayEndPoint + "payline/done/" + sessionId)
     parameters.setNotificationURL(Settings.MogopayEndPoint + "payline/callback/" + sessionId)
     parameters.setOrder(order)
     parameters.setSecurityMode(Settings.Payline.SecurityMode)
@@ -524,8 +524,8 @@ class PaylineHandler extends PaymentHandler {
     parameters.setBuyer(null)
     parameters.setPrivateDataList(null)
     parameters.setRecurring(null)
-    parameters.setCustomPaymentPageCode(parametres("paylineCustomPaymentPageCode"))
-    parameters.setCustomPaymentTemplateURL(parametres("paylineCustomPaymentTemplateURL"))
+    parameters.setCustomPaymentPageCode(parametres.getOrElse("paylineCustomPaymentPageCode", null))
+    parameters.setCustomPaymentTemplateURL(parametres.getOrElse("paylineCustomPaymentTemplateURL", null))
     logdata += "&returnURL=" + parameters.getReturnURL
     logdata += "&languageCode=" + parameters.getLanguageCode
     logdata += "&securityMode=" + parameters.getSecurityMode
@@ -533,13 +533,17 @@ class PaylineHandler extends PaymentHandler {
     val port: WebPaymentAPI = null
     val webPayment: WebPayment = new WebPayment
     val url: URL = classOf[WebPaymentAPI].getResource("/wsdl/WebPaymentAPI_v4.38.wsdl")
-    val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, SERVICE_NAME)
+    val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, ServiceName)
+
     val proxy: WebPaymentAPI = ss.getWebPaymentAPI
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.username", parametres("paylineAccount"))
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.password", parametres("paylineKey"))
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.service.endpoint.address", Settings.Payline.WebEndPoint)
-    val binding: Binding = (proxy.asInstanceOf[BindingProvider]).getBinding
+    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put(TrustedSSLFactory.JaxwsSslSockeetFactory, TrustedSSLFactory.getTrustingSSLSocketFactory)
+    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put(NaiveHostnameVerifier.JaxwsHostNameVerifier, new NaiveHostnameVerifier)
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true.asInstanceOf[Object])
+
+    val binding: Binding = (proxy.asInstanceOf[BindingProvider]).getBinding
     val handlerList = binding.getHandlerChain
     handlerList.add(new TraceHandler(transaction, "PAYLINE"))
     binding.setHandlerChain(handlerList)
@@ -626,7 +630,7 @@ class PaylineHandler extends PaymentHandler {
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val url: URL = classOf[WebPaymentAPI].getResource("/wsdl/WebPaymentAPI_v4.38.wsdl")
-    val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, SERVICE_NAME)
+    val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, ServiceName)
     val proxy: WebPaymentAPI = ss.getWebPaymentAPI
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.username", parametres("paylineAccount"))
     (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.password", parametres("paylineKey"))

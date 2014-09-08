@@ -3,6 +3,7 @@ package mogopay.actors
 import akka.actor.Actor
 import mogopay.config.HandlersConfig._
 import mogopay.handlers.shipping.ShippingPrice
+import mogopay.model.Mogopay.SessionData
 import mogopay.session.Session
 
 object TransactionActor {
@@ -40,7 +41,7 @@ object TransactionActor {
       "ccType"                 -> "ccType"
     )
   }
-  case class Submit(session: Session, params: SubmitParams, actionName: Option[String], csrfToken: Option[String])
+  case class Submit(sessionData: SessionData, params: SubmitParams, actionName: Option[String], csrfToken: Option[String])
 }
 
 class TransactionActor extends Actor {

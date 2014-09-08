@@ -89,16 +89,15 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
     import mogopay.config.Implicits._
     get {
       parameterMap { params =>
-          val message = CallbackPayment(params, vendorUuid)
-          onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-
-              r match {
-                case Success(pr) => complete(StatusCodes.OK, pr)
-                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-              }
-          }
+        val message = CallbackPayment(params, vendorUuid)
+        onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(r) =>
+            r match {
+              case Success(pr) => complete(StatusCodes.OK, pr)
+              case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+            }
+        }
       }
     }
   }

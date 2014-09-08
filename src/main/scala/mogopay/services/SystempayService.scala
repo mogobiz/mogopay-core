@@ -36,27 +36,27 @@ class SystempayService(actor: ActorRef)(implicit executionContext: ExecutionCont
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-          println("start-payment:" + session.sessionData.uuid)
-          val message = StartPayment(session.sessionData)
-          onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              r match {
-                case Failure(t) =>
-                  println(t)
-                  complete(toHTTPResponse(t), Map('error -> t.toString))
-                case Success(data) =>
-                  setSession(session) {
-                    data match {
-                      case Left(content) =>
-                        println(content)
-                        complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                      case Right(url) =>
-                        println(url)
-                        redirect(url, StatusCodes.TemporaryRedirect)
-                    }
+        println("start-payment:" + session.sessionData.uuid)
+        val message = StartPayment(session.sessionData)
+        onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) {
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(r) =>
+            r match {
+              case Failure(t) =>
+                println(t)
+                complete(toHTTPResponse(t), Map('error -> t.toString))
+              case Success(data) =>
+                setSession(session) {
+                  data match {
+                    case Left(content) =>
+                      println(content)
+                      complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+                    case Right(url) =>
+                      println(url)
+                      redirect(url, StatusCodes.TemporaryRedirect)
                   }
-              }
+                }
+            }
         }
       }
     }

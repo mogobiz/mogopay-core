@@ -18,7 +18,7 @@ class PaylineService(actor: ActorRef)(implicit executionContext: ExecutionContex
   import akka.pattern.ask
   import akka.util.Timeout
 
-import scala.concurrent.duration._
+  import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -52,7 +52,6 @@ import scala.concurrent.duration._
                       println(content)
                       complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
                     case Right(url) =>
-                      println(url)
                       redirect(url, StatusCodes.TemporaryRedirect)
                   }
                 }
@@ -62,23 +61,22 @@ import scala.concurrent.duration._
     }
   }
 
-  lazy val done = path("done") {
+  lazy val done = path("done" / Segment) { xtoken =>
     import mogopay.config.Implicits._
     get {
       parameterMap { params =>
-        session { session =>
-          println("done:" + session.sessionData.uuid)
-          val message = Done(session.sessionData, params)
-          onComplete((actor ? message).mapTo[Try[Uri]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              setSession(session) {
-                r match {
-                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-                  case Success(x) => redirect(x, StatusCodes.TemporaryRedirect)
-                }
+        val session = SessionESDirectives.load(xtoken).get
+        println("done:" + session.sessionData.uuid)
+        val message = Done(session.sessionData, params)
+        onComplete((actor ? message).mapTo[Try[Uri]]) {
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(r) =>
+            setSession(session) {
+              r match {
+                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+                case Success(x) => redirect(x, StatusCodes.TemporaryRedirect)
               }
-          }
+            }
         }
       }
     }
@@ -90,26 +88,27 @@ import scala.concurrent.duration._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-          val message = CallbackPayment(session.sessionData, params)
-          onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-
+        val message = CallbackPayment(session.sessionData, params)
+        onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
+          case Failure(t) => complete(StatusCodes.InternalServerError)
+          case Success(r) =>
+            setSession(session) {
               r match {
                 case Success(pr) => complete(StatusCodes.OK, pr)
                 case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
               }
-          }
+            }
+        }
       }
     }
   }
 
   lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
-    import mogopay.config.Implicits._
-    get {
-      parameterMap { params =>
+    post {
+      entity(as[FormData]) { formData =>
+        import mogopay.config.Implicits._
         val session = SessionESDirectives.load(xtoken).get
-        val message = ThreeDSCallback(session.sessionData, params)
+        val message = ThreeDSCallback(session.sessionData, formData.fields.toMap)
         onComplete((actor ? message).mapTo[Try[Uri]]) {
           case Failure(t) => complete(StatusCodes.InternalServerError)
           case Success(data) =>

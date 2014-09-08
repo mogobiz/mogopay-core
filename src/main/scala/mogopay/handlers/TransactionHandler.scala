@@ -288,7 +288,7 @@ class TransactionHandler {
     var transactionType = submit.params.transactionType
     var amount = submit.params.amount
     var cardinfoURL = submit.params.cardinfoURL
-    val sessionData = submit.session.sessionData
+    val sessionData = submit.sessionData
 
     val vendor =
       if (sessionData.customerId.isDefined && successURL.isEmpty && errorURL.isEmpty && cardinfoURL.isEmpty) {
@@ -446,7 +446,7 @@ class TransactionHandler {
         case Failure(t) => Failure(t)
         case Success(payment) => {
           sessionData.paymentRequest = Some(payment)
-          val handler = if (submit.session.sessionData.transactionType == Some("CREDIT_CARD")) {
+          val handler = if (submit.sessionData.transactionType == Some("CREDIT_CARD")) {
             sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
           } else {
             sessionData.transactionType.get.toLowerCase

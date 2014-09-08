@@ -74,15 +74,15 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   lazy val init = path("init") {
     import mogopay.config.Implicits._
     get {
-      val params = parameters('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?)
-      params { (secret, amount, code, rate, extra) =>
-        onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { res =>
-          res match {
-            case Failure(t) => complete(toHTTPResponse(t) -> Map('error -> t.toString))
-            case Success(id) => complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
+        val params = parameters('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?)
+        params { (secret, amount, code, rate, extra) =>
+          onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { res =>
+            res match {
+              case Failure(t) => complete(toHTTPResponse(t) -> Map('error -> t.toString))
+              case Success(id) => complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
 
+            }
           }
-        }
       }
     }
   }
@@ -190,8 +190,9 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
         submitParams =>
           session {
             session =>
+              session.clear()
               import mogopay.config.Implicits._
-              val r = (actor ? Submit(session, submitParams, None, None)).mapTo[Try[(String, String)]]
+              val r = (actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]
               onComplete(r) {
                 case Failure(e) => complete(StatusCodes.InternalServerError)
                 case Success(ta) => {
@@ -202,22 +203,22 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                       }
                     case Success((serviceName, methodName)) =>
                       setSession(session) {
-                        val csrfToken = session.sessionData.csrfToken
                         val sessionId = session.id
-                        println(s"SessionId=$sessionId")
                         val pipeline: Future[SendReceive] =
                           for (
                             Http.HostConnectorInfo(connector, _) <-
                             IO(Http) ? Http.HostConnectorSetup(Settings.ServerListen, Settings.ServerPort)
 
                           ) yield sendReceive(connector)
-                        //                    redirect(s"/pay/$serviceName/$methodName?csrf_token=${session.sessionData.csrfToken}", StatusCodes.TemporaryRedirect)
                         println(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val response = pipeline.flatMap(_(request))
                         onComplete(response) {
-                          case Failure(t) => complete(toHTTPResponse(t), t.toString)
+                          case Failure(t) =>
+                            t.printStackTrace()
+                            complete(toHTTPResponse(t), t.toString)
                           case Success(response) =>
+                            println("success->" + response.entity.data.asString)
                             complete {
                               response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
                             }
