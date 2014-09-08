@@ -11,9 +11,9 @@
 
     <property environment="env"/>
     <property name="home.dir" location="${basedir}"/>
-    <property name="build.dir" location ="${basedir}/build"/>
-    <property name="build.classes.dir" location ="${build.dir}/classes"/>
-    <property name="build.src.dir" location ="${basedir}"/>
+    <property name="build.dir" location="${basedir}/build"/>
+    <property name="build.classes.dir" location="${build.dir}/classes"/>
+    <property name="build.src.dir" location="${basedir}"/>
 
     <!-- find the tools jar -->
     <available property="tools.jar" value="$${env.JAVA_HOME}/lib/tools.jar"
@@ -24,8 +24,8 @@
 
     <condition property="is.java.version.16">
         <or>
-          <equals arg1="${ant.java.version}" arg2="1.6"/>
-          <equals arg1="${ant.java.version}" arg2="1.7"/>
+            <equals arg1="${ant.java.version}" arg2="1.6"/>
+            <equals arg1="${ant.java.version}" arg2="1.7"/>
         </or>
     </condition>
 
@@ -53,7 +53,7 @@
     <fail message="The location ${cxf.home} does not seem to contain a cxf installation; if you are importing this common build file from a location other than the cxf samples directory then you need to set the cxf_HOME environment variable.">
         <condition>
             <not>
-                <isset property="cxf-manifest.jar.file" />
+                <isset property="cxf-manifest.jar.file"/>
             </not>
         </condition>
     </fail>
@@ -82,9 +82,8 @@
     <property name="cxf.endorsed.flag" value="-Dnone=none"/>
 
 
-
     <path id="cxf.classpath">
-        <pathelement location="${home.dir}" /> 
+        <pathelement location="${home.dir}"/>
         <pathelement location="${build.classes.dir}"/>
         <pathelement location="${cxf-manifest.jar.file}"/>
         <fileset dir="${cxf.endorsed.dir}">
@@ -92,24 +91,25 @@
         </fileset>
     </path>
 
-    <target name="DirectPaymentAPIClient" description="Run com.experian.payline.wsclient.DirectPaymentAPI_DirectPaymentAPI_Client" depends="compile">
+    <target name="DirectPaymentAPIClient"
+            description="Run com.experian.payline.wsclient.DirectPaymentAPI_DirectPaymentAPI_Client" depends="compile">
         <property name="param" value=""/>
         <cxfrun classname="com.experian.payline.wsclient.DirectPaymentAPI_DirectPaymentAPI_Client"
-                   param1="WebPaymentAPI-homologation.wsdl"/>
+                param1="WebPaymentAPI-homologation.wsdl"/>
     </target>
 
-    <target name="DirectPaymentAPIServer" description="Run com.experian.payline.wsclient.DirectPaymentAPI_DirectPaymentAPI_Server" depends="compile">
+    <target name="DirectPaymentAPIServer"
+            description="Run com.experian.payline.wsclient.DirectPaymentAPI_DirectPaymentAPI_Server" depends="compile">
         <cxfrun classname="com.experian.payline.wsclient.DirectPaymentAPI_DirectPaymentAPI_Server"
-                   param1="WebPaymentAPI-homologation.wsdl"/>
+                param1="WebPaymentAPI-homologation.wsdl"/>
     </target>
-
 
 
     <target name="compile">
         <mkdir dir="${build.classes.dir}"/>
         <javac srcdir="${build.src.dir}" destdir="${build.classes.dir}" debug="true" fork="true">
             <compilerarg line="-J${cxf.endorsed.flag}"/>
-            <classpath refid="cxf.classpath" />
+            <classpath refid="cxf.classpath"/>
         </javac>
     </target>
 
@@ -128,7 +128,7 @@
         <delete file="demo.log"/>
     </target>
 
-    <target name="build"  depends="compile" description="build demo client and server"/>
+    <target name="build" depends="compile" description="build demo client and server"/>
 
     <macrodef name="cxfrun">
         <attribute name="classname"/>
