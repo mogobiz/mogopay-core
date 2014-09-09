@@ -1,0 +1,23 @@
+# --------------------------------------------------------------------------
+# 	Parametres du composant Diag
+#	Diag component parameters
+# --------------------------------------------------------------------------
+
+# Adresse du Proxy
+# Proxy address
+
+PROXY_HOST!!
+
+# Numero de port du Proxy
+# Proxy port
+
+PROXY_PORT!!
+
+# chemin vers le fichier certificats
+# path to the certificate file
+
+F_CERTIFICATE!!
+
+# --------------------------------------------------------------------------
+# 	end of file
+# --------------------------------------------------------------------------

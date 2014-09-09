@@ -1,0 +1,46 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   ExempleCheckout.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import java.io.PrintStream;
+import java.util.ResourceBundle;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            SIPSCheckoutApi, SIPSCheckoutRequestParm, SIPSCheckoutResponseParm
+
+public class ExempleCheckout
+{
+
+    public ExempleCheckout()
+    {
+    }
+
+    public static void main(String args[])
+    {
+        try
+        {
+            ResourceBundle rs = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.checkout.config");
+            SIPSCheckoutApi api = new SIPSCheckoutApi(rs.getString("PATHFILE"));
+            SIPSDataObject request = new SIPSCheckoutRequestParm(0);
+            SIPSDataObject response = new SIPSCheckoutResponseParm(0);
+            request.setValue("merchant_id", "000000000005556");
+            request.setValue("merchant_country", "fr");
+            request.setValue("transaction_id", "70346");
+            request.setValue("card_number", "498465123123123200");
+            request.setValue("card_validity", "201001");
+            request.setValue("card_type", "VISA");
+            request.setValue("amount", "200");
+            request.setValue("currency_code", "826");
+            request.setValue("merchant_name", "Test");
+            request.setValue("merchant_url", "http://www.moncommerce.com");
+            api.checkEnroll3d(request, response);
+            System.out.println("CheckEnroll3d Results\n");
+            System.out.println((new StringBuilder("3d_response_code = ")).append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).toString());
+        }
+        catch(Exception exception) { }
+    }
+}

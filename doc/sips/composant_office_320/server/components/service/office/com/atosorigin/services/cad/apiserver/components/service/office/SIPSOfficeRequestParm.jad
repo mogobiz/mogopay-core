@@ -1,0 +1,736 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSOfficeRequestParm.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.common.SIPSException;
+import java.util.Hashtable;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            SIPSParm, Nls
+
+public final class SIPSOfficeRequestParm extends SIPSParm
+{
+
+    public SIPSOfficeRequestParm()
+    {
+        super(mandatoryKeys, optionalKeys);
+        String ver = Nls.getConstant("api_version");
+        valHash.put(optionalKeys[0], ver);
+        String dateV = getDate();
+        valHash.put(optionalKeys[3], dateV);
+    }
+
+    public void check(String key, String val)
+        throws SIPSException
+    {
+        if(key.compareTo(MERCHANT_ID) == 0)
+        {
+            if(val.length() == 0)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_filled") + " ) ");
+            if(val.length() > LG_MERCHANT_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            if(!isNumeric(val))
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_numeric") + " ) ");
+            else
+                return;
+        }
+        if(key.compareTo(MERCHANT_COUNTRY) == 0)
+        {
+            if(val.length() == 0)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_filled") + " ) ");
+            if(val.length() > LG_MERCHANT_COUNTRY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        }
+        if(key.compareTo(TRANSACTION_ID) == 0)
+        {
+            if(val.length() == 0)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_filled") + " ) ");
+            if(val.length() > LG_TRANSACTION_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            if(!isNumeric(val))
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_numeric") + " ) ");
+            else
+                return;
+        }
+        if(key.compareTo(AMOUNT) == 0)
+        {
+            if(val.length() > LG_AMOUNT)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            if(val.length() < 3)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + Nls.getErrorMessage("amount_length") + " ) ");
+            if(!isNumeric(val))
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_numeric") + " ) ");
+            else
+                return;
+        }
+        if(key.compareTo(VERSION) == 0)
+            if(val.length() > LG_VERSION)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ORIGIN) == 0)
+            if(val.length() > LG_ORIGIN)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(REQUESTER) == 0)
+            if(val.length() > LG_REQUESTER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_ID) == 0)
+            if(val.length() > LG_CUSTOMER_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PROCESSING_CODE) == 0)
+            if(val.length() > LG_PROCESSING_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(TRANSMISSION_DATE) == 0)
+            if(val.length() > LG_TRANSMISSION_DATE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PAYMENT_DATE) == 0)
+            if(val.length() > LG_PAYMENT_DATE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CURRENCY_CODE) == 0)
+            if(val.length() > LG_CURRENCY_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CARD_NUMBER) == 0)
+            if(val.length() > LG_CARD_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CARD_VALIDITY) == 0)
+            if(val.length() > LG_CARD_VALIDITY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(RESPONSE_CODE) == 0)
+            if(val.length() > LG_RESPONSE_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(AUTHORISATION_ID) == 0)
+            if(val.length() > LG_AUTHORISATION_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CARD_TYPE) == 0)
+            if(val.length() > LG_CARD_TYPE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(RETURN_CONTEXT) == 0)
+            if(val.length() > LG_RETURN_CONTEXT)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ORDER_ID) == 0)
+            if(val.length() > LG_ORDER_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CAPTURE_MODE) == 0)
+            if(val.length() > LG_CAPTURE_MODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CAPTURE_DAY) == 0)
+            if(val.length() > LG_CAPTURE_DAY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DATA) == 0)
+            if(val.length() > LG_DATA)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ORDER_VALIDITY) == 0)
+            if(val.length() > LG_ORDER_VALIDITY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(GSM_CODE) == 0)
+            if(val.length() > LG_GSM_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(FROM_TRANSACTION_ID) == 0)
+            if(val.length() > LG_FROM_TRANSACTION_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(FROM_PAYMENT_DATE) == 0)
+            if(val.length() > LG_FROM_PAYMENT_DATE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PIN_CODE) == 0)
+            if(val.length() > LG_PIN_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PP_OPERATOR) == 0)
+            if(val.length() > LG_PP_OPERATOR)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CVV_FLAG) == 0)
+            if(val.length() > LG_CVV_FLAG)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CVV_KEY) == 0)
+            if(val.length() > LG_CVV_KEY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MPI_CAVV) == 0)
+            if(val.length() > LG_MPI_CAVV)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MPI_CAVV_ALGORITHM) == 0)
+            if(val.length() > LG_MPI_CAVV_ALGORITHM)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MPI_ECI) == 0)
+            if(val.length() > LG_MPI_ECI)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MPI_TX_STATUS) == 0)
+            if(val.length() > LG_MPI_TX_STATUS)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MPI_XID) == 0)
+            if(val.length() > LG_MPI_XID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(SECURITY_INDICATOR) == 0)
+            if(val.length() > LG_SECURITY_INDICATOR)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_IP_ADDRESS) == 0)
+            if(val.length() > LG_CUSTOMER_IP_ADDRESS)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BANK_NUMBER) == 0)
+            if(val.length() > LG_BANK_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ACCOUNT_ID) == 0)
+            if(val.length() > LG_ACCOUNT_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ORDER_CHANNEL) == 0)
+            if(val.length() > LG_ORDER_CHANNEL)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PAYMENT_PATTERN) == 0)
+            if(val.length() > LG_PAYMENT_PATTERN)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ALTERNATE_CERTIFICATE) == 0)
+            if(val.length() > LG_ALTERNATE_CERTIFICATE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_EMAIL) == 0)
+            if(val.length() > LG_CUSTOMER_EMAIL)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(FLAG_DDEBIT_TYPE) == 0)
+            if(val.length() > LG_FLAG_DDEBIT_TYPE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DATE_COLLECT) == 0)
+            if(val.length() > LG_DATE_COLLECT)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DDEBIT_TRANSACTION_TYPE) == 0)
+            if(val.length() > LG_DDEBIT_TRANSACTION_TYPE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(COMPANY_DATA) == 0)
+            if(val.length() > LG_COMPANY_DATA)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(COMPANY_NAME) == 0)
+            if(val.length() > LG_COMPANY_NAME)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(TITLE) == 0)
+            if(val.length() > LG_TITLE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(FIRSTNAME) == 0)
+            if(val.length() > LG_COMPANY_DATA)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PREFIX_SURNAME) == 0)
+            if(val.length() > LG_PREFIX_SURNAME)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(SURNAME) == 0)
+            if(val.length() > LG_SURNAME)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(STREET) == 0)
+            if(val.length() > LG_STREET)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(HOUSE_NUMBER) == 0)
+            if(val.length() > LG_HOUSE_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ADDITIONAL_ADDRESS_INFO) == 0)
+            if(val.length() > LG_ADDITIONAL_ADDRESS_INFO)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ZIP) == 0)
+            if(val.length() > LG_ZIP)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CITY) == 0)
+            if(val.length() > LG_CITY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(STATE) == 0)
+            if(val.length() > LG_STATE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BANK_CODE) == 0)
+            if(val.length() > LG_BANK_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BANK_NAME) == 0)
+            if(val.length() > LG_BANK_NAME)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BRANCH_CODE) == 0)
+            if(val.length() > LG_BRANCH_CODE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BANK_CHECK_DIGIT) == 0)
+            if(val.length() > LG_BANK_CHECK_DIGIT)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ACCOUNT_NUMBER) == 0)
+            if(val.length() > LG_ACCOUNT_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ACCOUNT_NAME) == 0)
+            if(val.length() > LG_ACCOUNT_NAME)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DDEBIT_TEXT) == 0)
+            if(val.length() > LG_DDEBIT_TEXT)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DDEBIT_AUTH_ID) == 0)
+            if(val.length() > LG_DDEBIT_AUTH_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_BANK_STREET) == 0)
+            if(val.length() > LG_CUSTOMER_BANK_STREET)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_BANK_NUMBER) == 0)
+            if(val.length() > LG_CUSTOMER_BANK_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_BANK_ZIP) == 0)
+            if(val.length() > LG_CUSTOMER_BANK_ZIP)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CUSTOMER_BANK_CITY) == 0)
+            if(val.length() > LG_CUSTOMER_BANK_CITY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BANK_FILIALE) == 0)
+            if(val.length() > LG_BANK_FILIALE)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(BANK_AGENZIA) == 0)
+            if(val.length() > LG_BANK_AGENZIA)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DOMICILIO) == 0)
+            if(val.length() > LG_DOMICILIO)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(PROVINCIA) == 0)
+            if(val.length() > LG_PROVINCIA)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(IBAN) == 0)
+            if(val.length() > LG_IBAN)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ADDRESS_LINE1) == 0)
+            if(val.length() > LG_ADDRESS_LINE1)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ADDRESS_LINE2) == 0)
+            if(val.length() > LG_ADDRESS_LINE2)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ADDRESS_LINE3) == 0)
+            if(val.length() > LG_ADDRESS_LINE3)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(ADDRESS_LINE4) == 0)
+            if(val.length() > LG_ADDRESS_LINE4)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(INVOICE_NUMBER) == 0)
+            if(val.length() > LG_INVOICE_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(FISCAL_NUMBER) == 0)
+        {
+            if(val.length() > LG_FISCAL_NUMBER)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        } else
+        {
+            return;
+        }
+    }
+
+    public void check()
+        throws SIPSException
+    {
+        super.check();
+    }
+
+    public boolean isNumeric(String input)
+    {
+        return input.matches("\\d+");
+    }
+
+    public static String MERCHANT_COUNTRY;
+    public static String MERCHANT_ID;
+    public static String TRANSACTION_ID;
+    public static String AMOUNT;
+    private static String mandatoryKeys[];
+    public static String VERSION;
+    public static String ORIGIN;
+    public static String PROCESSING_CODE;
+    public static String TRANSMISSION_DATE;
+    public static String PAYMENT_DATE;
+    public static String CURRENCY_CODE;
+    public static String CARD_NUMBER;
+    public static String CARD_VALIDITY;
+    public static String RESPONSE_CODE;
+    public static String AUTHORISATION_ID;
+    public static String CARD_TYPE;
+    public static String RETURN_CONTEXT;
+    public static String ORDER_ID;
+    public static String CAPTURE_MODE;
+    public static String CAPTURE_DAY;
+    public static String DATA;
+    public static String ORDER_VALIDITY;
+    public static String GSM_CODE;
+    public static String FROM_TRANSACTION_ID;
+    public static String FROM_PAYMENT_DATE;
+    public static String CVV_FLAG;
+    public static String CVV_KEY;
+    public static String PP_OPERATOR;
+    public static String PIN_CODE;
+    public static String REQUESTER;
+    public static String CUSTOMER_ID;
+    public static String MPI_CAVV;
+    public static String MPI_CAVV_ALGORITHM;
+    public static String MPI_ECI;
+    public static String MPI_TX_STATUS;
+    public static String MPI_XID;
+    public static String SECURITY_INDICATOR;
+    public static String CUSTOMER_IP_ADDRESS;
+    public static String BANK_NUMBER;
+    public static String ACCOUNT_ID;
+    public static String ORDER_CHANNEL;
+    public static String PAYMENT_PATTERN;
+    public static String ALTERNATE_CERTIFICATE;
+    public static String CUSTOMER_EMAIL;
+    public static String FLAG_DDEBIT_TYPE;
+    public static String DATE_COLLECT;
+    public static String DDEBIT_TRANSACTION_TYPE;
+    public static String COMPANY_DATA;
+    public static String COMPANY_NAME;
+    public static String TITLE;
+    public static String FIRSTNAME;
+    public static String PREFIX_SURNAME;
+    public static String SURNAME;
+    public static String STREET;
+    public static String HOUSE_NUMBER;
+    public static String ADDITIONAL_ADDRESS_INFO;
+    public static String ZIP;
+    public static String CITY;
+    public static String STATE;
+    public static String BANK_CODE;
+    public static String BANK_NAME;
+    public static String BRANCH_CODE;
+    public static String BANK_CHECK_DIGIT;
+    public static String ACCOUNT_NUMBER;
+    public static String ACCOUNT_NAME;
+    public static String DDEBIT_TEXT;
+    public static String DDEBIT_AUTH_ID;
+    public static String CUSTOMER_BANK_STREET;
+    public static String CUSTOMER_BANK_NUMBER;
+    public static String CUSTOMER_BANK_ZIP;
+    public static String CUSTOMER_BANK_CITY;
+    public static String BANK_FILIALE;
+    public static String BANK_AGENZIA;
+    public static String DOMICILIO;
+    public static String PROVINCIA;
+    public static String IBAN;
+    public static String ADDRESS_LINE1;
+    public static String ADDRESS_LINE2;
+    public static String ADDRESS_LINE3;
+    public static String ADDRESS_LINE4;
+    public static String INVOICE_NUMBER;
+    public static String FISCAL_NUMBER;
+    private static String optionalKeys[];
+    public static int LG_MERCHANT_COUNTRY = 2;
+    public static int LG_MERCHANT_ID = 15;
+    public static int LG_TRANSACTION_ID = 6;
+    public static int LG_AMOUNT = 12;
+    public static int LG_VERSION = 5;
+    public static int LG_ORIGIN = 20;
+    public static int LG_PROCESSING_CODE = 2;
+    public static int LG_TRANSMISSION_DATE = 14;
+    public static int LG_PAYMENT_DATE = 8;
+    public static int LG_CURRENCY_CODE = 3;
+    public static int LG_CARD_NUMBER = 21;
+    public static int LG_CARD_VALIDITY = 6;
+    public static int LG_RESPONSE_CODE = 2;
+    public static int LG_AUTHORISATION_ID = 32;
+    public static int LG_CARD_TYPE = 20;
+    public static int LG_RETURN_CONTEXT = 256;
+    public static int LG_ORDER_ID = 32;
+    public static int LG_CAPTURE_MODE = 20;
+    public static int LG_CAPTURE_DAY = 2;
+    public static int LG_DATA = 1024;
+    public static int LG_ORDER_VALIDITY = 2;
+    public static int LG_GSM_CODE = 2;
+    public static int LG_FROM_TRANSACTION_ID = 6;
+    public static int LG_FROM_PAYMENT_DATE = 8;
+    public static int LG_CVV_FLAG = 1;
+    public static int LG_CVV_KEY = 4;
+    public static int LG_PP_OPERATOR = 20;
+    public static int LG_PIN_CODE = 30;
+    public static int LG_REQUESTER = 20;
+    public static int LG_CUSTOMER_ID = 19;
+    public static int LG_MPI_CAVV = 28;
+    public static int LG_MPI_CAVV_ALGORITHM = 1;
+    public static int LG_MPI_ECI = 2;
+    public static int LG_MPI_TX_STATUS = 1;
+    public static int LG_MPI_XID = 28;
+    public static int LG_SECURITY_INDICATOR = 2;
+    public static int LG_CUSTOMER_IP_ADDRESS = 15;
+    public static int LG_BANK_NUMBER = 8;
+    public static int LG_ACCOUNT_ID = 10;
+    public static int LG_ORDER_CHANNEL = 15;
+    public static int LG_PAYMENT_PATTERN = 15;
+    public static int LG_ALTERNATE_CERTIFICATE = 20;
+    public static int LG_CUSTOMER_EMAIL = 128;
+    public static int LG_FLAG_DDEBIT_TYPE = 1;
+    public static int LG_DATE_COLLECT = 8;
+    public static int LG_DDEBIT_TRANSACTION_TYPE = 2;
+    public static int LG_COMPANY_DATA = 50;
+    public static int LG_COMPANY_NAME = 40;
+    public static int LG_TITLE = 35;
+    public static int LG_FIRSTNAME = 15;
+    public static int LG_PREFIX_SURNAME = 15;
+    public static int LG_SURNAME = 35;
+    public static int LG_STREET = 50;
+    public static int LG_HOUSE_NUMBER = 15;
+    public static int LG_ADDITIONAL_ADDRESS_INFO = 50;
+    public static int LG_ZIP = 10;
+    public static int LG_CITY = 40;
+    public static int LG_STATE = 35;
+    public static int LG_BANK_CODE = 8;
+    public static int LG_BANK_NAME = 40;
+    public static int LG_BRANCH_CODE = 5;
+    public static int LG_BANK_CHECK_DIGIT = 2;
+    public static int LG_ACCOUNT_NUMBER = 30;
+    public static int LG_ACCOUNT_NAME = 30;
+    public static int LG_DDEBIT_TEXT = 50;
+    public static int LG_DDEBIT_AUTH_ID = 18;
+    public static int LG_CUSTOMER_BANK_STREET = 30;
+    public static int LG_CUSTOMER_BANK_NUMBER = 5;
+    public static int LG_CUSTOMER_BANK_ZIP = 10;
+    public static int LG_CUSTOMER_BANK_CITY = 35;
+    public static int LG_BANK_FILIALE = 30;
+    public static int LG_BANK_AGENZIA = 30;
+    public static int LG_DOMICILIO = 30;
+    public static int LG_PROVINCIA = 30;
+    public static int LG_IBAN = 50;
+    public static int LG_ADDRESS_LINE1 = 35;
+    public static int LG_ADDRESS_LINE2 = 35;
+    public static int LG_ADDRESS_LINE3 = 35;
+    public static int LG_ADDRESS_LINE4 = 35;
+    public static int LG_INVOICE_NUMBER = 20;
+    public static int LG_FISCAL_NUMBER = 15;
+
+    static 
+    {
+        MERCHANT_COUNTRY = "merchant_country";
+        MERCHANT_ID = "merchant_id";
+        TRANSACTION_ID = "transaction_id";
+        AMOUNT = "amount";
+        mandatoryKeys = (new String[] {
+            MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, AMOUNT
+        });
+        VERSION = "version";
+        ORIGIN = "origin";
+        PROCESSING_CODE = "processing_code";
+        TRANSMISSION_DATE = "transmission_date";
+        PAYMENT_DATE = "payment_date";
+        CURRENCY_CODE = "currency_code";
+        CARD_NUMBER = "card_number";
+        CARD_VALIDITY = "card_validity";
+        RESPONSE_CODE = "response_code";
+        AUTHORISATION_ID = "authorisation_id";
+        CARD_TYPE = "card_type";
+        RETURN_CONTEXT = "return_context";
+        ORDER_ID = "order_id";
+        CAPTURE_MODE = "capture_mode";
+        CAPTURE_DAY = "capture_day";
+        DATA = "data";
+        ORDER_VALIDITY = "order_validity";
+        GSM_CODE = "gsm_code";
+        FROM_TRANSACTION_ID = "from_transaction_id";
+        FROM_PAYMENT_DATE = "from_payment_date";
+        CVV_FLAG = "cvv_flag";
+        CVV_KEY = "cvv_key";
+        PP_OPERATOR = "pp_operator";
+        PIN_CODE = "pin_code";
+        REQUESTER = "requester";
+        CUSTOMER_ID = "customer_id";
+        MPI_CAVV = "mpi_cavv";
+        MPI_CAVV_ALGORITHM = "mpi_cavv_algorithm";
+        MPI_ECI = "mpi_eci";
+        MPI_TX_STATUS = "mpi_tx_status";
+        MPI_XID = "mpi_xid";
+        SECURITY_INDICATOR = "security_indicator";
+        CUSTOMER_IP_ADDRESS = "customer_ip_address";
+        BANK_NUMBER = "bank_number";
+        ACCOUNT_ID = "account_id";
+        ORDER_CHANNEL = "order_channel";
+        PAYMENT_PATTERN = "payment_pattern";
+        ALTERNATE_CERTIFICATE = "alternate_certificate";
+        CUSTOMER_EMAIL = "customer_email";
+        FLAG_DDEBIT_TYPE = "flag_ddebit_type";
+        DATE_COLLECT = "date_collect";
+        DDEBIT_TRANSACTION_TYPE = "ddebit_transaction_type";
+        COMPANY_DATA = "company_data";
+        COMPANY_NAME = "company_name";
+        TITLE = "title";
+        FIRSTNAME = "firstname";
+        PREFIX_SURNAME = "prefix_surname";
+        SURNAME = "surname";
+        STREET = "street";
+        HOUSE_NUMBER = "house_number";
+        ADDITIONAL_ADDRESS_INFO = "additional_address_info";
+        ZIP = "zip";
+        CITY = "city";
+        STATE = "state";
+        BANK_CODE = "bank_code";
+        BANK_NAME = "bank_name";
+        BRANCH_CODE = "branch_code";
+        BANK_CHECK_DIGIT = "bank_check_digit";
+        ACCOUNT_NUMBER = "account_number";
+        ACCOUNT_NAME = "account_name";
+        DDEBIT_TEXT = "ddebit_text";
+        DDEBIT_AUTH_ID = "ddebit_auth_id";
+        CUSTOMER_BANK_STREET = "customer_bank_street";
+        CUSTOMER_BANK_NUMBER = "customer_bank_number";
+        CUSTOMER_BANK_ZIP = "customer_bank_zip";
+        CUSTOMER_BANK_CITY = "customer_bank_city";
+        BANK_FILIALE = "bank_filiale";
+        BANK_AGENZIA = "bank_agenzia";
+        DOMICILIO = "domicilio";
+        PROVINCIA = "provincia";
+        IBAN = "iban";
+        ADDRESS_LINE1 = "address_line1";
+        ADDRESS_LINE2 = "address_line2";
+        ADDRESS_LINE3 = "address_line3";
+        ADDRESS_LINE4 = "address_line4";
+        INVOICE_NUMBER = "invoice_number";
+        FISCAL_NUMBER = "fiscal_number";
+        optionalKeys = (new String[] {
+            VERSION, ORIGIN, PROCESSING_CODE, TRANSMISSION_DATE, PAYMENT_DATE, CURRENCY_CODE, CARD_NUMBER, CARD_VALIDITY, RESPONSE_CODE, AUTHORISATION_ID, 
+            CARD_TYPE, RETURN_CONTEXT, ORDER_ID, CAPTURE_MODE, CAPTURE_DAY, DATA, ORDER_VALIDITY, GSM_CODE, FROM_TRANSACTION_ID, FROM_PAYMENT_DATE, 
+            CVV_FLAG, CVV_KEY, PP_OPERATOR, PIN_CODE, MPI_CAVV, MPI_CAVV_ALGORITHM, MPI_ECI, MPI_TX_STATUS, MPI_XID, SECURITY_INDICATOR, 
+            CUSTOMER_IP_ADDRESS, BANK_NUMBER, ACCOUNT_ID, REQUESTER, CUSTOMER_ID, ORDER_CHANNEL, PAYMENT_PATTERN, ALTERNATE_CERTIFICATE, CUSTOMER_EMAIL, FLAG_DDEBIT_TYPE, 
+            DATE_COLLECT, DDEBIT_TRANSACTION_TYPE, COMPANY_DATA, COMPANY_NAME, TITLE, FIRSTNAME, PREFIX_SURNAME, SURNAME, STREET, HOUSE_NUMBER, 
+            ADDITIONAL_ADDRESS_INFO, ZIP, CITY, STATE, BANK_CODE, BANK_NAME, BRANCH_CODE, BANK_CHECK_DIGIT, ACCOUNT_NUMBER, ACCOUNT_NAME, 
+            DDEBIT_TEXT, DDEBIT_AUTH_ID, CUSTOMER_BANK_STREET, CUSTOMER_BANK_NUMBER, CUSTOMER_BANK_ZIP, CUSTOMER_BANK_CITY, BANK_FILIALE, BANK_AGENZIA, DOMICILIO, PROVINCIA, 
+            IBAN, ADDRESS_LINE1, ADDRESS_LINE2, ADDRESS_LINE3, ADDRESS_LINE4, INVOICE_NUMBER, FISCAL_NUMBER
+        });
+    }
+}

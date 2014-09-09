@@ -1,0 +1,99 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Nls.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import java.io.PrintStream;
+import java.util.*;
+
+public class Nls
+{
+
+    public Nls()
+    {
+    }
+
+    public static String getConstant(String key)
+    {
+        return getString(constantBundle_, key);
+    }
+
+    public static String getOfficeConstant(String key)
+    {
+        return getString(officeConstantBundle_, key);
+    }
+
+    public static String getResource(String key, Locale locale)
+    {
+        String value = null;
+        try
+        {
+            Locale computerLocale = Locale.getDefault();
+            Locale.setDefault(Locale.ENGLISH);
+            ResourceBundle ressourceBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.checkout.Resources", locale);
+            Locale.setDefault(computerLocale);
+            value = getString(ressourceBundle_, key);
+        }
+        catch(Exception e)
+        {
+            System.out.println(e);
+            System.exit(-1);
+        }
+        return value;
+    }
+
+    public static String getErrorMessage(String key)
+    {
+        String msg = key;
+        try
+        {
+            ResourceBundle errorBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.checkout.Error");
+            msg = getString(errorBundle_, key);
+        }
+        catch(Exception exception) { }
+        return msg;
+    }
+
+    public static String getCardType(String key)
+    {
+        return getString(constantBundle_, key);
+    }
+
+    public static String getBrandId(String key)
+    {
+        return getString(constantBundle_, key);
+    }
+
+    public static String getString(ResourceBundle rb, String key)
+    {
+        if(rb == null)
+            return key;
+        try
+        {
+            return rb.getString(key);
+        }
+        catch(MissingResourceException e)
+        {
+            return key;
+        }
+    }
+
+    private static ResourceBundle constantBundle_;
+    private static ResourceBundle officeConstantBundle_;
+
+    static 
+    {
+        try
+        {
+            constantBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.checkout.Constant");
+            officeConstantBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.checkout.Constant_office");
+        }
+        catch(Exception e)
+        {
+            System.out.println(e);
+            System.exit(-1);
+        }
+    }
+}

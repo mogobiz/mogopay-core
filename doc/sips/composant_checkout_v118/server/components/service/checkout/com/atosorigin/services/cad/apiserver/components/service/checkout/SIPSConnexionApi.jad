@@ -1,0 +1,316 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSConnexionApi.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.*;
+import com.atosorigin.services.cad.common.crypto.ComputeCardNumberKey;
+import com.atosorigin.services.cad.common.crypto.DesCipher;
+import com.atosorigin.services.cad.common.util.StringUtil;
+import java.io.*;
+import java.lang.reflect.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.*;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            SIPSApi, SIPSCheckoutApi, SIPSCheckoutRequestParm, Nls, 
+//            SIPSCheckoutResponseParm
+
+public class SIPSConnexionApi extends SIPSApi
+{
+
+    public SIPSConnexionApi(String pathFile)
+        throws FileNotFoundException, SIPSException
+    {
+        super(pathFile);
+    }
+
+    private boolean is3DTransaction(String processingCode)
+    {
+        boolean is3D = false;
+        if(SIPSCheckoutApi.ASO_CODE_AUTHOR3D.equals(processingCode) || SIPSCheckoutApi.ASO_CODE_AUTHENT3D.equals(processingCode) || SIPSCheckoutApi.ASO_CODE_CHECKENROLL3D.equals(processingCode) || SIPSCheckoutApi.ASO_CODE_CHECKENROLL3DWITHWALLET.equals(processingCode))
+            is3D = true;
+        return is3D;
+    }
+
+    private boolean isWalletTransaction(String processingCode)
+    {
+        boolean isWallet = false;
+        if(SIPSCheckoutApi.ASO_CODE_MERCHANTWALLET_ORDER.equals(processingCode))
+            isWallet = true;
+        return isWallet;
+    }
+
+    private boolean isBuysterTransaction(String processingCode)
+    {
+        boolean isBuyster = false;
+        if(SIPSCheckoutApi.ASO_CODE_BUYSTER_INIT.equals(processingCode) || SIPSCheckoutApi.ASO_CODE_BUYSTER_CONFIRM.equals(processingCode))
+            isBuyster = true;
+        return isBuyster;
+    }
+
+    void asoCardProcessManagementTransaction(SIPSDataObject request, SIPSDataObject response)
+        throws Exception
+    {
+        String msg = null;
+        String requestSignKeyValue = null;
+        String certifPath = null;
+        String sensitiveData = null;
+        request.check();
+        if(is3DTransaction(request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE)))
+        {
+            srvName = "call_transaction3d";
+            is3DTransaction = true;
+        } else
+        if(isWalletTransaction(request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE)))
+        {
+            srvName = "call_transaction";
+            isWalletTransaction = true;
+        } else
+        if(isBuysterTransaction(request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE)))
+        {
+            srvName = "call_transaction";
+            isBuysterTransaction = true;
+        }
+        merchantServerUrl = null;
+        String jSessionId = null;
+        if(request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE).equals(SIPSCheckoutApi.ASO_CODE_AUTHOR3D) || request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE).equals(SIPSCheckoutApi.ASO_CODE_AUTHENT3D))
+        {
+            StringTokenizer st = new StringTokenizer(request.getValue(SIPSCheckoutRequestParm.O3D_SESSION_ID), "|");
+            jSessionId = st.nextToken();
+            if(st.hasMoreElements())
+                merchantServerUrl = st.nextToken();
+        }
+        init(request.getValue(SIPSCheckoutRequestParm.MERCHANT_COUNTRY), request.getValue(SIPSCheckoutRequestParm.MERCHANT_ID));
+        try
+        {
+            String officeUrl = null;
+            if(is3DTransaction)
+                officeUrl = applySubstitutionInURL(urlS);
+            else
+                officeUrl = urlS;
+            URL url = new URL(officeUrl);
+            HttpURLConnection myConnection = (HttpURLConnection)url.openConnection();
+            myConnection.setDoOutput(true);
+            myConnection.setDoInput(true);
+            myConnection.setRequestMethod("POST");
+            if(request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE).equals(SIPSCheckoutApi.ASO_CODE_AUTHOR3D) || request.getValue(SIPSCheckoutRequestParm.PROCESSING_CODE).equals(SIPSCheckoutApi.ASO_CODE_AUTHENT3D))
+                myConnection.addRequestProperty("Cookie", (new StringBuilder("JSESSIONID=")).append(jSessionId).toString());
+            List list = new ArrayList();
+            if(is3DTransaction)
+            {
+                list.add(SIPSCheckoutRequestParm.TRANSMISSION_DATE);
+                list.add(SIPSCheckoutRequestParm.MERCHANT_COUNTRY);
+                list.add(SIPSCheckoutRequestParm.MERCHANT_ID);
+            } else
+            {
+                list.add(SIPSCheckoutRequestParm.TRANSMISSION_DATE);
+                list.add(SIPSCheckoutRequestParm.MERCHANT_COUNTRY);
+                list.add(SIPSCheckoutRequestParm.MERCHANT_ID);
+                list.add(SIPSCheckoutRequestParm.AMOUNT);
+                list.add(SIPSCheckoutRequestParm.TRANSACTION_ID);
+            }
+            String args[] = new String[0];
+            args = (String[])list.toArray(args);
+            sensitiveData = giveMeTheCardSensitiveData(request);
+            if(internalFlag)
+            {
+                setSensitiveDataInRequest(request, sensitiveData);
+                try
+                {
+                    Class sosiApi = Class.forName("net.atos.sips.com.sosi.SOSIApi");
+                    Class constructorArgsTypes[] = {
+                        java/lang/String, java/lang/String, java/lang/String
+                    };
+                    Object constructorArgsValues[] = {
+                        signAlgo, signKeyName, signKeyFile
+                    };
+                    Constructor sosiConstructor = sosiApi.getConstructor(constructorArgsTypes);
+                    Object sosi = sosiConstructor.newInstance(constructorArgsValues);
+                    requestSignKeyValue = (String)sosiApi.getMethod("getSignKeyValue", null).invoke(sosi, null);
+                    SimpleNlv nlv = new SimpleNlv();
+                    buildNlvString(request, nlv);
+                    Class dataEncodeArgsTypes[] = {
+                        java/lang/String
+                    };
+                    Method meth = sosiApi.getMethod("dataEncode", dataEncodeArgsTypes);
+                    Object dataEncodeArgsValues[] = new Object[1];
+                    dataEncodeArgsValues[0] = nlv.toString();
+                    msg = (String)meth.invoke(sosi, dataEncodeArgsValues);
+                }
+                catch(InvocationTargetException e)
+                {
+                    Throwable cause = e.getCause();
+                    throw new SIPSException(cause.getMessage());
+                }
+            } else
+            {
+                certifPath = (new StringBuilder(String.valueOf(certifBase))).append(".").append(request.getValue(SIPSCheckoutRequestParm.MERCHANT_COUNTRY)).append(".").append(request.getValue(SIPSCheckoutRequestParm.MERCHANT_ID)).toString();
+                if(is3DTransaction || isWalletTransaction)
+                {
+                    ComputeCardNumberKey myKeys = new ComputeCardNumberKey(certifPath, request.getValue(SIPSCheckoutRequestParm.AMOUNT), request.getValue(SIPSCheckoutRequestParm.TRANSMISSION_DATE), request.getValue(SIPSCheckoutRequestParm.TRANSACTION_ID));
+                    DesCipher cipherCard = new DesCipher(sensitiveData, myKeys.getKey1(), myKeys.getKey2(), true);
+                    setSensitiveDataInRequest(request, cipherCard.getCipherMessage());
+                }
+                msg = (new StringBuilder("DATA=")).append(dataEncode(request, args)).toString();
+            }
+            if(proxyHost.length() != 0 && proxyPort.length() == 0)
+                proxyPort = DEFAULT_PROXY_PORT;
+            System.getProperties().put("proxySet", "true");
+            System.getProperties().put("proxyHost", proxyHost);
+            System.getProperties().put("proxyPort", proxyPort);
+            myConnection.setRequestProperty("Accept", "text/html");
+            myConnection.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
+            myConnection.setRequestProperty("Content-Length", Integer.toString(msg.length()));
+            Writer out = new OutputStreamWriter(myConnection.getOutputStream(), "iso-8859-1");
+            out.write(msg);
+            out.close();
+            StringBuffer buffer = new StringBuffer();
+            BufferedReader in = new BufferedReader(new InputStreamReader(myConnection.getInputStream(), "iso-8859-1"));
+            String line = in.readLine();
+            do
+            {
+                line = in.readLine();
+                if(line == null)
+                    break;
+                buffer.append(line);
+            } while(true);
+            in.close();
+            for(Enumeration e = response.getKeyEnum(); e.hasMoreElements();)
+            {
+                String key = (String)e.nextElement();
+                String s = response.getValue(key);
+            }
+
+            String cypheredResp = buffer.toString();
+            if(cypheredResp.length() == 2)
+                throw new SIPSException(Nls.getErrorMessage("aso_err_server"));
+            if(cypheredResp.length() < 9)
+                throw new SIPSException(Nls.getErrorMessage("aso_err_send_msg"));
+            copyElement(response, request, args);
+            if(internalFlag)
+            {
+                Class sosiApi = Class.forName("net.atos.sips.com.sosi.SOSIApi");
+                Class constructorArgsTypes[] = {
+                    java/lang/String, java/lang/String
+                };
+                Object constructorArgsValues[] = {
+                    signKeyName, requestSignKeyValue
+                };
+                Constructor sosiConstructor = sosiApi.getConstructor(constructorArgsTypes);
+                Object sosi = sosiConstructor.newInstance(constructorArgsValues);
+                SimpleNlv nlv = new SimpleNlv();
+                Class dataDecodeArgsTypes[] = {
+                    java/lang/String
+                };
+                Method meth = sosiApi.getMethod("dataDecode", dataDecodeArgsTypes);
+                Object dataEncodeArgsValues[] = new Object[1];
+                dataEncodeArgsValues[0] = cypheredResp;
+                try
+                {
+                    nlv = (SimpleNlv)meth.invoke(sosi, dataEncodeArgsValues);
+                }
+                catch(InvocationTargetException ex)
+                {
+                    Throwable cause = ex.getCause();
+                    throw new SIPSException(cause.getMessage());
+                }
+                buildResponseObject(response, nlv);
+            } else
+            {
+                dataDecode(cypheredResp, response, args);
+                if(is3DTransaction)
+                    decodeSensitiveData(response, certifPath);
+            }
+        }
+        catch(Exception e2)
+        {
+            throw new SIPSException((new StringBuilder("Erreur inconnue : ")).append(e2.getMessage()).toString());
+        }
+    }
+
+    private static String getField(SIPSDataObject o, String k)
+    {
+        String x = null;
+        try
+        {
+            x = o.getValue(k);
+        }
+        catch(SIPSException e)
+        {
+            return null;
+        }
+        return x;
+    }
+
+    private static String safe(String x)
+    {
+        return x != null ? x : "";
+    }
+
+    private void decodeSensitiveData(SIPSDataObject reponse, String certif)
+        throws SIPSException
+    {
+        String sensitiveData = null;
+        String cardNumber = safe(getField(reponse, SIPSCheckoutResponseParm.CARD_NUMBER));
+        String transmissionDate = safe(getField(reponse, SIPSCheckoutResponseParm.TRANSMISSION_DATE));
+        String pseudoAmount = "";
+        String pseudoTransactionId = "";
+        if(transmissionDate.length() >= SIPSCheckoutRequestParm.LG_AMOUNT)
+            pseudoAmount = transmissionDate.substring(0, SIPSCheckoutRequestParm.LG_AMOUNT);
+        if(transmissionDate.length() >= SIPSCheckoutRequestParm.LG_TRANSACTION_ID)
+            pseudoTransactionId = transmissionDate.substring(0, SIPSCheckoutRequestParm.LG_TRANSACTION_ID);
+        ComputeCardNumberKey myKeys = new ComputeCardNumberKey(certif, pseudoAmount, transmissionDate, pseudoTransactionId);
+        DesCipher cipherCard = new DesCipher(cardNumber, myKeys.getKey1(), myKeys.getKey2(), false);
+        sensitiveData = cipherCard.getClearMessage();
+        String tokens[] = StringUtil.split("/", sensitiveData);
+        cardNumber = tokens[0];
+        reponse.setValue(SIPSCheckoutResponseParm.CARD_NUMBER, cardNumber);
+    }
+
+    private String giveMeTheCardSensitiveData(SIPSDataObject request)
+        throws Exception
+    {
+        String sensitiveData = null;
+        if(is3DTransaction)
+            sensitiveData = (new StringBuilder(String.valueOf(request.getValue(SIPSCheckoutRequestParm.CARD_NUMBER)))).append("/").append(request.getValue(SIPSCheckoutRequestParm.CARD_VALIDITY)).toString();
+        else
+        if(isWalletTransaction)
+            sensitiveData = (new StringBuilder(String.valueOf(request.getValue(SIPSCheckoutRequestParm.CARD_NUMBER)))).append("/").append(request.getValue(SIPSCheckoutRequestParm.CVV_FLAG)).append("/").append(request.getValue(SIPSCheckoutRequestParm.CVV_KEY)).toString();
+        return sensitiveData;
+    }
+
+    private void setSensitiveDataInRequest(SIPSDataObject request, String value)
+        throws Exception
+    {
+        request.setValue("card_number", value);
+        if(is3DTransaction)
+            request.setValue("card_validity", value);
+    }
+
+    private void copyElement(SIPSDataObject response, SIPSDataObject request, String args[])
+        throws Exception
+    {
+        for(int i = 0; i < args.length; i++)
+            response.setValue(args[i], request.getValue(args[i]));
+
+    }
+
+    private String applySubstitutionInURL(String officeURL)
+    {
+        StringTokenizer st = new StringTokenizer(urlS, "//");
+        String protocol = st.nextToken();
+        String domain = st.nextToken();
+        st.nextToken();
+        String rest;
+        for(rest = ""; st.hasMoreElements(); rest = (new StringBuilder(String.valueOf(rest))).append("/").append(st.nextToken()).toString());
+        String office3dURL = (new StringBuilder(String.valueOf(protocol))).append("//").append(domain).append("/3doffice").append(rest).toString();
+        return office3dURL;
+    }
+
+    public static String DEFAULT_PROXY_PORT = "8080";
+
+}

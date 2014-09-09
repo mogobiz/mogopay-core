@@ -1,0 +1,267 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSCheckoutRequestParm.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.SIPSException;
+import java.lang.reflect.Field;
+import java.util.Hashtable;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            SIPSParm, Nls
+
+public final class SIPSCheckoutRequestParm extends SIPSParm
+{
+
+    public SIPSCheckoutRequestParm(int idx_fonction)
+    {
+        super(mandatoryKeys[idx_fonction], keys);
+        this.idx_fonction = idx_fonction;
+        String ver = Nls.getConstant("api_version");
+        valHash.put(keys[0], ver);
+        String dateV = getDate();
+        valHash.put(keys[2], dateV);
+    }
+
+    public static String[] getKeys()
+    {
+        return keys;
+    }
+
+    public void check(String key, String val)
+        throws SIPSException
+    {
+        try
+        {
+            Class sipsOffice3DRequestParm = getClass();
+            if(val.length() > sipsOffice3DRequestParm.getDeclaredField((new StringBuilder("LG_")).append(key.toUpperCase()).toString()).getInt(null))
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("length_too_long")).append(" ) ").toString());
+            if(val.length() > 0 && sipsOffice3DRequestParm.getDeclaredField((new StringBuilder("F_")).append(key.toUpperCase()).toString()).getInt(null) == 0)
+                try
+                {
+                    Long.valueOf(val).longValue();
+                }
+                catch(Exception e)
+                {
+                    throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("not_numeric")).append(" ) ").toString());
+                }
+        }
+        catch(NoSuchFieldException e)
+        {
+            throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("unknown_field")).append(" ) ").toString());
+        }
+        catch(Exception e)
+        {
+            throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").toString());
+        }
+    }
+
+    public void check()
+        throws SIPSException
+    {
+        super.check();
+        checkSpecific();
+    }
+
+    public void checkSpecific()
+        throws SIPSException
+    {
+        if(idx_fonction == 1 || idx_fonction == 4)
+        {
+            if(((String)valHash.get(AMOUNT)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( amount ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(TRANSACTION_ID)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( transaction_id ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+        }
+    }
+
+    public static String MERCHANT_ID;
+    public static String MERCHANT_COUNTRY;
+    public static String TRANSACTION_ID;
+    public static String AMOUNT;
+    public static String CARD_NUMBER;
+    public static String CARD_VALIDITY;
+    public static String CARD_TYPE;
+    public static String CURRENCY_CODE;
+    public static String PROCESSING_CODE;
+    public static String TRANSMISSION_DATE;
+    public static String VERSION;
+    public static String ORIGIN;
+    public static String DATA;
+    public static String CVV_FLAG;
+    public static String CVV_KEY;
+    public static String RETURN_CONTEXT;
+    public static String ORDER_ID;
+    public static String CUSTOMER_ID;
+    public static String CAPTURE_MODE;
+    public static String CAPTURE_DAY;
+    public static String CUSTOMER_IP_ADDRESS;
+    public static String ORDER_VALIDITY;
+    public static String MERCHANT_NAME;
+    public static String MERCHANT_URL;
+    public static String MERCHANT_URL_RETURN;
+    public static String O3D_SESSION_ID;
+    public static String WALLET_ID;
+    public static String PAYMENT_MEAN_ID;
+    public static String ORDER_CHANNEL;
+    public static String PAYMENT_PATTERN;
+    public static String PAYMENT_DATE;
+    public static String AVS_RESPONSE_CODE;
+    public static String AUTOMATIC_RESPONSE_URL;
+    public static String ISO8601_TRANSACTION_DATETIME;
+    public static String MERCHANT_SESSION_ID;
+    public static String STYLESHEET;
+    public static String CUSTOMER_LANGUAGE;
+    public static String TRANSACTION_DATE;
+    public static String STATEMENT_REFERENCE;
+    private static String mandatoryKeys[][];
+    private static String keys[];
+    public static int F_MERCHANT_COUNTRY = 1;
+    public static int F_MERCHANT_ID = 0;
+    public static int F_TRANSACTION_ID = 0;
+    public static int F_AMOUNT = 0;
+    public static int F_TRANSMISSION_DATE = 0;
+    public static int F_CURRENCY_CODE = 0;
+    public static int F_CARD_NUMBER = 0;
+    public static int F_CARD_VALIDITY = 0;
+    public static int F_CARD_TYPE = 1;
+    public static int F_MERCHANT_NAME = 1;
+    public static int F_MERCHANT_URL = 1;
+    public static int F_RETURN_CONTEXT = 2;
+    public static int F_ORDER_ID = 2;
+    public static int F_CAPTURE_MODE = 2;
+    public static int F_CAPTURE_DAY = 0;
+    public static int F_DATA = 2;
+    public static int F_CVV_FLAG = 0;
+    public static int F_CVV_KEY = 0;
+    public static int F_CUSTOMER_ID = 1;
+    public static int F_PROCESSING_CODE = 1;
+    public static int F_VERSION = 1;
+    public static int F_ORIGIN = 2;
+    public static int F_MERCHANT_URL_RETURN = 1;
+    public static int F_O3D_SESSION_ID = 1;
+    public static int F_CUSTOMER_IP_ADDRESS = 1;
+    public static int F_ORDER_VALIDITY = 0;
+    public static int F_AVS_RESPONSE_CODE = 0;
+    public static int F_WALLET_ID = 1;
+    public static int F_PAYMENT_MEAN_ID = 0;
+    public static int F_ORDER_CHANNEL = 2;
+    public static int F_PAYMENT_PATTERN = 2;
+    public static int F_PAYMENT_DATE = 0;
+    public static int F_AUTOMATIC_RESPONSE_URL = 2;
+    public static int F_ISO8601_TRANSACTION_DATETIME = 2;
+    public static int F_MERCHANT_SESSION_ID = 1;
+    public static int F_STYLESHEET = 1;
+    public static int F_CUSTOMER_LANGUAGE = 1;
+    public static int F_TRANSACTION_DATE = 0;
+    public static int F_STATEMENT_REFERENCE = 2;
+    public static int LG_MERCHANT_COUNTRY = 2;
+    public static int LG_MERCHANT_ID = 15;
+    public static int LG_TRANSACTION_ID = 6;
+    public static int LG_AMOUNT = 12;
+    public static int LG_TRANSMISSION_DATE = 14;
+    public static int LG_CURRENCY_CODE = 3;
+    public static int LG_CARD_NUMBER = 19;
+    public static int LG_CARD_VALIDITY = 6;
+    public static int LG_CARD_TYPE = 20;
+    public static int LG_MERCHANT_NAME = 25;
+    public static int LG_MERCHANT_URL = 512;
+    public static int LG_RETURN_CONTEXT = 256;
+    public static int LG_ORDER_ID = 32;
+    public static int LG_CAPTURE_MODE = 20;
+    public static int LG_CAPTURE_DAY = 2;
+    public static int LG_DATA = 1024;
+    public static int LG_CVV_FLAG = 1;
+    public static int LG_CVV_KEY = 4;
+    public static int LG_CUSTOMER_ID = 19;
+    public static int LG_PROCESSING_CODE = 2;
+    public static int LG_VERSION = 5;
+    public static int LG_ORIGIN = 20;
+    public static int LG_MERCHANT_URL_RETURN = 512;
+    public static int LG_O3D_SESSION_ID = 256;
+    public static int LG_CUSTOMER_IP_ADDRESS = 15;
+    public static int LG_ORDER_VALIDITY = 2;
+    public static int LG_AVS_RESPONSE_CODE = 2;
+    public static int LG_WALLET_ID = 21;
+    public static int LG_PAYMENT_MEAN_ID = 6;
+    public static int LG_ORDER_CHANNEL = 15;
+    public static int LG_PAYMENT_PATTERN = 15;
+    public static int LG_PAYMENT_DATE = 8;
+    public static int LG_AUTOMATIC_RESPONSE_URL = 512;
+    public static int LG_ISO8601_TRANSACTION_DATETIME = 25;
+    public static int LG_MERCHANT_SESSION_ID = 256;
+    public static int LG_STYLESHEET = 32;
+    public static int LG_CUSTOMER_LANGUAGE = 2;
+    public static int LG_TRANSACTION_DATE = 8;
+    public static int LG_STATEMENT_REFERENCE = 100;
+
+    static 
+    {
+        MERCHANT_ID = "merchant_id";
+        MERCHANT_COUNTRY = "merchant_country";
+        TRANSACTION_ID = "transaction_id";
+        AMOUNT = "amount";
+        CARD_NUMBER = "card_number";
+        CARD_VALIDITY = "card_validity";
+        CARD_TYPE = "card_type";
+        CURRENCY_CODE = "currency_code";
+        PROCESSING_CODE = "processing_code";
+        TRANSMISSION_DATE = "transmission_date";
+        VERSION = "version";
+        ORIGIN = "origin";
+        DATA = "data";
+        CVV_FLAG = "cvv_flag";
+        CVV_KEY = "cvv_key";
+        RETURN_CONTEXT = "return_context";
+        ORDER_ID = "order_id";
+        CUSTOMER_ID = "customer_id";
+        CAPTURE_MODE = "capture_mode";
+        CAPTURE_DAY = "capture_day";
+        CUSTOMER_IP_ADDRESS = "customer_ip_address";
+        ORDER_VALIDITY = "order_validity";
+        MERCHANT_NAME = "merchant_name";
+        MERCHANT_URL = "merchant_url";
+        MERCHANT_URL_RETURN = "merchant_url_return";
+        O3D_SESSION_ID = "o3d_session_id";
+        WALLET_ID = "wallet_id";
+        PAYMENT_MEAN_ID = "payment_mean_id";
+        ORDER_CHANNEL = "order_channel";
+        PAYMENT_PATTERN = "payment_pattern";
+        PAYMENT_DATE = "payment_date";
+        AVS_RESPONSE_CODE = "avs_response_code";
+        AUTOMATIC_RESPONSE_URL = "automatic_response_url";
+        ISO8601_TRANSACTION_DATETIME = "iso8601_transaction_datetime";
+        MERCHANT_SESSION_ID = "merchant_session_id";
+        STYLESHEET = "stylesheet";
+        CUSTOMER_LANGUAGE = "customer_language";
+        TRANSACTION_DATE = "transaction_date";
+        STATEMENT_REFERENCE = "statement_reference";
+        mandatoryKeys = (new String[][] {
+            new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, AMOUNT
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, AMOUNT
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, AMOUNT
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, WALLET_ID, TRANSACTION_ID, AMOUNT, CURRENCY_CODE
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, AMOUNT, CURRENCY_CODE, MERCHANT_URL_RETURN, CAPTURE_MODE, CAPTURE_DAY
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, TRANSACTION_DATE
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, WALLET_ID, TRANSACTION_ID, AMOUNT, CURRENCY_CODE, MERCHANT_NAME, MERCHANT_URL, MERCHANT_URL_RETURN
+            }
+        });
+        keys = (new String[] {
+            VERSION, MERCHANT_ID, TRANSMISSION_DATE, MERCHANT_COUNTRY, TRANSACTION_ID, CARD_NUMBER, CARD_VALIDITY, PROCESSING_CODE, CVV_FLAG, CVV_KEY, 
+            RETURN_CONTEXT, ORDER_ID, CUSTOMER_ID, CAPTURE_MODE, CAPTURE_DAY, CUSTOMER_IP_ADDRESS, CARD_TYPE, AMOUNT, CURRENCY_CODE, MERCHANT_NAME, 
+            MERCHANT_URL, ORIGIN, DATA, MERCHANT_URL_RETURN, O3D_SESSION_ID, ORDER_VALIDITY, AVS_RESPONSE_CODE, WALLET_ID, PAYMENT_MEAN_ID, ORDER_CHANNEL, 
+            PAYMENT_PATTERN, PAYMENT_DATE, AUTOMATIC_RESPONSE_URL, ISO8601_TRANSACTION_DATETIME, MERCHANT_SESSION_ID, STYLESHEET, CUSTOMER_LANGUAGE, TRANSACTION_DATE, STATEMENT_REFERENCE
+        });
+    }
+}

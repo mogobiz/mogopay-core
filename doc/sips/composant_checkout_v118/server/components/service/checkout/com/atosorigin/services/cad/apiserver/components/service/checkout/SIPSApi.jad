@@ -1,0 +1,229 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSApi.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.*;
+import com.atosorigin.services.cad.common.crypto.*;
+import com.atosorigin.services.cad.common.util.CertifReader;
+import com.atosorigin.services.cad.common.util.FileParamReader;
+import java.io.FileNotFoundException;
+import java.util.Enumeration;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            Nls, NlsV2Office
+
+public class SIPSApi extends SIPSApiBase
+{
+
+    public SIPSApi(String pathFile)
+        throws FileNotFoundException, SIPSException
+    {
+        is3DTransaction = false;
+        isWalletTransaction = false;
+        isBuysterTransaction = false;
+        fpr = new FileParamReader(pathFile);
+        certifBase = fpr.getParam("F_CERTIFICATE");
+        proxyHost = fpr.getParam("PROXY_HOST");
+        proxyPort = fpr.getParam("PROXY_PORT");
+        internalFlag = fpr.getParam("INTERNAL_FLAG").equals("YES");
+        if(internalFlag)
+        {
+            internalUrl = fpr.getParam("INTERNAL_URL");
+            signAlgo = fpr.getParam("SIGN_ALGO");
+            signKeyName = fpr.getParam("SIGN_KEY_NAME");
+            signKeyFile = fpr.getParam("SIGN_KEY_FILE");
+        }
+    }
+
+    protected void init(String country, String ID)
+        throws SIPSException
+    {
+        if(merchantServerUrl == null || "".equals(merchantServerUrl))
+            break MISSING_BLOCK_LABEL_128;
+        urlS = (new StringBuilder(String.valueOf(merchantServerUrl))).append("/").append(srvName).toString();
+        certifName = (new StringBuilder(String.valueOf(certifBase))).append(".").append(country).append(".").append(ID).toString();
+        if(!internalFlag)
+            break MISSING_BLOCK_LABEL_405;
+        this;
+        urlS;
+        JVM INSTR new #120 <Class StringBuilder>;
+        JVM INSTR dup_x1 ;
+        JVM INSTR swap ;
+        String.valueOf();
+        StringBuilder();
+        "?mode=internal";
+        append();
+        toString();
+        urlS;
+        break MISSING_BLOCK_LABEL_405;
+        if(internalFlag)
+        {
+            urlS = internalUrl;
+            if("".equals(urlS) || urlS.length() < 1)
+                throw new SIPSException(Nls.getErrorMessage("err_url_in_pathfile"));
+            urlS = (new StringBuilder(String.valueOf(urlS))).append("/").append(srvName).append("?mode=internal").toString();
+        } else
+        {
+            String file = (new StringBuilder(String.valueOf(certifBase))).append(".").append(country).append(".").append(ID).toString();
+            try
+            {
+                urlS = System.getProperty("office_url");
+                if(urlS == null)
+                {
+                    NlsV2Office.setPackage(PACKAGE);
+                    try
+                    {
+                        urlS = NlsV2Office.getConstant("call_url");
+                    }
+                    catch(Exception e0)
+                    {
+                        CertifReader cr = new CertifReader(file);
+                        urlS = (new StringBuilder(String.valueOf(cr.readLine("", _URL)))).append("/").append(srvName).toString();
+                    }
+                }
+            }
+            catch(Exception e1)
+            {
+                NlsV2Office.setPackage(PACKAGE);
+                String msg = "Cannot_open_certif";
+                try
+                {
+                    msg = NlsV2Office.getErrorMessage(msg);
+                }
+                catch(Exception exception) { }
+                throw new SIPSException((new StringBuilder(String.valueOf(msg))).append(" : ").append(file).toString());
+            }
+            certifName = file;
+        }
+    }
+
+    public void dataDecode(String cyphered, SIPSDataObject parm, String args[])
+        throws SIPSException
+    {
+        for(int i = 0; i < args.length; i++)
+            args[i] = parm.getValue(args[i]);
+
+        SimpleNlv nlv = new SimpleNlv();
+        int msgLength = cyphered.length();
+        String seal = cyphered.substring(msgLength - 16, msgLength);
+        String cypheredTextString = cyphered.substring(0, msgLength - 16);
+        try
+        {
+            MaillardCypher mc = new MaillardCypher();
+            mc.setCypherMessage(cypheredTextString);
+            nlv.fromString(mc.getClearMessage());
+        }
+        catch(Exception ex_)
+        {
+            String _err = Nls.getErrorMessage("cannot_uncypher");
+            throw new SIPSException(_err);
+        }
+        buildResponseObject(parm, nlv);
+        init(args[1], args[2]);
+        MaillardKey keyM = new MaillardKey();
+        String docK = null;
+        if(is3DTransaction)
+            docK = keyM.getKey(args[2], args[0], args[2], certifName);
+        else
+        if(isWalletTransaction || isBuysterTransaction)
+            docK = keyM.getKey(args[3], args[0], args[4], certifName);
+        DesSeal ds = new DesSeal(docK, cypheredTextString);
+        if(seal.compareTo(ds.getSeal()) != 0)
+            throw new SIPSException(Nls.getErrorMessage("mac_error"));
+        else
+            return;
+    }
+
+    public String dataEncode(SIPSDataObject parm, String args[])
+        throws SIPSException
+    {
+        SimpleNlv nlv = new SimpleNlv();
+        buildNlvString(parm, nlv);
+        MaillardCypher mc = new MaillardCypher();
+        mc.setClearMessage(nlv.toString());
+        init(parm.getValue(args[1]), parm.getValue(args[2]));
+        MaillardKey keyM = new MaillardKey();
+        String docK = null;
+        if(is3DTransaction)
+            docK = keyM.getKey(parm.getValue(args[2]), parm.getValue(args[0]), parm.getValue(args[2]), certifName);
+        else
+        if(isWalletTransaction || isBuysterTransaction)
+            docK = keyM.getKey(parm.getValue(args[3]), parm.getValue(args[0]), parm.getValue(args[4]), certifName);
+        StringBuffer finalMsg = new StringBuffer(mc.getCypherMessage());
+        String cyph = mc.getCypherMessage();
+        DesSeal ds = new DesSeal(docK, cyph);
+        finalMsg.append(ds.getSeal());
+        return finalMsg.toString();
+    }
+
+    public void buildResponseObject(SIPSDataObject response, SimpleNlv nlv)
+        throws SIPSException
+    {
+        for(Enumeration e = response.getKeyEnum(); e.hasMoreElements();)
+        {
+            String key = (String)e.nextElement();
+            try
+            {
+                NlsV2Office.setPackage("com.atosorigin.services.cad.apiserver.components.service.checkout");
+                String nlvKey = null;
+                if(is3DTransaction)
+                    nlvKey = NlsV2Office.getConstant(key);
+                else
+                if(isWalletTransaction || isBuysterTransaction)
+                    nlvKey = NlsV2Office.getOfficeConstant(key);
+                if(nlvKey.compareTo("000") != 0 && nlvKey.compareTo(key) != 0)
+                    response.setValue(key, (String)nlv.get(nlvKey));
+            }
+            catch(Exception exception) { }
+        }
+
+    }
+
+    public void buildNlvString(SIPSDataObject parm, SimpleNlv nlv)
+        throws SIPSException
+    {
+        for(Enumeration e = parm.getKeyEnum(); e.hasMoreElements();)
+        {
+            String cle = (String)e.nextElement();
+            String val = parm.getValue(cle);
+            if(val.length() != 0)
+            {
+                String s = null;
+                if(is3DTransaction)
+                    s = Nls.getConstant(cle);
+                else
+                if(isWalletTransaction || isBuysterTransaction)
+                    s = Nls.getOfficeConstant(cle);
+                Integer i = Integer.valueOf(s);
+                int k = i.intValue();
+                nlv.put(k, val);
+            }
+        }
+
+    }
+
+    private static String PACKAGE = "com.atosorigin.services.cad.apiserver.components.service.checkout";
+    protected static int _URL = 29;
+    protected String srvName;
+    protected static final String SRV_NAME_3D = "call_transaction3d";
+    protected static final String SRV_NAME_MERCHANT_WALLET = "call_transaction";
+    protected static final String SRV_NAME_BUYSTER = "call_transaction";
+    protected boolean is3DTransaction;
+    protected boolean isWalletTransaction;
+    protected boolean isBuysterTransaction;
+    protected FileParamReader fpr;
+    protected String urlS;
+    protected String certifName;
+    protected String proxyHost;
+    protected String proxyPort;
+    protected String internalUrl;
+    protected String signAlgo;
+    protected String signKeyName;
+    protected String signKeyFile;
+    protected boolean internalFlag;
+    protected String merchantServerUrl;
+
+}

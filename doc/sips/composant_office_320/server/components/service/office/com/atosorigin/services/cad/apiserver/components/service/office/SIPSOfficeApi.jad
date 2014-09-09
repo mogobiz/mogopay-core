@@ -1,0 +1,198 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSOfficeApi.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import com.atosorigin.services.cad.common.SIPSException;
+import java.io.FileNotFoundException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            SIPSApi, SIPSConnexionApi, SIPSOfficeRequestParm
+
+public class SIPSOfficeApi extends SIPSApi
+{
+
+    public SIPSOfficeApi(String pathFile)
+        throws FileNotFoundException, SIPSException
+    {
+        super(pathFile);
+        connect = new SIPSConnexionApi(pathFile);
+    }
+
+    public void asoValidateTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_VALIDATE);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoSplitTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_SPLIT);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoCancelTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_CANCEL);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoCreditTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_CREDIT);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoAdviceTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_ADVICE);
+        sipsData.setValue(SIPSOfficeRequestParm.AMOUNT, getTransactionId());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoAuthorTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_AUTHOR);
+        String myData = sipsData.getValue(SIPSOfficeRequestParm.DATA);
+        if(myData.indexOf("NB_PAYMENT=") >= 0 && myData.indexOf("SEQUENCE=") >= 0)
+            sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, sipsData.getValue(SIPSOfficeRequestParm.PAYMENT_DATE));
+        else
+            sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoSettleTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_SETTLE);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoFinanceTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_FINANCE);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoDuplicateTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_DUPLICATE);
+        String myData = sipsData.getValue(SIPSOfficeRequestParm.DATA);
+        if(myData.indexOf("NB_PAYMENT=") >= 0 && myData.indexOf("SEQUENCE=") >= 0)
+            sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, sipsData.getValue(SIPSOfficeRequestParm.PAYMENT_DATE));
+        else
+            sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoReadTransaction(SIPSDataObject sipsData, SIPSDataObject response, SIPSDataObject transData)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_READ);
+        sipsData.setValue(SIPSOfficeRequestParm.AMOUNT, getTransactionId());
+        connect.asoCardProcessTransaction(sipsData, response, transData);
+    }
+
+    public void asoCreditHolderTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_CREDIT_HOLDER);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoPrepaidTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_PREPAID);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoELVAuthor(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_ELV_AUTHOR);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoDirectDebitTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_DIRECT_DEBIT);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        sipsData.setValue(SIPSOfficeRequestParm.CARD_TYPE, "INTL_DDEBIT");
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void asoCreditTransferTransaction(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSOfficeRequestParm.PROCESSING_CODE, ASO_CODE_CREDIT_TRANSFERT);
+        sipsData.setValue(SIPSOfficeRequestParm.PAYMENT_DATE, getPaymentDate());
+        sipsData.setValue(SIPSOfficeRequestParm.CARD_TYPE, "CT_TRANSFER");
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public static String getTransactionId()
+    {
+        GregorianCalendar current = (GregorianCalendar)GregorianCalendar.getInstance();
+        String hour = String.valueOf(current.get(11));
+        if(hour.length() == 1)
+            hour = "0" + hour;
+        String min = String.valueOf(current.get(12));
+        if(min.length() == 1)
+            min = "0" + min;
+        String sec = String.valueOf(current.get(13));
+        if(sec.length() == 1)
+            sec = "0" + sec;
+        return new String(hour + min + sec);
+    }
+
+    public static String getPaymentDate()
+    {
+        Calendar cal = Calendar.getInstance();
+        String year = String.valueOf(cal.get(1));
+        String month = String.valueOf(cal.get(2) + 1);
+        if(month.length() == 1)
+            month = "0" + month;
+        String day = String.valueOf(cal.get(5));
+        if(day.length() == 1)
+            day = "0" + day;
+        return new String(year + month + day);
+    }
+
+    public static String ASO_CODE_VALIDATE = "VA";
+    public static String ASO_CODE_SPLIT = "SP";
+    public static String ASO_CODE_CANCEL = "CA";
+    public static String ASO_CODE_CREDIT = "CR";
+    public static String ASO_CODE_ADVICE = "AD";
+    public static String ASO_CODE_AUTHOR = "AU";
+    public static String ASO_CODE_DUPLICATE = "DU";
+    public static String ASO_CODE_READ = "RD";
+    public static String ASO_CODE_PREPAID = "AP";
+    public static String ASO_CODE_CREDIT_HOLDER = "CH";
+    public static String ASO_CODE_ELV_AUTHOR = "EL";
+    public static String ASO_CODE_SETTLE = "ST";
+    public static String ASO_CODE_FINANCE = "FI";
+    public static String ASO_CODE_DIRECT_DEBIT = "DD";
+    public static String ASO_CODE_CREDIT_TRANSFERT = "CT";
+    private static SIPSConnexionApi connect;
+
+}

@@ -1,0 +1,72 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Desc.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import java.util.ResourceBundle;
+import java.util.StringTokenizer;
+
+public class Desc
+{
+
+    public Desc()
+    {
+    }
+
+    public String[] APIRegister(String mode)
+    {
+        try
+        {
+            String PACKAGE = "com.atosorigin.services.cad.apiserver.components.service.office";
+            String buffer[] = new String[3];
+            ResourceBundle rb_ = ResourceBundle.getBundle(PACKAGE + ".office");
+            buffer[0] = "<APIItem name=\"" + rb_.getString("name") + "\" " + "version=\"" + rb_.getString("version") + "\" " + "creationDate=\"" + rb_.getString("creation_date") + "\" " + "shortDesc=\"" + rb_.getString("short_desc") + "\" >" + "<classId>" + "<" + rb_.getString("type_request") + " class=\"" + rb_.getString("class") + "\"/>" + "</classId>" + "<serviceList>";
+            buffer[1] = rb_.getString("type_request");
+            buffer[2] = "<!ELEMENT " + rb_.getString("type") + " (";
+            for(int i = 0; i < Integer.parseInt(rb_.getString("nb_functions")); i++)
+            {
+                String functionMode = rb_.getString("mode_function_" + (i + 1));
+                String functionName = rb_.getString("name_function_" + (i + 1));
+                if(mode.equals("private") || functionMode.equals("public"))
+                {
+                    buffer[0] = buffer[0] + "<" + functionName + ">" + rb_.getString("class_function_" + (i + 1)) + "</" + functionName + ">";
+                    buffer[2] = buffer[2] + functionName + "?,";
+                }
+            }
+
+            buffer[0] = buffer[0] + "</serviceList>" + "</APIItem>";
+            buffer[2] = buffer[2].substring(0, buffer[2].lastIndexOf(","));
+            buffer[2] = buffer[2] + ")>\n" + "<!ATTLIST " + rb_.getString("type") + "\n" + "component CDATA #REQUIRED\n" + "name CDATA #REQUIRED\n" + ">\n";
+            for(int i = 0; i < Integer.parseInt(rb_.getString("nb_functions")); i++)
+            {
+                String functionMode = rb_.getString("mode_function_" + (i + 1));
+                String functionName = rb_.getString("name_function_" + (i + 1));
+                StringTokenizer tkAttListRequired;
+                StringTokenizer tkAttListImplied;
+                if(mode.equals("private") || functionMode.equals("public"))
+                {
+                    buffer[2] = buffer[2] + "<!ELEMENT " + functionName + " (#PCDATA)>\n" + "<!ATTLIST " + functionName + "\n";
+                    for(tkAttListRequired = new StringTokenizer(rb_.getString("required_function_" + (i + 1)), ","); tkAttListRequired.hasMoreTokens();)
+                        buffer[2] = buffer[2] + tkAttListRequired.nextToken() + " CDATA #REQUIRED\n";
+
+                    for(tkAttListImplied = new StringTokenizer(rb_.getString("implied_function_" + (i + 1)), ","); tkAttListImplied.hasMoreTokens();)
+                        buffer[2] = buffer[2] + tkAttListImplied.nextToken() + " CDATA #IMPLIED\n";
+
+                    buffer[2] = buffer[2] + ">\n";
+                }
+                tkAttListRequired = null;
+                tkAttListImplied = null;
+            }
+
+            return buffer;
+        }
+        catch(Exception e)
+        {
+            return (new String[] {
+                "<error " + e.getMessage() + ">", ""
+            });
+        }
+    }
+}

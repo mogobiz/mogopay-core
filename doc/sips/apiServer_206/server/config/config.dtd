@@ -1,0 +1,46 @@
+<!ELEMENT configuration (service, command, httpRequest, watchdog,documentRoot, routing, alert, components?)>
+<!ELEMENT service (servicePort, maxServiceRequest, queueSizeMaxService, accessListService)>
+	<!ELEMENT servicePort (#PCDATA)>
+	<!ELEMENT maxServiceRequest (#PCDATA)>
+	<!ELEMENT queueSizeMaxService (#PCDATA)>
+	<!ELEMENT accessListService (#PCDATA)>
+<!ELEMENT command (commandPort, maxCommandRequest, queueSizeMaxCommand, accessListCommand)>
+	<!ELEMENT commandPort (#PCDATA)>
+	<!ELEMENT maxCommandRequest (#PCDATA)>
+	<!ELEMENT queueSizeMaxCommand (#PCDATA)>
+	<!ELEMENT accessListCommand (#PCDATA)>
+<!ELEMENT httpRequest (httpRequestPort, maxHttpRequest, queueSizeMaxHttpRequest, accessListHttpRequest)>
+	<!ELEMENT httpRequestPort (#PCDATA)>
+	<!ELEMENT maxHttpRequest (#PCDATA)>
+	<!ELEMENT queueSizeMaxHttpRequest (#PCDATA)>
+	<!ELEMENT accessListHttpRequest (#PCDATA)>
+<!ELEMENT watchdog (pollingTimer, survPort, trace, alternateTrace+)>
+	<!ELEMENT pollingTimer (#PCDATA)>
+	<!ELEMENT survPort (#PCDATA)>
+	<!ELEMENT trace (#PCDATA)>
+		<!ATTLIST trace
+			level CDATA #REQUIRED
+			sizeLimit CDATA #REQUIRED
+			unit CDATA #REQUIRED
+			path CDATA #REQUIRED
+			prefix CDATA #REQUIRED
+		>
+	<!ELEMENT alternateTrace (#PCDATA)>
+		<!ATTLIST alternateTrace
+			id CDATA #REQUIRED
+			path CDATA #REQUIRED
+			prefix CDATA #REQUIRED
+		>
+<!ELEMENT documentRoot (#PCDATA)>		
+<!ELEMENT routing (componentDir)>
+	<!ELEMENT componentDir (#PCDATA)>
+<!ELEMENT alert (alertURL, alertProxyHost?, alertProxyPort?)>
+	<!ELEMENT alertURL (#PCDATA)>	
+	<!ELEMENT alertProxyHost (#PCDATA)>
+	<!ELEMENT alertProxyPort (#PCDATA)>
+<!ELEMENT components (pathfile+)>
+	<!ELEMENT pathfile (#PCDATA)>
+		<!ATTLIST pathfile
+			id CDATA #REQUIRED
+			path CDATA #REQUIRED
+		>

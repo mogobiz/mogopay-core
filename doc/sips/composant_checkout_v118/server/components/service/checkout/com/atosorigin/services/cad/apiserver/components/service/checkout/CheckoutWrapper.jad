@@ -1,0 +1,623 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   CheckoutWrapper.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.apiserver.common.*;
+import com.atosorigin.services.cad.apiserver.watchdog.RmiInterface;
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import com.atosorigin.services.cad.common.SIPSException;
+import com.atosorigin.services.cad.common.util.FileParamReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.net.Socket;
+import java.rmi.Naming;
+import java.util.Hashtable;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            Nls, SIPSCheckoutRequestParm, SIPSCheckoutResponseParm, SIPSCheckoutApi
+
+public class CheckoutWrapper
+{
+
+    public CheckoutWrapper(String fonction, Dom dom, String req, Socket sock)
+        throws FileNotFoundException, SIPSException
+    {
+        pseudoPid = 0;
+        fonctionNames = new Hashtable();
+        fonctionNames.put("card3D_CheckEnrollment", new Integer(0));
+        fonctionNames.put("card3D_Order", new Integer(1));
+        fonctionNames.put("card3D_Authenticate", new Integer(2));
+        fonctionNames.put("checkCheckout", new Integer(3));
+        fonctionNames.put("merchantWallet_Order", new Integer(4));
+        fonctionNames.put("buyster_Initiate", new Integer(5));
+        fonctionNames.put("buyster_Confirm", new Integer(6));
+        fonctionNames.put("merchantWallet3D_CheckEnrollment", new Integer(7));
+        if(!fonctionNames.containsKey(fonction))
+            throw new SIPSException(Nls.getErrorMessage("unknown_function"));
+        this.fonction = fonction;
+        pseudoPid = dom.getPseudoPid();
+        String requestTrace = (new StringBuilder("fonction : ")).append(fonction).append(" ").toString();
+        int rmiPort = 7183;
+        try
+        {
+            rmiPort = Integer.parseInt(Config.getParam("survPort"));
+        }
+        catch(APINGException apingexception) { }
+        String url = (new StringBuilder("rmi://localhost:")).append(rmiPort).append("/").toString();
+        try
+        {
+            writeTraces = (RmiInterface)Naming.lookup((new StringBuilder(String.valueOf(url))).append("ServeurRMI").toString());
+        }
+        catch(Exception exception) { }
+        pathfile = "";
+        try
+        {
+            int nbPathfile = Config.getNbElement("pathfile");
+            for(int i = 0; i < nbPathfile; i++)
+                if(Config.getParamAttribut("pathfile", i + 1, "id").equals("checkout"))
+                    pathfile = Config.getParamAttribut("pathfile", i + 1, "path");
+
+        }
+        catch(APINGException apingexception1) { }
+        request = new SIPSCheckoutRequestParm(((Integer)fonctionNames.get(this.fonction)).intValue());
+        response = new SIPSCheckoutResponseParm(((Integer)fonctionNames.get(this.fonction)).intValue());
+        try
+        {
+            String attr;
+            String attrValue;
+            for(int i = 0; i < dom.getNbAttributs(fonction); i++)
+            {
+                attr = dom.getElementAttributName(fonction, i + 1);
+                attrValue = dom.getFirstElementAttribut(fonction, attr);
+                request.setValue(attr, attrValue);
+            }
+
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(requestTrace).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : merchant_id=")).append(request.getValue("merchant_id")).append(", ").append("merchant_country=").append(request.getValue("merchant_country")).toString());
+            }
+            catch(Exception exception1) { }
+            attr = null;
+            attrValue = null;
+            requestTrace = null;
+        }
+        catch(SIPSException se)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(requestTrace).toString());
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : Error message: ")).append(se.getMessage()).toString());
+                writeTraces.rmiError("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception2) { }
+            throw se;
+        }
+    }
+
+    public static String formatComplementaryInfo(String initialComplementaryInfo)
+    {
+        String secondComplementaryInfo = "";
+        String finalComplementaryInfo = "";
+        if(initialComplementaryInfo == null || initialComplementaryInfo.equals(""))
+            return "";
+        String resultSeparation[] = initialComplementaryInfo.split(",");
+        for(int i = 0; i < resultSeparation.length; i++)
+        {
+            String firstCharacter = resultSeparation[i].substring(0, 1);
+            String last2Characters = resultSeparation[i].substring(resultSeparation[i].length() - 2, resultSeparation[i].length());
+            if(!firstCharacter.equalsIgnoreCase("<") || !last2Characters.equalsIgnoreCase("/>"))
+            {
+                secondComplementaryInfo = (new StringBuilder(String.valueOf(secondComplementaryInfo))).append("<").append(resultSeparation[i].replaceAll("=", " VALUE=")).append("/>").toString();
+            } else
+            {
+                String withoutUselessSpace = resultSeparation[i].replaceAll("  ", " ");
+                withoutUselessSpace = withoutUselessSpace.replaceAll(" />", "/>");
+                secondComplementaryInfo = (new StringBuilder(String.valueOf(secondComplementaryInfo))).append(withoutUselessSpace).toString();
+            }
+        }
+
+        resultSeparation = (String[])null;
+        resultSeparation = secondComplementaryInfo.split("=");
+        finalComplementaryInfo = (new StringBuilder(String.valueOf(resultSeparation[0]))).append("=\"").toString();
+        for(int i = 1; i < resultSeparation.length - 1; i++)
+        {
+            int index;
+            if(resultSeparation[i].indexOf("/>") != -1)
+                index = resultSeparation[i].lastIndexOf("/>");
+            else
+                index = resultSeparation[i].lastIndexOf(" ");
+            finalComplementaryInfo = (new StringBuilder(String.valueOf(finalComplementaryInfo))).append(resultSeparation[i].substring(0, index)).append("\"").append(resultSeparation[i].substring(index, resultSeparation[i].length())).append("=\"").toString();
+        }
+
+        finalComplementaryInfo = (new StringBuilder(String.valueOf(finalComplementaryInfo))).append(resultSeparation[resultSeparation.length - 1].substring(0, resultSeparation[resultSeparation.length - 1].length() - 2)).append("\"/>").toString();
+        finalComplementaryInfo = finalComplementaryInfo.replaceAll("&", "&amp;");
+        return finalComplementaryInfo;
+    }
+
+    public static String formatData(String initialData)
+    {
+        String finalData = "";
+        if(initialData != null)
+            finalData = initialData;
+        finalData = finalData.replaceAll("<", "&lt;");
+        finalData = finalData.replaceAll(">", "&gt;");
+        return finalData;
+    }
+
+    public String asoCheckEnroll3d()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.checkEnroll3d(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            String responseCheckEnroll3d = formatResponseCheckEnroll3d();
+            return responseCheckEnroll3d;
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoAuthenticate3d()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.authent3D(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            return formatResponseAuthent3D();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoOrder3d()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.author3D(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            return formatResponseAuthor3D();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoCheck()
+    {
+        try
+        {
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            request.check();
+            return formatCheckResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoMerchantWalletOrder()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.merchantWalletOrder(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            return formatResponseMerchantWalletOrder();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Wallet_id=").append(request.getValue("wallet_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoBuysterInit()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.buysterInit(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            return formatResponseBuysterInit();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoBuysterConfirm()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.buysterConfirm(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            return formatResponseBuysterConfirm();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public String asoCheckEnroll3dWithWallet()
+    {
+        try
+        {
+            api = new SIPSCheckoutApi(pathfile);
+            api.checkEnroll3dWithWallet(request, response);
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : transaction_id=")).append(request.getValue("transaction_id")).append(", ").append("payment_date=").append(request.getValue("payment_date")).toString());
+            }
+            catch(Exception exception) { }
+            String responseCheckEnroll3dWithWallet = formatResponseCheckEnroll3dWithWallet();
+            return responseCheckEnroll3dWithWallet;
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : ")).append(e.getMessage()).append(" ").append("Processing_code=").append(request.getValue("processing_code")).append(" ").append("Merchant_country=").append(request.getValue("merchant_country")).append(" ").append("Merchant_id=").append(request.getValue("merchant_id")).append(" ").append("Transaction_id=").append(request.getValue("transaction_id")).append(" ").append("Amount=").append(request.getValue("amount")).append(" ").append("Wallet_id=").append(request.getValue("wallet_id")).toString());
+            }
+            catch(Exception exception1) { }
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    public static String getTransactionId()
+    {
+        return SIPSCheckoutApi.getTransactionId();
+    }
+
+    public static String getPaymentDate()
+    {
+        return SIPSCheckoutApi.getPaymentDate();
+    }
+
+    private String formatResponseAuthor3D()
+    {
+        try
+        {
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponseCheckEnroll3d()
+    {
+        try
+        {
+            String xmlResponse = "";
+            xmlResponse = (new StringBuilder("<response component=\"checkout\" name=\"")).append(fonction).append("\">").append("<").append(fonction).append(" ").append("merchant_country=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_COUNTRY)).append("\" ").append("merchant_id=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_ID)).append("\" ").append("o3d_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).append("\" ").append("o3d_office_url_acs=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_OFFICE_URL_ACS)).append("\" ").append("o3d_session_id=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_SESSION_ID)).append("\"/>").append("</response>").toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : o3d_response_code=")).append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponseAuthent3D()
+    {
+        try
+        {
+            String xmlResponse = "";
+            xmlResponse = (new StringBuilder("<response component=\"checkout\" name=\"")).append(fonction).append("\">").append("<").append(fonction).append(" ").append("merchant_country=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_COUNTRY)).append("\" ").append("merchant_id=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_ID)).append("\" ").append("o3d_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).append("\"/>").append("</response>").toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response_code=")).append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSCheckoutResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSCheckoutResponseParm.DATA));
+            xmlResponse = (new StringBuilder("<response component=\"checkout\" name=\"")).append(fonction).append("\">").append("<").append(fonction).append(" response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).append("\" ").append("o3d_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).append("\" ").append("transaction_time=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_TIME)).append("\" ").append("transaction_date=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_DATE)).append("\" ").append("transaction_certificate=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_CERTIFICATE)).append("\" ").append("authorisation_id=\"").append(response.getValue(SIPSCheckoutResponseParm.AUTHORISATION_ID)).append("\" ").append("status=\"").append(response.getValue(SIPSCheckoutResponseParm.STATUS)).append("\" ").append("currency_code=\"").append(response.getValue(SIPSCheckoutResponseParm.CURRENCY_CODE)).append("\" ").append("data=\"").append(data).append("\" ").append("cvv_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.CVV_RESPONSE_CODE)).append("\" ").append("avs_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.AVS_RESPONSE_CODE)).append("\" ").append("bank_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.BANK_RESPONSE_CODE)).append("\" ").append("complementary_code=\"").append(response.getValue(SIPSCheckoutResponseParm.COMPLEMENTARY_CODE)).append("\" ").append("threed_status=\"").append(response.getValue(SIPSCheckoutResponseParm.THREED_STATUS)).append("\" ").append("threed_ls_code=\"").append(response.getValue(SIPSCheckoutResponseParm.THREED_LS_CODE)).append("\" ").append(">").append("<complementary_info>").append(complementaryInfo).append("</complementary_info>").append("</").append(fonction).append(">").append("</response>").toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response_code=")).append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatCheckResponse()
+    {
+        String certifPath = "";
+        FileParamReader fpr;
+        try
+        {
+            fpr = new FileParamReader(pathfile);
+        }
+        catch(Exception ex)
+        {
+            return (new StringBuilder("<Error message=\"")).append(Nls.getErrorMessage("cannot_read_file")).append(" (").append(pathfile).append(")").append("\"/>").toString();
+        }
+        try
+        {
+            certifPath = (new StringBuilder()).append(fpr.getParam("F_CERTIFICATE")).append(".").append(request.getValue("merchant_country")).append(".").append(request.getValue("merchant_id")).toString();
+        }
+        catch(Exception exception) { }
+        try
+        {
+            new FileInputStream(certifPath);
+        }
+        catch(FileNotFoundException fnf)
+        {
+            return (new StringBuilder("<Error message=\"")).append(Nls.getErrorMessage("Cannot_open_certif")).append(" (").append(certifPath).append(")").append("\"/>").toString();
+        }
+        try
+        {
+            String xmlResponse = "";
+            xmlResponse = "<response  pathfile=\"OK\"  certificate=\"OK\" />";
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception1) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponseMerchantWalletOrder()
+    {
+        try
+        {
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSCheckoutResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSCheckoutResponseParm.DATA));
+            StringBuffer sbXmlResponse = new StringBuffer("<response component=\"checkout\" name=\"");
+            sbXmlResponse.append(fonction).append("\">").append("<").append(fonction).append(" ");
+            sbXmlResponse.append("transaction_certificate=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_CERTIFICATE)).append("\" ");
+            sbXmlResponse.append("transaction_time=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_TIME)).append("\" ");
+            sbXmlResponse.append("transaction_date=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_DATE)).append("\" ");
+            sbXmlResponse.append("response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).append("\" ");
+            sbXmlResponse.append("currency_code=\"").append(response.getValue(SIPSCheckoutResponseParm.CURRENCY_CODE)).append("\" ");
+            sbXmlResponse.append("complementary_code=\"").append(response.getValue(SIPSCheckoutResponseParm.COMPLEMENTARY_CODE)).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.AUTHORISATION_ID) != null && response.getValue(SIPSCheckoutResponseParm.AUTHORISATION_ID).length() > 0)
+                sbXmlResponse.append("authorisation_id=\"").append(response.getValue(SIPSCheckoutResponseParm.AUTHORISATION_ID)).append("\" ");
+            sbXmlResponse.append("data=\"").append(data).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.CVV_RESPONSE_CODE) != null && response.getValue(SIPSCheckoutResponseParm.CVV_RESPONSE_CODE).length() > 0)
+                sbXmlResponse.append("cvv_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.CVV_RESPONSE_CODE)).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.BANK_RESPONSE_CODE) != null && response.getValue(SIPSCheckoutResponseParm.BANK_RESPONSE_CODE).length() > 0)
+                sbXmlResponse.append("bank_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.BANK_RESPONSE_CODE)).append("\" ");
+            sbXmlResponse.append("card_type=\"").append(response.getValue(SIPSCheckoutResponseParm.CARD_TYPE)).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.CARD_VALIDITY) != null && response.getValue(SIPSCheckoutResponseParm.CARD_VALIDITY).length() > 0)
+                sbXmlResponse.append("card_validity=\"").append(response.getValue(SIPSCheckoutResponseParm.CARD_VALIDITY)).append("\" ");
+            sbXmlResponse.append("transaction_status=\"").append(response.getValue(SIPSCheckoutResponseParm.STATUS)).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.AVS_RESPONSE_CODE) != null && response.getValue(SIPSCheckoutResponseParm.AVS_RESPONSE_CODE).length() > 0)
+                sbXmlResponse.append("avs_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.AVS_RESPONSE_CODE)).append("\" ");
+            sbXmlResponse.append("payment_mean_id=\"").append(response.getValue(SIPSCheckoutResponseParm.PAYMENT_MEAN_ID)).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.PAYMENT_MEAN_ALIAS) != null && response.getValue(SIPSCheckoutResponseParm.PAYMENT_MEAN_ALIAS).length() > 0)
+                sbXmlResponse.append("payment_mean_alias=\"").append(response.getValue(SIPSCheckoutResponseParm.PAYMENT_MEAN_ALIAS)).append("\" ");
+            if(response.getValue(SIPSCheckoutResponseParm.MASKED_PAN) != null && response.getValue(SIPSCheckoutResponseParm.MASKED_PAN).length() > 0)
+                sbXmlResponse.append("masked_pan=\"").append(response.getValue(SIPSCheckoutResponseParm.MASKED_PAN)).append("\" ");
+            sbXmlResponse.append("amount=\"").append(response.getValue(SIPSCheckoutResponseParm.AMOUNT)).append("\" ");
+            sbXmlResponse.append(">");
+            sbXmlResponse.append("<complementary_info>").append(complementaryInfo).append("</complementary_info>");
+            sbXmlResponse.append("</").append(fonction).append(">");
+            sbXmlResponse.append("</response>");
+            String xmlResponse = sbXmlResponse.toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response_code=")).append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponseBuysterInit()
+    {
+        try
+        {
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSCheckoutResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSCheckoutResponseParm.DATA));
+            StringBuffer sbXmlResponse = new StringBuffer("<response component=\"checkout\" name=\"");
+            sbXmlResponse.append(fonction).append("\">").append("<").append(fonction).append(" ");
+            sbXmlResponse.append("response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).append("\" ");
+            sbXmlResponse.append("response_description=\"").append(response.getValue(SIPSCheckoutResponseParm.RESPONSE_DESCRIPTION)).append("\" ");
+            sbXmlResponse.append("transaction_date=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_DATE)).append("\" ");
+            sbXmlResponse.append("redirection_url=\"").append(response.getValue(SIPSCheckoutResponseParm.REDIRECTION_URL)).append("\" ");
+            sbXmlResponse.append("merchant_session_id=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_SESSION_ID)).append("\" ");
+            sbXmlResponse.append("return_context=\"").append(response.getValue(SIPSCheckoutResponseParm.RETURN_CONTEXT)).append("\" ");
+            sbXmlResponse.append(">");
+            sbXmlResponse.append("</response>");
+            String xmlResponse = sbXmlResponse.toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response_code=")).append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponseBuysterConfirm()
+    {
+        try
+        {
+            String data = formatData(response.getValue(SIPSCheckoutResponseParm.DATA));
+            StringBuffer sbXmlResponse = new StringBuffer("<response component=\"checkout\" name=\"");
+            sbXmlResponse.append(fonction).append("\">").append("<").append(fonction).append(" ");
+            sbXmlResponse.append("response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).append("\" ");
+            sbXmlResponse.append("response_description=\"").append(response.getValue(SIPSCheckoutResponseParm.RESPONSE_DESCRIPTION)).append("\" ");
+            sbXmlResponse.append("transaction_date=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_DATE)).append("\" ");
+            sbXmlResponse.append("transaction_time=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_TIME)).append("\" ");
+            sbXmlResponse.append("transaction_certificate=\"").append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_CERTIFICATE)).append("\" ");
+            sbXmlResponse.append("transaction_status=\"").append(response.getValue(SIPSCheckoutResponseParm.STATUS)).append("\" ");
+            sbXmlResponse.append("enrollment_indicator=\"").append(response.getValue(SIPSCheckoutResponseParm.ENROLLMENT_INDICATOR)).append("\" ");
+            sbXmlResponse.append("guarantee_indicator=\"").append(response.getValue(SIPSCheckoutResponseParm.GUARANTEE_INDICATOR)).append("\" ");
+            sbXmlResponse.append("authorisation_id=\"").append(response.getValue(SIPSCheckoutResponseParm.AUTHORISATION_ID)).append("\" ");
+            sbXmlResponse.append(">");
+            sbXmlResponse.append("</response>");
+            String xmlResponse = sbXmlResponse.toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response_code=")).append(response.getValue(SIPSCheckoutResponseParm.TRANSACTION_RESPCODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private String formatResponseCheckEnroll3dWithWallet()
+    {
+        try
+        {
+            String xmlResponse = "";
+            xmlResponse = (new StringBuilder("<response component=\"checkout\" name=\"")).append(fonction).append("\">").append("<").append(fonction).append(" ").append("merchant_country=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_COUNTRY)).append("\" ").append("merchant_id=\"").append(response.getValue(SIPSCheckoutResponseParm.MERCHANT_ID)).append("\" ").append("o3d_response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).append("\" ").append("o3d_office_url_acs=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_OFFICE_URL_ACS)).append("\" ").append("o3d_session_id=\"").append(response.getValue(SIPSCheckoutResponseParm.O3D_SESSION_ID)).append("\" ").append("response_code=\"").append(response.getValue(SIPSCheckoutResponseParm.RESPONSE_CODE)).append("\" ").append("/>").append("</response>").toString();
+            try
+            {
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : o3d_response_code=")).append(response.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, (new StringBuilder("CheckoutWrapper : response : ")).append(xmlResponse).toString());
+                writeTraces.rmiNormal("checkout", pseudoPid, "CheckoutWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception exception) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return (new StringBuilder("<Error message=\"")).append(e).append("\"/>").toString();
+        }
+    }
+
+    private SIPSCheckoutApi api;
+    private SIPSDataObject request;
+    private SIPSDataObject response;
+    private RmiInterface writeTraces;
+    private Hashtable fonctionNames;
+    private String pathfile;
+    private String fonction;
+    private int pseudoPid;
+}

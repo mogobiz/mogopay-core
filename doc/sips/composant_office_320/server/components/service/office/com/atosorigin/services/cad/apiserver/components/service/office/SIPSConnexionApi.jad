@@ -1,0 +1,176 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSConnexionApi.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import com.atosorigin.services.cad.common.SIPSException;
+import com.atosorigin.services.cad.common.crypto.ComputeCardNumberKey;
+import com.atosorigin.services.cad.common.crypto.DesCipher;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Properties;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            SIPSApi, SIPSOfficeRequestParm, Nls, SIPSOfficeResponseParm
+
+public class SIPSConnexionApi extends SIPSApi
+{
+
+    public SIPSConnexionApi(String pathFile)
+        throws FileNotFoundException, SIPSException
+    {
+        super(pathFile);
+    }
+
+    void asoCardProcessManagementTransaction(SIPSDataObject request, SIPSDataObject response)
+        throws Exception
+    {
+        request.check();
+        init(request.getValue(SIPSOfficeRequestParm.MERCHANT_COUNTRY), request.getValue(SIPSOfficeRequestParm.MERCHANT_ID), request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE));
+        try
+        {
+            URL url = new URL(urlS);
+            HttpURLConnection myConnection = (HttpURLConnection)url.openConnection();
+            myConnection.setDoOutput(true);
+            myConnection.setDoInput(true);
+            myConnection.setRequestMethod("POST");
+            String args[] = {
+                AMOUNT, TRANSMISSION_DATE, TRANSACTION_ID, MERCHANT_COUNTRY, MERCHANT_ID
+            };
+            String sensitiveData = request.getValue(SIPSOfficeRequestParm.CARD_NUMBER) + "/" + request.getValue(SIPSOfficeRequestParm.CVV_FLAG) + "/" + request.getValue(SIPSOfficeRequestParm.CVV_KEY);
+            String certifPath;
+            if(request.getValue("alternate_certificate").length() == 0)
+                certifPath = certifBase + "." + request.getValue(SIPSOfficeRequestParm.MERCHANT_COUNTRY) + "." + request.getValue(SIPSOfficeRequestParm.MERCHANT_ID);
+            else
+                certifPath = certifBase + "." + request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE);
+            ComputeCardNumberKey myKeys = new ComputeCardNumberKey(certifPath, request.getValue(SIPSOfficeRequestParm.AMOUNT), request.getValue(SIPSOfficeRequestParm.TRANSMISSION_DATE), request.getValue(SIPSOfficeRequestParm.TRANSACTION_ID));
+            DesCipher cipherCard = new DesCipher(sensitiveData, myKeys.getKey1(), myKeys.getKey2(), true);
+            request.setValue("card_number", cipherCard.getCipherMessage());
+            sensitiveData = request.getValue(SIPSOfficeRequestParm.BANK_NUMBER) + "/" + request.getValue(SIPSOfficeRequestParm.ACCOUNT_ID);
+            if(request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE).length() == 0)
+                certifPath = certifBase + "." + request.getValue(SIPSOfficeRequestParm.MERCHANT_COUNTRY) + "." + request.getValue(SIPSOfficeRequestParm.MERCHANT_ID);
+            else
+                certifPath = certifBase + "." + request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE);
+            cipherCard = new DesCipher(sensitiveData, myKeys.getKey1(), myKeys.getKey2(), true);
+            request.setValue("account_id", cipherCard.getCipherMessage());
+            String requestCypheredMsg = dataEncode(request, args);
+            String msg = "DATA=" + requestCypheredMsg;
+            if(proxyHost.length() != 0 && proxyPort.length() == 0)
+                proxyPort = DEFAULT_PROXY_PORT;
+            System.getProperties().put("proxySet", "true");
+            System.getProperties().put("proxyHost", proxyHost);
+            System.getProperties().put("proxyPort", proxyPort);
+            myConnection.setRequestProperty("Accept", "text/html");
+            myConnection.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
+            myConnection.setRequestProperty("Content-Length", Integer.toString(msg.length()));
+            Writer out = new OutputStreamWriter(myConnection.getOutputStream(), "iso-8859-1");
+            out.write(msg);
+            out.close();
+            StringBuffer buffer = new StringBuffer();
+            BufferedReader in = new BufferedReader(new InputStreamReader(myConnection.getInputStream(), "iso-8859-1"));
+            String line = in.readLine();
+            do
+            {
+                line = in.readLine();
+                if(line == null)
+                    break;
+                buffer.append(line);
+            } while(true);
+            in.close();
+            String cypheredResp = buffer.toString();
+            if(cypheredResp.length() == 2)
+                throw new SIPSException(Nls.getErrorMessage("aso_err_server"));
+            if(cypheredResp.length() < 9)
+                throw new SIPSException(Nls.getErrorMessage("aso_err_send_msg"));
+            copyElement(response, request, args);
+            dataDecode(cypheredResp, response, args);
+        }
+        catch(Exception e2)
+        {
+            throw new SIPSException("Error inconnue :" + e2.getMessage());
+        }
+    }
+
+    void asoCardProcessTransaction(SIPSDataObject request, SIPSDataObject response, SIPSDataObject transData)
+        throws Exception
+    {
+        request.check();
+        init(request.getValue(SIPSOfficeRequestParm.MERCHANT_COUNTRY), request.getValue(SIPSOfficeRequestParm.MERCHANT_ID), request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE));
+        URL url = new URL(urlS);
+        HttpURLConnection myConnection = (HttpURLConnection)url.openConnection();
+        myConnection.setDoOutput(true);
+        myConnection.setDoInput(true);
+        myConnection.setRequestMethod("POST");
+        String args[] = {
+            AMOUNT, TRANSMISSION_DATE, TRANSACTION_ID, MERCHANT_COUNTRY, MERCHANT_ID
+        };
+        String sensitiveData = request.getValue(SIPSOfficeRequestParm.CARD_NUMBER) + "/" + request.getValue(SIPSOfficeRequestParm.CVV_FLAG) + "/" + request.getValue(SIPSOfficeRequestParm.CVV_KEY);
+        String certifPath;
+        if(request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE).length() == 0)
+            certifPath = certifBase + "." + request.getValue(SIPSOfficeRequestParm.MERCHANT_COUNTRY) + "." + request.getValue(SIPSOfficeRequestParm.MERCHANT_ID);
+        else
+            certifPath = certifBase + "." + request.getValue(SIPSOfficeRequestParm.ALTERNATE_CERTIFICATE);
+        ComputeCardNumberKey myKeys = new ComputeCardNumberKey(certifPath, request.getValue(SIPSOfficeRequestParm.AMOUNT), request.getValue(SIPSOfficeRequestParm.TRANSMISSION_DATE), request.getValue(SIPSOfficeRequestParm.TRANSACTION_ID));
+        DesCipher cipherCard = new DesCipher(sensitiveData, myKeys.getKey1(), myKeys.getKey2(), true);
+        request.setValue("card_number", cipherCard.getCipherMessage());
+        String requestCypheredMsg = dataEncode(request, args);
+        String msg = "DATA=" + requestCypheredMsg;
+        if(proxyHost.length() != 0 && proxyPort.length() == 0)
+            proxyPort = DEFAULT_PROXY_PORT;
+        System.getProperties().put("proxySet", "true");
+        System.getProperties().put("proxyHost", proxyHost);
+        System.getProperties().put("proxyPort", proxyPort);
+        myConnection.setRequestProperty("Accept", "text/html");
+        myConnection.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
+        myConnection.setRequestProperty("Content-Length", Integer.toString(msg.length()));
+        Writer out = new OutputStreamWriter(myConnection.getOutputStream(), "iso-8859-1");
+        out.write(msg);
+        out.close();
+        StringBuffer buffer = new StringBuffer();
+        BufferedReader in = new BufferedReader(new InputStreamReader(myConnection.getInputStream(), "iso-8859-1"));
+        String line = in.readLine();
+        do
+        {
+            line = in.readLine();
+            if(line == null)
+                break;
+            buffer.append(line);
+        } while(true);
+        in.close();
+        String cypheredResp = buffer.toString();
+        if(cypheredResp.length() == 2)
+        {
+            response.setValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE, cypheredResp);
+        } else
+        {
+            if(cypheredResp.length() < 9)
+                throw new SIPSException(Nls.getErrorMessage("aso_err_send_msg"));
+            copyElement(response, request, args);
+            copyElement(transData, request, args);
+            dataDecode(cypheredResp, response, args);
+            String respCode = response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE);
+            if(respCode.equals("00"))
+            {
+                String arguments[] = {
+                    AMOUNT, TRANSMISSION_DATE, TRANSACTION_ID, MERCHANT_COUNTRY, MERCHANT_ID
+                };
+                dataDecode(cypheredResp, transData, arguments);
+            }
+        }
+    }
+
+    private void copyElement(SIPSDataObject response, SIPSDataObject request, String args[])
+        throws Exception
+    {
+        for(int i = 0; i < args.length; i++)
+            response.setValue(args[i], request.getValue(args[i]));
+
+    }
+
+    public static String DEFAULT_PROXY_PORT = "8080";
+
+}

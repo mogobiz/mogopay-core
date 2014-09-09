@@ -1,0 +1,169 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSApi.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.common.*;
+import com.atosorigin.services.cad.common.crypto.*;
+import com.atosorigin.services.cad.common.util.CertifReader;
+import com.atosorigin.services.cad.common.util.FileParamReader;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.Enumeration;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            NlsV2Office, Nls
+
+public class SIPSApi extends SIPSApiBase
+{
+
+    public SIPSApi(String pathFile)
+        throws FileNotFoundException, SIPSException
+    {
+        fpr = new FileParamReader(pathFile);
+        certifBase = fpr.getParam("F_CERTIFICATE");
+        proxyHost = fpr.getParam("PROXY_HOST");
+        proxyPort = fpr.getParam("PROXY_PORT");
+    }
+
+    protected void init(String country, String ID)
+        throws SIPSException
+    {
+        String file;
+        if(alternate_certificate.length() == 0)
+            file = certifBase + "." + country + "." + ID;
+        else
+            file = certifBase + "." + alternate_certificate;
+        try
+        {
+            urlS = System.getProperty("office_url");
+            if(urlS == null)
+            {
+                NlsV2Office.setPackage(PACKAGE);
+                try
+                {
+                    urlS = NlsV2Office.getConstant("call_url");
+                }
+                catch(Exception e0)
+                {
+                    CertifReader cr = new CertifReader(file);
+                    urlS = cr.readLine("", _URL) + "/" + srvName;
+                }
+            }
+        }
+        catch(Exception e1)
+        {
+            NlsV2Office.setPackage(PACKAGE);
+            String msg = "Cannot_open_certif";
+            try
+            {
+                msg = NlsV2Office.getErrorMessage(msg);
+            }
+            catch(Exception e2) { }
+            throw new SIPSException(msg + " : " + file);
+        }
+        certifName = file;
+    }
+
+    protected void init(String country, String ID, String alternate_certificate)
+        throws SIPSException
+    {
+        this.alternate_certificate = alternate_certificate;
+        init(country, ID);
+    }
+
+    public void dataDecode(String cyphered, SIPSDataObject parm, String args[])
+        throws SIPSException
+    {
+        for(int i = 0; i < args.length; i++)
+            args[i] = parm.getValue(args[i]);
+
+        SimpleNlv nlv = new SimpleNlv();
+        int msgLength = cyphered.length();
+        String seal = cyphered.substring(msgLength - 16, msgLength);
+        String cypheredTextString = cyphered.substring(0, msgLength - 16);
+        try
+        {
+            MaillardCypher mc = new MaillardCypher();
+            mc.setCypherMessage(cypheredTextString);
+            nlv.fromString(mc.getClearMessage());
+        }
+        catch(Exception ex_)
+        {
+            System.out.println(ex_);
+            String _err = Nls.getErrorMessage("cannot_uncypher");
+            throw new SIPSException(_err);
+        }
+        Enumeration e = parm.getKeyEnum();
+        do
+        {
+            if(!e.hasMoreElements())
+                break;
+            String key = (String)e.nextElement();
+            try
+            {
+                NlsV2Office.setPackage("com.atosorigin.services.cad.apiserver.components.service.office");
+                String nlvKey = NlsV2Office.getConstant(key);
+                if(nlvKey.compareTo("000") != 0 && nlvKey.compareTo(key) != 0)
+                    parm.setValue(key, (String)nlv.get(nlvKey));
+            }
+            catch(Exception notIn_ex) { }
+        } while(true);
+        init(args[3], args[4]);
+        MaillardKey keyM = new MaillardKey();
+        String docK = keyM.getKey(args[0], args[1], args[2], certifName);
+        DesSeal ds = new DesSeal(docK, cypheredTextString);
+        if(seal.compareTo(ds.getSeal()) != 0)
+            throw new SIPSException(Nls.getErrorMessage("mac_error"));
+        else
+            return;
+    }
+
+    public String dataEncode(SIPSDataObject parm, String args[])
+        throws SIPSException
+    {
+        SimpleNlv nlv = new SimpleNlv();
+        Enumeration e = parm.getKeyEnum();
+        do
+        {
+            if(!e.hasMoreElements())
+                break;
+            String cle = (String)e.nextElement();
+            String val = parm.getValue(cle);
+            if(val.length() != 0)
+            {
+                int k = Integer.valueOf(Nls.getConstant(cle)).intValue();
+                nlv.put(k, val);
+            }
+        } while(true);
+        MaillardCypher mc = new MaillardCypher();
+        mc.setClearMessage(nlv.toString());
+        init(parm.getValue(args[3]), parm.getValue(args[4]));
+        MaillardKey keyM = new MaillardKey();
+        String docK = keyM.getKey(parm.getValue(args[0]), parm.getValue(args[1]), parm.getValue(args[2]), certifName);
+        StringBuffer finalMsg = new StringBuffer(mc.getCypherMessage());
+        String cyph = mc.getCypherMessage();
+        DesSeal ds = new DesSeal(docK, cyph);
+        finalMsg.append(ds.getSeal());
+        return finalMsg.toString();
+    }
+
+    private static String PACKAGE = "com.atosorigin.services.cad.apiserver.components.service.office";
+    protected static int _URL = 29;
+    protected static String srvName = "call_transaction";
+    protected FileParamReader fpr;
+    protected String urlS;
+    protected String certifName;
+    protected String proxyHost;
+    protected String proxyPort;
+    protected String alternate_certificate;
+    public static String MERCHANT_ID = "merchant_id";
+    public static String AMOUNT = "amount";
+    public static String TRANSACTION_ID = "transaction_id";
+    public static String MERCHANT_COUNTRY = "merchant_country";
+    public static String CURRENCY_CODE = "currency_code";
+    public static String TRANSMISSION_DATE = "transmission_date";
+
+}

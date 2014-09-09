@@ -1,0 +1,3 @@
+set -x
+# Compilation sous Linux
+cc GetStatus.c	-o GetStatus	-lnsl 

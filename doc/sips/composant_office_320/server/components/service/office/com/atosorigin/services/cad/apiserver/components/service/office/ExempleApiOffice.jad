@@ -1,0 +1,66 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   ExempleApiOffice.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import java.io.PrintStream;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            SIPSOfficeApi, SIPSOfficeRequestParm, SIPSOfficeResponseParm
+
+public class ExempleApiOffice
+{
+
+    public ExempleApiOffice()
+    {
+    }
+
+    public static void main(String args[])
+    {
+        try
+        {
+            SIPSOfficeApi api = new SIPSOfficeApi("D:\\pathfile");
+            SIPSDataObject request = new SIPSOfficeRequestParm();
+            SIPSDataObject response = new SIPSOfficeResponseParm();
+            request.setValue("origin", "toto");
+            request.setValue("merchant_country", "fr");
+            request.setValue("merchant_id", "000000000005555");
+            request.setValue("transaction_id", "70346");
+            request.setValue("currency_code", "826");
+            request.setValue("amount", "200");
+            request.setValue("card_number", "498465123123123200");
+            request.setValue("cvv_flag", "0");
+            request.setValue("cvv_key", "");
+            request.setValue("card_validity", "200807");
+            request.setValue("card_type", "VISA");
+            request.setValue("return_context", "");
+            request.setValue("order_id", "OI_131100_8744");
+            request.setValue("capture_mode", "AUTHOR_CAPTURE");
+            request.setValue("capture_day", "2");
+            request.setValue("data", "AVS;CHECK=2;LINE1=2;POSTCODE=0;/AVS;ceci est un test");
+            request.setValue("order_validity", "");
+            request.setValue("alternate_certificate", "");
+            api.asoAuthorTransaction(request, response);
+            System.out.println("Autor Results\n");
+            System.out.println("diag_response_code = " + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+            System.out.println("diag_time = " + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME));
+            System.out.println("diag_date = " + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE));
+            System.out.println("diag_certificate = " + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE));
+            System.out.println("merchant_id = " + response.getValue(SIPSOfficeResponseParm.MERCHANT_ID));
+            System.out.println("merchant_country = " + response.getValue(SIPSOfficeResponseParm.MERCHANT_COUNTRY));
+            System.out.println("transaction_id = " + response.getValue(SIPSOfficeResponseParm.TRANSACTION_ID));
+            System.out.println("avs_response_code = " + response.getValue(SIPSOfficeResponseParm.AVS_RESPONSE_CODE));
+            System.out.println("new_amount = " + response.getValue(SIPSOfficeResponseParm.AMOUNT));
+            System.out.println("currency_code = " + response.getValue(SIPSOfficeResponseParm.CURRENCY_CODE));
+            System.out.println("transaction_status = " + response.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS));
+            System.out.println("authorisation_id = " + response.getValue(SIPSOfficeResponseParm.AUTHORISATION_ID));
+        }
+        catch(Exception e)
+        {
+            System.out.println("Error = " + e);
+        }
+    }
+}

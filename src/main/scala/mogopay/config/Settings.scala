@@ -146,6 +146,7 @@ object Settings {
     val Index = config.getString("elasticsearch.index")
     val Cluster = config.getString("elasticsearch.cluster")
     val FullUrl = Host + ":" + HttpPort
+    println(Host+","+Port+","+Index+","+Cluster)
   }
 
   object Import {

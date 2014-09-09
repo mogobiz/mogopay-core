@@ -1,0 +1,122 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSCheckoutApi.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import com.atosorigin.services.cad.common.SIPSException;
+import java.io.FileNotFoundException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            SIPSApi, SIPSConnexionApi, SIPSCheckoutRequestParm
+
+public class SIPSCheckoutApi extends SIPSApi
+{
+
+    public SIPSCheckoutApi(String pathFile)
+        throws FileNotFoundException, SIPSException
+    {
+        super(pathFile);
+        connect = new SIPSConnexionApi(pathFile);
+    }
+
+    public void checkEnroll3d(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_CHECKENROLL3D);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void author3D(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_AUTHOR3D);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void authent3D(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_AUTHENT3D);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void merchantWalletOrder(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_MERCHANTWALLET_ORDER);
+        sipsData.setValue(SIPSCheckoutRequestParm.PAYMENT_DATE, getPaymentDate());
+        sipsData.setValue(SIPSCheckoutRequestParm.CARD_VALIDITY, "");
+        sipsData.setValue(SIPSCheckoutRequestParm.CARD_NUMBER, "");
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void buysterInit(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_BUYSTER_INIT);
+        sipsData.setValue(SIPSCheckoutRequestParm.PAYMENT_DATE, getPaymentDate());
+        sipsData.setValue(SIPSCheckoutRequestParm.ISO8601_TRANSACTION_DATETIME, getIsoPaymentDate());
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public void buysterConfirm(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_BUYSTER_CONFIRM);
+        sipsData.setValue(SIPSCheckoutRequestParm.PAYMENT_DATE, getPaymentDate());
+        sipsData.setValue(SIPSCheckoutRequestParm.AMOUNT, "100");
+        sipsData.setValue(SIPSCheckoutRequestParm.CURRENCY_CODE, "978");
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public static String getTransactionId()
+    {
+        GregorianCalendar current = (GregorianCalendar)GregorianCalendar.getInstance();
+        String hour = String.valueOf(current.get(11));
+        if(hour.length() == 1)
+            hour = (new StringBuilder("0")).append(hour).toString();
+        String min = String.valueOf(current.get(12));
+        if(min.length() == 1)
+            min = (new StringBuilder("0")).append(min).toString();
+        String sec = String.valueOf(current.get(13));
+        if(sec.length() == 1)
+            sec = (new StringBuilder("0")).append(sec).toString();
+        return new String((new StringBuilder(String.valueOf(hour))).append(min).append(sec).toString());
+    }
+
+    public static String getPaymentDate()
+    {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        return sdf.format(new Date());
+    }
+
+    public static String getIsoPaymentDate()
+    {
+        SimpleDateFormat transactionDateTimeFormater = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZZZZZ");
+        StringBuffer sb = new StringBuffer(transactionDateTimeFormater.format(new Date()));
+        return sb.insert(22, ":").toString();
+    }
+
+    public void checkEnroll3dWithWallet(SIPSDataObject sipsData, SIPSDataObject response)
+        throws Exception
+    {
+        sipsData.setValue(SIPSCheckoutRequestParm.PROCESSING_CODE, ASO_CODE_CHECKENROLL3DWITHWALLET);
+        connect.asoCardProcessManagementTransaction(sipsData, response);
+    }
+
+    public static String ASO_CODE_CHECKENROLL3D = "I3";
+    public static String ASO_CODE_AUTHOR3D = "A3";
+    public static String ASO_CODE_AUTHENT3D = "L3";
+    public static String ASO_CODE_MERCHANTWALLET_ORDER = "MO";
+    public static String ASO_CODE_BUYSTER_INIT = "BI";
+    public static String ASO_CODE_BUYSTER_CONFIRM = "BC";
+    public static String ASO_CODE_CHECKENROLL3DWITHWALLET = "W3";
+    private SIPSConnexionApi connect;
+
+}

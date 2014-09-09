@@ -1,0 +1,78 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Nls.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import java.io.PrintStream;
+import java.util.*;
+
+public class Nls
+{
+
+    public Nls()
+    {
+    }
+
+    public static String getConstant(String key)
+    {
+        if(constantBundle_ == null)
+            try
+            {
+                constantBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.office.Constant");
+            }
+            catch(Exception e)
+            {
+                System.out.println(e);
+                System.exit(-1);
+            }
+        return getString(constantBundle_, key);
+    }
+
+    public static String getResource(String key, Locale locale)
+    {
+        try
+        {
+            Locale computerLocale = Locale.getDefault();
+            Locale.setDefault(Locale.ENGLISH);
+            ressourceBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.office.Resources", locale);
+            Locale.setDefault(computerLocale);
+        }
+        catch(Exception e)
+        {
+            System.out.println(e);
+            System.exit(-1);
+        }
+        return getString(ressourceBundle_, key);
+    }
+
+    public static String getErrorMessage(String key)
+    {
+        String msg = key;
+        try
+        {
+            ResourceBundle errorBundle_ = ResourceBundle.getBundle("com.atosorigin.services.cad.apiserver.components.service.office.Error");
+            msg = getString(errorBundle_, key);
+        }
+        catch(Exception e) { }
+        return msg;
+    }
+
+    public static String getString(ResourceBundle rb, String key)
+    {
+        if(rb == null)
+            return key;
+        try
+        {
+            return rb.getString(key);
+        }
+        catch(MissingResourceException e)
+        {
+            return key;
+        }
+    }
+
+    private static ResourceBundle ressourceBundle_;
+    private static ResourceBundle constantBundle_;
+}
