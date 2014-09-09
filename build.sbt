@@ -57,10 +57,9 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-email" % "1.3.2",
   "org.apache.shiro" % "shiro-all" % "1.2.0",
   "com.sksamuel.elastic4s" %% "elastic4s" % elastic4sV,
-  "com.typesafe.akka" %% "akka-quartz-scheduler" % s"1.2.0-akka-$akkaV",
   "com.sun.xml.messaging.saaj" % "saaj-impl" % "1.3.18"
 )
-//
+
 //fork := true
 
 seq(Revolver.settings: _*)

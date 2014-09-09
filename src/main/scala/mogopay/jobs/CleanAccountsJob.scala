@@ -1,14 +1,14 @@
 package mogopay.jobs
 
 import akka.actor.{Actor, ActorSystem, Props}
-import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import mogopay.config.HandlersConfig._
+import scala.concurrent.duration._
 
 object CleanAccountsJob {
   def start(system: ActorSystem) {
-    val scheduler = QuartzSchedulerExtension(system)
+    import system.dispatcher
     val job = system.actorOf(Props[CleanAccountsJob])
-    scheduler.schedule("CleanAccounts", job, "")
+    system.scheduler.schedule(0 second, 5 seconds, job, "")
   }
 }
 

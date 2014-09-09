@@ -1,18 +1,18 @@
 package mogopay.jobs
 
 import akka.actor.{Actor, ActorSystem, Props}
-import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import mogopay.config.HandlersConfig._
 import mogopay.config.{Environment, Settings}
+import scala.concurrent.duration._
 
 object ImportCountriesJob {
   def start(system: ActorSystem) {
-    val scheduler = QuartzSchedulerExtension(system)
+    import system.dispatcher
     val job = system.actorOf(Props[ImportCountriesJob])
-    scheduler.schedule("ImportCountries", job, "")
+    system.scheduler.schedule(0 second, 5 seconds, job, "")
   }
 }
 

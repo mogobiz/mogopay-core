@@ -20,6 +20,7 @@ The `exit`s are important because a bug eats all CPU when the import is run.
     export MOGOPAY_PROD="true"
 
 ### Jobs
-Specify the CRON expression in *src/main/resources/application.conf*, `akka.quartz.schedules`.
+The initial delay and the interval are passed to the `schedule()` method.  
+Example: `system.scheduler.schedule(0 second, 5 seconds, job, "")`.
 
 Start the jobs by passing an `ActorSystem` to `mogopay.jobs.*Job.start`.
