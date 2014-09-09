@@ -114,6 +114,8 @@ object Settings {
       val Username = config.getString("mail.smtp.username")
       val Password = config.getString("mail.smtp.password")
       val IsSSLEnabled = config.getBoolean("mail.smtp.ssl")
+      val IsSSLCheckServerIdentity = config.getBoolean("mail.smtp.checkserveridentity")
+      val IsStartTLSEnabled = config.getBoolean("mail.smtp.starttls")
     }
 
     val MaxAge = config.getLong("mail.confirmation.maxAge")

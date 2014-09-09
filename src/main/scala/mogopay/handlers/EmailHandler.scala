@@ -50,10 +50,13 @@ object EmailHandler {
 
       commonsMail.setHostName(Settings.Mail.Smtp.Host)
       commonsMail.setSmtpPort(Settings.Mail.Smtp.Port)
+      commonsMail.setSslSmtpPort(Settings.Mail.Smtp.Port.toString)
       commonsMail.setAuthenticator(new DefaultAuthenticator(
         Settings.Mail.Smtp.Username,
         Settings.Mail.Smtp.Password))
       commonsMail.setSSLOnConnect(Settings.Mail.Smtp.IsSSLEnabled)
+      commonsMail.setSSLCheckServerIdentity(Settings.Mail.Smtp.IsSSLCheckServerIdentity)
+      commonsMail.setStartTLSEnabled(Settings.Mail.Smtp.IsStartTLSEnabled)
 
       // Can't add these via fluent API because it produces exceptions
       mail.to foreach (commonsMail.addTo(_))
