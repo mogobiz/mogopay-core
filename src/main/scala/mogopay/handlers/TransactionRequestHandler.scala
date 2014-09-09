@@ -19,7 +19,7 @@ class TransactionRequestHandler {
     cal.add(Calendar.MILLISECOND, -1 * Settings.TransactionRequestDuration)
     val xMillisAgo = cal.getTime
 
-    val req = delete from Settings.DB.INDEX -> "TransactionRequest" where {
+    val req = delete from Settings.ElasticSearch.Index -> "TransactionRequest" where {
       range("dateCreated") from 0 to xMillisAgo.getTime
     }
     EsClient.client.execute(req)

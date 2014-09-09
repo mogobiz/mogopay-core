@@ -514,7 +514,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       complete {
         import com.sksamuel.elastic4s.ElasticDsl._
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
-          .from(Settings.DB.INDEX -> "Account")
+          .from(Settings.ElasticSearch.Index -> "Account")
           .where(regexQuery("email", "newuser"))
         scala.concurrent.Await.result(mogopay.es.EsClient.client.execute(req), Duration.Inf)
 

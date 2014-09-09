@@ -9,7 +9,7 @@ import mogopay.es.EsClient
 import mogopay.model.Mogopay.Rate
 
 class RateHandler {
-  def list = EsClient.searchAll[Rate](search in Settings.DB.INDEX -> "Rate")
+  def list = EsClient.searchAll[Rate](search in Settings.ElasticSearch.Index -> "Rate")
 
   def format(amount: Long, currency: String, country: String): Option[String] = {
     findByCurrencyCode(currency) map { rate =>
@@ -26,7 +26,7 @@ class RateHandler {
     import java.util.Calendar
     import org.elasticsearch.search.sort.SortOrder._
 
-    val req = search in Settings.DB.INDEX -> "Rate" filter {
+    val req = search in Settings.ElasticSearch.Index -> "Rate" filter {
       termFilter("currencyCode", currency)
     } query {
       range("activationDate") from 0 to Calendar.getInstance.getTime.getTime

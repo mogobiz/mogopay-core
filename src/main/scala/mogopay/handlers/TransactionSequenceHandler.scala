@@ -10,7 +10,7 @@ import scala.util._
 
 class TransactionSequenceHandler {
   def findByVendorId(uuid: String): Option[TransactionSequence] = {
-    val req = search in Settings.DB.INDEX -> "TransactionSequence" filter termFilter("vendorId" -> uuid)
+    val req = search in Settings.ElasticSearch.Index -> "TransactionSequence" filter termFilter("vendorId" -> uuid)
     EsClient.search[TransactionSequence](req)
   }
 

@@ -11,8 +11,8 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.search.SearchHit
 
 object EsClient {
-  val settings = ImmutableSettings.settingsBuilder().put("cluster.name", Settings.DB.ES_CLUSTER).build()
-  val client = ElasticClient.remote(settings, (Settings.DB.ES_HOST, Settings.DB.ES_PORT))
+  val settings = ImmutableSettings.settingsBuilder().put("cluster.name", Settings.ElasticSearch.Cluster).build()
+  val client = ElasticClient.remote(settings, (Settings.ElasticSearch.Host, Settings.ElasticSearch.Port))
 
   def apply() = {
     client.sync
@@ -29,7 +29,7 @@ object EsClient {
     t.dateCreated = now
     t.lastUpdated = now
     val json = JacksonConverter.serialize(t)
-    val res = client.client.prepareIndex(Settings.DB.INDEX, manifest[T].runtimeClass.getSimpleName, t.uuid)
+    val res = client.client.prepareIndex(Settings.ElasticSearch.Index, manifest[T].runtimeClass.getSimpleName, t.uuid)
       .setSource(json)
       .setRefresh(refresh)
       .execute()
@@ -38,20 +38,20 @@ object EsClient {
   }
 
   def load[T: Manifest](uuid: String): Option[T] = {
-    val req = get id uuid from Settings.DB.INDEX -> manifest[T].runtimeClass.getSimpleName
+    val req = get id uuid from Settings.ElasticSearch.Index -> manifest[T].runtimeClass.getSimpleName
     val res = client.sync.execute(req)
     if (res.isExists) Some(JacksonConverter.deserialize[T](res.getSourceAsString)) else None
   }
 
   def loadWithVersion[T: Manifest](uuid: String): Option[(T, Long)] = {
-    val req = get id uuid from Settings.DB.INDEX -> manifest[T].runtimeClass.getSimpleName
+    val req = get id uuid from Settings.ElasticSearch.Index -> manifest[T].runtimeClass.getSimpleName
     val res = client.sync.execute(req)
     val maybeT = if (res.isExists) Some(JacksonConverter.deserialize[T](res.getSourceAsString)) else None
     maybeT map ((_, res.getVersion))
   }
 
   def delete[T: Manifest](uuid: String, refresh: Boolean): Boolean = {
-    val req = com.sksamuel.elastic4s.ElasticDsl.delete id uuid from Settings.DB.INDEX -> manifest[T].runtimeClass.getSimpleName refresh refresh
+    val req = com.sksamuel.elastic4s.ElasticDsl.delete id uuid from Settings.ElasticSearch.Index -> manifest[T].runtimeClass.getSimpleName refresh refresh
     val res = client.sync.execute(req)
     res.isFound
   }
@@ -60,7 +60,7 @@ object EsClient {
     val now = Calendar.getInstance().getTime
     t.lastUpdated = now
     val js = JacksonConverter.serialize(t)
-    val req = com.sksamuel.elastic4s.ElasticDsl.update id t.uuid in Settings.DB.INDEX -> manifest[T].runtimeClass.getSimpleName refresh refresh doc new DocumentSource {
+    val req = com.sksamuel.elastic4s.ElasticDsl.update id t.uuid in Settings.ElasticSearch.Index -> manifest[T].runtimeClass.getSimpleName refresh refresh doc new DocumentSource {
       override def json: String = js
     }
     req.docAsUpsert(upsert)
@@ -72,7 +72,7 @@ object EsClient {
     val now = Calendar.getInstance().getTime
     t.lastUpdated = now
     val js = JacksonConverter.serialize(t)
-    val req = com.sksamuel.elastic4s.ElasticDsl.update id t.uuid in Settings.DB.INDEX -> manifest[T].runtimeClass.getSimpleName version version doc new DocumentSource {
+    val req = com.sksamuel.elastic4s.ElasticDsl.update id t.uuid in Settings.ElasticSearch.Index -> manifest[T].runtimeClass.getSimpleName version version doc new DocumentSource {
       override def json: String = js
     }
     val res = client.sync.execute(req)

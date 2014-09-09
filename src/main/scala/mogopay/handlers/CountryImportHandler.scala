@@ -10,7 +10,7 @@ import org.elasticsearch.index.query.TermQueryBuilder
 
 class CountryImportHandler {
   private def findCountryAdmin(code: String, level: Int): Option[CountryAdmin] = {
-    val req = search in Settings.DB.INDEX -> "CountryAdmin" filter {
+    val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter {
       and(
         termFilter("code", code),
         termFilter("level", level)
@@ -23,13 +23,13 @@ class CountryImportHandler {
     assert(countriesFile.exists(), s"${countriesFile.getAbsolutePath} does not exist.")
     assert(currenciesFile.exists(), s"${currenciesFile.getAbsolutePath} does not exist.")
 
-    val req = search in Settings.DB.INDEX -> "Country" aggs {
+    val req = search in Settings.ElasticSearch.Index -> "Country" aggs {
       aggregation max "agg" field "lastUpdated"
     }
     EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
       if (lastUpdated >= countriesFile.lastModified) {
         EsClient.client.client
-          .prepareDeleteByQuery(Settings.DB.INDEX)
+          .prepareDeleteByQuery(Settings.ElasticSearch.Index)
           .setQuery(new TermQueryBuilder("_type", "Country"))
           .execute
           .actionGet
@@ -196,7 +196,7 @@ class CountryImportHandler {
             }
           } else {
             val cityFullCode = s"$countryCode.$a1code.$a2code.$cityCode"
-            val findCityReq = search in Settings.DB.INDEX -> "CountryAdmin" filter {
+            val findCityReq = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter {
               and(
                 termFilter("code" -> cityFullCode),
                 termFilter("level" -> 3)
@@ -206,7 +206,7 @@ class CountryImportHandler {
 
             if (city.isEmpty) {
               val admin2Code = s"$countryCode.$a1code.$a2code"
-              val findAdmin2Req = search in Settings.DB.INDEX -> "CountryAdmin" filter {
+              val findAdmin2Req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter {
                 and(
                   termFilter("code" -> admin2Code),
                   termFilter("level" -> 2)
@@ -233,10 +233,10 @@ class CountryImportHandler {
 
 object Main extends App {
   println("Start...\n")
-  EsClient.client.client.prepareDeleteByQuery(Settings.DB.INDEX).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.DB.INDEX).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.DB.INDEX).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.DB.INDEX).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
 
   countryImportHandler.importCountries(Settings.Import.countriesFile, Settings.Import.currenciesFile)
   countryImportHandler.importAdmins1(Settings.Import.admins1File)

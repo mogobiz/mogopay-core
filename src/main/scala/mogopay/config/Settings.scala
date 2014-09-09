@@ -6,7 +6,7 @@ import java.io.File
 object Settings {
   private val config = ConfigFactory.load()
 
-  val environment = if (System.getenv.containsKey("MOGOPAY_PROD")) {
+  val environment = if (System.getenv.containsKey("PRODUCTION")) {
     Environment.PROD
   } else {
     Environment.DEV
@@ -92,10 +92,9 @@ object Settings {
   val ApnsTokenSize = config.getInt("notification.apns.token.size")
 
 
-  val ESDateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ"
 
   object ImportCountries {
-    val codes = Seq("FR", "GB", "SN")
+    val codes = config.getStringList("import.countries.list")
   }
 
   object clickatell {
@@ -107,17 +106,17 @@ object Settings {
     val sendFlashUrlPattern = "http://api.clickatell.com/http/sendmsg?session_id=%s&req_feat=544&to=%S&from=%s&msg_type=SMS_FLASH&text=%s"
   }
 
-  object Emailing {
+  object Mail {
 
-    object SMTP {
-      val Hostname = "localhost"
-      val Port = 25
-      val Username = ""
-      val Password = ""
-      val IsSSLEnabled = false
+    object Smtp {
+      val Host = config.getString("mail.smtp.host")
+      val Port = config.getInt("mail.smtp.port")
+      val Username = config.getString("mail.smtp.username")
+      val Password = config.getString("mail.smtp.password")
+      val IsSSLEnabled = config.getBoolean("mail.smtp.ssl")
     }
 
-    val MaxAge = 24 * 3600
+    val MaxAge = config.getLong("mail.confirmation.maxAge")
   }
 
   object RSA {
@@ -137,18 +136,18 @@ object Settings {
     }
   }
 
-  object DB {
-    val ES_HOST = "localhost"
-    val ES_HTTP_PORT = 9200
-    val ES_PORT = 9300
-    val INDEX = "mogopay"
-    val ES_CLUSTER = "elasticsearch"
-    val ES_FULL_URL = ES_HOST + ":" + ES_HTTP_PORT
+  object ElasticSearch {
+    val DateFormat = config.getString("elasticsearch.date.format")
+    val Host = config.getString("elasticsearch.host")
+    val HttpPort = config.getInt("elasticsearch.http.port")
+    val Port = config.getInt("elasticsearch.port")
+    val Index = config.getString("elasticsearch.index")
+    val Cluster = config.getString("elasticsearch.cluster")
+    val FullUrl = Host + ":" + HttpPort
   }
 
   object Import {
-    private def path(fileName: String) = s"/data/mogopay/import/countries/$fileName.txt"
-
+    private def path(fileName: String) = s"""${config.getString("import.countries.dir")}$fileName.txt"""
     lazy val currenciesFile = new File(path("currencies"))
     lazy val countriesFile = new File(path("countries"))
     lazy val admins1File = new File(path("admins1"))
@@ -186,8 +185,8 @@ object Settings {
   }
 
   object Systempay {
-    val Version = "V2"
-    val Url = "https://paiement.systempay.fr/vads-payment/"
+    val Version = config.getString("systempay.version")
+    val Url = config.getString("systempay.url")
   }
 
   object Sips {

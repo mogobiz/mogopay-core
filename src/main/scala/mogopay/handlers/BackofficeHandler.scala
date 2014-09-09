@@ -11,14 +11,14 @@ import org.elasticsearch.search.sort.SortOrder._
 
 class BackofficeHandler {
   def listCustomers(merchantId: String, page: Int, max: Int): Seq[Account] = {
-    val req = search in Settings.DB.INDEX -> "Account" filter {
+    val req = search in Settings.ElasticSearch.Index -> "Account" filter {
       termFilter("owner", merchantId)
     } start page * max limit max
     EsClient.searchAll[Account](req)
   }
 
   def listTransactionLogs(transactionId: String): Seq[BOTransactionLog] = {
-    val req = search in Settings.DB.INDEX -> "BOTransactionLog" filter {
+    val req = search in Settings.ElasticSearch.Index -> "BOTransactionLog" filter {
       termFilter("transaction", transactionId)
     } sort {
       by field "uuid" order ASC
@@ -32,13 +32,13 @@ class BackofficeHandler {
   def listTransactions(term: Either[String, String], startDate: Option[Long], endDate: Option[Long],
                        amount: Option[Int], transactionUuid: Option[String]): Seq[BOTransaction] = {
     def timestampToDate(timestamp: Long) =
-      new SimpleDateFormat(Settings.ESDateFormat).format(new Date(timestamp))
+      new SimpleDateFormat(Settings.ElasticSearch.DateFormat).format(new Date(timestamp))
 
     val filters = List(term.fold(termFilter("vendor.uuid", _), termFilter("email", _))) ++
       transactionUuid.map(uuid => termFilter("transactionUuid", uuid)) ++
       amount.map(x => termFilter("amount", x))
 
-    val req = search in Settings.DB.INDEX -> "BOTransaction" filter {
+    val req = search in Settings.ElasticSearch.Index -> "BOTransaction" filter {
       and(filters: _*)
     } query {
       range("creationDate") from startDate.map(timestampToDate).orNull to endDate.map(timestampToDate).orNull
@@ -50,7 +50,7 @@ class BackofficeHandler {
   }
 
   def getTransaction(uuid: String): Option[BOTransaction] =
-    EsClient.search[BOTransaction](search in Settings.DB.INDEX -> "BOTransaction" filter {
+    EsClient.search[BOTransaction](search in Settings.ElasticSearch.Index -> "BOTransaction" filter {
       termFilter("uuid", uuid)
     })
 }

@@ -24,7 +24,7 @@ import scala.concurrent.{Await, Future}
 
 class NotificationHandler {
   def register(device: Device): Boolean = {
-    val req = search in Settings.DB.INDEX -> "Device" filter {
+    val req = search in Settings.ElasticSearch.Index -> "Device" filter {
       and(
         termFilter("deviceUuid", device.deviceUuid),
         termFilter("storeCode", device.storeCode)
@@ -35,7 +35,7 @@ class NotificationHandler {
   }
 
   def unregister(storeCode: String, regId: String): Boolean = {
-    val req = search in Settings.DB.INDEX types "Device" filter {
+    val req = search in Settings.ElasticSearch.Index types "Device" filter {
       and(
         termFilter("regId", regId),
         termFilter("storeCode", storeCode)

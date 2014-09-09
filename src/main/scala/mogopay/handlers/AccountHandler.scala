@@ -49,7 +49,7 @@ class AccountHandler {
   def update(account: Account) = EsClient.update(account, true, false)
 
   def findByEmail(email: String): Option[Account] = {
-    val req = search in Settings.DB.INDEX types "Account" limit 1 from 0 filter {
+    val req = search in Settings.ElasticSearch.Index types "Account" limit 1 from 0 filter {
       termFilter("email", email)
     }
     EsClient.search[Account](req)
@@ -66,14 +66,14 @@ class AccountHandler {
 
   private def buildFindAccountRequest(email: String, merchantId: Option[String]): SearchDefinition = {
     if (!Settings.sharedCustomers && merchantId.nonEmpty) {
-      search in Settings.DB.INDEX -> "Account" limit 1 from 0 filter {
+      search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
         and(
           termFilter("email", email),
           termFilter("owner", merchantId.get)
         )
       }
     } else {
-      search in Settings.DB.INDEX types "Account" filter {
+      search in Settings.ElasticSearch.Index types "Account" filter {
         and(
           termFilter("email", email),
           missingFilter("owner") existence true includeNull true
@@ -98,14 +98,14 @@ class AccountHandler {
     val tryUserAccountRequest =
       if (isCustomer) {
         val merchantReq = if (merchantId.isDefined) {
-          search in Settings.DB.INDEX -> "Account" limit 1 from 0 filter {
+          search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
             and(
               termFilter("uuid", merchantId.get),
               missingFilter("owner") existence true includeNull true
             )
           }
         } else {
-          search in Settings.DB.INDEX -> "Account" limit 1 from 0 filter {
+          search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
             and(
               termFilter("email", Settings.AccountValidateMerchantDefault),
               missingFilter("owner") existence true includeNull true
@@ -122,7 +122,7 @@ class AccountHandler {
           if (merchant.status == AccountStatus.INACTIVE) {
             Failure(new InactiveMerchantException)
           } else {
-            Success(search in Settings.DB.INDEX -> "Account" limit 1 from 0 filter {
+            Success(search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
               and(
                 termFilter("email", lowerCaseEmail),
                 termFilter("owner", merchant.uuid)
@@ -131,7 +131,7 @@ class AccountHandler {
           }
         }
       } else {
-        Success(search in Settings.DB.INDEX -> "Account" limit 1 from 0 filter {
+        Success(search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
             missingFilter("owner") existence true includeNull true
@@ -259,7 +259,7 @@ class AccountHandler {
   }
 
   def findBySecret(secret: String): Option[Account] = {
-    val req = search in Settings.DB.INDEX -> "Account" filter termFilter("secret", secret)
+    val req = search in Settings.ElasticSearch.Index -> "Account" filter termFilter("secret", secret)
     EsClient.search[Account](req)
   }
 
@@ -514,7 +514,7 @@ class AccountHandler {
         } else {
           val signupDate = new org.joda.time.DateTime(timestamp).getMillis
           val currentDate = new org.joda.time.DateTime().getMillis
-          if (currentDate - signupDate > Settings.Emailing.MaxAge * 1000) {
+          if (currentDate - signupDate > Settings.Mail.MaxAge) {
             false
           } else {
             load(accountId).map { acc =>
@@ -559,7 +559,7 @@ class AccountHandler {
       } else {
         val signupDate = new org.joda.time.DateTime(timestamp).getMillis
         val currentDate = new org.joda.time.DateTime().getMillis
-        if (currentDate - signupDate > Settings.Emailing.MaxAge * 1000) {
+        if (currentDate - signupDate > Settings.Mail.MaxAge) {
           None
         } else {
           Some(session += "accountId" -> accountId)
@@ -1057,7 +1057,7 @@ class AccountHandler {
   }
 
   def recycle() {
-    val req = select in Settings.DB.INDEX -> "Account" query {
+    val req = select in Settings.ElasticSearch.Index -> "Account" query {
       term("status", AccountStatus.WAITING_ENROLLMENT)
       range("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.RecycleAccountDuration)
     } filter {
