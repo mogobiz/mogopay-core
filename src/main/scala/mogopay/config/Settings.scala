@@ -14,7 +14,6 @@ object Settings {
   val ServerListen = config.getString("spray.interface")
   val ServerPort = config.getInt("spray.port")
 
-
   val AccountValidateMerchantPhone = config.getBoolean("account.validate.merchantphone")
   val AccountValidateMerchantEmail = config.getBoolean("account.validate.merchantemail")
   val AccountValidateCustomerPhone = config.getBoolean("account.validate.customerphone")
@@ -195,6 +194,19 @@ object Settings {
   object Sips {
     val CertifDir = config.getString("sips.certif.dir")
     val PathFile = config.getString("sips.pathfile")
+  }
+
+  object Jobs {
+    object Interval {
+      val cleanTransactionRequests = config.getInt("jobs.cron.transactionrequest")
+      val cleanAccounts            = config.getInt("jobs.cron.recycleaccount")
+      val importCountries          = config.getInt("jobs.cron.importcountries")
+    }
+    object Delay {
+      val transactionRequest = config.getInt("jobs.delay.transactionrequest")
+      val recycleAccount     = config.getInt("jobs.delay.recycleaccount")
+      val importCountries    = config.getInt("jobs.delay.importcountries")
+    }
   }
 
   require(ApplicationSecret.nonEmpty, "application.secret must be non-empty")

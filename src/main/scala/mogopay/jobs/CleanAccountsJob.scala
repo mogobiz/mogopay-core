@@ -2,13 +2,18 @@ package mogopay.jobs
 
 import akka.actor.{Actor, ActorSystem, Props}
 import mogopay.config.HandlersConfig._
+import mogopay.config.Settings
 import scala.concurrent.duration._
 
 object CleanAccountsJob {
   def start(system: ActorSystem) {
     import system.dispatcher
-    val job = system.actorOf(Props[CleanAccountsJob])
-    system.scheduler.schedule(0 second, 5 seconds, job, "")
+    system.scheduler.schedule(
+      initialDelay = Settings.Jobs.Delay.recycleAccount seconds,
+      interval     = Settings.Jobs.Interval.cleanAccounts seconds,
+      receiver     = system.actorOf(Props[CleanAccountsJob]),
+      message      = ""
+    )
   }
 }
 

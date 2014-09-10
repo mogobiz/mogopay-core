@@ -20,7 +20,6 @@ The `exit`s are important because a bug eats all CPU when the import is run.
     export MOGOPAY_PROD="true"
 
 ### Jobs
-The initial delay and the interval are passed to the `schedule()` method.  
-Example: `system.scheduler.schedule(0 second, 5 seconds, job, "")`.
+Set the initial delay and interval for each job in the `jobs.cron.` section of *application.conf*.
 
 Start the jobs by passing an `ActorSystem` to `mogopay.jobs.*Job.start`.

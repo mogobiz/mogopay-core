@@ -11,8 +11,11 @@ import scala.concurrent.duration._
 object ImportCountriesJob {
   def start(system: ActorSystem) {
     import system.dispatcher
-    val job = system.actorOf(Props[ImportCountriesJob])
-    system.scheduler.schedule(0 second, 5 seconds, job, "")
+    system.scheduler.schedule(
+      initialDelay = Settings.Jobs.Delay.importCountries seconds,
+      interval     = Settings.Jobs.Interval.importCountries seconds,
+      receiver     = system.actorOf(Props[ImportCountriesJob]),
+      message      = "")
   }
 }
 
