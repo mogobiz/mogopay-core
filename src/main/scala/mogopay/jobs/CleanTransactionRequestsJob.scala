@@ -8,11 +8,14 @@ import scala.concurrent.duration._
 object CleanTransactionRequestsJob {
   def start(system: ActorSystem) {
     import system.dispatcher
-    system.scheduler.schedule(
-      initialDelay = Settings.Jobs.Delay.transactionRequest seconds,
-      interval     = Settings.Jobs.Interval.cleanTransactionRequests seconds,
-      receiver     = system.actorOf(Props[CleanTransactionRequestsJob]),
-      message      = "")
+
+    if (Settings.Jobs.Interval.cleanTransactionRequests > 0) {
+      system.scheduler.schedule(
+        initialDelay = Settings.Jobs.Delay.cleanTransactionRequests seconds,
+        interval = Settings.Jobs.Interval.cleanTransactionRequests seconds,
+        receiver = system.actorOf(Props[CleanTransactionRequestsJob]),
+        message = "")
+    }
   }
 }
 

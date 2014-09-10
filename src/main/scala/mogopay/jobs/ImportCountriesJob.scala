@@ -11,11 +11,14 @@ import scala.concurrent.duration._
 object ImportCountriesJob {
   def start(system: ActorSystem) {
     import system.dispatcher
-    system.scheduler.schedule(
-      initialDelay = Settings.Jobs.Delay.importCountries seconds,
-      interval     = Settings.Jobs.Interval.importCountries seconds,
-      receiver     = system.actorOf(Props[ImportCountriesJob]),
-      message      = "")
+
+    if (Settings.Jobs.Interval.importCountries > 0) {
+      system.scheduler.schedule(
+        initialDelay = Settings.Jobs.Delay.importCountries seconds,
+        interval     = Settings.Jobs.Interval.importCountries seconds,
+        receiver     = system.actorOf(Props[ImportCountriesJob]),
+        message      = "")
+    }
   }
 }
 
@@ -26,6 +29,8 @@ object ImportCountriesJob {
 class ImportCountriesJob extends Actor {
   def receive = {
     case _ =>
+      println("ImportCountriesJob: start.")
+
       val currencies = Settings.Import.currenciesFile
       val countries = Settings.Import.countriesFile
       val admins1 = Settings.Import.admins1File
@@ -45,5 +50,11 @@ class ImportCountriesJob extends Actor {
         admins1.renameTo(new File(admins1.getAbsolutePath + "." + now))
         admins2.renameTo(new File(admins2.getAbsolutePath + "." + now))
       }
+
+    println("ImportCountriesJob: done.")
   }
+}
+
+object RunImportCountriesJob extends App {
+  ImportCountriesJob.start(ActorSystem())
 }

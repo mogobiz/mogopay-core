@@ -1,18 +1,15 @@
 ### Setup the database
 Make sure Elasticsearch is started.
 
-    sbt
-    console
+    sbt console
     mogopay.handlers.BootHandler.boot(true, true)
-    exit
     exit
 
 This will initialize the database and import the fixtures.
 
-The `exit`s are important because a bug eats all CPU when the import is run.
-
 ### Start the server
 
+    sbt
     re-start
 
 ### Production mode
@@ -20,6 +17,13 @@ The `exit`s are important because a bug eats all CPU when the import is run.
     export MOGOPAY_PROD="true"
 
 ### Jobs
+#### Configuration
 Set the initial delay and interval for each job in the `jobs.cron.` section of *application.conf*.
 
-Start the jobs by passing an `ActorSystem` to `mogopay.jobs.*Job.start`.
+#### Launching ImportCountriesJob
+
+    sbt
+    run-main mogopay.jobs.RunImportCountriesJob
+
+#### Starting a job manually
+Start the job *XXX* by passing an `ActorSystem` to `mogopay.jobs.XXXJob.start`.

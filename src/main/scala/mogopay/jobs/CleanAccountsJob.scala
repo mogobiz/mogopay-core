@@ -8,12 +8,15 @@ import scala.concurrent.duration._
 object CleanAccountsJob {
   def start(system: ActorSystem) {
     import system.dispatcher
-    system.scheduler.schedule(
-      initialDelay = Settings.Jobs.Delay.recycleAccount seconds,
-      interval     = Settings.Jobs.Interval.cleanAccounts seconds,
-      receiver     = system.actorOf(Props[CleanAccountsJob]),
-      message      = ""
-    )
+
+    if (Settings.Jobs.Interval.cleanAccounts > 0) {
+      system.scheduler.schedule(
+        initialDelay = Settings.Jobs.Delay.cleanAccounts seconds,
+        interval     = Settings.Jobs.Interval.cleanAccounts seconds,
+        receiver     = system.actorOf(Props[CleanAccountsJob]),
+        message      = ""
+      )
+    }
   }
 }
 

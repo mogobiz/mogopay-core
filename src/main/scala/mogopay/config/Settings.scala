@@ -93,7 +93,7 @@ object Settings {
 
 
   object ImportCountries {
-    val codes = config.getStringList("import.countries.list")
+    val codes = config.getStringList("import.countries.codes")
   }
 
   object clickatell {
@@ -203,9 +203,9 @@ object Settings {
       val importCountries          = config.getInt("jobs.cron.importcountries")
     }
     object Delay {
-      val transactionRequest = config.getInt("jobs.delay.transactionrequest")
-      val recycleAccount     = config.getInt("jobs.delay.recycleaccount")
-      val importCountries    = config.getInt("jobs.delay.importcountries")
+      val cleanTransactionRequests = config.getInt("jobs.delay.transactionrequest")
+      val cleanAccounts              = config.getInt("jobs.delay.recycleaccount")
+      val importCountries            = config.getInt("jobs.delay.importcountries")
     }
   }
 
