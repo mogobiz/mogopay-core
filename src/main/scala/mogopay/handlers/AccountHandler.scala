@@ -757,7 +757,6 @@ class AccountHandler {
 
       val paymentConfig = account.paymentConfig
       val paypalParam = paymentConfig.map(_.paypalParam).flatten
-      val buysterParam = paymentConfig.map(_.buysterParam).flatten
       val kwixoParam = paymentConfig.map(_.kwixoParam).flatten
 
       val basePaymentProviderParam: Option[Map[String, String]] = paymentConfig.map(_.cbParam).flatten
@@ -782,7 +781,6 @@ class AccountHandler {
         'countries -> countries,
         'cbParam -> cbParam,
         'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
-        'buysterParam -> buysterParam.map(JSON.parseFull).flatten,
         'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
         'emailField -> paymentConfig.map(_.emailField),
         'passwordField -> paymentConfig.map(_.passwordField),
@@ -829,7 +827,6 @@ class AccountHandler {
       try {
         val paymentConfig: PaymentConfig = PaymentConfig(
           kwixoParam = Some(compact(render(profile.kwixoParam))),
-          buysterParam = Some(compact(render(profile.buysterParam))),
           paypalParam = Some(compact(render(profile.paypalParam))),
           cbParam = null,
           cbProvider = null,
@@ -1069,7 +1066,6 @@ class AccountHandler {
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           kwixoParam  = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          buysterParam = None,
           cbParam  = Some(write(cbParam)),
           pwdEmailContent = profile.passwordContent,
           pwdEmailSubject = profile.passwordSubject,

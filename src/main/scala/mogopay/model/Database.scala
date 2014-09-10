@@ -20,7 +20,6 @@ object Mogopay {
     val NONE = Value("NONE")
     val CREDIT_CARD = Value("CREDIT_CARD")
     val PAYPAL = Value("PAYPAL")
-    val BUYSTER = Value("BUYSTER")
   }
 
   class PaymentTypeRef extends TypeReference[PaymentType.type]
@@ -219,7 +218,6 @@ object Mogopay {
                          var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class PaymentConfig(kwixoParam: Option[String],
-                           buysterParam: Option[String],
                            paypalParam: Option[String],
                            cbParam: Option[String],
                            sipsData: Option[String] = None,

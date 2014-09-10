@@ -42,7 +42,6 @@ object BootHandler {
     val PAYBOX_3 = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "200932363", "payboxContract" -> "PAYBOX_DIRECT")
     val PAYBOX_4 = Map("payboxSite" -> "1999888", "payboxKey" -> "107975626", "payboxRank" -> "43", "payboxContract" -> "PAYBOX_SYSTEM")
     val SYS_PAY = Map("systempayShopId" -> "34889127", "systempayContractNumber" -> "5028717", "systempayCertificate" -> "7736291283331938")
-    val BUYSTER = Map("merchantId" -> "152511353322761", "merchantPassword" -> "partenaire801234", "merchantSignature" -> "yB1Kz44lLtNAfpe3UOIH3ktaU-3wF6YvrbN9OlWKi_CBCaWzZulVp4W1bwirScA0")
 
     val customer = RoleName.CUSTOMER
     val merchant = RoleName.MERCHANT
@@ -81,7 +80,7 @@ object BootHandler {
     val merchantAccountAddress11 = createAddress("Rue Saint Michel11", "Paris", "75007", "France")
     val merchantAccountAddress12 = createAddress("Rue Saint Michel12", "Paris", "75007", "France")
 
-    val paymentConfig1 = createPaymentConfig(CBPaymentProvider.PAYLINE, BUYSTER,
+    val paymentConfig1 = createPaymentConfig(CBPaymentProvider.PAYLINE,
       PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
     var merchantAccountInfo = createAccount("Mogopay", "Merchant",
       "mogopay@merchant.com", merchantTelephone, merchantAccountAddress,
@@ -99,40 +98,40 @@ object BootHandler {
     createBOTransaction(merchantAccountInfo)
     createBOTransaction(merchantAccountInfo)
 
-    val sipsPaymentConfig = createPaymentConfig(CBPaymentProvider.SIPS, BUYSTER, PAYPAL, NOT_USED, SIPS, CBPaymentMethod.THREEDS_NO)
+    val sipsPaymentConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, NOT_USED, SIPS, CBPaymentMethod.THREEDS_NO)
     val merchantAccountInfo2 = createAccount("Merchant2", "TEST", "seller2@merchant.com", merchantTelephone2, merchantAccountAddress2, merchant, Some(sipsPaymentConfig), None)
     createCertification(merchantAccountInfo2)
 
-    val sipsPaymentConfig12 = createPaymentConfig(CBPaymentProvider.SIPS, BUYSTER, PAYPAL, NOT_USED, SIPS, CBPaymentMethod.THREEDS_REQUIRED)
+    val sipsPaymentConfig12 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, NOT_USED, SIPS, CBPaymentMethod.THREEDS_REQUIRED)
     val merchantAccountInfo12 = createAccount("Merchant12", "TEST", "seller12@merchant.com", merchantTelephone12, merchantAccountAddress12, merchant, Some(sipsPaymentConfig12), None)
     createCertification(merchantAccountInfo12)
 
-    val paymentConfig2 = createPaymentConfig(CBPaymentProvider.SIPS, BUYSTER, PAYPAL, NOT_USED, SIPS_2, CBPaymentMethod.EXTERNAL)
+    val paymentConfig2 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, NOT_USED, SIPS_2, CBPaymentMethod.EXTERNAL)
     merchantAccountInfo = createAccount("Merchant10", "TEST", "seller10@merchant.com", merchantTelephone10, merchantAccountAddress10, merchant, Some(paymentConfig2), None)
     createParcom(merchantAccountInfo)
 
-    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, BUYSTER, PAYPAL, NOT_USED, PAYBOX, CBPaymentMethod.EXTERNAL)
+    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX, CBPaymentMethod.EXTERNAL)
     createAccount("Merchant3", "TEST", "seller3@merchant.com", merchantTelephone3, merchantAccountAddress3, merchant, Some(payboxPaymentConfig), None)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, BUYSTER, PAYPAL, NOT_USED, PAYBOX_2, CBPaymentMethod.THREEDS_NO)
+    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_2, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant4", "TEST", "seller4@merchant.com", merchantTelephone4, merchantAccountAddress4, merchant, Some(payboxPaymentConfig), None)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, BUYSTER, PAYPAL, NOT_USED, PAYBOX_3, CBPaymentMethod.THREEDS_REQUIRED)
+    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_3, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant11", "TEST", "seller11@merchant.com", merchantTelephone11, merchantAccountAddress11, merchant, Some(payboxPaymentConfig), None)
 
-    val paymentConfig3 = createPaymentConfig(CBPaymentProvider.PAYLINE, BUYSTER, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_NO)
+    val paymentConfig3 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant5", "TEST", "seller5@merchant.com", merchantTelephone5, merchantAccountAddress5, merchant, Some(paymentConfig3), None)
 
-    val paymentConfig4 = createPaymentConfig(CBPaymentProvider.PAYLINE, BUYSTER, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
+    val paymentConfig4 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant6", "TEST", "seller6@merchant.com", merchantTelephone6, merchantAccountAddress6, merchant, Some(paymentConfig4), None)
 
-    val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, BUYSTER, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.EXTERNAL)
+    val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.EXTERNAL)
     createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com")
 
-    val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, BUYSTER, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.THREEDS_NO)
+    val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant8", "TEST", "seller8@merchant.com", merchantTelephone8, merchantAccountAddress8, merchant, Some(paymentConfig6), None, AccountStatus.ACTIVE, "seller8@merchant.com", "seller8")
 
-    val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, BUYSTER, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
+    val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "seller9")
 
     val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
@@ -150,7 +149,6 @@ object BootHandler {
   type M = Map[String, String]
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
-                                  buysterConfig: M,
                                   paypalConfig: M,
                                   kwixoConfig: M,
                                   cbConfig: M,
@@ -159,7 +157,6 @@ object BootHandler {
                                   passwordPattern: Option[String] = Some("")) = {
     PaymentConfig(
       Some(JSONObject(kwixoConfig).toString()),
-      Some(JSONObject(buysterConfig).toString()),
       Some(JSONObject(paypalConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
       None,
