@@ -100,6 +100,10 @@ object AccountActor {
   case class MerchantComSecret(seller: String)
 
   case class Enroll(accountId: String, lPhone: String, pinCode: String)
+  case class Signup(email: String, password: String, password2: String,
+                    lphone: String, civility: String, firstName: String,
+                    lastName: String, birthDate: String, address: AccountAddress,
+                    isMerchant: Boolean, vendor: Option[String])
 
   case class UpdateProfile(id: String, password: Option[(String, String)],
                            company: String, website: String, lphone: String, civility: String,
@@ -107,16 +111,20 @@ object AccountActor {
                            billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
                            passwordSubject: Option[String], passwordContent: Option[String],
                            passwordPattern: Option[String], callbackPrefix: Option[String],
-                           paymentMethod: String, cbProvider: String, cbParam: CBParam, payPalParam: PayPalParam, kwixoParam: KwixoParam)
-  case class CBParam(payline: Map[String, Option[String]], paybox: Map[String, Option[String]],
-                     sips: Map[String, Option[String]], systempay: Map[String, Option[String]])
-  case class PayPalParam(paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String])
-  case class KwixoParam(kwixoParams: Option[String])
-  case class Signup(email: String, password: String, password2: String,
-                    lphone: String, civility: String, firstName: String,
-                    lastName: String, birthDate: String, address: AccountAddress,
-                    isMerchant: Boolean, vendor: Option[String])
-
+                           paymentMethod: String, cbProvider: String, cbParam: CBParams,
+                           payPalParam: PayPalParam, kwixoParam: KwixoParam)
+  sealed trait CBParams
+  case class NoCBParams() extends CBParams
+  case class PayPalParam(paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String]) extends CBParams
+  case class KwixoParam(kwixoParams: Option[String]) extends CBParams
+  case class PaylineParams(paylineAccount: String, paylineKey: String, paylineContract: String,
+                           paylineCustomPaymentPageCode: String, paylineCustomPaymentTemplateURL: String) extends CBParams
+  case class PayboxParams(payboxSite: String,payboxKey: String, payboxRank: String, payboxMerchantId: String) extends CBParams
+  case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
+                        sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
+                        sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
+                        sipsMerchantLogoPath: String) extends CBParams
+  case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 }
 
 class AccountActor extends Actor {

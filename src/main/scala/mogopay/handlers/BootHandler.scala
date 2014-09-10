@@ -162,6 +162,7 @@ object BootHandler {
       Some(JSONObject(buysterConfig).toString()),
       Some(JSONObject(paypalConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
+      None,
       cbProvider,
       cbMethod,
       "user_email", "user_password",

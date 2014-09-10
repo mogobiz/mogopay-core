@@ -30,6 +30,7 @@ import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.index.query.TermQueryBuilder
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization.write
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -762,7 +763,7 @@ class AccountHandler {
       val basePaymentProviderParam: Option[Map[String, String]] = paymentConfig.map(_.cbParam).flatten
         .map(JSON.parseFull).flatten
         .map(_.asInstanceOf[Map[String, String]])
-      val paymentProviderParam = basePaymentProviderParam.map {
+      val cbParam = basePaymentProviderParam.map {
         ppp =>
           val dir = new File(Settings.Sips.CertifDir, account.uuid)
           dir.mkdirs
@@ -779,7 +780,7 @@ class AccountHandler {
       Map('account -> account.copy(password = ""),
         'cards -> cards,
         'countries -> countries,
-        'paymentProviderParam -> paymentProviderParam,
+        'cbParam -> cbParam,
         'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
         'buysterParam -> buysterParam.map(JSON.parseFull).flatten,
         'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
@@ -1028,28 +1029,53 @@ class AccountHandler {
           else Success(new Sha256Hash(p1).toHex)
         } getOrElse Success(account.password)
 
-        val cbParam = CBPaymentProvider.withName(profile.cbProvider) match {
-          case CBPaymentProvider.PAYBOX    => profile.cbParam.paybox
-          case CBPaymentProvider.PAYLINE   => profile.cbParam.payline
-          case CBPaymentProvider.SIPS      => profile.cbParam.sips
-          case CBPaymentProvider.SYSTEMPAY => profile.cbParam.systempay
+        val cbParam: CBParams = CBPaymentProvider.withName(profile.cbProvider) match {
+          case CBPaymentProvider.PAYBOX    => profile.cbParam.asInstanceOf[PayboxParams]
+          case CBPaymentProvider.PAYLINE   => profile.cbParam.asInstanceOf[PaylineParams]
+          case CBPaymentProvider.SIPS      => profile.cbParam.asInstanceOf[SIPSParams]
+          case CBPaymentProvider.SYSTEMPAY => profile.cbParam.asInstanceOf[SystempayParams]
         }
 
-        import org.json4s.native.Serialization.write
+        val oldSIPSParams: Map[String, Map[String, Option[String]]] = account.paymentConfig.map(_.sipsData).flatten
+          .map { data => parse(StringInput(data)).extract[Map[String, Map[String, Option[String]]]] }
+          .getOrElse(Map())
+
+        val newSIPSParams = if (CBPaymentProvider.withName(profile.cbProvider) != CBPaymentProvider.SIPS) {
+          Map()
+        } else {
+          val params = cbParam.asInstanceOf[SIPSParams]
+
+          val certificate = if (params.sipsMerchantCertificateFileName == None || params.sipsMerchantCertificateFileName == Some("") ||
+            params.sipsMerchantCertificateFileContent == None || params.sipsMerchantCertificateFileContent == Some("")) {
+            oldSIPSParams.getOrElse("certificate", Map())
+          } else {
+            Map("sipsCetificateFileName" -> params.sipsMerchantCertificateFileName,
+              "sipsCetificateFileContent" -> params.sipsMerchantCertificateFileContent)
+          }
+
+          val parcom = if (params.sipsMerchantParcomFileName == None || params.sipsMerchantParcomFileName == Some("") ||
+            params.sipsMerchantParcomFileContent == None || params.sipsMerchantParcomFileContent == Some("")) {
+            oldSIPSParams.getOrElse("parcom", Map())
+          } else {
+            Map("sipsParcomFileName" -> params.sipsMerchantParcomFileName,
+              "sipsParcomFileContent" -> params.sipsMerchantParcomFileContent)
+          }
+
+          Map("certificate" -> certificate, "parcom" -> parcom)
+        }
 
         val paymentConfig = PaymentConfig(
-          cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
-          kwixoParam  = Some(write(caseClassToMap(profile.kwixoParam))),
+          cbProvider = CBPaymentProvider.withName(profile.cbProvider),
+          kwixoParam  = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
           buysterParam = None,
           cbParam  = Some(write(cbParam)),
           pwdEmailContent = profile.passwordContent,
           pwdEmailSubject = profile.passwordSubject,
           callbackPrefix = profile.callbackPrefix,
-          passwordPattern = profile.passwordPattern)
-
-        // handle sips files
+          passwordPattern = profile.passwordPattern,
+          sipsData = Some(write(newSIPSParams)))
 
         (for {
           c <- civility

@@ -566,7 +566,9 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               'paymentMethod :: 'cbProvider ::
               ('paylineAccount?) :: ('paylineKey?) :: ('paylineContract?) :: ('paylineCustomPaymentPageCode?) :: ('paylineCustomPaymentTemplateURL?) ::
               ('payboxSite?) :: ('payboxKey?) :: ('payboxRank?) :: ('payboxMerchantId?) ::
-              ('sipsMerchantId?) :: ('sipsMerchantCountry?) :: ('sipsMerchantCertificateFile.?.as[Option[Byte]]) :: ('sipsMerchantParcomFile.?.as[Option[Byte]]) :: ('sipsMerchantLogoPath?) ::
+              ('sipsMerchantId?) :: ('sipsMerchantCountry?) :: ('sipsMerchantCertificateFileName.?.as[Option[String]]) ::
+              ('sipsMerchantCertificateFileContent.?.as[Option[String]]) :: ('sipsMerchantParcomFileName.?.as[Option[String]]) ::
+              ('sipsMerchantParcomFileContent.?.as[Option[String]]) :: ('sipsMerchantLogoPath?) ::
               ('systempayShopId?) :: ('systempayContractNumber?) :: ('systempayCertificate?) ::
               ('passwordSubject?) :: ('passwordContent?) :: ('passwordPattern?) :: ('callbackPrefix?) ::
               ('paypalUser?) :: ('paypalPassword?) :: ('paypalSignature?) :: ('kwixoParams?) :: HNil)
@@ -576,7 +578,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                       paymentMethod :: cbProvider ::
                       paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode :: paylineCustomPaymentTemplateURL ::
                       payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
-                      sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFile :: sipsMerchantParcomFile :: sipsMerchantLogoPath ::
+                      sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
+                      sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
                       systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
                       passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
                       kwixoParams :: HNil =>
@@ -594,6 +597,21 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 admin1 = Some(admin1),
                 admin2 = Some(admin2)
               )
+
+              // error handling for invalid cbProvider
+              // error handling for invalid paymentMethod
+
+              // error handling if a param isn't passed
+              val cbParam: CBParams = CBPaymentProvider.withName(cbProvider) match {
+                case CBPaymentProvider.NONE => NoCBParams()
+                case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
+                  paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
+                case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxMerchantId.get)
+                case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
+                  sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
+                  sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
+                case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
+              }
 
               val profile = UpdateProfile(
                 id = accountId,
@@ -620,33 +638,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                   paypalSignature = paypalSignature
                 ),
                 kwixoParam = KwixoParam(kwixoParams),
-                cbParam = CBParam(
-                  payline = Map(
-                    "paylineAccount"  -> paylineAccount,
-                    "paylineKey"      -> paylineKey,
-                    "paylineContract" -> paylineContract,
-                    "paylineCustomPaymentPageCode"    -> paylineCustomPaymentPageCode,
-                    "paylineCustomPaymentTemplateURL" -> paylineCustomPaymentTemplateURL
-                  ),
-                  paybox = Map(
-                    "payboxSite" -> payboxSite,
-                    "payboxKey"  -> payboxKey,
-                    "payboxRank" -> payboxRank,
-                    "payboxMerchantId" -> payboxMerchantId
-                  ),
-                  sips = Map(
-                    "sipsMerchantId"              -> sipsMerchantId,
-                    "sipsMerchantCountry"         -> sipsMerchantCountry,
-                    //                  "sipsMerchantCertificateFile" -> new String(sipsMerchantCertificateFile),
-                    //                  "sipsMerchantParcomFile"      -> new String(sipsMerchantParcomFile),
-                    "sipsMerchantLogoPath"        -> sipsMerchantLogoPath
-                  ),
-                  systempay = Map(
-                    "systempayShopId"         -> systempayShopId,
-                    "systempayContractNumber" -> systempayContractNumber,
-                    "systempayCertificate"    -> systempayCertificate
-                  )
-                )
+                cbParam = cbParam
               )
 
               import mogopay.config.Implicits._

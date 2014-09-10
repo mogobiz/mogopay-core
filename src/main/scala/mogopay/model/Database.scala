@@ -222,6 +222,7 @@ object Mogopay {
                            buysterParam: Option[String],
                            paypalParam: Option[String],
                            cbParam: Option[String],
+                           sipsData: Option[String] = None,
                            @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
                            @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod,
                            emailField: String = "user_email",
