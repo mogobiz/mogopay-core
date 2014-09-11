@@ -51,6 +51,9 @@ class TransactionHandler {
 
           EsClient.index(txRequest)
 
+
+
+
           Success(txReqUUID)
         }
       }).getOrElse(Failure(new AccountDoesNotExistError))
@@ -502,7 +505,7 @@ class TransactionHandler {
     cc_type = card_type
     cc_month = card_month
     cc_year = card_year
-    cc_num = card_number.replaceAll(" ", "")
+    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else card_number
 
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL

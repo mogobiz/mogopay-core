@@ -36,7 +36,9 @@ import scala.concurrent.duration._
 
 import scala.util._
 
-class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
+class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslConfiguration {
+  PaymentHandler.register(handlerName, this)
+
   implicit val timeout: Timeout = 30.seconds
 
   def verifySha1(data: String, sign: String, pemdata: String): Boolean = {

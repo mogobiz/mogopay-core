@@ -24,11 +24,11 @@ object HandlersConfig {
   val transactionSequenceHandler = new TransactionSequenceHandler
 
   val kialaShippingHandler = new KialaShippingHandler
-  val systempayHandler = new SystempayHandler
-  val sipsHandler = new SipsHandler
-  val payPalHandler = new PayPalHandler
-  val paylineHandler = new PaylineHandler
-  val mogopayHandler = new MogopayHandler
+  val systempayHandler = new SystempayHandler("systempay")
+  val sipsHandler = new SipsHandler("sips")
+  val payPalHandler = new PayPalHandler("paypal")
+  val paylineHandler = new PaylineHandler("payline")
+  val mogopayHandler = new MogopayHandler("mogopay")
   val userHandler = new UserHandler
-  val payboxHandler = new PayboxHandler
+  val payboxHandler = new PayboxHandler("paybox")
 }

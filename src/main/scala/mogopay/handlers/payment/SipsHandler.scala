@@ -57,7 +57,8 @@ import scala.util._
 /**
  * @see com.ebiznext.mogopay.payment.ISipsPaymentService
  */
-class SipsHandler extends PaymentHandler {
+class SipsHandler(handlerName:String) extends PaymentHandler {
+  PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {
   }
 

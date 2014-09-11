@@ -338,7 +338,8 @@ class SystempayClient {
   }
 }
 
-class SystempayHandler extends PaymentHandler {
+class SystempayHandler (handlerName:String) extends PaymentHandler {
+  PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {}
   val systempayClient = new SystempayClient
 

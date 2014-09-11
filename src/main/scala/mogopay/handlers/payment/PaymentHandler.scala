@@ -7,7 +7,10 @@ import mogopay.config.Implicits._
 import spray.http.Uri
 import spray.http.Uri.{Authority, Path, Query}
 
-class PaymentHandler {
+import scala.collection.mutable
+import scala.util.Try
+
+trait PaymentHandler {
   /**
    * Returns the redirection page's URL
    */
@@ -30,5 +33,17 @@ class PaymentHandler {
     sessionData.finished = true
     val redirectTo = if (success) successURL else errorURL
     Uri(redirectTo).withQuery(query)
+  }
+
+  def startPayment(sessionData: SessionData): Try[Either[String, Uri]]
+  }
+
+object PaymentHandler {
+  private val handlers = mutable.Map[String, PaymentHandler]()
+  def register(handler:(String, PaymentHandler)): Unit = {
+    handlers.put(handler._1, handler._2)
+  }
+  def apply(handlerName:String): PaymentHandler = {
+    handlers(handlerName)
   }
 }

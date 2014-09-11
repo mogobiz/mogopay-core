@@ -166,7 +166,7 @@ object Settings {
     val PaymentMode = config.getString("payline.paymentMode")
     val LanguageCode = config.getString("payline.languageCode")
     val SecurityMode = config.getString("payline.securityMode")
-    val Version = config.getString("payline.xversion")
+    val Version = config.getString("payline.version")
     val DirectEndPoint = config.getString("payline.directendpoint")
     val WebEndPoint = config.getString("payline.webendpoint")
   }
@@ -174,7 +174,7 @@ object Settings {
   object PayPal {
     val UrlExpresschout = config.getString("paypal.urlExpresschout")
     val UrlNvpApi = config.getString("paypal.urlNvpApi")
-    val Version = config.getString("paypal.xversion")
+    val Version = config.getString("paypal.version")
   }
 
   object Paybox {

@@ -178,8 +178,14 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
           session {
             session =>
               import mogopay.config.Implicits._
-              if (!session.sessionData.authenticated)
+              def isNewSession() : Boolean = {
+                val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
+                val incomingTrans = submitParams.transactionUUID.getOrElse("__INCOMING_UNDEFINED__")
+                sessionTrans == incomingTrans
+              }
+              if (!session.sessionData.authenticated || isNewSession())
                 session.clear()
+
               val r = (actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]
               onComplete(r) {
                 case Failure(e) => complete(StatusCodes.InternalServerError)
@@ -198,7 +204,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                             IO(Http) ? Http.HostConnectorSetup(Settings.ServerListen, Settings.ServerPort)
 
                           ) yield sendReceive(connector)
-                        println(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
+                        println(s"request ->${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val response = pipeline.flatMap(_(request))
                         onComplete(response) {
@@ -209,7 +215,6 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                             }
                           case Success(response) =>
                             println("success->" + response.entity.data.asString)
-                            if (session.sessionData.finished) killSession(session)
                             complete {
                               response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
                             }

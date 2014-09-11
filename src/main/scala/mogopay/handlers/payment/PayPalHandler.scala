@@ -26,7 +26,8 @@ import spray.http._
 import spray.client.pipelining._
 
 
-class PayPalHandler extends PaymentHandler {
+class PayPalHandler(handlerName:String) extends PaymentHandler {
+  PaymentHandler.register(handlerName, this)
   implicit val system = ActorSystem()
 
   import system.dispatcher
@@ -40,7 +41,7 @@ class PayPalHandler extends PaymentHandler {
   /**
    * Return (Session, URL to redirect to)
    */
-  def startPayment(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
     val paymentRequest = sessionData.paymentRequest.get
     val vendorId = sessionData.vendorId.get
     val successURL = Settings.MogopayEndPoint + "paypal/success"
@@ -56,7 +57,7 @@ class PayPalHandler extends PaymentHandler {
           Failure(new MogopayError(MogopayConstant.PaypalTokenError))
         } else {
           sessionData.token = token
-          Success(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token.get)))
+          Success(Right(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token.get))))
         }
     }
   }
@@ -72,6 +73,7 @@ class PayPalHandler extends PaymentHandler {
       val password: String = parameters.getOrElse("paypalPassword", "")
       val signature: String = parameters.getOrElse("paypalSignature", "")
 
+      val amount2 = amount.toDouble /100.0
       val query = Query(
         "METHOD" -> "SetExpressCheckout",
         "USER" -> user,
@@ -79,7 +81,7 @@ class PayPalHandler extends PaymentHandler {
         "SIGNATURE" -> signature,
         "VERSION" -> Settings.PayPal.Version,
         "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
-        "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount.toDouble.asInstanceOf[AnyRef]),
+        "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount2.asInstanceOf[AnyRef]),
         "PAYMENTREQUEST_0_CURRENCYCODE" -> paymentRequest.currency.code,
         "RETURNURL" -> successURL,
         "CANCELURL" -> failureURL)
@@ -206,6 +208,7 @@ class PayPalHandler extends PaymentHandler {
           token = token
         )
 
+        val amount = infosPaiement.amount.toDouble /100.0
         val paramMap = Map(
           "USER" -> user,
           "PWD" -> password,
@@ -213,7 +216,7 @@ class PayPalHandler extends PaymentHandler {
           "VERSION" -> Settings.PayPal.Version,
           "METHOD" -> "DoExpressCheckoutPayment",
           "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
-          "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", infosPaiement.amount.toDouble.asInstanceOf[AnyRef]),
+          "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount.asInstanceOf[AnyRef]),
           "TOKEN" -> token,
           "PAYERID" -> payerId,
           "PAYMENTREQUEST_0_CURRENCYCODE" -> infosPaiement.currency.code)

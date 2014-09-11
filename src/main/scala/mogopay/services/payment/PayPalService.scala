@@ -6,7 +6,8 @@ import mogopay.config.Implicits._
 import mogopay.services.Util._
 import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
-import spray.http.{StatusCodes, Uri}
+import spray.http.HttpHeaders.`Content-Type`
+import spray.http.{MediaTypes, HttpResponse, StatusCodes, Uri}
 import spray.routing.Directives
 
 import scala.concurrent.ExecutionContext
@@ -33,15 +34,24 @@ import scala.concurrent.duration._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        val message = StartPayment(session.sessionData, params)
-        onComplete((actor ? message).mapTo[Try[Uri]]) {
+        val message = StartPayment(session.sessionData)
+        onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) {
           case Failure(t) => complete(StatusCodes.InternalServerError)
           case Success(r) =>
-            setSession(session) {
-              r match {
-                case Success(url) => redirect(url, StatusCodes.TemporaryRedirect)
-                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-              }
+            r match {
+              case Failure(t) =>
+                println(t)
+                complete(toHTTPResponse(t), Map('error -> t.toString))
+              case Success(data) =>
+                setSession(session) {
+                  data match {
+                    case Left(content) =>
+                      println(content)
+                      complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+                    case Right(url) =>
+                      redirect(url, StatusCodes.TemporaryRedirect)
+                  }
+                }
             }
         }
       }

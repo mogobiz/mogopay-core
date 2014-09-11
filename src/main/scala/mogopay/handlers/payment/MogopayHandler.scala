@@ -13,7 +13,8 @@ import spray.http.Uri
 
 import scala.util.{Try, Failure, Left, Success}
 
-class MogopayHandler extends PaymentHandler {
+class MogopayHandler(handlerName:String) extends PaymentHandler {
+  PaymentHandler.register(handlerName, this)
   def authenticate(sessionData: SessionData): Try[Left[String, Nothing]] = {
     val req = select in Settings.ElasticSearch.Index -> "Account" filter {
       and(
@@ -94,7 +95,8 @@ class MogopayHandler extends PaymentHandler {
 
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
     if (sessionData.transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
-      paylineHandler.startPayment(sessionData)
+      val cbProvider = sessionData.paymentConfig.get.cbProvider.toString.toLowerCase()
+      PaymentHandler(cbProvider).startPayment(sessionData)
     }
     else {
       Failure(new Exception("Invalid Transaction Type"))

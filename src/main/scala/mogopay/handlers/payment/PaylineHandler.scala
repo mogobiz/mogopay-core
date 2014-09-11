@@ -29,6 +29,7 @@ import scala.util._
  * @see com.ebiznext.mogopay.payment.PaylinePaymentService
  */
 object PaylineHandler {
+
   def fromCreditCardType(`type`: CreditCardType): String = {
     var retour: String = "CB"
     if (CreditCardType.CB == `type`) {
@@ -77,7 +78,8 @@ object PaylineHandler {
   val ServiceName: QName = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
 }
 
-class PaylineHandler extends PaymentHandler {
+class PaylineHandler(handlerName:String) extends PaymentHandler {
+  PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {
   }
 
