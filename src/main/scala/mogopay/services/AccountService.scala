@@ -1,6 +1,8 @@
 package mogopay.services
 
 import akka.actor.ActorRef
+import akka.pattern.ask
+import akka.util.Timeout
 import mogopay.actors.AccountActor._
 import mogopay.config.Settings
 import mogopay.exceptions.Exceptions._
@@ -16,15 +18,11 @@ import spray.http.{ContentType, HttpResponse, HttpEntity, StatusCodes}
 import spray.routing.Directives
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class AccountService(account: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
-
   import mogopay.config.Implicits._
-
-  import akka.pattern.ask
-  import akka.util.Timeout
-  import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -41,7 +39,6 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
         confirmSignup ~
         bypassLogin ~
         updatePassword ~
-        login ~
         generateNewPhoneCode ~
         enroll ~
         generateNewSecret ~
@@ -241,35 +238,6 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
   */
-
-  // TODO: Use POST (and formFields() instead of parameters())
-  lazy val login = path("login") {
-    //    post {
-    get {
-      parameters('email, 'password, 'merchant_id.?, 'is_customer.as[Boolean]) { (email, password, merchantId, isCustomer) =>
-        session { session =>
-          val login = Login(email, password, merchantId, isCustomer)
-          onComplete((account ? login).mapTo[Try[Account]]) {
-            case Failure(e) => complete(StatusCodes.InternalServerError)
-            case Success(ta) => {
-              ta match {
-                case Failure(e) => complete(toHTTPResponse(e), e.toString)
-                case Success(account) => {
-                  session.sessionData.email = Some(email)
-                  session.sessionData.accountId = Some(account.uuid)
-                  session.sessionData.vendorId = account.owner
-                  session.sessionData.isMerchant = account.owner.isEmpty
-                  setSession(session) {
-                    complete(StatusCodes.OK, account)
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 
   lazy val generateNewPhoneCode = path("generate-new-phone-code") {
     get {
@@ -536,19 +504,102 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
 }
 
 class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
-
   import mogopay.config.Implicits.MogopaySession
-
-  import akka.pattern.ask
-  import akka.util.Timeout
-  import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
   val route = {
     pathPrefix("account") {
+      login ~
       updateProfile ~
-        signup
+      signup
+    }
+  }
+
+  lazy val login = path("login") {
+    post {
+      var fields = formFields('email, 'password, 'merchant_id.?, 'is_customer.as[Boolean])
+      fields { (email, password, merchantId, isCustomer) =>
+        session { session =>
+          val login = Login(email, password, merchantId, isCustomer)
+          onComplete((actor ? login).mapTo[Try[Account]]) {
+            case Failure(e) => complete(StatusCodes.InternalServerError)
+            case Success(ta) => {
+              ta match {
+                case Failure(e) => complete(toHTTPResponse(e), e.toString)
+                case Success(account) => {
+                  session.sessionData.email = Some(email)
+                  session.sessionData.accountId = Some(account.uuid)
+                  session.sessionData.vendorId = account.owner
+                  session.sessionData.isMerchant = account.owner.isEmpty
+                  setSession(session) {
+                    import mogopay.config.Implicits._
+                    complete(StatusCodes.OK, account)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  lazy val signup = path("signup") {
+    post {
+      type Token = String
+
+      val fields = formFields('email, 'password, 'password2,
+        'lphone, 'civility, 'firstname, 'lastname, 'birthday,
+        'road, 'city, 'zipCode, 'admin1, 'admin2, 'country,
+        'isMerchant.as[Boolean], 'merchantId ?)
+
+      fields { (email, password, password2, lphone, civility, firstname,
+                lastname, birthday, road, city, zipCode, admin1, admin2, country,
+                isMerchant, merchantId: Option[String]) =>
+        val address = AccountAddress(
+          road = road,
+          city = city,
+          zipCode = Some(zipCode),
+          country = Some(country),
+          admin1 = Some(admin1),
+          admin2 = Some(admin2)
+        )
+
+        val signup = Signup(
+          email = email,
+          password = password,
+          password2 = password2,
+          lphone = lphone,
+          civility = civility,
+          firstName = firstname,
+          lastName = lastname,
+          birthDate = birthday,
+          address = address,
+          isMerchant = isMerchant,
+          vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault))
+        )
+
+        import mogopay.config.Implicits._
+        val r = (actor ? signup).mapTo[Try[(Token, Account)]]
+        onComplete(r) {
+          case Failure(e) => complete {
+            500 -> Map('error -> e.toString)
+          }
+          case Success(x) => x match {
+            case Failure(e: AccountWithSameEmailAddressAlreadyExistsError) =>
+              complete {
+                409 -> Map('error -> e.toString)
+              }
+            case Failure(e) => complete {
+              toHTTPResponse(e) -> Map('error -> e.toString)
+            }
+            case Success(p) => complete {
+              200 -> Map('token -> p._1, 'account -> p._2)
+            }
+          }
+        }
+      }
     }
   }
 
@@ -571,16 +622,16 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               ('passwordSubject?) :: ('passwordContent?) :: ('passwordPattern?) :: ('callbackPrefix?) ::
               ('paypalUser?) :: ('paypalPassword?) :: ('paypalSignature?) :: ('kwixoParams?) :: HNil)
             fields.happly { case password :: password2 :: company :: website :: lphone ::
-                      civility :: firstname :: lastname :: birthday :: road :: road2 ::
-                      city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
-                      paymentMethod :: cbProvider ::
-                      paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode :: paylineCustomPaymentTemplateURL ::
-                      payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
-                      sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
-                      sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
-                      systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
-                      passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
-                      kwixoParams :: HNil =>
+              civility :: firstname :: lastname :: birthday :: road :: road2 ::
+              city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
+              paymentMethod :: cbProvider ::
+              paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode :: paylineCustomPaymentTemplateURL ::
+              payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
+              sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
+              sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
+              systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
+              passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
+              kwixoParams :: HNil =>
               val validPassword: Option[(String, String)] = (password, password2) match {
                 case (Some(p), Some(p2)) => Some((p, p2))
                 case _ => None
@@ -656,64 +707,6 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
             import mogopay.config.Implicits._
             StatusCodes.Unauthorized ->
               Map('error -> "ID missing or incorrect. The user is probably not logged in.")
-          }
-        }
-      }
-    }
-  }
-
-  lazy val signup = path("signup") {
-    post {
-      type Token = String
-
-      val fields = formFields('email, 'password, 'password2,
-        'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-        'road, 'city, 'zipCode, 'admin1, 'admin2, 'country,
-        'isMerchant.as[Boolean], 'merchantId ?)
-
-      fields { (email, password, password2, lphone, civility, firstname,
-                lastname, birthday, road, city, zipCode, admin1, admin2, country,
-                isMerchant, merchantId: Option[String]) =>
-        val address = AccountAddress(
-          road = road,
-          city = city,
-          zipCode = Some(zipCode),
-          country = Some(country),
-          admin1 = Some(admin1),
-          admin2 = Some(admin2)
-        )
-
-        val signup = Signup(
-          email = email,
-          password = password,
-          password2 = password2,
-          lphone = lphone,
-          civility = civility,
-          firstName = firstname,
-          lastName = lastname,
-          birthDate = birthday,
-          address = address,
-          isMerchant = isMerchant,
-          vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault))
-        )
-
-        import mogopay.config.Implicits._
-        val r = (actor ? signup).mapTo[Try[(Token, Account)]]
-        onComplete(r) {
-          case Failure(e) => complete {
-            500 -> Map('error -> e.toString)
-          }
-          case Success(x) => x match {
-            case Failure(e: AccountWithSameEmailAddressAlreadyExistsError) =>
-              complete {
-                409 -> Map('error -> e.toString)
-              }
-            case Failure(e) => complete {
-              toHTTPResponse(e) -> Map('error -> e.toString)
-            }
-            case Success(p) => complete {
-              200 -> Map('token -> p._1, 'account -> p._2)
-            }
           }
         }
       }
