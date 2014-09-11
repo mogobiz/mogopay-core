@@ -25,8 +25,8 @@ class MogopayHandler extends PaymentHandler {
     }
     val account = EsClient.search[Account](req)
     account map { account =>
+      sessionData.authenticated = true
       sessionData.customerId = Some(account.uuid)
-      sessionData.email = Some(account.email)
       val cards = account.creditCards
       if (cards.isEmpty) {
         val form = s"""
@@ -93,7 +93,7 @@ class MogopayHandler extends PaymentHandler {
   }
 
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
-    if (sessionData.transactionType == "CREDIT_CARD") {
+    if (sessionData.transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
       paylineHandler.startPayment(sessionData)
     }
     else {

@@ -41,11 +41,11 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   val route = {
     pathPrefix(serviceName) {
       searchByCustomer ~
-      init ~
-      listShipping ~
-      selectShipping ~
-      verify ~
-      submit
+        init ~
+        listShipping ~
+        selectShipping ~
+        verify ~
+        submit
     }
   }
 
@@ -170,15 +170,16 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
   lazy val submit = path("submit") {
     post {
-      formFields('callback_success.?, 'callback_error.?, 'callback_cardinfo.?, 'callback_cvv.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id.?, 'transaction_type,
+      formFields('callback_success.?, 'callback_error.?, 'callback_cardinfo.?, 'callback_cvv.?, 'transaction_id.?,
+        'transaction_amount.?.as[Option[Long]], 'merchant_id.?, 'transaction_type.?,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
         'card_month.?, 'card_year.?, 'card_type.?).as(SubmitParams) {
         submitParams =>
           session {
             session =>
-              session.clear()
               import mogopay.config.Implicits._
+              if (!session.sessionData.authenticated)
+                session.clear()
               val r = (actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]
               onComplete(r) {
                 case Failure(e) => complete(StatusCodes.InternalServerError)
@@ -203,9 +204,12 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         onComplete(response) {
                           case Failure(t) =>
                             t.printStackTrace()
-                            complete(toHTTPResponse(t), t.toString)
+                            killSession(session) {
+                              complete(toHTTPResponse(t), t.toString)
+                            }
                           case Success(response) =>
                             println("success->" + response.entity.data.asString)
+                            if (session.sessionData.finished) killSession(session)
                             complete {
                               response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
                             }

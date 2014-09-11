@@ -157,6 +157,7 @@ object BootHandler {
                                   passwordPattern: Option[String] = Some("")) = {
     PaymentConfig(
       Some(JSONObject(kwixoConfig).toString()),
+      None,
       Some(JSONObject(paypalConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
       None,

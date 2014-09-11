@@ -286,7 +286,7 @@ class PaylineHandler extends PaymentHandler {
     retour
   }
 
-  private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest, mogopay : Boolean): PaymentResult = {
+  private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest, mogopay: Boolean): PaymentResult = {
     val vendor = EsClient.load[Account](vendorUuid).get
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -296,39 +296,39 @@ class PaylineHandler extends PaymentHandler {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
     val numeroContrat: String = parametres("paylineContract")
 
-    if(mogopay) {
+    if (mogopay) {
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NEVER DELETE THE LINES BELOW BEFORE WALLET IS IMPLEMENTED
-    //    val walletRequest: GetWalletRequest = new GetWalletRequest
-    //    walletRequest.setContractNumber(numeroContrat)
-    //    walletRequest.setVersion("4")
-    //    walletRequest.setWalletId("TEST")
-    //    val walletResponse: GetWalletResponse = createProxy(transaction, parametres).getWallet(walletRequest)
-    //    if (walletResponse.getResult.getCode == "02503") {
-    //      val cwr: CreateWalletRequest = new CreateWalletRequest
-    //      cwr.setVersion("4")
-    //      cwr.setContractNumber(numeroContrat)
-    //      val card: Card = new Card
-    //      card.setNumber(infosPaiement.ccNumber)
-    //      card.setType(fromCreditCardType(infosPaiement.cardType))
-    //      card.setExpirationDate(formatDatePayline.format(infosPaiement.expirationDate))
-    //      card.setCvx(infosPaiement.cvv)
-    //      logdata += "&card.number=" + UtilHandler.hideCardNumber(card.getNumber, "X")
-    //      logdata += "&card.type=" + card.getType
-    //      logdata += "&card.expirationDate=" + card.getExpirationDate
-    //      logdata += "&card.cvx=" + "XXX"
-    //      val w: Wallet = new Wallet
-    //      w.setCard(card)
-    //      w.setWalletId("TEST")
-    //      w.setFirstName("FirstName")
-    //      w.setLastName("LastName")
-    //      w.setEmail("test@test.fr")
-    //      cwr.setWallet(w)
-    //      val cwresp: CreateWalletResponse = createProxy(transaction, parametres).createWallet(cwr)
-    //      println(cwresp.getCard)
-    //    }
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+      // NEVER DELETE THE LINES BELOW BEFORE WALLET IS IMPLEMENTED
+      //    val walletRequest: GetWalletRequest = new GetWalletRequest
+      //    walletRequest.setContractNumber(numeroContrat)
+      //    walletRequest.setVersion("4")
+      //    walletRequest.setWalletId("TEST")
+      //    val walletResponse: GetWalletResponse = createProxy(transaction, parametres).getWallet(walletRequest)
+      //    if (walletResponse.getResult.getCode == "02503") {
+      //      val cwr: CreateWalletRequest = new CreateWalletRequest
+      //      cwr.setVersion("4")
+      //      cwr.setContractNumber(numeroContrat)
+      //      val card: Card = new Card
+      //      card.setNumber(infosPaiement.ccNumber)
+      //      card.setType(fromCreditCardType(infosPaiement.cardType))
+      //      card.setExpirationDate(formatDatePayline.format(infosPaiement.expirationDate))
+      //      card.setCvx(infosPaiement.cvv)
+      //      logdata += "&card.number=" + UtilHandler.hideCardNumber(card.getNumber, "X")
+      //      logdata += "&card.type=" + card.getType
+      //      logdata += "&card.expirationDate=" + card.getExpirationDate
+      //      logdata += "&card.cvx=" + "XXX"
+      //      val w: Wallet = new Wallet
+      //      w.setCard(card)
+      //      w.setWalletId("TEST")
+      //      w.setFirstName("FirstName")
+      //      w.setLastName("LastName")
+      //      w.setEmail("test@test.fr")
+      //      cwr.setWallet(w)
+      //      val cwresp: CreateWalletResponse = createProxy(transaction, parametres).createWallet(cwr)
+      //      println(cwresp.getCard)
+      //    }
+      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     }
 
     val orderDateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm")

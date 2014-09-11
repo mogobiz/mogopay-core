@@ -27,6 +27,7 @@ class PaymentHandler {
       "error_code_provider" -> paymentResult.errorCodeOrigin,
       "error_message_provider" -> paymentResult.errorMessageOrigin.getOrElse("")
     )
+    sessionData.finished = true
     val redirectTo = if (success) successURL else errorURL
     Uri(redirectTo).withQuery(query)
   }

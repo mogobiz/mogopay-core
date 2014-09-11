@@ -218,6 +218,7 @@ object Mogopay {
                          var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class PaymentConfig(kwixoParam: Option[String],
+                           buysterParam: Option[String],
                            paypalParam: Option[String],
                            cbParam: Option[String],
                            sipsData: Option[String] = None,
@@ -432,6 +433,8 @@ object Mogopay {
                             currency: TransactionCurrency)
 
   case class SessionData(uuid: String,
+                         var finished: Boolean = false,
+                         var authenticated: Boolean = false,
                          var email: Option[String] = None,
                          var mogopay: Boolean = false,
                          var isMerchant: Boolean = false,

@@ -16,13 +16,13 @@ class TransactionHandlerSpec extends Specification with Before {
     EsClient.index(tx, false)
   }
 
-  "searchByCustomer" should {
-    "find an existent result" in {
-      transactionHandler.searchByCustomer("123") must beSome
-    }
-
-    "not find a non-existent result" in {
-      transactionHandler.searchByCustomer("0") must beNone
-    }
-  }
+//  "searchByCustomer" should {
+//    "find an existent result" in {
+//      transactionHandler.searchByCustomer("123") must beSome
+//    }
+//
+//    "not find a non-existent result" in {
+//      transactionHandler.searchByCustomer("0") must beNone
+//    }
+//  }
 }
