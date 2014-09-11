@@ -106,7 +106,6 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  // TODO: Instead of "true" or "false", I get "{}"
   lazy val alreadyExistEmail = path("already-exist-email") {
     get {
       session { session =>
@@ -119,7 +118,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
             } else {
               val message = DoesAccountExistByEmail(email, merchantId)
               (account ? message).mapTo[Boolean].map { exists =>
-                (if (exists) 200 else 404) -> Map()
+                HttpResponse(200, HttpEntity(ContentType(`text/plain`), exists.toString))
               }
             }
           }
