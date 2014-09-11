@@ -487,7 +487,6 @@ class TransactionHandler {
       if (card != null) {
         cc_type = card.cardType
         val env = Settings.environment
-        //TODO are we using the right env RSA Key ?
         cc_num = RSA.decrypt(card.number, Settings.RSA.privateKey)
         cc_month = new SimpleDateFormat("MM").format(card.expiryDate)
         cc_year = new SimpleDateFormat("yyyy").format(card.expiryDate)
