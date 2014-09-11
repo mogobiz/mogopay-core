@@ -13,16 +13,25 @@ import spray.http.Uri
 
 import scala.util.{Try, Failure, Left, Success}
 
-class MogopayHandler(handlerName:String) extends PaymentHandler {
+class MogopayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
+
   def authenticate(sessionData: SessionData): Try[Left[String, Nothing]] = {
+    val ownerFilter =
+      sessionData.vendorId.map {
+        vendorId => termFilter("owner", vendorId)
+      } getOrElse {
+        missingFilter("owner") existence true includeNull true
+      }
+
+
     val req = select in Settings.ElasticSearch.Index -> "Account" filter {
       and(
         termFilter("status", AccountStatus.ACTIVE),
         termFilter("email", sessionData.email.get),
         termFilter("password", new Sha256Hash(sessionData.password.get)),
-        termFilter("owner", sessionData.vendorId.get)
-      ) cache(false)
+        ownerFilter
+      ) cache (false)
     }
     val account = EsClient.search[Account](req)
     account map { account =>
