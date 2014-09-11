@@ -36,14 +36,16 @@ trait PaymentHandler {
   }
 
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]]
-  }
+}
 
 object PaymentHandler {
   private val handlers = mutable.Map[String, PaymentHandler]()
-  def register(handler:(String, PaymentHandler)): Unit = {
+
+  def register(handler: (String, PaymentHandler)): Unit = {
     handlers.put(handler._1, handler._2)
   }
-  def apply(handlerName:String): PaymentHandler = {
+
+  def apply(handlerName: String): PaymentHandler = {
     handlers(handlerName)
   }
 }
