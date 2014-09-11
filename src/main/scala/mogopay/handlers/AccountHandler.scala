@@ -22,13 +22,15 @@ import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.RoleName.RoleName
 import mogopay.model.Mogopay.TokenValidity.TokenValidity
 import mogopay.session.Session
-import mogopay.util.{RSA, JacksonConverter}
+import mogopay.util.RSA
+import mogopay.util.GlobalUtil._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.action.index.IndexRequest
 import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.index.query.TermQueryBuilder
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization.write
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -45,6 +47,8 @@ class LoginException(msg: String) extends Exception(msg)
 class AccountHandler {
 
   import Token._
+
+  implicit val formats = new org.json4s.DefaultFormats {}
 
   def update(account: Account) = EsClient.update(account, true, false)
 
@@ -753,13 +757,12 @@ class AccountHandler {
 
       val paymentConfig = account.paymentConfig
       val paypalParam = paymentConfig.map(_.paypalParam).flatten
-      val buysterParam = paymentConfig.map(_.buysterParam).flatten
       val kwixoParam = paymentConfig.map(_.kwixoParam).flatten
 
       val basePaymentProviderParam: Option[Map[String, String]] = paymentConfig.map(_.cbParam).flatten
         .map(JSON.parseFull).flatten
         .map(_.asInstanceOf[Map[String, String]])
-      val paymentProviderParam = basePaymentProviderParam.map {
+      val cbParam = basePaymentProviderParam.map {
         ppp =>
           val dir = new File(Settings.Sips.CertifDir, account.uuid)
           dir.mkdirs
@@ -776,9 +779,8 @@ class AccountHandler {
       Map('account -> account.copy(password = ""),
         'cards -> cards,
         'countries -> countries,
-        'paymentProviderParam -> paymentProviderParam,
+        'cbParam -> cbParam,
         'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
-        'buysterParam -> buysterParam.map(JSON.parseFull).flatten,
         'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
         'emailField -> paymentConfig.map(_.emailField),
         'passwordField -> paymentConfig.map(_.passwordField),
@@ -825,7 +827,6 @@ class AccountHandler {
       try {
         val paymentConfig: PaymentConfig = PaymentConfig(
           kwixoParam = Some(compact(render(profile.kwixoParam))),
-          buysterParam = Some(compact(render(profile.buysterParam))),
           paypalParam = Some(compact(render(profile.paypalParam))),
           cbParam = null,
           cbProvider = null,
@@ -1025,6 +1026,53 @@ class AccountHandler {
           else Success(new Sha256Hash(p1).toHex)
         } getOrElse Success(account.password)
 
+        val cbParam: CBParams = CBPaymentProvider.withName(profile.cbProvider) match {
+          case CBPaymentProvider.PAYBOX    => profile.cbParam.asInstanceOf[PayboxParams]
+          case CBPaymentProvider.PAYLINE   => profile.cbParam.asInstanceOf[PaylineParams]
+          case CBPaymentProvider.SIPS      => profile.cbParam.asInstanceOf[SIPSParams]
+          case CBPaymentProvider.SYSTEMPAY => profile.cbParam.asInstanceOf[SystempayParams]
+        }
+
+        val oldSIPSParams: Map[String, Map[String, Option[String]]] = account.paymentConfig.map(_.sipsData).flatten
+          .map { data => parse(StringInput(data)).extract[Map[String, Map[String, Option[String]]]] }
+          .getOrElse(Map())
+
+        val newSIPSParams = if (CBPaymentProvider.withName(profile.cbProvider) != CBPaymentProvider.SIPS) {
+          Map()
+        } else {
+          val params = cbParam.asInstanceOf[SIPSParams]
+
+          val certificate = if (params.sipsMerchantCertificateFileName == None || params.sipsMerchantCertificateFileName == Some("") ||
+            params.sipsMerchantCertificateFileContent == None || params.sipsMerchantCertificateFileContent == Some("")) {
+            oldSIPSParams.getOrElse("certificate", Map())
+          } else {
+            Map("sipsCetificateFileName" -> params.sipsMerchantCertificateFileName,
+              "sipsCetificateFileContent" -> params.sipsMerchantCertificateFileContent)
+          }
+
+          val parcom = if (params.sipsMerchantParcomFileName == None || params.sipsMerchantParcomFileName == Some("") ||
+            params.sipsMerchantParcomFileContent == None || params.sipsMerchantParcomFileContent == Some("")) {
+            oldSIPSParams.getOrElse("parcom", Map())
+          } else {
+            Map("sipsParcomFileName" -> params.sipsMerchantParcomFileName,
+              "sipsParcomFileContent" -> params.sipsMerchantParcomFileContent)
+          }
+
+          Map("certificate" -> certificate, "parcom" -> parcom)
+        }
+
+        val paymentConfig = PaymentConfig(
+          paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
+          cbProvider = CBPaymentProvider.withName(profile.cbProvider),
+          kwixoParam  = profile.kwixoParam.kwixoParams,
+          paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
+          cbParam  = Some(write(cbParam)),
+          pwdEmailContent = profile.passwordContent,
+          pwdEmailSubject = profile.passwordSubject,
+          callbackPrefix = profile.callbackPrefix,
+          passwordPattern = profile.passwordPattern,
+          sipsData = Some(write(newSIPSParams)))
+
         (for {
           c <- civility
           p <- password
@@ -1037,7 +1085,8 @@ class AccountHandler {
             firstName = Some(profile.firstName),
             lastName = Some(profile.lastName),
             birthDate = birthDate,
-            address = address
+            address   = address,
+            paymentConfig = Some(paymentConfig)
           )
 
           val validateMerchantPhone: Boolean = false // From the Groovy version
@@ -1242,10 +1291,6 @@ case class PaymentProviderParamEx(sipsMerchantCertificateFile: String,
 case class PaypalProviderParam(paypaluser: String,
                                paypalPassword: String,
                                paypalSignature: String)
-
-case class BuysterProviderParam(buysteruser: String,
-                                buysterPassword: String,
-                                buysterSignature: String)
 
 case class KwixoProviderParam(kwixoParam: String)
 

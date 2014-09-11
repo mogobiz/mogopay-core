@@ -41,11 +41,11 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   val route = {
     pathPrefix(serviceName) {
       searchByCustomer ~
-        init ~
-        listShipping ~
-        selectShipping ~
-        verify ~
-        submit
+      init ~
+      listShipping ~
+      selectShipping ~
+      verify ~
+      submit
     }
   }
 

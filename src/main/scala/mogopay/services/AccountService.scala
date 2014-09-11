@@ -2,20 +2,21 @@ package mogopay.services
 
 import akka.actor.ActorRef
 import mogopay.actors.AccountActor._
+import mogopay.config.Settings
 import mogopay.exceptions.Exceptions._
 import mogopay.handlers.UtilHandler
+import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.RoleName.RoleName
+import mogopay.model.Mogopay.TokenValidity._
 import mogopay.services.Util._
 import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
-import org.json4s.JObject
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.{Failure, Success, Try}
-import spray.http.StatusCodes
+import spray.http.MediaTypes._
+import spray.http.{ContentType, HttpResponse, HttpEntity, StatusCodes}
 import spray.routing.Directives
-import mogopay.model.Mogopay._
-import mogopay.model.Mogopay.TokenValidity._
-import mogopay.config.Settings
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class AccountService(account: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
 
@@ -65,14 +66,12 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  // TODO: Instead of "true" or "false", I get "{}"
   lazy val isPatternValid = path("is-pattern-valid") {
     get {
       parameters('pattern).as(IsPatternValid) { v =>
         complete {
-          (account ? v).mapTo[Boolean] map { isValid => {
-            if (isValid) StatusCodes.OK else StatusCodes.BadRequest
-          } -> Map()
+          (account ? v).mapTo[Boolean].map { isValid =>
+            HttpResponse(200, HttpEntity(ContentType(`text/plain`), isValid.toString))
           }
         }
       }
@@ -554,17 +553,35 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
     }
   }
 
+  import shapeless._
   lazy val updateProfile = path("update-profile") {
     post {
       session { session =>
         session.sessionData.accountId match {
           case Some(accountId: String) =>
-            val fields = formFields('password ?, 'password2 ?, 'company,
-              'website, 'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-              'road, 'road2 ?, 'city, 'zipCode, 'country, 'admin1, 'admin2, 'vendor ?)
-            fields { (password, password2, company, website, lphone,
-                      civility, firstname, lastname, birthday, road, road2,
-                      city, zipCode, country, admin1, admin2, vendor) =>
+            val fields = formFields(('password?) :: ('password2?) :: 'company ::
+              'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
+              'road :: ('road2?) :: ('city) :: 'zipCode :: 'country :: 'admin1 :: 'admin2 :: ('vendor?) ::
+              'paymentMethod :: 'cbProvider ::
+              ('paylineAccount?) :: ('paylineKey?) :: ('paylineContract?) :: ('paylineCustomPaymentPageCode?) :: ('paylineCustomPaymentTemplateURL?) ::
+              ('payboxSite?) :: ('payboxKey?) :: ('payboxRank?) :: ('payboxMerchantId?) ::
+              ('sipsMerchantId?) :: ('sipsMerchantCountry?) :: ('sipsMerchantCertificateFileName.?.as[Option[String]]) ::
+              ('sipsMerchantCertificateFileContent.?.as[Option[String]]) :: ('sipsMerchantParcomFileName.?.as[Option[String]]) ::
+              ('sipsMerchantParcomFileContent.?.as[Option[String]]) :: ('sipsMerchantLogoPath?) ::
+              ('systempayShopId?) :: ('systempayContractNumber?) :: ('systempayCertificate?) ::
+              ('passwordSubject?) :: ('passwordContent?) :: ('passwordPattern?) :: ('callbackPrefix?) ::
+              ('paypalUser?) :: ('paypalPassword?) :: ('paypalSignature?) :: ('kwixoParams?) :: HNil)
+            fields.happly { case password :: password2 :: company :: website :: lphone ::
+                      civility :: firstname :: lastname :: birthday :: road :: road2 ::
+                      city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
+                      paymentMethod :: cbProvider ::
+                      paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode :: paylineCustomPaymentTemplateURL ::
+                      payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
+                      sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
+                      sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
+                      systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
+                      passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
+                      kwixoParams :: HNil =>
               val validPassword: Option[(String, String)] = (password, password2) match {
                 case (Some(p), Some(p2)) => Some((p, p2))
                 case _ => None
@@ -580,6 +597,21 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 admin2 = Some(admin2)
               )
 
+              // error handling for invalid cbProvider
+              // error handling for invalid paymentMethod
+
+              // error handling if a param isn't passed
+              val cbParam: CBParams = CBPaymentProvider.withName(cbProvider) match {
+                case CBPaymentProvider.NONE => NoCBParams()
+                case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
+                  paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
+                case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxMerchantId.get)
+                case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
+                  sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
+                  sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
+                case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
+              }
+
               val profile = UpdateProfile(
                 id = accountId,
                 password = validPassword,
@@ -592,7 +624,20 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 birthDate = birthday,
                 billingAddress = billingAddress,
                 isMerchant = session.sessionData.isMerchant,
-                vendor = vendor
+                vendor = vendor,
+                passwordSubject = passwordSubject,
+                passwordContent = passwordContent,
+                callbackPrefix  = callbackPrefix,
+                passwordPattern = passwordPattern,
+                paymentMethod = paymentMethod,
+                cbProvider = cbProvider,
+                payPalParam = PayPalParam(
+                  paypalUser      = paypalUser,
+                  paypalPassword  = paypalPassword,
+                  paypalSignature = paypalSignature
+                ),
+                kwixoParam = KwixoParam(kwixoParams),
+                cbParam = cbParam
               )
 
               import mogopay.config.Implicits._

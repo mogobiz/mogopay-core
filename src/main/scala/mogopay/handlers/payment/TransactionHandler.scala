@@ -3,6 +3,7 @@ package mogopay.handlers.payment
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Currency, Date}
 
+import com.sksamuel.elastic4s.ElasticDsl._
 import mogopay.actors.TransactionActor.Submit
 import mogopay.codes.MogopayConstant
 import mogopay.config.HandlersConfig._
@@ -27,9 +28,11 @@ import scala.collection._
 import scala.util._
 
 class TransactionHandler {
-  // TODO this method is not correctly implemented
-  def searchByCustomer(uuid: String) = {
-    EsClient.load[BOTransaction](uuid)
+  def searchByCustomer(uuid: String): Seq[BOTransaction] = {
+    val req = search in Settings.ElasticSearch.Index -> "BOTransaction" filter {
+      termFilter("customer.uuid", uuid)
+    }
+    EsClient.searchAll[BOTransaction](req)
   }
 
   def init(secret: String, amount: Long, currencyCode: String,
@@ -352,9 +355,9 @@ class TransactionHandler {
       """)
       transactionExtra = render(cart1).toString
     }
+    //transactionRequestHandler.update(tr.copy(currency = null)) TODO: uncomment this
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
-    //transactionRequestHandler.update(tr.copy(currency = null)) TODO: uncomment this
     EsClient.delete[TransactionRequest](transactionRequest.uuid, false)
 
     val transaction: Option[BOTransaction] = EsClient.load[BOTransaction](transactionUUID)
