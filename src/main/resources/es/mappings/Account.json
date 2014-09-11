@@ -71,7 +71,6 @@
             },
             "birthDate": {
                 "type": "date",
-                "index": "not_analyzed",
                 "format": "dateOptionalTime"
             },
             "civility": {
@@ -82,9 +81,56 @@
                 "type": "string",
                 "index": "not_analyzed"
             },
+            "country": {
+                "properties": {
+                    "billing": {
+                        "type": "boolean"
+                    },
+                    "code": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "currencyCode": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "currencyName": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "currencyNumericCode": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "dateCreated": {
+                        "type": "long"
+                    },
+                    "lastUpdated": {
+                        "type": "long"
+                    },
+                    "name": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "phoneCode": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "shipping": {
+                        "type": "boolean"
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "zipCodeRegex": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    }
+                }
+            },
             "dateCreated": {
                 "type": "date",
-                "index": "not_analyzed",
                 "format": "dateOptionalTime"
             },
             "email": {
@@ -92,25 +138,71 @@
                 "index": "not_analyzed"
             },
             "firstName": {
-                "type": "string",
-                "index": "analyzed"
+                "type": "string"
             },
             "lastName": {
-                "type": "string",
-                "index": "analyzed"
+                "type": "string"
             },
             "lastUpdated": {
                 "type": "date",
-                "index": "not_analyzed",
                 "format": "dateOptionalTime"
             },
             "loginFailedCount": {
-                "type": "long",
+                "type": "long"
+            },
+            "owner": {
+                "type": "string",
                 "index": "not_analyzed"
             },
             "password": {
                 "type": "string",
                 "index": "not_analyzed"
+            },
+            "paymentConfig": {
+                "properties": {
+                    "cbParam": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "cbProvider": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "dateCreated": {
+                        "type": "long"
+                    },
+                    "emailField": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "kwixoParam": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "buysterParam": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "lastUpdated": {
+                        "type": "long"
+                    },
+                    "passwordField": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "passwordPattern": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "paymentMethod": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    },
+                    "paypalParam": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    }
+                }
             },
             "roles": {
                 "type": "string",
@@ -119,6 +211,17 @@
             "secret": {
                 "type": "string",
                 "index": "not_analyzed"
+            },
+            "shippingAddresses": {
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    }
+                }
             },
             "status": {
                 "type": "string",
@@ -129,18 +232,12 @@
                 "index": "not_analyzed"
             },
             "waitingEmailSince": {
-                "type": "long",
-                "index": "not_analyzed"
+                "type": "long"
             },
             "waitingPhoneSince": {
-                "type": "long",
-                "index": "not_analyzed"
+                "type": "long"
             },
             "website": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "owner": {
                 "type": "string",
                 "index": "not_analyzed"
             }

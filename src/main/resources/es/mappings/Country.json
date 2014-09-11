@@ -22,12 +22,10 @@
       },
       "dateCreated": {
         "type": "date",
-        "index": "not_analyzed",
         "format": "dateOptionalTime"
       },
       "lastUpdated": {
         "type": "date",
-        "index": "not_analyzed",
         "format": "dateOptionalTime"
       },
       "name": {

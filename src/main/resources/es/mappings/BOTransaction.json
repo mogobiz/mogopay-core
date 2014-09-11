@@ -6,28 +6,32 @@
             },
             "creationDate": {
                 "type": "date",
-                "index": "not_analyzed"
+                "format": "dateOptionalTime"
             },
             "creditCard": {
                 "properties": {
                     "cardType": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "expiryDate": {
                         "type": "long"
                     },
                     "holder": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "number": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     }
                 }
             },
             "currency": {
                 "properties": {
                     "code": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "fractionDigits": {
                         "type": "long"
@@ -45,24 +49,30 @@
                     "address": {
                         "properties": {
                             "city": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "country": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "road": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "zipCode": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             }
                         }
                     },
                     "civility": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "company": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "dateCreated": {
                         "type": "date",
@@ -74,10 +84,12 @@
                         "index": "not_analyzed"
                     },
                     "firstName": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "lastName": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "lastUpdated": {
                         "type": "date",
@@ -88,16 +100,20 @@
                         "type": "long"
                     },
                     "owner": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "password": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "roles": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "uuid": {
                         "type": "string",
@@ -110,7 +126,8 @@
                         "type": "long"
                     },
                     "website": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     }
                 }
             },
@@ -126,13 +143,16 @@
                 "index": "no"
             },
             "errorCodeOrigin": {
-                "type": "string"
+                "type": "string",
+                "index": "not_analyzed"
             },
             "errorMessageOrigin": {
-                "type": "string"
+                "type": "string",
+                "index": "not_analyzed"
             },
             "extra": {
-                "type": "string"
+                "type": "string",
+                "index": "not_analyzed"
             },
             "lastUpdated": {
                 "type": "date",
@@ -145,10 +165,12 @@
             "paymentData": {
                 "properties": {
                     "authorizationId": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "cbProvider": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "dateCommandCB": {
                         "type": "long"
@@ -157,21 +179,25 @@
                         "type": "long"
                     },
                     "paymentType": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "status3DS": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "transactionDate": {
                         "type": "long"
                     },
                     "transactionId": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     }
                 }
             },
             "status": {
-                "type": "string"
+                "type": "string",
+                "index": "not_analyzed"
             },
             "transactionUUID": {
                 "type": "string",
@@ -186,24 +212,30 @@
                     "address": {
                         "properties": {
                             "city": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "country": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "road": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "zipCode": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             }
                         }
                     },
                     "civility": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "company": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "dateCreated": {
                         "type": "date",
@@ -215,10 +247,12 @@
                         "index": "not_analyzed"
                     },
                     "firstName": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "lastName": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "lastUpdated": {
                         "type": "date",
@@ -229,18 +263,18 @@
                         "type": "long"
                     },
                     "password": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "paymentConfig": {
                         "properties": {
-                            "buysterParam": {
-                                "type": "string"
-                            },
                             "cbParam": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "cbProvider": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "dateCreated": {
                                 "type": "date",
@@ -248,10 +282,12 @@
                                 "format": "dateOptionalTime"
                             },
                             "emailField": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "kwixoParam": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "lastUpdated": {
                                 "type": "date",
@@ -259,24 +295,30 @@
                                 "format": "dateOptionalTime"
                             },
                             "passwordField": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "passwordPattern": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "paymentMethod": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             },
                             "paypalParam": {
-                                "type": "string"
+                                "type": "string",
+                                "index": "not_analyzed"
                             }
                         }
                     },
                     "roles": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     },
                     "uuid": {
                         "type": "string",
@@ -289,7 +331,8 @@
                         "type": "long"
                     },
                     "website": {
-                        "type": "string"
+                        "type": "string",
+                        "index": "not_analyzed"
                     }
                 }
             }
