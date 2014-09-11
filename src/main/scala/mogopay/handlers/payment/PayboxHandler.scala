@@ -163,7 +163,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
 
     val paymentConfig = sessionData.paymentConfig.get
     val paymentRequest = sessionData.paymentRequest.get
-    val ctxMode = if (Settings.environment == Environment.PROD) "PRODUCTION" else "TEST"
+    val ctxMode = if (Settings.Env == Environment.PROD) "PRODUCTION" else "TEST"
     if (vendorId != paramVendorId || transactionUuid != paramTransactionUuid) {
       Failure(new Exception("Invalid vendorid or transactionid"))
     } else {
@@ -250,7 +250,7 @@ class PayboxHandler extends PaymentHandler with CustomSslConfiguration {
 
     val vendor = EsClient.load[Account](vendorId).get
 
-    val context = if (Settings.environment == Environment.DEV) "TEST" else "PRODUCTION"
+    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
     var paymentResult: PaymentResult = PaymentResult(

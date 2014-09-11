@@ -99,9 +99,9 @@ class PaylineHandler extends PaymentHandler {
       var threeDSResult: ThreeDSResult = null
 
       if (sessionData.mogopay) {
-        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, true)
         Success(Right(finishPayment(sessionData, paymentResult)))
-      } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
+      } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
         sessionData.token = Option(paymentResult.token)
         if (paymentResult.data != null && paymentResult.data.nonEmpty) {
@@ -132,7 +132,7 @@ class PaylineHandler extends PaymentHandler {
         }
         else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           // on lance un paiement classique
-          val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest);
+          val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay)
           Success(Right(finishPayment(sessionData, paymentResult)))
         }
         else {
@@ -141,7 +141,7 @@ class PaylineHandler extends PaymentHandler {
         }
       } else {
         // on lance un paiement classique
-        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest);
+        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay)
         Success(Right(finishPayment(sessionData, paymentResult)))
       }
     }
@@ -180,7 +180,7 @@ class PaylineHandler extends PaymentHandler {
       sessionData.waitFor3DS = false
       try {
         val paymentRequest2 = paymentRequest.copy(paylineMd = params("MD"), paylinePares = params("PaRes"))
-        val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2)
+        val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2, sessionData.mogopay)
         Success(finishPayment(sessionData, result))
       }
       catch {
@@ -286,7 +286,7 @@ class PaylineHandler extends PaymentHandler {
     retour
   }
 
-  def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest): PaymentResult = {
+  private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest, mogopay : Boolean): PaymentResult = {
     val vendor = EsClient.load[Account](vendorUuid).get
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -295,6 +295,9 @@ class PaylineHandler extends PaymentHandler {
 
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
     val numeroContrat: String = parametres("paylineContract")
+
+    if(mogopay) {
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NEVER DELETE THE LINES BELOW BEFORE WALLET IS IMPLEMENTED
     //    val walletRequest: GetWalletRequest = new GetWalletRequest
@@ -326,6 +329,7 @@ class PaylineHandler extends PaymentHandler {
     //      println(cwresp.getCard)
     //    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    }
 
     val orderDateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm")
     val paiement: Payment = new Payment

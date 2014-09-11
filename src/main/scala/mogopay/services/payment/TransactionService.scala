@@ -1,26 +1,26 @@
-package mogopay.services
+package mogopay.services.payment
 
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 
-import akka.actor.{ActorSystem, ActorRef}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import mogopay.actors.TransactionActor._
 import mogopay.config.Settings
 import mogopay.handlers.shipping.ShippingPrice
-import mogopay.model.Mogopay.{TransactionStatus, BOTransaction}
+import mogopay.model.Mogopay.{BOTransaction, TransactionStatus}
 import mogopay.services.Util._
 import mogopay.session.SessionESDirectives._
 import spray.can.Http
+import spray.client.pipelining._
 import spray.http._
 import spray.routing.Directives
 
-import scala.concurrent.{Future, Await, ExecutionContext}
 import scala.concurrent.duration._
-import scala.util.{Success, Failure, Try}
-import spray.client.pipelining._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 
 class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
@@ -32,8 +32,6 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   //  }
 
   implicit val system = ActorSystem()
-
-  import system.dispatcher
 
   // execution context for futures
 
@@ -172,9 +170,9 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
   lazy val submit = path("submit") {
     post {
-      formFields('callback_success.?, 'callback_error.?, 'url_cardinfo.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id.?, 'transaction_type, 'save_card.?.as[Option[Boolean]],
-        'card_cvv.?, 'card_number.?, 'customer_email.?, 'customer_password.?, 'transaction_desc.?,
+      formFields('callback_success.?, 'callback_error.?, 'callback_cardinfo.?, 'callback_cvv.?, 'transaction_id,
+        'transaction_amount.as[Long], 'merchant_id.?, 'transaction_type,
+        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
         'card_month.?, 'card_year.?, 'card_type.?).as(SubmitParams) {
         submitParams =>
           session {

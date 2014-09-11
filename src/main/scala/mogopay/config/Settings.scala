@@ -6,7 +6,7 @@ import java.io.File
 object Settings {
   private val config = ConfigFactory.load()
 
-  val environment = if (System.getenv.containsKey("PRODUCTION")) {
+  val Env = if (System.getenv.containsKey("PRODUCTION")) {
     Environment.PROD
   } else {
     Environment.DEV
@@ -130,7 +130,7 @@ object Settings {
     import java.io.FileInputStream
 
     private def getKey(whichOne: String): InputStream = {
-      if (environment == Environment.PROD) {
+      if (Env == Environment.PROD) {
         new FileInputStream(whichOne + ".key")
       } else {
         getClass.getClassLoader.getResource("secretkeys/" + whichOne + ".key").openStream()

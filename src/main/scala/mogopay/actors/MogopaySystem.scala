@@ -42,6 +42,7 @@ trait MogopayActors {
   val payPalActor = system.actorOf(Props[PayPalActor])
   val payboxActor = system.actorOf(Props[PayboxActor])
   val paylineActor = system.actorOf(Props[PaylineActor])
+  val mogopayActor = system.actorOf(Props[MogopayActor])
   val sipsActor = system.actorOf(Props[SipsActor])
   val userActor = system.actorOf(Props[UserActor])
 }

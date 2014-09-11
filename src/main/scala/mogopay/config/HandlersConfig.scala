@@ -28,6 +28,7 @@ object HandlersConfig {
   val sipsHandler = new SipsHandler
   val payPalHandler = new PayPalHandler
   val paylineHandler = new PaylineHandler
+  val mogopayHandler = new MogopayHandler
   val userHandler = new UserHandler
   val payboxHandler = new PayboxHandler
 }

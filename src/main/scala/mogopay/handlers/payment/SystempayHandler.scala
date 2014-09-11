@@ -27,6 +27,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util._
 import mogopay.config.{Environment, Settings}
+import mogopay.config.HandlersConfig._
 
 class SystempayClient {
   implicit val formats = new DefaultFormats {}
@@ -35,7 +36,7 @@ class SystempayClient {
              paymentRequest: PaymentRequest): PaymentResult = {
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
-    val context = if (Settings.environment == Environment.DEV) "TEST" else "PRODUCTION"
+    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
     var paymentResult: PaymentResult = PaymentResult(
@@ -253,7 +254,7 @@ class SystempayClient {
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.VERIFICATION_THREEDS, null)
     var result: ThreeDSResult = ThreeDSResult(code = ResponseCode3DS.ERROR, url = null, method = null, mdName = null,
       mdValue = null, pareqName = null, pareqValue = null, termUrlName = null, termUrlValue = null)
-    val context = if (Settings.environment == Environment.DEV) "TEST" else "PRODUCTION"
+    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val browserUserAgent = ""
     val browserUserAccept = ""
     val cardNumber = paymentRequest.ccNumber
@@ -325,7 +326,7 @@ class SystempayClient {
         </html>"""
         println(form)
 
-        if (Settings.environment == Environment.DEV)
+        if (Settings.Env == Environment.DEV)
           result = result.copy(url = result.url + ";jsessionid=" + sessionId)
       }
     } else {
@@ -507,7 +508,7 @@ class SystempayHandler extends PaymentHandler {
       val contractNumber: String = parametresProvider("systempayContractNumber")
       val certificat: String = parametresProvider("systempayCertificate")
 
-      val ctxMode: String = if (Settings.environment == Environment.DEV) "TEST" else "PRODUCTION"
+      val ctxMode: String = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
 
       try {
         val sessionAndRequestId: String = params("MD")

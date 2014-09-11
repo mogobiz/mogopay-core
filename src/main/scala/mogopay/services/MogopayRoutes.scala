@@ -35,6 +35,7 @@ trait MogopayRoutes extends Directives {
       new PayPalService(payPalActor).route ~
       new PayboxService(payboxActor).route ~
       new PaylineService(paylineActor).route ~
+      new MogopayService(mogopayActor).route ~
       new SipsService(sipsActor).route ~
       new UserService(userActor).route
   }

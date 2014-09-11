@@ -36,7 +36,7 @@ class ImportCountriesJob extends Actor {
 
       cities.renameTo(new File(cities.getAbsolutePath + "." + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())))
 
-      if (Settings.environment == Environment.PROD) {
+      if (Settings.Env == Environment.PROD) {
         val now = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
         countries.renameTo(new File(countries.getAbsolutePath + "." + now))
         admins1.renameTo(new File(admins1.getAbsolutePath + "." + now))

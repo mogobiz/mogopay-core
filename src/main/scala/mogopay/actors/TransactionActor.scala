@@ -22,8 +22,8 @@ object TransactionActor {
   case class Verify(secret: String, amount: Option[Long], transactionUUID: String)
 
   case class SubmitParams(successURL: Option[String], errorURL: Option[String], cardinfoURL: Option[String],
-                          transactionUUID: String, amount: Long, merchantId: Option[String],
-                          transactionType: String, saveCard: Option[Boolean], customerCVV: Option[String], ccNum: Option[String],
+                          cvvURL: Option[String],transactionUUID: String, amount: Long, merchantId: Option[String],
+                          transactionType: String, customerCVV: Option[String], ccNum: Option[String],
                           customerEmail: Option[String], customerPassword: Option[String],
                           transactionDescription: Option[String],
                           ccMonth: Option[String], ccYear: Option[String], ccType: Option[String]) {
@@ -31,11 +31,11 @@ object TransactionActor {
       "_successURL" -> "_successURL",
       "_errorURL" -> "_errorURL",
       "cardinfoURL" -> "cardinfoURL",
+      "cvvURL" -> "cvvURL",
       "_transactionUUID" -> "_transactionUUID",
       "_amount" -> "_amount",
       "merchantId" -> "merchantId",
       "_transactionType" -> "_transactionType",
-      "saveCard" -> "saveCard",
       "customerCVV" -> "customerCVV",
       "ccNum" -> "ccNum",
       "customerEmail" -> "customerEmail",

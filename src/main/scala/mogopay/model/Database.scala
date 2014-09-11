@@ -303,6 +303,7 @@ object Mogopay {
                      shippingAddresses: List[ShippingAddress] = Nil,
                      secret: String,
                      creditCards: List[CreditCard] = Nil,
+                     walletId: Option[String] = None,
                      var dateCreated: Date = Calendar.getInstance().getTime,
                      var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -446,6 +447,7 @@ object Mogopay {
                          var errorURL: Option[String] = None,
                          var successURL: Option[String] = None,
                          var cardinfoURL: Option[String] = None,
+                         var cvvURL: Option[String] = None,
                          var token: Option[String] = None,
                          var password: Option[String] = None,
                          var customerId: Option[Document] = None,
