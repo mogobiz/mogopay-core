@@ -33,7 +33,7 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val countriesForShipping = path("countriesForShipping") {
+  lazy val countriesForShipping = path("countries-for-shipping") {
     get {
       complete {
         (country ? CountriesForShipping).mapTo[List[Country]]
@@ -41,7 +41,7 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val countriesForBilling = getPath("countriesForBilling") {
+  lazy val countriesForBilling = getPath("countries-for-billing") {
     complete {
       (country ? CountriesForBilling).mapTo[List[Country]]
     }
@@ -68,7 +68,7 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
 
   lazy val cities = path("cities") {
     get {
-      val params = parameters('country.?, 'parentAdmin1Code.?, 'parentAdmin1Code.?, 'city.?)
+      val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin1_code.?, 'city.?)
       params { (c, a1, a2, city) =>
         val cities = Cities(c, a1, a2, city)
         complete {
@@ -80,7 +80,7 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
 
   lazy val admins2 = path("admins2") {
     get {
-      parameters('country, 'parentAdmin1Code.?).as(Admins2) {
+      parameters('country, 'parent_admin1_code.?).as(Admins2) {
         admins2: Admins2 =>
           complete {
             (country ? admins2).mapTo[Seq[CountryAdmin]]
@@ -89,7 +89,7 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val checkPhoneNumber = path("checkPhoneNumber") {
+  lazy val checkPhoneNumber = path("check-phone-number") {
     get {
       parameters('phone, 'country).as(CheckPhoneNumber) { checkPhoneNumber =>
         complete {

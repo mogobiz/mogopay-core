@@ -10,8 +10,7 @@
                 "index": "not_analyzed"
             },
             "amount": {
-                "type": "long",
-                "index": "not_analyzed"
+                "type": "long"
             },
             "extra": {
                 "type": "string",
@@ -24,16 +23,13 @@
                         "index": "not_analyzed"
                     },
                     "fractionDigits": {
-                        "type": "long",
-                        "index": "not_analyzed"
+                        "type": "long"
                     },
                     "numericCode": {
-                        "type": "long",
-                        "index": "not_analyzed"
+                        "type": "long"
                     },
                     "rate": {
-                        "type": "double",
-                        "index": "not_analyzed"
+                        "type": "double"
                     }
                 }
             },
@@ -47,12 +43,10 @@
             },
             "dateCreated": {
                 "type": "date",
-                "index": "not_analyzed",
                 "format": "dateOptionalTime"
             },
             "lastUpdated": {
                 "type": "date",
-                "index": "not_analyzed",
                 "format": "dateOptionalTime"
             }
         }

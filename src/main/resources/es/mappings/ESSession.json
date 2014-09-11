@@ -82,6 +82,10 @@
                 "type": "date",
                 "index": "no",
                 "format": "dateOptionalTime"
+            },
+            "uuid": {
+                "type": "string",
+                "index":"not_analyzed"
             }
         }
     }

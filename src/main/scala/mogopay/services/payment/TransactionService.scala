@@ -49,7 +49,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
     }
   }
 
-  lazy val searchByCustomer = path("searchByCustomer" / JavaUUID) { uuid =>
+  lazy val searchByCustomer = path("search-by-customer" / JavaUUID) { uuid =>
     import mogopay.config.Implicits._
     get {
       complete {
