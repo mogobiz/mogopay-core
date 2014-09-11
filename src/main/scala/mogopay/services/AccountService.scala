@@ -2,20 +2,21 @@ package mogopay.services
 
 import akka.actor.ActorRef
 import mogopay.actors.AccountActor._
+import mogopay.config.Settings
 import mogopay.exceptions.Exceptions._
 import mogopay.handlers.UtilHandler
+import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.RoleName.RoleName
+import mogopay.model.Mogopay.TokenValidity._
 import mogopay.services.Util._
 import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
-import org.json4s.JObject
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.{Failure, Success, Try}
-import spray.http.StatusCodes
+import spray.http.MediaTypes._
+import spray.http.{ContentType, HttpResponse, HttpEntity, StatusCodes}
 import spray.routing.Directives
-import mogopay.model.Mogopay._
-import mogopay.model.Mogopay.TokenValidity._
-import mogopay.config.Settings
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class AccountService(account: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
 
@@ -65,14 +66,12 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  // TODO: Instead of "true" or "false", I get "{}"
   lazy val isPatternValid = path("is-pattern-valid") {
     get {
       parameters('pattern).as(IsPatternValid) { v =>
         complete {
-          (account ? v).mapTo[Boolean] map { isValid => {
-            if (isValid) StatusCodes.OK else StatusCodes.BadRequest
-          } -> Map()
+          (account ? v).mapTo[Boolean].map { isValid =>
+            HttpResponse(200, HttpEntity(ContentType(`text/plain`), isValid.toString))
           }
         }
       }
