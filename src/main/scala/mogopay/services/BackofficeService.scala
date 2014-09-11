@@ -25,7 +25,7 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
       getTransaction
   }
 
-  lazy val listCustomers = getPath("listCustomers") {
+  lazy val listCustomers = getPath("list-customers") {
     parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
       session { session =>
         complete {
@@ -40,9 +40,9 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
     }
   }
 
-  lazy val listTransactionLogs = getPath("listTransanctionLogs") {
+  lazy val listTransactionLogs = getPath("list-transanction-logs") {
     session { session =>
-      parameters('transactionId) { transactionId =>
+      parameters('transaction_id) { transactionId =>
         complete {
           if (session.contains("isMerchant")) {
             (backofficeActor ? ListTransactionLogs(transactionId)).mapTo[Seq[BOTransactionLog]]
@@ -54,9 +54,9 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
     }
   }
 
-  lazy val listTransactions = getPath("listTransanctions") {
+  lazy val listTransactions = getPath("list-transanctions") {
     session { session =>
-      val params = parameters('startDate.as[Long] ?, 'endDate.as[Long] ?, 'amount.as[Int] ?, 'transactionUuid ?)
+      val params = parameters('start_date.as[Long] ?, 'end_date.as[Long] ?, 'amount.as[Int] ?, 'transaction_uuid ?)
       params { (startDate, endDate, amount, transaction) =>
         complete {
           if (session.contains("accountId")) {
@@ -76,7 +76,7 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
     }
   }
 
-  lazy val getTransaction = path("getTransaction" / JavaUUID) { uuid =>
+  lazy val getTransaction = path("get-transaction" / JavaUUID) { uuid =>
     get {
       session { session =>
         complete {

@@ -260,7 +260,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   }
 
   lazy val enroll = getPath("enroll") {
-    parameters('lphone, 'pinCode) {
+    parameters('lphone, 'pin_code) {
       (lPhone, pinCode) =>
         withAccount(accountId => complete {
           val message = Enroll(accountId, lPhone, pinCode)
@@ -415,7 +415,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   }
 
   lazy val assignBillingAddress = getPath("assign-billing-address") {
-    val params = parameters('road, 'city, 'road2.?, 'zipCode.?, 'extra.?, 'civility.?,
+    val params = parameters('road, 'city, 'road2.?, 'zip_code.?, 'extra.?, 'civility.?,
       'firstname.?, 'lastname.?, 'country.?, 'admin1.?, 'admin2.?)
 
     params.as(AddressToAssignFromGetParams) {
@@ -427,7 +427,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   }
 
   lazy val deleteShippingAddress = getPath("delete-shipping-address") {
-    parameters('addressId) { addressId =>
+    parameters('address_id) { addressId =>
       withAccount(accountId =>
         complete {
           account ? DeleteShippingAddress(accountId, addressId)
@@ -436,7 +436,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   }
 
   lazy val addShippingAddress = getPath("add-shipping-address") {
-    val params = parameters('road, 'city, 'road2.?, 'zipCode, 'extra.?, 'civility,
+    val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
       'firstname, 'lastname, 'country, 'admin1.?, 'admin2.?)
 
     params.as(AddressToAddFromGetParams) {
@@ -448,8 +448,8 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   }
 
   lazy val updateShippingAddress = getPath("update-shipping-address") {
-    val params = parameters('addressId.as[String], 'road.?, 'city.?, 'road2.?,
-      'zipCode.?, 'extra.?, 'civility.?, 'firstname.?, 'lastname.?, 'country.?,
+    val params = parameters('address_id.as[String], 'road.?, 'city.?, 'road2.?,
+      'zip_code.?, 'extra.?, 'civility.?, 'firstname.?, 'lastname.?, 'country.?,
       'admin1.?, 'admin2.?)
 
     params.as(AddressToUpdateFromGetParams) {
@@ -467,7 +467,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   }
 
   lazy val selectShippingAddress = getPath("select-shipping-address") {
-    parameters('addressId.as[String]) {
+    parameters('address_id.as[String]) {
       addressId =>
         withAccount(accountId => complete {
           account ? SelectShippingAddress(accountId, addressId)
@@ -551,8 +551,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
 
       val fields = formFields('email, 'password, 'password2,
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-        'road, 'city, 'zipCode, 'admin1, 'admin2, 'country,
-        'isMerchant.as[Boolean], 'merchantId ?)
+        'road, 'city, 'zip_code, 'admin1, 'admin2, 'country,
+        'is_merchant.as[Boolean], 'merchant_id ?)
 
       fields { (email, password, password2, lphone, civility, firstname,
                 lastname, birthday, road, city, zipCode, admin1, admin2, country,
@@ -612,15 +612,17 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
             val fields = formFields(('password?) :: ('password2?) :: 'company ::
               'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
               'road :: ('road2?) :: ('city) :: 'zipCode :: 'country :: 'admin1 :: 'admin2 :: ('vendor?) ::
-              'paymentMethod :: 'cbProvider ::
-              ('paylineAccount?) :: ('paylineKey?) :: ('paylineContract?) :: ('paylineCustomPaymentPageCode?) :: ('paylineCustomPaymentTemplateURL?) ::
-              ('payboxSite?) :: ('payboxKey?) :: ('payboxRank?) :: ('payboxMerchantId?) ::
-              ('sipsMerchantId?) :: ('sipsMerchantCountry?) :: ('sipsMerchantCertificateFileName.?.as[Option[String]]) ::
-              ('sipsMerchantCertificateFileContent.?.as[Option[String]]) :: ('sipsMerchantParcomFileName.?.as[Option[String]]) ::
-              ('sipsMerchantParcomFileContent.?.as[Option[String]]) :: ('sipsMerchantLogoPath?) ::
-              ('systempayShopId?) :: ('systempayContractNumber?) :: ('systempayCertificate?) ::
-              ('passwordSubject?) :: ('passwordContent?) :: ('passwordPattern?) :: ('callbackPrefix?) ::
-              ('paypalUser?) :: ('paypalPassword?) :: ('paypalSignature?) :: ('kwixoParams?) :: HNil)
+              'payment_method :: 'cb_provider ::
+              ('payline_account?) :: ('payline_key?) :: ('payline_contract?) :: ('payline_custom_payment_page_code?) ::
+              ('payline_custom_payment_template_url?) :: ('paybox_site?) :: ('paybox_key?) :: ('paybox_rank?) ::
+              ('paybox_merchant_id?) :: ('sips_merchant_id?) :: ('sips_merchant_country?) ::
+              ('sips_merchant_certificate_file_name.?.as[Option[String]]) ::
+              ('sips_merchant_certificate_file_content.?.as[Option[String]]) ::
+              ('sips_merchant_parcom_file_name.?.as[Option[String]]) ::
+              ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path?) ::
+              ('systempay_shop_id?) :: ('systempay_contract_number?) :: ('systempay_certificate?) ::
+              ('password_subject?) :: ('password_content?) :: ('password_pattern?) :: ('callback_prefix?) ::
+              ('paypal_user?) :: ('paypal_password?) :: ('paypal_signature?) :: ('kwixo_params?) :: HNil)
             fields.happly { case password :: password2 :: company :: website :: lphone ::
               civility :: firstname :: lastname :: birthday :: road :: road2 ::
               city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
