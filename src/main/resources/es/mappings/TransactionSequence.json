@@ -15,10 +15,6 @@
             "uuid":{
                 "type":"string",
                 "index": "not_analyzed"
-            },
-            "vendorId":{
-                "type":"string",
-                "index": "not_analyzed"
             }
         }
     }

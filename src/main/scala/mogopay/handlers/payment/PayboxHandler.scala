@@ -100,7 +100,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
           orderDate = paymentRequest.orderDate,
           amount = paymentRequest.amount,
           ccNumber = ccNumber,
-          cardType = PayboxHandler.toCardType(params("CARTE")),
+          cardType = PayboxHandler.toCardType(params.getOrElse("CARTE", CreditCardType.CB.toString)),
           expirationDate = expirationDate,
           cvv = "",
           gatewayTransactionId = transaction.uuid,

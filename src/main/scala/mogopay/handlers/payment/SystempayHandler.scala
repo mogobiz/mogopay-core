@@ -460,7 +460,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
         transaction.creationDate,
         transaction.amount,
         params("vads_card_number"),
-        CreditCardType.withName(params("vads_card_brand")),
+        CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString)),
         null, "", "", null, "", "", null,
         params("vads_result").toString,
         Option(BankErrorCodes.getErrorMessage(params("vads_result").toString)), "", "", Some(""), "")
