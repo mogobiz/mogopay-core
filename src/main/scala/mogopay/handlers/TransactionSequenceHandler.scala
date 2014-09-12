@@ -36,7 +36,7 @@ class TransactionSequenceHandler {
       }
     } getOrElse {
       // TODO should not be done here. It should be at vendor creation time
-      EsClient.index(TransactionSequence(vendorId, vendorId, 1L))
+      EsClient.index(TransactionSequence(vendorId, 1L))
       1L
     }
   }
