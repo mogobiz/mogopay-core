@@ -29,7 +29,7 @@ object ImportCountriesJob {
 class ImportCountriesJob extends Actor {
   def receive = {
     case _ =>
-      println("ImportCountriesJob: start.")
+      println(" == ImportCountriesJob: start.")
 
       val currencies = Settings.Import.currenciesFile
       val countries = Settings.Import.countriesFile
@@ -51,7 +51,7 @@ class ImportCountriesJob extends Actor {
         admins2.renameTo(new File(admins2.getAbsolutePath + "." + now))
       }
 
-    println("ImportCountriesJob: done.")
+    println(" == ImportCountriesJob: done.")
   }
 }
 

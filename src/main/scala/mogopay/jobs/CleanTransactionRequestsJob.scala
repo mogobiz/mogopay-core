@@ -21,6 +21,9 @@ object CleanTransactionRequestsJob {
 
 class CleanTransactionRequestsJob extends Actor {
   def receive = {
-    case _ => transactionRequestHandler.recycle
+    case _ =>
+      println(" == CleanTransactionRequestsJob: start.")
+      transactionRequestHandler.recycle
+      println(" == CleanTransactionRequestsJob: done.")
   }
 }

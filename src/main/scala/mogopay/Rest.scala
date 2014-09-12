@@ -6,7 +6,9 @@ import akka.io.IO
 import spray.can.Http
 
 object Rest extends App with BootedMogopaySystem with MogopayActors with MogopayRoutes {
-  override def main(args: Array[String]) {
-    IO(Http)(system) ! Http.Bind(routesServices, "0.0.0.0", port = 8080)
-  }
+  mogopay.jobs.ImportCountriesJob.start(system)
+  mogopay.jobs.CleanAccountsJob.start(system)
+  mogopay.jobs.CleanTransactionRequestsJob.start(system)
+
+  IO(Http)(system) ! Http.Bind(routesServices, "0.0.0.0", port = 8080)
 }
