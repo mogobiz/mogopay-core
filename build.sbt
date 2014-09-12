@@ -1,5 +1,15 @@
 import spray.revolver.RevolverPlugin.Revolver
 
+import AssemblyKeys._
+
+assemblySettings
+
+jarName in assembly := "mogopay.jar"
+
+mainClass in assembly := Some("mogopay.Rest")
+
+test in assembly := {}
+
 organization := "com.mogobiz.mogopay"
 
 version := "0.0.1-SNAPSHOT"
