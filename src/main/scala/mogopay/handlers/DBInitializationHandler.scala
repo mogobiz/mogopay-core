@@ -16,7 +16,7 @@ import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.index.query.TermQueryBuilder
 import scala.util.parsing.json.JSONObject
 
-object BootHandler {
+object DBInitializationHandler {
   def boot(init: Boolean = true, fillWithFixtures: Boolean = false) {
     if (init) initDB()
     fillDB(fillWithFixtures)
@@ -485,5 +485,5 @@ object Main2 extends App {
   catch{
     case t:Throwable => println()
   }
-  BootHandler.boot(true)
+  DBInitializationHandler.boot()
 }
