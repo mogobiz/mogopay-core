@@ -1227,7 +1227,11 @@ class AccountHandler {
         _ <- save(a)
         _ <- generateAndSendPincode3(a.uuid)
         t <- token(accountStatus)
-      } yield (t, a)
+      } yield {
+        if (signup.isMerchant) transactionSequenceHandler.nextTransactionId(a.uuid)
+
+        (t, a)
+      }
     }
   }
 }
