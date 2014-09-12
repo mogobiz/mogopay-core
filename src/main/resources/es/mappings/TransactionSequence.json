@@ -1,0 +1,25 @@
+{
+    "TransactionSequence":{
+        "properties":{
+            "dateCreated":{
+                "type":"long",
+                "format": "dateOptionalTime"
+            },
+            "lastUpdated":{
+                "type":"long",
+                "format": "dateOptionalTime"
+            },
+            "transactionId":{
+                "type":"long"
+            },
+            "uuid":{
+                "type":"string",
+                "index": "not_analyzed"
+            },
+            "vendorId":{
+                "type":"string",
+                "index": "not_analyzed"
+            }
+        }
+    }
+}

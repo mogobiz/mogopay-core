@@ -22,6 +22,9 @@ object CleanAccountsJob {
 
 class CleanAccountsJob extends Actor {
   def receive = {
-    case _ => accountHandler.recycle
+    case _ =>
+      println(" == CleanAccountsJob: start.")
+      accountHandler.recycle
+      println(" == CleanAccountsJob: done.")
   }
 }

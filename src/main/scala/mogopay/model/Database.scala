@@ -387,7 +387,6 @@ object Mogopay {
                   var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class TransactionSequence(uuid: String,
-                                 vendorId: Document,
                                  transactionId: Long,
                                  var dateCreated: Date = Calendar.getInstance().getTime,
                                  var lastUpdated: Date = Calendar.getInstance().getTime)

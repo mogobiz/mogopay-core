@@ -2,7 +2,7 @@
 Make sure Elasticsearch is started.
 
     sbt console
-    mogopay.handlers.BootHandler.boot(true, true)
+    mogopay.handlers.DBInitializationHandler.boot(true, true)
     exit
 
 This will initialize the database and import the fixtures.
