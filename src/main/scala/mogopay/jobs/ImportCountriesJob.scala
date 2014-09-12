@@ -28,7 +28,7 @@ object ImportCountriesJob {
  */
 class ImportCountriesJob extends Actor {
   def receive = {
-    case _ =>
+    case _ => try {
       println(" == ImportCountriesJob: start.")
 
       val currencies = Settings.Import.currenciesFile
@@ -42,16 +42,16 @@ class ImportCountriesJob extends Actor {
       countryImportHandler.importAdmins2(admins2)
       countryImportHandler.importCities(cities)
 
-      cities.renameTo(new File(cities.getAbsolutePath + "." + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())))
+      val now = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
+      cities.renameTo(new File(cities.getAbsolutePath + "." + now))
+      countries.renameTo(new File(countries.getAbsolutePath + "." + now))
+      admins1.renameTo(new File(admins1.getAbsolutePath + "." + now))
+      admins2.renameTo(new File(admins2.getAbsolutePath + "." + now))
 
-      if (Settings.Env == Environment.PROD) {
-        val now = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
-        countries.renameTo(new File(countries.getAbsolutePath + "." + now))
-        admins1.renameTo(new File(admins1.getAbsolutePath + "." + now))
-        admins2.renameTo(new File(admins2.getAbsolutePath + "." + now))
-      }
-
-    println(" == ImportCountriesJob: done.")
+      println(" == ImportCountriesJob: done.")
+    } catch {
+      case e: Throwable => println(" == ImportCountriesJob: files missing, skipping…")
+    }
   }
 }
 
