@@ -37,10 +37,12 @@ object BootHandler {
     val PAYLINE = Map("paylineAccount" -> "26399702760590", "paylineKey" -> "SH0gPsNhvHmePmlZz3Mj", "paylineContract" -> "1234567")
     val SIPS = Map("sipsMerchantId" -> "011223344553333", "sipsMerchantCountry" -> "fr")
     val SIPS_2 = Map("sipsMerchantId" -> "011223344551112", "sipsMerchantCountry" -> "fr")
-    val PAYBOX = Map("payboxSite" -> "1999888", "payboxKey" -> "110647233", "payboxRank" -> "32", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
-    val PAYBOX_2 = Map("payboxSite" -> "1999888", "payboxKey" -> "110647233", "payboxRank" -> "32", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
-    val PAYBOX_3 = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "200932363", "payboxContract" -> "PAYBOX_DIRECT")
-    val PAYBOX_4 = Map("payboxSite" -> "1999888", "payboxKey" -> "107975626", "payboxRank" -> "43", "payboxContract" -> "PAYBOX_SYSTEM")
+    val PAYBOX_EXTERNAL = Map("payboxSite" -> "1999888", "payboxKey" -> "110647233", "payboxRank" -> "32", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
+
+    val PAYBOX_2DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "85", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
+
+    val PAYBOX_3DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_DIRECT")
+
     val SYS_PAY = Map("systempayShopId" -> "34889127", "systempayContractNumber" -> "5028717", "systempayCertificate" -> "7736291283331938")
 
     val customer = RoleName.CUSTOMER
@@ -110,13 +112,13 @@ object BootHandler {
     merchantAccountInfo = createAccount("Merchant10", "TEST", "seller10@merchant.com", merchantTelephone10, merchantAccountAddress10, merchant, Some(paymentConfig2), None)
     createParcom(merchantAccountInfo)
 
-    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX, CBPaymentMethod.EXTERNAL)
+    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
     createAccount("Merchant3", "TEST", "seller3@merchant.com", merchantTelephone3, merchantAccountAddress3, merchant, Some(payboxPaymentConfig), None)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_2, CBPaymentMethod.THREEDS_NO)
+    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_2DS, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant4", "TEST", "seller4@merchant.com", merchantTelephone4, merchantAccountAddress4, merchant, Some(payboxPaymentConfig), None)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_3, CBPaymentMethod.THREEDS_REQUIRED)
+    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_3DS, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant11", "TEST", "seller11@merchant.com", merchantTelephone11, merchantAccountAddress11, merchant, Some(payboxPaymentConfig), None)
 
     val paymentConfig3 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_NO)
@@ -157,7 +159,6 @@ object BootHandler {
                                   passwordPattern: Option[String] = Some("")) = {
     PaymentConfig(
       Some(JSONObject(kwixoConfig).toString()),
-      None,
       Some(JSONObject(paypalConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
       None,
@@ -173,7 +174,7 @@ object BootHandler {
                             paymentConfig: Option[PaymentConfig],
                             owner: Option[Account],
                             status: AccountStatus = AccountStatus.ACTIVE,
-                            secret: String = "",
+                            secret: String = "secret",
                             uuid: String = newUUID): Account = {
     val account = Account(uuid,
       email,
@@ -473,7 +474,16 @@ __FIN__*/
 }
 
 object Main2 extends App {
-  //  EsClient.client.client.prepareDeleteByQuery(Settings.DB.INDEX).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-  //  EsClient.client.client.prepareDeleteByQuery(Settings.DB.INDEX).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
-  BootHandler.boot()
+  try {
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "BOTransactionLog")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
+  }
+  catch{
+    case t:Throwable => println()
+  }
+  BootHandler.boot(true)
 }

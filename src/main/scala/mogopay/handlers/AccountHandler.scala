@@ -1065,7 +1065,6 @@ class AccountHandler {
           paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           kwixoParam  = profile.kwixoParam.kwixoParams,
-        buysterParam = None,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
           cbParam  = Some(write(cbParam)),
           pwdEmailContent = profile.passwordContent,

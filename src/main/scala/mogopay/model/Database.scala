@@ -218,7 +218,6 @@ object Mogopay {
                          var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class PaymentConfig(kwixoParam: Option[String],
-                           buysterParam: Option[String],
                            paypalParam: Option[String],
                            cbParam: Option[String],
                            sipsData: Option[String] = None,
@@ -331,8 +330,8 @@ object Mogopay {
 
   case class BOPaymentData(@JsonScalaEnumeration(classOf[PaymentTypeRef]) paymentType: PaymentType,
                            @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
-                           idCommandCB: Option[String],
-                           dateCommandCB: Option[java.util.Date],
+                           transactionSequence: Option[String],
+                           orderDate: Option[java.util.Date],
                            @JsonScalaEnumeration(classOf[ResponseCode3DSRef]) status3DS: Option[ResponseCode3DS],
                            transactionId: Option[String],
                            authorizationId: Option[String])

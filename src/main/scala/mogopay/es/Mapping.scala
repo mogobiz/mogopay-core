@@ -21,7 +21,7 @@ object Mapping {
     implicit val system = akka.actor.ActorSystem("mogopay-boot")
     val pipeline: HttpRequest => scala.concurrent.Future[HttpResponse] = sendReceive
 
-    Await.result(EsClient.client.execute(create index Settings.ElasticSearch.Index), 1 second)
+    EsClient.client.sync.execute(create index Settings.ElasticSearch.Index)
 
     mappingFiles foreach { name =>
       val url = s"/${Settings.ElasticSearch.Index}/$name/_mapping"

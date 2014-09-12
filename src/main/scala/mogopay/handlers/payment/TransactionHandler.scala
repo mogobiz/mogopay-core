@@ -86,8 +86,8 @@ class TransactionHandler {
       }
       transaction = transaction.copy(
         paymentData = transaction.paymentData.copy(
-          idCommandCB = Option(paymentRequest.transactionSequence),
-          dateCommandCB = Option(paymentRequest.orderDate)
+          transactionSequence = Option(paymentRequest.transactionSequence),
+          orderDate = Option(paymentRequest.orderDate)
         )
       )
       EsClient.index(transaction, false)
@@ -150,7 +150,6 @@ class TransactionHandler {
         val newTx = transaction.copy(
           status = newStatus,
           endDate = computeEndDate(newStatus),
-          transactionUUID = paymentResult.transactionSequence,
           authorizationId = paymentResult.authorizationId,
           errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
           errorMessageOrigin = paymentResult.errorMessageOrigin,
