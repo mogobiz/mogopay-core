@@ -29,6 +29,8 @@ import scala.util._
 import mogopay.config.{Environment, Settings}
 import mogopay.config.HandlersConfig._
 
+import scala.util.control.NonFatal
+
 class SystempayClient {
   implicit val formats = new DefaultFormats {}
 
@@ -545,7 +547,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
           Failure(new Exception())
         }
       } catch {
-        case e: Throwable =>
+        case NonFatal(e)=>
           val queryString = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.UnknownError)
           Success(buildURL(errorURL, queryString))
       }

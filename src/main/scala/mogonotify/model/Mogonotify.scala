@@ -6,6 +6,8 @@ import java.util.{Calendar, Date}
 import mogopay.config.Settings
 import spray.httpx.unmarshalling.{MalformedContent, FromStringDeserializer}
 
+import scala.util.control.NonFatal
+
 object MogoNotify {
   type Document = String
 
@@ -22,7 +24,7 @@ object MogoNotify {
       try
         Right(Platform.withName(value))
       catch {
-        case ex: Throwable => Left(MalformedContent(s"Cannot parse: $value", ex))
+        case NonFatal(ex) => Left(MalformedContent(s"Cannot parse: $value", ex))
       }
   }
 

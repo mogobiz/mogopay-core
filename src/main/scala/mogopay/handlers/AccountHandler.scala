@@ -40,6 +40,7 @@ import com.atosorigin.services.cad.common.util.FileParamReader
 import com.sksamuel.elastic4s.ElasticDsl._
 import mogopay.util.GlobalUtil._
 
+import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
 
 class LoginException(msg: String) extends Exception(msg)
@@ -64,7 +65,7 @@ class AccountHandler {
       java.util.regex.Pattern.compile(pattern)
       true
     } catch {
-      case _: Throwable => false
+      case NonFatal(_) => false
     }
   }
 

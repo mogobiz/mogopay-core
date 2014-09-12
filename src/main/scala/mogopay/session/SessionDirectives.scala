@@ -15,6 +15,7 @@ import spray.routing._
 
 import scala.collection.mutable.Map
 import scala.concurrent._
+import scala.util.control.NonFatal
 
 case object MissingSessionCookieRejection extends Rejection
 
@@ -148,7 +149,7 @@ trait FileBackend extends Backend {
       val raw = input.readObject().asInstanceOf[Array[Byte]]
       Some(converter.toDomain(raw))
     } catch {
-      case e: Throwable =>
+      case NonFatal(e) =>
         e.printStackTrace()
         None
     } finally {

@@ -33,6 +33,7 @@ import spray.http.Uri
 
 import scala.collection.immutable
 import scala.util._
+import scala.util.control.NonFatal
 
 /*
  <service component="checkout" name="card3D_Order"> <card3D_Order origin="Batch" merchant_id="011223344553334" merchant_country="fr"
@@ -567,7 +568,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
       return calendar
     }
     catch {
-      case e: Throwable => {
+      case NonFatal(e) => {
         return null
       }
     }

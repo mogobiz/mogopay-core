@@ -12,6 +12,8 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import spray.httpx.unmarshalling.{FromStringDeserializer, MalformedContent}
 
+import scala.util.control.NonFatal
+
 object Mogopay {
   type Document = String
 
@@ -66,7 +68,7 @@ object Mogopay {
       try
         Right(RoleName.withName(value))
       catch {
-        case ex: Throwable => Left(MalformedContent(s"Cannot parse: $value", ex))
+        case NonFatal(ex) => Left(MalformedContent(s"Cannot parse: $value", ex))
       }
   }
 

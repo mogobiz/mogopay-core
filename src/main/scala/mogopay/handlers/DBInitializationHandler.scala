@@ -14,6 +14,7 @@ import mogopay.model.Mogopay.RoleName.RoleName
 import mogopay.util.GlobalUtil._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.index.query.TermQueryBuilder
+import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
 
 object DBInitializationHandler {
@@ -483,7 +484,7 @@ object Main2 extends App {
   EsClient.client.client.prepareDeleteByQuery(Settings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
   }
   catch{
-    case t:Throwable => println()
+    case NonFatal(_) => println()
   }
   DBInitializationHandler.boot()
 }

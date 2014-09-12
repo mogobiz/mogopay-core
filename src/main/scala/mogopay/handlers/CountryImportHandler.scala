@@ -8,6 +8,8 @@ import mogopay.es.EsClient
 import mogopay.model.Mogopay._
 import org.elasticsearch.index.query.TermQueryBuilder
 
+import scala.util.control.NonFatal
+
 class CountryImportHandler {
   private def findCountryAdmin(code: String, level: Int): Option[CountryAdmin] = {
     val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter {
@@ -92,7 +94,7 @@ class CountryImportHandler {
               val cls = this.getClass.getClassLoader.loadClass(countryCode + ".Import")
               cls.getMethod("importAdmin1", classOf[File]).invoke(cls.newInstance(), localAdmin1)
             } catch {
-              case _: Throwable =>
+              case NonFatal(_) =>
             }
           } else {
             val countryAdmin = findCountryAdmin(code, 1)
@@ -135,7 +137,7 @@ class CountryImportHandler {
               val cls = this.getClass.getClassLoader.loadClass(countryCode + ".Import")
               cls.getMethod("importAdmin2", classOf[File]).invoke(cls.newInstance(), localAdmin2)
             } catch {
-              case _: Throwable =>
+              case NonFatal(_) =>
             }
           } else {
             val countryAdmin2 = findCountryAdmin(code, 2)

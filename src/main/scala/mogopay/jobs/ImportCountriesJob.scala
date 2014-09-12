@@ -7,6 +7,7 @@ import java.util.Date
 import mogopay.config.HandlersConfig._
 import mogopay.config.{Environment, Settings}
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 
 object ImportCountriesJob {
   def start(system: ActorSystem) {
@@ -50,7 +51,7 @@ class ImportCountriesJob extends Actor {
 
       println(" == ImportCountriesJob: done.")
     } catch {
-      case e: Throwable => println(" == ImportCountriesJob: files missing, skipping…")
+      case NonFatal(_) => println(" == ImportCountriesJob: files missing, skipping…")
     }
   }
 }

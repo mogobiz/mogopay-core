@@ -26,6 +26,7 @@ import org.json4s.jackson.JsonMethods._
 
 import scala.collection._
 import scala.util._
+import scala.util.control.NonFatal
 
 class TransactionHandler {
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {
@@ -163,7 +164,7 @@ class TransactionHandler {
         Success()
       }.getOrElse(Failure(new BOTransactionNotFoundException))
     } catch {
-      case e: Throwable => Failure(e)
+      case NonFatal(e)=> Failure(e)
     }
   }
 
