@@ -1027,52 +1027,50 @@ class AccountHandler {
           else Success(new Sha256Hash(p1).toHex)
         } getOrElse Success(account.password)
 
-        val cbParam: CBParams = CBPaymentProvider.withName(profile.cbProvider) match {
-          case CBPaymentProvider.PAYBOX    => profile.cbParam.asInstanceOf[PayboxParams]
-          case CBPaymentProvider.PAYLINE   => profile.cbParam.asInstanceOf[PaylineParams]
-          case CBPaymentProvider.SIPS      => profile.cbParam.asInstanceOf[SIPSParams]
-          case CBPaymentProvider.SYSTEMPAY => profile.cbParam.asInstanceOf[SystempayParams]
-        }
-
-        val oldSIPSParams: Map[String, Map[String, Option[String]]] = account.paymentConfig.map(_.sipsData).flatten
-          .map { data => parse(StringInput(data)).extract[Map[String, Map[String, Option[String]]]] }
-          .getOrElse(Map())
-
-        val newSIPSParams = if (CBPaymentProvider.withName(profile.cbProvider) != CBPaymentProvider.SIPS) {
-          Map()
-        } else {
+        val cbProvider = CBPaymentProvider.withName(profile.cbProvider)
+        val cbParam: CBParams = profile.cbParam
+        if (cbProvider == CBPaymentProvider.SIPS) {
           val params = cbParam.asInstanceOf[SIPSParams]
-
-          val certificate = if (params.sipsMerchantCertificateFileName == None || params.sipsMerchantCertificateFileName == Some("") ||
-            params.sipsMerchantCertificateFileContent == None || params.sipsMerchantCertificateFileContent == Some("")) {
-            oldSIPSParams.getOrElse("certificate", Map())
-          } else {
-            Map("sipsCetificateFileName" -> params.sipsMerchantCertificateFileName,
-              "sipsCetificateFileContent" -> params.sipsMerchantCertificateFileContent)
+          val dir = new File(Settings.Sips.CertifDir, account.uuid)
+          dir.mkdirs()
+          val certificateTargetFile = new File(dir, "certif." + params.sipsMerchantCountry + "." + params.sipsMerchantId)
+          if (params.sipsMerchantCertificateFileContent.getOrElse("").length > 0 && params.sipsMerchantCertificateFileName.getOrElse("").length > 0) {
+            certificateTargetFile.delete()
+            scala.tools.nsc.io.File(certificateTargetFile.getAbsolutePath).writeAll(params.sipsMerchantCertificateFileContent.get)
           }
-
-          val parcom = if (params.sipsMerchantParcomFileName == None || params.sipsMerchantParcomFileName == Some("") ||
-            params.sipsMerchantParcomFileContent == None || params.sipsMerchantParcomFileContent == Some("")) {
-            oldSIPSParams.getOrElse("parcom", Map())
-          } else {
-            Map("sipsParcomFileName" -> params.sipsMerchantParcomFileName,
-              "sipsParcomFileContent" -> params.sipsMerchantParcomFileContent)
+          val parcomTargetFile = new File(dir, "parcom." + params.sipsMerchantId)
+          if (params.sipsMerchantParcomFileContent.getOrElse("").length > 0 && params.sipsMerchantParcomFileName.getOrElse("").length > 0) {
+            parcomTargetFile.delete()
+            scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(params.sipsMerchantParcomFileContent.get)
           }
+          val targetFile = new File(dir, "pathfile")
+          val isJSP = params.sipsMerchantCertificateFileContent.map(_.indexOf("!jsp") > 0).getOrElse(false) ||
+            (targetFile.exists() && (new FileParamReader(targetFile.getAbsolutePath)).getParam("F_CTYPE") == "jsp")
 
-          Map("certificate" -> certificate, "parcom" -> parcom)
+          targetFile.delete()
+          scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
+            s"""
+             |"D_LOGO!${Settings.MogopayEndPoint}/images/sips/logo/!"
+             |"F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!"
+             |"F_PARAM!${new File(dir, "parcom").getAbsolutePath}!"
+             |"F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!"
+             |"${if (isJSP) "F_CTYPE!jsp!" else ""}"
+           """.stripMargin
+          )
+          if (isJSP)
+            certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
         }
 
         val paymentConfig = PaymentConfig(
           paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
-          kwixoParam  = profile.kwixoParam.kwixoParams,
+          kwixoParam = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          cbParam  = Some(write(cbParam)),
+          cbParam = Some(write(cbParam)),
           pwdEmailContent = profile.passwordContent,
           pwdEmailSubject = profile.passwordSubject,
           callbackPrefix = profile.callbackPrefix,
-          passwordPattern = profile.passwordPattern,
-          sipsData = Some(write(newSIPSParams)))
+          passwordPattern = profile.passwordPattern)
 
         (for {
           c <- civility
@@ -1086,7 +1084,7 @@ class AccountHandler {
             firstName = Some(profile.firstName),
             lastName = Some(profile.lastName),
             birthDate = birthDate,
-            address   = address,
+            address = address,
             paymentConfig = Some(paymentConfig)
           )
 
@@ -1107,11 +1105,11 @@ class AccountHandler {
   }
 
   def recycle() {
-    val req = select in Settings.ElasticSearch.Index -> "Account" query {
-      term("status", AccountStatus.WAITING_ENROLLMENT)
-      range("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.RecycleAccountDuration)
-    } filter {
-      termFilter("status", AccountStatus.WAITING_ENROLLMENT)
+    val req = select in Settings.ElasticSearch.Index -> "Account" filter {
+      and(
+        termFilter("status", AccountStatus.WAITING_ENROLLMENT),
+        rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.RecycleAccountDuration)
+      )
     }
     EsClient.searchAllRaw(req) map (_.getId) foreach (EsClient.delete[Account](_, false))
   }
