@@ -319,7 +319,7 @@ class TransactionHandler {
     // This definitely set the mogopay status for the whole session.
 
     val vendor =
-      if (sessionData.customerId.isDefined && successURL.isEmpty && errorURL.isEmpty && cardinfoURL.isEmpty && authURL.isEmpty) {
+      if (sessionData.accountId.isDefined && successURL.isEmpty && errorURL.isEmpty && cardinfoURL.isEmpty && authURL.isEmpty) {
         // user is authenticated and is coming back from the CVV screen.
         transactionUUID = sessionData.transactionUuid
         errorURL = sessionData.errorURL
@@ -428,7 +428,7 @@ class TransactionHandler {
     if (!sessionData.mogopay)
       sessionData.mogopay = submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty)
 
-    sessionData.customerId.map { customerId =>
+    sessionData.accountId.map { customerId =>
       // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
       val cust = EsClient.load[Account](customerId).orNull
       if (submit.params.ccNum.nonEmpty) {
@@ -464,7 +464,7 @@ class TransactionHandler {
       if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
         // only credit card payments are supported through mogopay
         if (submit.params.customerCVV.nonEmpty) {
-          val customer = EsClient.load[Account](sessionData.customerId.get).orNull
+          val customer = EsClient.load[Account](sessionData.accountId.get).orNull
           val card = customer.creditCards(0)
           val cardNum = RSA.decrypt(card.number, Settings.RSA.privateKey)
           val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)

@@ -36,7 +36,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
     val account = EsClient.search[Account](req)
     account map { account =>
       sessionData.authenticated = true
-      sessionData.customerId = Some(account.uuid)
+      sessionData.accountId = Some(account.uuid)
       val cards = account.creditCards
       if (cards.isEmpty) {
         val form = s"""

@@ -231,10 +231,10 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         val response = pipeline.flatMap(_(request))
                         def cleanSession(session: Session) {
                           val authenticated = session.sessionData.authenticated
-                          val customerId = session.sessionData.customerId
+                          val customerId = session.sessionData.accountId
                           session.clear()
                           session.sessionData.authenticated = authenticated
-                          session.sessionData.customerId = customerId
+                          session.sessionData.accountId = customerId
                         }
                         onComplete(response) {
                           case Failure(t) =>

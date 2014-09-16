@@ -1050,7 +1050,7 @@ class AccountHandler {
           targetFile.delete()
           scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
             s"""
-             |"D_LOGO!${Settings.MogopayEndPoint}/images/sips/logo/!"
+             |"D_LOGO!${Settings.MogopayEndPoint}${Settings.ImagesPath}sips/logo/!"
              |"F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!"
              |"F_PARAM!${new File(dir, "parcom").getAbsolutePath}!"
              |"F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!"

@@ -451,7 +451,6 @@ object Mogopay {
                          var cvvURL: Option[String] = None,
                          var token: Option[String] = None,
                          var password: Option[String] = None,
-                         var customerId: Option[Document] = None,
                          var csrfToken: Option[String] = None,
                          var o3dSessionId: Option[String] = None,
                          var cardSave: Boolean = false,
