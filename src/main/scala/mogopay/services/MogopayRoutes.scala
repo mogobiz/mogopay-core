@@ -6,39 +6,47 @@ import mogopay.services.payment._
 import spray.routing._
 import akka.actor.{ActorLogging, Actor, Props}
 import mogopay.actors.{MogopaySystem, MogopayActors}
+import spray.routing.directives.CachingDirectives._
+import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, StatusCode}
 import spray.util.LoggingContext
 import spray.routing.Directives
 import mogopay.session.SessionESDirectives._
+import spray.http._
 
 trait MogopayRoutes extends Directives {
   this: MogopayActors with MogopaySystem =>
 
   private implicit val _ = system.dispatcher
 
-  val routes = pathPrefix("pay") {
-    new AccountService(accountActor).route ~
-      new AccountServiceJsonless(accountActor).route ~
-      new BackofficeService(backofficeActor).route ~
-      new CountryService(countryActor).route ~
-      new RateService(rateActor).route ~
-      new TransactionService(transactionActor).route ~
-      new SampleService().route ~
-      new TwitterService().route ~
-      new LinkedInService().route ~
-      new GoogleService().route ~
-      new FacebookService().route ~
-      new GithubService().route ~
-      new SystempayService(systempayActor).route ~
-      new PayPalService(payPalActor).route ~
-      new PayboxService(payboxActor).route ~
-      new PaylineService(paylineActor).route ~
-      new MogopayService(mogopayActor).route ~
-      new SipsService(sipsActor).route ~
-      new UserService(userActor).route
-  }
+  val routes = pathPrefix("static") {
+      compressResponse() {
+        getFromResourceDirectory("static")
+      }
+  } ~
+    pathPrefix("pay") {
+      new AccountService(accountActor).route ~
+        new AccountServiceJsonless(accountActor).route ~
+        new BackofficeService(backofficeActor).route ~
+        new CountryService(countryActor).route ~
+        new RateService(rateActor).route ~
+        new TransactionService(transactionActor).route ~
+        new SampleService().route ~
+        new TwitterService().route ~
+        new LinkedInService().route ~
+        new GoogleService().route ~
+        new FacebookService().route ~
+        new GithubService().route ~
+        new SystempayService(systempayActor).route ~
+        new PayPalService(payPalActor).route ~
+        new PayboxService(payboxActor).route ~
+        new PaylineService(paylineActor).route ~
+        new MogopayService(mogopayActor).route ~
+        new SipsService(sipsActor).route ~
+        new UserService(userActor).route
+    }
   val routesServices = system.actorOf(Props(new RoutedHttpService(routes)))
 }
 

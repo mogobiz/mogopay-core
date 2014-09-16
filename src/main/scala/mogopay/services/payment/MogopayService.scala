@@ -54,7 +54,7 @@ class MogopayService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
 
-  lazy val startPayment = path("start-payment" / Segment) { xtoken =>
+  lazy val startPayment = path("start" / Segment) { xtoken =>
     get {
       val session = SessionESDirectives.load(xtoken).get
 

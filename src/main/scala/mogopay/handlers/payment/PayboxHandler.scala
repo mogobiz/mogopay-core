@@ -416,10 +416,10 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
         "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
-        "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
-        "PBX_REFUSE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
-        "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done-payment",
-        "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback-payment/${sessionData.uuid}"
+        "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done",
+        "PBX_REFUSE" -> s"${Settings.MogopayEndPoint}paybox/done",
+        "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done",
+        "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback/${sessionData.uuid}"
       )
       val queryString = mapToQueryString(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)

@@ -31,12 +31,12 @@ import scala.concurrent.duration._
     }
   }
 
-  lazy val startPayment = path("start-payment" / Segment) { xtoken =>
+  lazy val startPayment = path("start" / Segment) { xtoken =>
     import mogopay.config.Implicits._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        println("start-payment:" + xtoken)
+        println("start:" + xtoken)
         onComplete((actor ? StartPayment(session.sessionData)).mapTo[Try[Either[String, Uri]]]) {
           case Failure(t) => complete(StatusCodes.InternalServerError)
           case Success(r) =>
@@ -60,7 +60,7 @@ import scala.concurrent.duration._
     }
   }
 
-  lazy val done = path("done-payment") {
+  lazy val done = path("done") {
     import mogopay.config.Implicits._
     get {
       session { session =>
@@ -80,7 +80,7 @@ import scala.concurrent.duration._
     }
   }
 
-  lazy val callbackPayment = path("callback-payment" / Segment) { xtoken =>
+  lazy val callbackPayment = path("callback" / Segment) { xtoken =>
     import mogopay.config.Implicits.MogopaySession
     get {
       parameterMap {

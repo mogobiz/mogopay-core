@@ -123,7 +123,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
   }
 
   def callbackPayment(params: Map[String, String], vendorUuid: Document): Try[Uri] = {
-    handleResponse(vendorUuid, params("DATA"), params("response_code"))
+    handleResponse(vendorUuid, params("DATA"))
     Success(Uri(Settings.MogopayEndPoint))
   }
 
@@ -166,7 +166,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
     var resultatPaiement: PaymentResult =
       if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.PAYMENT_REFUSED) {
         try {
-          handleResponse(vendorId, params("DATA"), params("response_code"))
+          handleResponse(vendorId, params("DATA"))
         }
         catch {
           case e: Exception =>
@@ -189,7 +189,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
 
   }
 
-  private def handleResponse(vendorUuid: Document, cypheredtxt: String, responseCode: String): PaymentResult = {
+  private def handleResponse(vendorUuid: Document, cypheredtxt: String): PaymentResult = {
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
     val targetFile: File = new File(dir, "pathfile")
     val api = new SIPSApiWeb(targetFile.getAbsolutePath)
@@ -285,7 +285,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
       bankErrorMessage = Option(BankErrorCodes.getErrorMessage(resp.getValue("bank_response_code"))),
       token = null)
 
-    transactionHandler.finishPayment(vendorUuid, transactionUuid, if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, responseCode)
+    transactionHandler.finishPayment(vendorUuid, transactionUuid, if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, resp.getValue("response_code"))
     paymentResult
   }
 

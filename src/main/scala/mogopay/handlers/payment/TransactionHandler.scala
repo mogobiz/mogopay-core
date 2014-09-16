@@ -444,7 +444,7 @@ class TransactionHandler {
           // the user has been authenticated at this step.
           //forward(controller: "mogopay", action: "startPayment", params: params + [xtoken: sessionData.csrfToken])
           //Success((buildNewSubmit(submit, newSession), "startPayment"))
-          Success(("mogopay", "start-payment"))
+          Success(("mogopay", "start"))
         }
         else if (submit.params.customerPassword.nonEmpty) {
           // User submitted a password we authenticate him
@@ -475,7 +475,7 @@ class TransactionHandler {
       else {
         sessionData.transactionType.get.toLowerCase
       }
-      Success((handler, "start-payment"))
+      Success((handler, "start"))
     }
   }
 

@@ -33,7 +33,6 @@ object DBInitializationHandler {
       countryImportHandler.importCities(Settings.Import.citiesFile)
     }
 
-    val NOT_USED = Map[String, String]()
     val PAYPAL = Map("paypalUser" -> "hayssams-facilitator_api1.yahoo.com", "paypalPassword" -> "1365940711", "paypalSignature" -> "An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG")
     val PAYLINE = Map("paylineAccount" -> "26399702760590", "paylineKey" -> "SH0gPsNhvHmePmlZz3Mj", "paylineContract" -> "1234567")
     val SIPS = Map("sipsMerchantId" -> "011223344553333", "sipsMerchantCountry" -> "fr")
@@ -84,7 +83,7 @@ object DBInitializationHandler {
     val merchantAccountAddress12 = createAddress("Rue Saint Michel12", "Paris", "75007", "France")
 
     val paymentConfig1 = createPaymentConfig(CBPaymentProvider.PAYLINE,
-      PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
+      PAYPAL, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
     var merchantAccountInfo = createAccount("Mogopay", "Merchant",
       "mogopay@merchant.com", merchantTelephone, merchantAccountAddress,
       merchant, Some(paymentConfig1), None, uuid = "mogopay@merchant.com")
@@ -101,40 +100,40 @@ object DBInitializationHandler {
     createBOTransaction(merchantAccountInfo)
     createBOTransaction(merchantAccountInfo)
 
-    val sipsPaymentConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, NOT_USED, SIPS, CBPaymentMethod.THREEDS_NO)
+    val sipsPaymentConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS, CBPaymentMethod.THREEDS_NO)
     val merchantAccountInfo2 = createAccount("Merchant2", "TEST", "seller2@merchant.com", merchantTelephone2, merchantAccountAddress2, merchant, Some(sipsPaymentConfig), None)
     createCertification(merchantAccountInfo2)
 
-    val sipsPaymentConfig12 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, NOT_USED, SIPS, CBPaymentMethod.THREEDS_REQUIRED)
+    val sipsPaymentConfig12 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS, CBPaymentMethod.THREEDS_REQUIRED)
     val merchantAccountInfo12 = createAccount("Merchant12", "TEST", "seller12@merchant.com", merchantTelephone12, merchantAccountAddress12, merchant, Some(sipsPaymentConfig12), None)
     createCertification(merchantAccountInfo12)
 
-    val paymentConfig2 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, NOT_USED, SIPS_2, CBPaymentMethod.EXTERNAL)
+    val paymentConfig2 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS_2, CBPaymentMethod.EXTERNAL)
     merchantAccountInfo = createAccount("Merchant10", "TEST", "seller10@merchant.com", merchantTelephone10, merchantAccountAddress10, merchant, Some(paymentConfig2), None)
     createParcom(merchantAccountInfo)
 
-    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
+    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
     createAccount("Merchant3", "TEST", "seller3@merchant.com", merchantTelephone3, merchantAccountAddress3, merchant, Some(payboxPaymentConfig), None)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_2DS, CBPaymentMethod.THREEDS_NO)
+    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_2DS, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant4", "TEST", "seller4@merchant.com", merchantTelephone4, merchantAccountAddress4, merchant, Some(payboxPaymentConfig), None)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, NOT_USED, PAYBOX_3DS, CBPaymentMethod.THREEDS_REQUIRED)
+    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_3DS, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant11", "TEST", "seller11@merchant.com", merchantTelephone11, merchantAccountAddress11, merchant, Some(payboxPaymentConfig), None)
 
-    val paymentConfig3 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_NO)
+    val paymentConfig3 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant5", "TEST", "seller5@merchant.com", merchantTelephone5, merchantAccountAddress5, merchant, Some(paymentConfig3), None)
 
-    val paymentConfig4 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, NOT_USED, PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
+    val paymentConfig4 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant6", "TEST", "seller6@merchant.com", merchantTelephone6, merchantAccountAddress6, merchant, Some(paymentConfig4), None)
 
-    val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.EXTERNAL)
+    val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.EXTERNAL)
     createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com")
 
-    val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.THREEDS_NO)
+    val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant8", "TEST", "seller8@merchant.com", merchantTelephone8, merchantAccountAddress8, merchant, Some(paymentConfig6), None, AccountStatus.ACTIVE, "seller8@merchant.com", "seller8")
 
-    val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, NOT_USED, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
+    val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "seller9")
 
     val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
@@ -153,16 +152,14 @@ object DBInitializationHandler {
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
                                   paypalConfig: M,
-                                  kwixoConfig: M,
-                                  cbConfig: M,
+                                  cbConfig:M,
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
                                   passwordPattern: Option[String] = Some("")) = {
     PaymentConfig(
-      Some(JSONObject(kwixoConfig).toString()),
+      None,
       Some(JSONObject(paypalConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
-      None,
       cbProvider,
       cbMethod,
       "user_email", "user_password",
@@ -175,7 +172,7 @@ object DBInitializationHandler {
                             paymentConfig: Option[PaymentConfig],
                             owner: Option[Account],
                             status: AccountStatus = AccountStatus.ACTIVE,
-                            secret: String = "secret",
+                            secret: String = newUUID,
                             uuid: String = newUUID): Account = {
     val account = Account(uuid,
       email,
@@ -293,8 +290,8 @@ object DBInitializationHandler {
   }
 
   private def createCertification(merchant: Account) = {
-    val content1 = """
-d6FDdyqW1EGZGNyXVK0VwiqsuxPhU1Q0yIPlXUaOqQIlCoLGOWqVrjL6e2neIIfJ31
+    val content1 =
+      """d6FDdyqW1EGZGNyXVK0VwiqsuxPhU1Q0yIPlXUaOqQIlCoLGOWqVrjL6e2neIIfJ31
 15BJT9zCHzojfuy5hMTH0x28U3syZAFIGvlAnIu8BJjmoUroJi0YqIoQ68D1PWTaKA
 d7x1oCBoje01qPv1w0lmTXm2qZfGAvRZvBwG0fbokGvtdMzsx2hEDWJt9Rq67VIOIE
 ifX7VNEI1ASqhWKwSd5QXHwUbWLWYHBNAlKqjj54jtSiKpKHkBOmswkdyzFCgwggp5
@@ -348,7 +345,7 @@ BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
     certifTargetFile.delete()
     scala.tools.nsc.io.File(certifTargetFile.getAbsolutePath).writeAll(content1)
 
-    val content2 = "F_CERTIFICATE)!" +
+    val content2 = "F_CERTIFICATE!" +
       new File(certifDir, "certif").getAbsolutePath + "!\n"
     val targetFile = new File(certifDir, "pathfile")
     targetFile.delete()
@@ -356,8 +353,8 @@ BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
   }
 
   private def createParcom(merchant: Account) = {
-    val parcomContent = """
-CANCEL_URL!http://!
+    val parcomContent =
+"""CANCEL_URL!http://!
 RETURN_URL!http://!
 ADVERT!!
 BACKGROUND!!
@@ -373,15 +370,15 @@ PAYMENT_MEANS!CB,2,VISA,2,MASTERCARD,2!
 RETURN_LOGO!!
 SUBMIT_LOGO!!
 TEMPLATE!!
-                        """
+"""
 
-    val parcomDefaultContent = """
-BGCOLOR!FFFFFF!
+    val parcomDefaultContent =
+"""BGCOLOR!FFFFFF!
 BLOCK_ALIGN!center!
 BLOCK_ORDER!1,2,3,4,5,6,7,8,9!
 HEADER_FLAG!yes!
 TEXTCOLOR!000000!
-                               """
+"""
 
     val certifContent = """
 <%
@@ -459,14 +456,13 @@ __FIN__*/
     val targetFile = new File(certifDir, "pathfile")
     targetFile.delete()
     val targetContent =
-      s"""
-        |D_LOGO!${Settings.applicationUIURL + "/images/sips/logo/"}!\n
-        |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!\n
-        |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!\n
-        |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!\n
-        |F_CTYPE!jsp!\n
-      """.stripMargin
-    scala.tools.nsc.io.File(certifTargetFile.getAbsolutePath).writeAll(targetContent)
+      s"""D_LOGO!${Settings.ImagesPath + "sips/logo/"}!
+        |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
+        |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!
+        |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
+        |F_CTYPE!jsp!
+        |""".stripMargin
+    scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(targetContent)
   }
 
   private def getCertifDir(merchant: Account): File = {

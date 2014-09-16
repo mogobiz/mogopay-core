@@ -30,7 +30,7 @@ import scala.concurrent.duration._
     }
   }
 
-  lazy val startPayment = path("start-payment" / Segment) { xtoken =>
+  lazy val startPayment = path("start" / Segment) { xtoken =>
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get

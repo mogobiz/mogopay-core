@@ -32,7 +32,7 @@ object Settings {
   val SecretKeysDir = "secretkeys/"
   val EmailSenderAddress = "noreply@mogobiz.com"
   val EmailSenderName = "noreply@mogobiz.com"
-  val applicationUIURL = "mogopay.ui/"
+  val ImagesPath = "/static/images/"
   val MogopayEndPoint = config getString "mogopay.endpoint"
 
   val Interface = config getString "spray.interface"
@@ -214,7 +214,7 @@ object Settings {
   require(RememberCookieName.nonEmpty, "session.remember.cookie.name must be non-empty")
   require(Interface.nonEmpty, "interface must be non-empty")
   require(0 < Port && Port < 65536, "illegal port")
-  require(applicationUIURL.endsWith("/"), "applicationUIURL must end with a '/'.")
+  require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
   require(MogopayEndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
 }
 
