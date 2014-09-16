@@ -12,11 +12,13 @@ import mogopay.config.Settings
 import mogopay.handlers.shipping.ShippingPrice
 import mogopay.model.Mogopay.{BOTransaction, TransactionStatus}
 import mogopay.services.Util._
+import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
-import spray.routing.Directives
+import spray.routing._
+import spray.routing.directives.CookieDirectives._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -168,9 +170,29 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
     }
   }
 
+
+  /**
+   * 1. External Payment
+   *  callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   * 2. Custom Payment
+   *  callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount,
+   *  card_type, card_month,card_year,card_cvv
+   * 3. Mogpay Payment
+   *    3.1 First URL (amount only)
+   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   *      callback_cardinfo, callback_cvv, callback_auth
+   *   3.2 second URL (come back from auth screen) - sent here when user was not authenticated
+   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   *      callback_cardinfo, callback_cvv, callback_auth
+   *      user_email, user_password
+   *   3.3 third URL (come back from cvv screen) - sent here once user is authenticated
+   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   *      callback_cardinfo, callback_cvv, callback_auth
+   *      card_cvv
+   */
   lazy val submit = path("submit") {
     post {
-      formFields('callback_success.?, 'callback_error.?, 'callback_cardinfo.?, 'callback_cvv.?, 'transaction_id.?,
+      formFields('callback_success.?, 'callback_error.?, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id.?,
         'transaction_amount.?.as[Option[Long]], 'merchant_id.?, 'transaction_type.?,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
         'card_month.?, 'card_year.?, 'card_type.?).as(SubmitParams) {
@@ -178,7 +200,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
           session {
             session =>
               import mogopay.config.Implicits._
-              def isNewSession() : Boolean = {
+              def isNewSession(): Boolean = {
                 val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
                 val incomingTrans = submitParams.transactionUUID.getOrElse("__INCOMING_UNDEFINED__")
                 sessionTrans == incomingTrans
@@ -207,16 +229,29 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         println(s"request ->${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val response = pipeline.flatMap(_(request))
+                        def cleanSession(session: Session): Directive0 = {
+                          val authenticated = session.sessionData.authenticated
+                          val customerId = session.sessionData.customerId
+                          session.clear()
+                          session.sessionData.authenticated = authenticated
+                          session.sessionData.customerId = customerId
+                        }
                         onComplete(response) {
                           case Failure(t) =>
                             t.printStackTrace()
-                            killSession(session) {
-                              complete(toHTTPResponse(t), t.toString)
+                            cleanSession(session) {
+                              setSession(session) {
+                                complete(toHTTPResponse(t), t.toString)
+                              }
                             }
                           case Success(response) =>
                             println("success->" + response.entity.data.asString)
-                            complete {
-                              response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
+                            cleanSession(session) {
+                              setSession(session) {
+                                complete {
+                                  response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
+                                }
+                              }
                             }
                         }
                       }

@@ -69,7 +69,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
     val transactionUUID = sessionData.transactionUuid.get
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
-    val vendorUuid = sessionData.vendorId.get
+    val vendorUuid = sessionData.merchantId.get
     val paymentRequest = sessionData.paymentRequest.get
 
     if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.SIPS) {
@@ -136,7 +136,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
       val errorURL = sessionData.errorURL.getOrElse("")
       val transactionUUID = sessionData.transactionUuid.get
       val successURL = sessionData.successURL.getOrElse("")
-      val vendorId = sessionData.vendorId.get
+      val vendorId = sessionData.merchantId.get
       val paymentRequest = sessionData.paymentRequest.orNull
       val paymentConfig = sessionData.paymentConfig
       val parametresProvider: Map[String, String] =
@@ -156,7 +156,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
 
   def done(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
     val transactionUUID = sessionData.transactionUuid.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
     val transaction: BOTransaction = EsClient.load[BOTransaction](transactionUUID).orNull

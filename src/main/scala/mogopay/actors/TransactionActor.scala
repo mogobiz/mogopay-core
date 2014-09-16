@@ -21,7 +21,7 @@ object TransactionActor {
 
   case class Verify(secret: String, amount: Option[Long], transactionUUID: String)
 
-  case class SubmitParams(successURL: Option[String], errorURL: Option[String], cardinfoURL: Option[String],
+  case class SubmitParams(successURL: Option[String], errorURL: Option[String], cardinfoURL: Option[String], authURL: Option[String],
                           cvvURL: Option[String],transactionUUID: Option[String], amount: Option[Long], merchantId: Option[String],
                           transactionType: Option[String], customerCVV: Option[String], ccNum: Option[String],
                           customerEmail: Option[String], customerPassword: Option[String],

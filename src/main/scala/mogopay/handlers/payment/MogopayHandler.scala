@@ -18,7 +18,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
 
   def authenticate(sessionData: SessionData): Try[Left[String, Nothing]] = {
     val ownerFilter =
-      sessionData.vendorId.map {
+      sessionData.merchantId.map {
         vendorId => termFilter("owner", vendorId)
       } getOrElse {
         missingFilter("owner") existence true includeNull true
@@ -44,7 +44,6 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
               <head>
               </head>
               <body>
-                Redirection vers la banque en cours...
                 <form id="formpay" action="${sessionData.cardinfoURL.get}" method="POST" >
                 <input type="hidden" name="result" value="${MogopayConstant.Error}" />
                 <input type="hidden" name="transaction_id" value="${sessionData.transactionUuid}" />
@@ -64,7 +63,6 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
               <head>
               </head>
               <body>
-                Redirection vers la banque en cours...
                 <form id="formpay" action="${sessionData.cvvURL.get}" method="POST" >
                 <input type="hidden" name="result" value="${MogopayConstant.Success}" />
                 <input type="hidden" name="transaction_id" value="${sessionData.transactionUuid}" />
@@ -87,7 +85,6 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
               <head>
               </head>
               <body>
-                Redirection vers la banque en cours...
                 <form id="formpay" action="${sessionData.errorURL.get}" method="POST" >
                 <input type="hidden" name="result" value="${MogopayConstant.Error}" />
                 <input type="hidden" name="transaction_id" value="${sessionData.transactionUuid}" />

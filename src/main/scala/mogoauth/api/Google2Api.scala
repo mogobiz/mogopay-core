@@ -7,8 +7,8 @@ import org.scribe.utils.{OAuthEncoder, Preconditions}
 
 
 class Google2Api extends DefaultApi20 {
-  val AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s"
-  val SCOPED_AUTHORIZE_URL = AUTHORIZE_URL + "&scope=%s"
+  val AuthorizeUrl = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s"
+  val ScopedAuthorizeUrl = AuthorizeUrl + "&scope=%s"
 
   override def getAccessTokenEndpoint() = "https://accounts.google.com/o/oauth2/token"
 
@@ -20,10 +20,10 @@ class Google2Api extends DefaultApi20 {
     Preconditions.checkValidUrl(config.getCallback(), "Must provide a valid url as callback. Google2 does not support OOB");
     // Append scope if present
     if (config.hasScope()) {
-      String.format(SCOPED_AUTHORIZE_URL, config.getApiKey(), OAuthEncoder.encode(config.getCallback()), OAuthEncoder.encode(config.getScope()));
+      String.format(ScopedAuthorizeUrl, config.getApiKey(), OAuthEncoder.encode(config.getCallback()), OAuthEncoder.encode(config.getScope()));
     }
     else {
-      String.format(AUTHORIZE_URL, config.getApiKey(), OAuthEncoder.encode(config.getCallback()));
+      String.format(AuthorizeUrl, config.getApiKey(), OAuthEncoder.encode(config.getCallback()));
     }
   }
 }

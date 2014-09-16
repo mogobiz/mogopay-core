@@ -164,7 +164,7 @@ class TransactionHandler {
         Success()
       }.getOrElse(Failure(new BOTransactionNotFoundException))
     } catch {
-      case NonFatal(e)=> Failure(e)
+      case NonFatal(e) => Failure(e)
     }
   }
 
@@ -279,6 +279,24 @@ class TransactionHandler {
   /**
    * @param submit
    * @return (ServiceName, methodName)
+   *
+   * 1. External Payment
+   *  callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   * 2. Custom Payment
+   *  callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount,
+   *  card_type, card_month,card_year,card_cvv
+   * 3. Mogpay Payment
+   *    3.1 First URL (amount only)
+   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   *      callback_cardinfo, callback_cvv, callback_auth
+   *   3.2 second URL (come back from auth screen) - sent here when user was not authenticated
+   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   *      callback_cardinfo, callback_cvv, callback_auth
+   *      user_email, user_password
+   *   3.3 third URL (come back from cvv screen) - sent here once user is authenticated
+   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   *      callback_cardinfo, callback_cvv, callback_auth
+   *      card_cvv
    */
   def submit(submit: Submit): Try[(String, String)] = {
 
@@ -293,6 +311,7 @@ class TransactionHandler {
     var transactionType = submit.params.transactionType
     var amount = submit.params.amount
     val cardinfoURL = submit.params.cardinfoURL
+    val authURL = submit.params.authURL
     val cvvURL = submit.params.cvvURL
     val sessionData = submit.sessionData
 
@@ -300,13 +319,14 @@ class TransactionHandler {
     // This definitely set the mogopay status for the whole session.
 
     val vendor =
-      if (sessionData.customerId.isDefined && successURL.isEmpty && errorURL.isEmpty && cardinfoURL.isEmpty) {
+      if (sessionData.customerId.isDefined && successURL.isEmpty && errorURL.isEmpty && cardinfoURL.isEmpty && authURL.isEmpty) {
+        // user is authenticated and is coming back from the CVV screen.
         transactionUUID = sessionData.transactionUuid
         errorURL = sessionData.errorURL
         successURL = sessionData.successURL
         transactionType = sessionData.transactionType
         amount = sessionData.amount
-        EsClient.load[Account](sessionData.vendorId.get).orNull
+        EsClient.load[Account](sessionData.merchantId.get).orNull
       } else if (submit.params.merchantId.isDefined) {
         EsClient.load[Account](submit.params.merchantId.get).orNull
       } else {
@@ -359,7 +379,6 @@ class TransactionHandler {
       """)
       transactionExtra = render(cart1).toString
     }
-    //transactionRequestHandler.update(tr.copy(currency = null)) TODO: uncomment this
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
     EsClient.delete[TransactionRequest](transactionRequest.uuid, false)
@@ -401,7 +420,7 @@ class TransactionHandler {
     sessionData.cardinfoURL = submit.params.cardinfoURL
     sessionData.cvvURL = submit.params.cvvURL
     sessionData.transactionType = transactionType
-    sessionData.vendorId = Some(vendor.uuid)
+    sessionData.merchantId = Some(vendor.uuid)
     sessionData.paymentConfig = vendor.paymentConfig
     sessionData.email = submit.params.customerEmail
     sessionData.password = submit.params.customerPassword
@@ -410,6 +429,7 @@ class TransactionHandler {
       sessionData.mogopay = submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty)
 
     sessionData.customerId.map { customerId =>
+      // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
       val cust = EsClient.load[Account](customerId).orNull
       if (submit.params.ccNum.nonEmpty) {
         // Mogopay avec unen nouvele carte
@@ -423,6 +443,20 @@ class TransactionHandler {
         val cust2 = cust.copy(creditCards = List(cc))
         EsClient.update(cust2, false, false)
       }
+    }
+    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
+      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
+      // Mogopay has to determine what to do.
+      // if user is authenticated, then route him to cvv
+      // if user is not authenticated then route him to auth screen
+      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
+      if (sessionData.authenticated) {
+        Success((null, cvvURL.get))
+      }
+      else {
+        Success((null, authURL.get))
+      }
+
     }
 
     if (sessionData.mogopay) {
@@ -444,7 +478,7 @@ class TransactionHandler {
           // the user has been authenticated at this step.
           //forward(controller: "mogopay", action: "startPayment", params: params + [xtoken: sessionData.csrfToken])
           //Success((buildNewSubmit(submit, newSession), "startPayment"))
-          Success(("mogopay", "start"))
+          Success(("mogopay", "start-payment"))
         }
         else if (submit.params.customerPassword.nonEmpty) {
           // User submitted a password we authenticate him
@@ -475,7 +509,7 @@ class TransactionHandler {
       else {
         sessionData.transactionType.get.toLowerCase
       }
-      Success((handler, "start"))
+      Success((handler, "start-payment"))
     }
   }
 

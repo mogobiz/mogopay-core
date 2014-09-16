@@ -444,7 +444,7 @@ object Mogopay {
                          var transactionType: Option[String] = None,
                          var paymentConfig: Option[PaymentConfig] = None,
                          var amount: Option[Long] = None,
-                         var vendorId: Option[Document] = None,
+                         var merchantId: Option[Document] = None,
                          var errorURL: Option[String] = None,
                          var successURL: Option[String] = None,
                          var cardinfoURL: Option[String] = None,

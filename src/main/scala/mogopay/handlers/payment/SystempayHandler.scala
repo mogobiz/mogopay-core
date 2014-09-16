@@ -353,7 +353,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
     val transactionUUID = sessionData.transactionUuid.get
 
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val paymentRequest = sessionData.paymentRequest.get
 
     if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.SYSTEMPAY) {
@@ -409,7 +409,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
 
   def done(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
     val transactionUUID = sessionData.transactionUuid.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
     val transaction: BOTransaction = EsClient.load[BOTransaction](transactionUUID).orNull
@@ -505,7 +505,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
       val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
       val errorURL: String = sessionData.errorURL.get
       val successURL: String = sessionData.successURL.get
-      val vendorId: String = sessionData.vendorId.get
+      val vendorId: String = sessionData.merchantId.get
       val parametresProvider = parse(org.json4s.StringInput(paymentConfig.cbParam.getOrElse("{}"))).extract[Map[String, String]]
       val shopId: String = parametresProvider("systempayShopId")
       val contractNumber: String = parametresProvider("systempayContractNumber")

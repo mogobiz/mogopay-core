@@ -205,7 +205,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
         session { session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              session.sessionData.vendorId match {
+              session.sessionData.merchantId match {
                 case Some(vendorId: String) =>
                   val updatePassword = UpdatePassword(password, vendorId, accountId)
                   complete {
@@ -530,7 +530,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 case Success(account) => {
                   session.sessionData.email = Some(email)
                   session.sessionData.accountId = Some(account.uuid)
-                  session.sessionData.vendorId = account.owner
+                  session.sessionData.merchantId = account.owner
                   session.sessionData.isMerchant = account.owner.isEmpty
                   setSession(session) {
                     import mogopay.config.Implicits._

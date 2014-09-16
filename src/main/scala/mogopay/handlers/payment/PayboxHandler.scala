@@ -67,7 +67,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
 
   def donePayment(sessionData: SessionData, params: Map[String, String], uri:String): Try[Uri] = {
     val transactionUuid = sessionData.transactionUuid.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
     val amount = sessionData.amount
     val paymentRequest = sessionData.paymentRequest.get
@@ -161,7 +161,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
     val transaction = EsClient.load[BOTransaction](paramTransactionUuid).get
     val id3d = params("ID3D")
     val transactionUuid = sessionData.transactionUuid.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
 
     val paymentConfig = sessionData.paymentConfig.get
     val paymentRequest = sessionData.paymentRequest.get
@@ -238,7 +238,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
 
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
     val transactionUUID = sessionData.transactionUuid.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val paymentConfig = sessionData.paymentConfig.get
     val paymentRequest = sessionData.paymentRequest.get
     val id3d = sessionData.id3d.getOrElse(null)

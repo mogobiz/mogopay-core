@@ -43,7 +43,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
    */
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
     val paymentRequest = sessionData.paymentRequest.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val successURL = Settings.MogopayEndPoint + "paypal/success"
     val failureURL = Settings.MogopayEndPoint + "paypal/fail"
     val paymentConfig = sessionData.paymentConfig.get
@@ -124,7 +124,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
       Failure(new Exception)
     } else {
       val transactionUUID = sessionData.transactionUuid.get
-      val vendorId = sessionData.vendorId.get
+      val vendorId = sessionData.merchantId.get
       val paymentRequest = sessionData.paymentRequest.get
 
       val maybePayerId = getPayerId(token, paymentConfig)

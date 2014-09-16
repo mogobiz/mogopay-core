@@ -62,9 +62,9 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
     }
   }
 
-  def queryString: Directive1[String] = extract(_.request.uri.toString())
 
   lazy val done = path("done") {
+    def queryString: Directive1[String] = extract(_.request.uri.toString())
     import mogopay.config.Implicits._
     get {
       session { session =>

@@ -89,7 +89,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val transactionUUID = sessionData.transactionUuid.get
 
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val paymentRequest = sessionData.paymentRequest.get
 
     if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.PAYLINE) {
@@ -162,7 +162,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
   private def handleResponse(sessionData: SessionData, params: Map[String, String]): PaymentResult = {
     val transactionUuid = sessionData.transactionUuid.get
     val paymentConfig = sessionData.paymentConfig.get
-    val vendorId = sessionData.vendorId.get
+    val vendorId = sessionData.merchantId.get
     val paymentRequest = sessionData.paymentRequest.get
     val paymentResult = getWebPaymentDetails(vendorId, transactionUuid, paymentConfig, paymentRequest, sessionData.token.orNull)
     paymentResult
@@ -176,7 +176,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     else {
       val errorURL = sessionData.errorURL.getOrElse("")
       val transactionUUID = sessionData.transactionUuid.get
-      val vendorId = sessionData.vendorId.get
+      val vendorId = sessionData.merchantId.get
       val paymentRequest = sessionData.paymentRequest.orNull
       val paymentConfig = sessionData.paymentConfig
       sessionData.waitFor3DS = false

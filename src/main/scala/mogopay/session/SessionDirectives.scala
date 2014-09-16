@@ -51,7 +51,6 @@ trait SessionDirectives {
     setCookie(Session(session.data))
   }
 
-
   def killSession(session: Session, domain: String = "", path: String = ""): Directive0 = {
     backend.delete(session.id)
     deleteCookie(Settings.SessionCookieName, domain, path)
