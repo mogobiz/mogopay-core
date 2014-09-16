@@ -181,8 +181,11 @@ object Settings {
     val MPIEndPoint = config.getString("paybox.mpiendpoint")
     val SystemEndPoint = config.getString("paybox.systemendpoint")
     val DirectEndPoint = config.getString("paybox.directendpoint")
-    val PEMFile = config.getString("paybox.pemfile")
+    val PemFileName = config.getString("paybox.pemfile")
     val PBXPorteur = config.getString("paybox.pbxporteur")
+    val publicKey : String = {
+      scala.io.Source.fromFile(Settings.Paybox.PemFileName).mkString
+    }
 
   }
 

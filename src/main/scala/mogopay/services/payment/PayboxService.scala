@@ -5,9 +5,11 @@ import mogopay.actors.PayboxActor.{CallbackPayment, Done3DSecureCheck, _}
 import mogopay.services.Util._
 import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
+import shapeless.{HNil, ::}
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
-import spray.routing.Directives
+import spray.routing.directives.ParameterDirectives
+import spray.routing._
 
 import scala.concurrent.ExecutionContext
 import scala.util._
@@ -17,7 +19,7 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
   import akka.pattern.ask
   import akka.util.Timeout
 
-import scala.concurrent.duration._
+  import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -60,20 +62,24 @@ import scala.concurrent.duration._
     }
   }
 
+  def queryString: Directive1[String] = extract(_.request.uri.toString())
+
   lazy val done = path("done") {
     import mogopay.config.Implicits._
     get {
       session { session =>
         parameterMap { params =>
-          onComplete((actor ? Done(session.sessionData, params)).mapTo[Try[Uri]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              setSession(session) {
-                r match {
-                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-                  case Success(uri) => redirect(uri, StatusCodes.TemporaryRedirect)
+          queryString { uri =>
+            onComplete((actor ? Done(session.sessionData, params, uri)).mapTo[Try[Uri]]) {
+              case Failure(t) => complete(StatusCodes.InternalServerError)
+              case Success(r) =>
+                setSession(session) {
+                  r match {
+                    case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+                    case Success(uri) => redirect(uri, StatusCodes.TemporaryRedirect)
+                  }
                 }
-              }
+            }
           }
         }
       }

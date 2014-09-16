@@ -65,7 +65,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
     sig.verify(signature)
   }
 
-  def donePayment(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def donePayment(sessionData: SessionData, params: Map[String, String], uri:String): Try[Uri] = {
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.vendorId.get
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
@@ -74,7 +74,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
     val errorUrl = sessionData.errorURL
     val successUrl = sessionData.successURL
     if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.PAYMENT_REFUSED) {
-      val signature = params.getOrElse("SIGNATURE", throw new Exception("Unexpected payment chain"))
+      //val signature = params.getOrElse("SIGNATURE", throw new Exception("Unexpected payment chain"))
       val vendorAndUuid = params("REFERENCE")
       val vendorAndUuidArray = vendorAndUuid.split("--")
       val paramVendorId = vendorAndUuidArray(0)
@@ -89,9 +89,9 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
           // The customer did not give his card number
           null
       }
-
-      //val ok = verifySha1()
-      val ok = paramTransactionUuid == transactionUuid && vendorId == paramVendorId
+      val dataToCheck =uri.substring(uri.indexOf("?")+1, uri.indexOf("&SIGNATURE="))
+      val signature =uri.substring(uri.indexOf("&SIGNATURE=")+"&SIGNATURE=".length)
+      val ok = verifySha1(dataToCheck, signature, Settings.Paybox.publicKey) && paramTransactionUuid == transactionUuid && vendorId == paramVendorId
       if (ok) {
         val codeReponse = params("CODEREPONSE")
         val bankErrorCode = if (codeReponse == "00000") "00" else if (codeReponse.startsWith("001")) codeReponse.substring(3) else ""
@@ -520,5 +520,4 @@ object PayboxHandler {
       return CreditCardType.CB
     }
   }
-
 }
