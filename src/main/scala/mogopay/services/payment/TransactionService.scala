@@ -173,22 +173,22 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
   /**
    * 1. External Payment
-   *  callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   * callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
    * 2. Custom Payment
-   *  callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount,
-   *  card_type, card_month,card_year,card_cvv
+   * callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount,
+   * card_type, card_month,card_year,card_cvv
    * 3. Mogpay Payment
-   *    3.1 First URL (amount only)
-   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
-   *      callback_cardinfo, callback_cvv, callback_auth
-   *   3.2 second URL (come back from auth screen) - sent here when user was not authenticated
-   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
-   *      callback_cardinfo, callback_cvv, callback_auth
-   *      user_email, user_password
-   *   3.3 third URL (come back from cvv screen) - sent here once user is authenticated
-   *      callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
-   *      callback_cardinfo, callback_cvv, callback_auth
-   *      card_cvv
+   * 3.1 First URL (amount only)
+   * callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   * callback_cardinfo, callback_cvv, callback_auth
+   * 3.2 second URL (come back from auth screen) - sent here when user was not authenticated
+   * callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   * callback_cardinfo, callback_cvv, callback_auth
+   * user_email, user_password
+   * 3.3 third URL (come back from cvv screen) - sent here once user is authenticated
+   * callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
+   * callback_cardinfo, callback_cvv, callback_auth
+   * card_cvv
    */
   lazy val submit = path("submit") {
     post {
@@ -229,7 +229,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         println(s"request ->${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                         val response = pipeline.flatMap(_(request))
-                        def cleanSession(session: Session): Directive0 = {
+                        def cleanSession(session: Session) {
                           val authenticated = session.sessionData.authenticated
                           val customerId = session.sessionData.customerId
                           session.clear()
@@ -239,19 +239,19 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         onComplete(response) {
                           case Failure(t) =>
                             t.printStackTrace()
-                            cleanSession(session) {
-                              setSession(session) {
-                                complete(toHTTPResponse(t), t.toString)
-                              }
+                            cleanSession(session)
+                            setSession(session) {
+                              complete(toHTTPResponse(t), t.toString)
+
                             }
                           case Success(response) =>
                             println("success->" + response.entity.data.asString)
-                            cleanSession(session) {
-                              setSession(session) {
-                                complete {
-                                  response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
-                                }
+                            cleanSession(session)
+                            setSession(session) {
+                              complete {
+                                response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
                               }
+
                             }
                         }
                       }
