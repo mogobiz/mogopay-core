@@ -1,11 +1,10 @@
 package mogopay.handlers.payment
 
-import mogopay.model.Mogopay._
 import mogopay.codes.MogopayConstant
-import mogopay.util.GlobalUtil._
-import mogopay.config.Implicits._
+import mogopay.model.Mogopay._
+import mogopay.util.GlobalUtil
 import spray.http.Uri
-import spray.http.Uri.{Authority, Path, Query}
+import spray.http.Uri.Query
 
 import scala.collection.mutable
 import scala.util.Try
@@ -32,7 +31,8 @@ trait PaymentHandler {
     )
     sessionData.finished = true
     val redirectTo = if (success) successURL else errorURL
-    Uri(redirectTo).withQuery(query)
+    val sep = if (redirectTo.indexOf('?') > 0) "&" else "?"
+    Uri(redirectTo + sep + GlobalUtil.mapToQueryString(query.toMap))
   }
 
   def startPayment(sessionData: SessionData): Try[Either[String, Uri]]
