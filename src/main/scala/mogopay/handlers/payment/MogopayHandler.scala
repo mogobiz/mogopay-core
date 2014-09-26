@@ -6,6 +6,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import mogopay.codes.MogopayConstant
 import mogopay.config.Settings
 import mogopay.es.EsClient
+import mogopay.exceptions.Exceptions.InvalidTransactionTypeException
 import mogopay.model.Mogopay.{Account, AccountStatus, SessionData}
 import org.apache.shiro.crypto.hash.Sha256Hash
 import mogopay.config.HandlersConfig._
@@ -105,7 +106,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
       PaymentHandler(cbProvider).startPayment(sessionData)
     }
     else {
-      Failure(new Exception("Invalid Transaction Type"))
+      Failure(new InvalidTransactionTypeException(sessionData.transactionType.get))
     }
   }
 }

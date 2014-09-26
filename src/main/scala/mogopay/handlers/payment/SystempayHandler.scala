@@ -14,7 +14,7 @@ import com.lyra.vads.ws3ds.stub.{VeResPAReqInfo, PaResInfo, ThreeDSecure}
 import mogopay.codes.MogopayConstant
 import mogopay.config.HandlersConfig._
 import mogopay.es.EsClient
-import mogopay.exceptions.Exceptions.{BOTransactionNotFoundException, MogopayError}
+import mogopay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException, BOTransactionNotFoundException, MogopayError}
 import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.TransactionStatus._
 import mogopay.util.GlobalUtil
@@ -246,7 +246,7 @@ class SystempayClient {
   def check3DSecure(sessionDataUuid: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
-    if (transaction == null) throw new BOTransactionNotFoundException
+    if (transaction == null) throw new BOTransactionNotFoundException("")
 
     val parametres: Map[String, String] = parse(StringInput(paymentConfig.cbParam.getOrElse("{}"))).extract[Map[String, String]]
     val shopId: String = parametres("systempayShopId")
@@ -491,13 +491,13 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
 
       Success(pr)
     } else {
-      Failure(new Exception("Invalid signature"))
+      Failure(InvalidSignatureException("Invalid signature"))
     }
   }
 
   def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
     if (!sessionData.waitFor3DS || sessionData.transactionUuid.isEmpty) {
-      Failure(new Exception( """Not verified: sessionData.waitFor3DS || !sessionData.transactionUUID"""))
+      Failure(InvalidContextException("""Not verified: sessionData.waitFor3DS || !sessionData.transactionUUID"""))
     } else {
       sessionData.waitFor3DS = false
       val transactionUUID: String = sessionData.transactionUuid.get
@@ -537,14 +537,15 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
 
         val paresInfo: PaResInfo = secured.analyzePAResTx(shopId, contractNumber, ctxMode, requestId, pares, signature)
         val status = paresInfo.getStatus
-        if ("N" == status || "U" == status) {
-          val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
-          Success(buildURL(errorURL, map))
-        } else if ("Y" == status || "A" == status) {
-          val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
-          Success(finishPayment(sessionData, resultatPaiement))
-        } else {
-          Failure(new Exception())
+        status match {
+          case "N" | "U" =>
+            val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
+            Success(buildURL(errorURL, map))
+          case "Y" | "A" =>
+            val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
+            Success(finishPayment(sessionData, resultatPaiement))
+          case _ =>
+            throw new Exception
         }
       } catch {
         case NonFatal(e)=>

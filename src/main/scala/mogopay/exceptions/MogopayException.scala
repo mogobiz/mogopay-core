@@ -1,94 +1,110 @@
 package mogopay.exceptions
 
+import spray.http.{StatusCode, StatusCodes}
+
 object Exceptions {
-  type MogopayException = Exception
 
-  case class CreditCardDoesNotBelongToUserException() extends Exception
+  abstract class MogopayException(val code: StatusCode, message: String) extends Exception(message)
 
-  case class InvalidCardNumberException() extends Exception
+  case class CreditCardDoesNotBelongToUserException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PaymentConfigIdNotFoundException() extends Exception
+  case class InvalidCardNumberException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PaymentConfigNotFoundException() extends Exception
+  case class PaymentConfigIdNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PasswordPatternNotFoundException() extends Exception
+  case class PaymentConfigNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PasswordDoesNotMatchPatternException() extends Exception
+  case class PasswordPatternNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class VendorNotFoundException() extends Exception
+  case class PasswordDoesNotMatchPatternException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class AccountDoesNotExistError() extends Exception
+  case class VendorNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class CannotRetrieveURLPrefixException() extends Exception
+  case class AccountDoesNotExistError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NotAVendorAccountException() extends Exception
+  case class CannotRetrieveURLPrefixException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NoAddressFoundException() extends Exception
+  case class NotAVendorAccountException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NoPhoneNumberFoundException() extends Exception
+  case class NoAddressFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class CreditCardDoesNotExistException() extends Exception
+  case class NoPhoneNumberFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class ShippingAddressDoesNotExistException() extends Exception
+  case class CreditCardDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class UserEmailNotAllowedAsMerchantException() extends Exception
+  case class ShippingAddressDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class VendorNotProvidedError() extends Exception
+  case class UserEmailNotAllowedAsMerchantException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class AccountAddressDoesNotExistException() extends Exception
+  case class VendorNotProvidedError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TelephoneDoesNotExistException() extends Exception
+  case class AccountAddressDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NoAccountIdProvidedException() extends Exception
+  case class TelephoneDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PaymentConfigDoesNotExistException() extends Exception
+  case class NoAccountIdProvidedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class AccountWithSameEmailAddressAlreadyExistsError() extends Exception
+  case class PaymentConfigDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NoPasswordProvidedError() extends Exception
+  case class AccountWithSameEmailAddressAlreadyExistsError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NoActiveShippingAddressFound() extends Exception
+  case class NoPasswordProvidedError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class CountryDoesNotExistException() extends Exception
+  case class NoActiveShippingAddressFound(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class CurrencyCodeNotFoundException() extends Exception
+  case class CountryDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class AccountNotActiveException() extends Exception
+  case class CurrencyCodeNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TransactionNotFoundException() extends Exception
+  case class AccountNotActiveException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class BOTransactionNotFoundException() extends Exception
+  case class TransactionNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class UnexpectedAmountException() extends Exception
+  case class InvalidTransactionTypeException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TransactionTimeoutException(message: String) extends Exception(message)
+  case class BOTransactionNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PaymentNotConfirmedException(message: String) extends Exception(message)
+  case class UnexpectedAmountException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TransactionAlreadyConfirmedException(message: String) extends Exception(message)
+  case class TransactionTimeoutException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class MogopayError(message: String) extends Exception(message)
+  case class PaymentNotConfirmedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class LackingInfoForMerchantException(message: String) extends Exception(message)
+  case class TransactionAlreadyConfirmedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TooManyLoginAttemptsException() extends Exception
+  case class MogopayError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class InactiveAccountException() extends Exception
+  case class LackingInfoForMerchantException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class InactiveMerchantException() extends Exception
+  case class TooManyLoginAttemptsException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class InvalidPasswordErrorException() extends Exception
+  case class InactiveAccountException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class InvalidMerchantAccountException() extends Exception
+  case class InactiveMerchantException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class UserOrPasswordIsNullError() extends Exception
+  case class InvalidPasswordErrorException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class AccountAlreadyExistsException() extends Exception
+  case class InvalidMerchantAccountException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NotACreditCardTransactionException() extends Exception
+  case class UserOrPasswordIsNullError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class SomeParameterIsMissingException(message: String) extends Exception(message)
+  case class AccountAlreadyExistsException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PasswordsDontMatchError() extends Exception
+  case class NotACreditCardTransactionException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  case class PasswordsDoNotMatchError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  case class InvalidEmailException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  case class InvalidTokenException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  // Paybox
+  case class InvalidSignatureException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  case class InvalidInputException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class InvalidContextException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)
 
 }

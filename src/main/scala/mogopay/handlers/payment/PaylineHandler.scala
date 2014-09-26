@@ -13,7 +13,7 @@ import mogopay.codes.MogopayConstant
 import mogopay.config.HandlersConfig._
 import mogopay.config.Settings
 import mogopay.es.EsClient
-import mogopay.exceptions.Exceptions.MogopayError
+import mogopay.exceptions.Exceptions.{NotAvailablePaymentGatewayException, InvalidContextException, MogopayError}
 import mogopay.handlers.UtilHandler
 import mogopay.model.Mogopay.CreditCardType.CreditCardType
 import mogopay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
@@ -171,7 +171,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
   def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
     if (!sessionData.waitFor3DS) {
       // invalid call
-      Failure(throw new Exception("Invalid payment hain"))
+      Failure(throw InvalidContextException("Not expecting 3DSecure callback"))
     }
     else {
       val errorURL = sessionData.errorURL.getOrElse("")
@@ -623,11 +623,11 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
               """.stripMargin)
       }
       else {
-        throw new Exception(result.getResult.getCode)
+        throw  NotAvailablePaymentGatewayException(result.getResult.getCode)
       }
     }
     else {
-      throw new Exception("Unkown")
+      throw  NotAvailablePaymentGatewayException("Unkown")
     }
   }
 

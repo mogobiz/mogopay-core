@@ -13,6 +13,7 @@ import akka.util.Timeout
 import mogopay.config.HandlersConfig._
 import mogopay.config.{Environment, Settings}
 import mogopay.es.EsClient
+import mogopay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
 import mogopay.handlers.UtilHandler
 import mogopay.model.Mogopay.CreditCardType.CreditCardType
 import mogopay.model.Mogopay.TransactionStatus
@@ -119,7 +120,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
         Success(finishPayment(sessionData, paymentResult))
       }
       else {
-        Failure(throw new Exception("Invalid signature"))
+        Failure(throw InvalidSignatureException(s"$signature"))
       }
     }
     else {
@@ -167,21 +168,21 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
     val paymentRequest = sessionData.paymentRequest.get
     val ctxMode = if (Settings.Env == Environment.PROD) "PRODUCTION" else "TEST"
     if (vendorId != paramVendorId || transactionUuid != paramTransactionUuid) {
-      Failure(new Exception("Invalid vendorid or transactionid"))
+      Failure(InvalidContextException(s"Invalid vendorid $paramVendorId or transactionid $paramTransactionUuid"))
     } else {
       if (ctxMode == "TEST" || transaction.paymentData.status3DS == ResponseCode3DS.APPROVED) {
         sessionData.id3d = Some(id3d)
         startPayment(sessionData) match {
           case Failure(t) => Failure(t)
           case Success(Right(uri)) => Success(uri)
-          case Success(Left(form)) => Failure(new Exception("Unexpected payment chaining"))
+          case Success(Left(form)) => Failure(InvalidContextException("Unexpected payment chaining"))
         }
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
         sessionData.id3d = Some("") /* empty string for id3d means fallback to 2DS */
         startPayment(sessionData) match {
           case Failure(t) => Failure(t)
           case Success(Right(uri)) => Success(uri)
-          case Success(Left(form)) => Failure(new Exception("Unexpected payment chaining"))
+          case Success(Left(form)) => Failure(new InvalidContextException("Unexpected payment chaining"))
         }
       } else {
         val errorCode = "12"
@@ -462,7 +463,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
       Success(Left(form))
     }
     else {
-      Failure(throw new Exception("Invalid Paybox payment mode"))
+      Failure(throw InvalidContextException(s"""Invalid Paybox payment mode ${parametres("payboxContract")}"""))
     }
   }
 }

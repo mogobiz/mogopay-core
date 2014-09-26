@@ -118,14 +118,14 @@ class AccountHandler {
           }
         }
 
-        val tryMerchant = EsClient.search[Account](merchantReq).map(Success(_)).getOrElse(Failure(new VendorNotFoundException))
+        val tryMerchant = EsClient.search[Account](merchantReq).map(Success(_)).getOrElse(Failure(VendorNotFoundException("")))
         tryMerchant.flatMap { merchant =>
           val isMerchant = merchant.roles.contains(RoleName.MERCHANT)
           if (!isMerchant) {
-            Failure(new InvalidMerchantAccountException)
+            Failure(new InvalidMerchantAccountException(""))
           }
           if (merchant.status == AccountStatus.INACTIVE) {
-            Failure(new InactiveMerchantException)
+            Failure(new InactiveMerchantException(""))
           } else {
             Success(search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
               and(
@@ -147,18 +147,18 @@ class AccountHandler {
     tryUserAccountRequest.flatMap { userAccountRequest =>
       EsClient.search[Account](userAccountRequest).map { userAccount =>
         if (userAccount.loginFailedCount > MogopayConstant.MaxAttempts)
-          Failure(new TooManyLoginAttemptsException)
+          Failure(new TooManyLoginAttemptsException(s"${userAccount.email}"))
         else if (userAccount.status == AccountStatus.INACTIVE)
-          Failure(new InactiveAccountException)
+          Failure(new InactiveAccountException(s"${userAccount.email}"))
         else if (userAccount.password != new Sha256Hash(password).toString) {
           EsClient.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true)
-          Failure(new InvalidPasswordErrorException)
+          Failure(new InvalidPasswordErrorException(s"${userAccount.email}"))
         } else {
           val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
           EsClient.update(userAccountToIndex, false, true)
           Success(userAccountToIndex.copy(password = ""))
         }
-      }.getOrElse(Failure(new AccountDoesNotExistError))
+      }.getOrElse(Failure(new AccountDoesNotExistError("")))
     }
   }
 
@@ -214,7 +214,7 @@ class AccountHandler {
    */
   def id(seller: String): String = {
     val email = seller + "@merchant.com"
-    this.findByEmail(email).map(_.uuid).getOrElse(throw new Exception(s"unknown $email"))
+    this.findByEmail(email).map(_.uuid).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
   /**
@@ -223,7 +223,7 @@ class AccountHandler {
    */
   def secret(seller: String): String = {
     val email = seller + "@merchant.com"
-    this.findByEmail(email).map(_.secret).getOrElse(throw new Exception(s"unknown $email"))
+    this.findByEmail(email).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
   //    def generateLostPasswordToken(email: String, merchantId: Option[String]): String = {
@@ -280,7 +280,7 @@ class AccountHandler {
   //  }
   //
   def save(account: Account): Try[Unit] = findByEmail(account.email) match {
-    case Some(_) => Failure(new AccountWithSameEmailAddressAlreadyExistsError)
+    case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
     case None => EsClient.index(account); Success()
   }
 
@@ -331,26 +331,26 @@ class AccountHandler {
 
     val paymentConfig: Try[Option[PaymentConfig]] = merchant match {
       case Some(c) => Success(c.paymentConfig)
-      case None => Failure(new VendorNotFoundException)
+      case None => Failure(new VendorNotFoundException(s"$vendorId"))
     }
 
     val pattern: Try[Option[String]] = paymentConfig match {
       case Success(Some(pc)) => Success(pc.passwordPattern)
-      case Success(None) => Failure(new PaymentConfigNotFoundException)
+      case Success(None) => Failure(new PaymentConfigNotFoundException(""))
       case Failure(t) => Failure(t)
     }
 
     val matching: Try[Boolean] = pattern match {
       case Success(Some(p)) => Success(`match`(p, password))
-      case Success(None) => Failure(new PasswordPatternNotFoundException)
+      case Success(None) => Failure(new PasswordPatternNotFoundException(""))
       case Failure(t) => Failure(t)
     }
 
     matching match {
       case Failure(t) => Failure(t)
-      case Success(false) => Failure(new PasswordDoesNotMatchPatternException)
+      case Success(false) => Failure(new PasswordDoesNotMatchPatternException(""))
       case Success(true) => account match {
-        case None => Failure(new AccountDoesNotExistError)
+        case None => Failure(new AccountDoesNotExistError(""))
         case Some(acc) =>
           update(acc.copy(password = new Sha256Hash(password).toHex))
           Success()
@@ -413,7 +413,7 @@ class AccountHandler {
       (for {
         addr <- acc.address
         tel <- addr.telephone
-      } yield Success(tel)) getOrElse Failure(new NoPhoneNumberFoundException)
+      } yield Success(tel)) getOrElse Failure(new NoPhoneNumberFoundException(""))
 
     phoneNumber match {
       case Failure(t) => Failure(t)
@@ -430,7 +430,7 @@ class AccountHandler {
         def message = "Your 3 digits code is: " + plainTextPinCode
         smsHandler.sendSms(message, n.phone)
     }
-  } getOrElse Failure(new AccountDoesNotExistError)
+  } getOrElse Failure(new AccountDoesNotExistError(""))
 
   /*
   def generateNewEmailCode(uuid: String): Try[Unit] = accountHandler.find(uuid) map { account =>
@@ -508,7 +508,7 @@ class AccountHandler {
 
     def confirmSignup(token: String): Try[Boolean] = {
       if (!token.contains("-")) {
-        Failure(new Exception("Invalid token."))
+        Failure(InvalidTokenException("Invalid token."))
       } else Try {
         val splitToken = RSA.decrypt(token, Settings.RSA.privateKey).split("-")
         val timestamp = splitToken(1).toLong
@@ -587,20 +587,20 @@ class AccountHandler {
 
   private def updateCard(accountId: String, ccId: String, holder: String,
                          cardNumber: String, expiryDate: String, ccType: String): Try[CreditCard] = {
-    val account: Try[Account] = load(accountId) map (Success(_)) getOrElse Failure(new AccountDoesNotExistError)
+    val account: Try[Account] = load(accountId) map (Success(_)) getOrElse Failure(new AccountDoesNotExistError(""))
 
     val filteredAccount = account match {
       case Failure(t) => Failure(t)
       case Success(a) =>
         val card = a.creditCards.find(_.uuid == ccId)
         if (card.nonEmpty) Success((a, card.get))
-        else Failure(new CreditCardDoesNotExistException)
+        else Failure(new CreditCardDoesNotExistException(""))
     }
 
     val numbers: Try[(Account, CreditCard, String, String)] = filteredAccount match {
       case Failure(t) => Failure(t)
       case Success((account, card)) => if (!UtilHandler.checkLuhn(cardNumber)) {
-        Failure(new InvalidCardNumberException)
+        Failure(new InvalidCardNumberException(""))
       } else {
         Success((account,
           card,
@@ -625,12 +625,12 @@ class AccountHandler {
 
   private def createCard(accountId: String, holder: String, number: String,
                          expiryDate: String, ccType: String): Try[CreditCard] = {
-    val account = load(accountId) map (Success(_)) getOrElse Failure(new AccountDoesNotExistError)
+    val account = load(accountId) map (Success(_)) getOrElse Failure(new AccountDoesNotExistError(""))
 
     val numbers = account match {
       case Failure(t) => Failure(t)
       case Success(account) => if (!UtilHandler.checkLuhn(number)) {
-        Failure(new InvalidCardNumberException)
+        Failure(new InvalidCardNumberException(""))
       } else {
         Success(account,
           UtilHandler.hideCardNumber(number, "X"),
@@ -1000,9 +1000,9 @@ class AccountHandler {
   def find(uuid: String) = EsClient.load[Account](uuid)
 
   def updateProfile(profile: UpdateProfile): Try[Unit] = {
-    if (!profile.isMerchant && profile.vendor.isEmpty) Failure(new VendorNotProvidedError)
+    if (!profile.isMerchant && profile.vendor.isEmpty) Failure(new VendorNotProvidedError(""))
     else find(profile.id) match {
-      case None => Failure(new AccountAddressDoesNotExistException)
+      case None => Failure(new AccountAddressDoesNotExistException(""))
       case Some(account) =>
         lazy val address = account.address.map { address =>
           val telephone = Telephone("", profile.lphone, "", None, TelephoneStatus.WAITING_ENROLLMENT)
@@ -1019,11 +1019,11 @@ class AccountHandler {
         }
 
         lazy val civility = Try(Civility.withName(profile.civility))
-          .orElse(Failure(new Exception("Incorrect civility.")))
+          .orElse(Failure(InvalidInputException(profile.civility)))
         lazy val birthDate = Some(new SimpleDateFormat("yyyy-MM-dd").parse(profile.birthDate))
 
         lazy val password = profile.password.map { case (p1, p2) =>
-          if (p1 != p2) Failure(new PasswordsDontMatchError)
+          if (p1 != p2) Failure(new PasswordsDoNotMatchError("*****"))
           else Success(new Sha256Hash(p1).toHex)
         } getOrElse Success(account.password)
 
@@ -1134,30 +1134,30 @@ class AccountHandler {
           } else {
             Failure(new MogopayError(MogopayConstant.InvalidPhonePincode3))
           }
-        }.getOrElse(Failure(new AccountDoesNotExistError))
+        }.getOrElse(Failure(new AccountDoesNotExistError("")))
       }
-    } getOrElse Failure(new AccountDoesNotExistError)
+    } getOrElse Failure(new AccountDoesNotExistError(""))
   }
 
   def signup(signup: Signup): Try[(Token, Account)] = {
     if (!signup.isMerchant && signup.vendor.isEmpty) {
-      Failure(new VendorNotProvidedError)
+      Failure(new VendorNotProvidedError("Vendor cannot be null"))
     } else {
       lazy val birthdate = Try(new SimpleDateFormat("yyyy-MM-dd").parse(signup.birthDate))
 
-      lazy val civility = Try(Civility.withName(signup.civility)).orElse(Failure(new Exception("Incorrect civility.")))
+      lazy val civility = Try(Civility.withName(signup.civility)).orElse(Failure(InvalidInputException(s"Incorrect civility. ${signup.civility}")))
 
       lazy val password =
         if (signup.password.isEmpty)
-          Failure(new NoPasswordProvidedError)
+          Failure(new NoPasswordProvidedError("****"))
         else if (signup.password != signup.password2)
-          Failure(new PasswordsDontMatchError)
+          Failure(new PasswordsDoNotMatchError("****"))
         else
           Success(new Sha256Hash(signup.password).toHex)
 
       lazy val country: Try[Country] = Try {
-        val countryCode = signup.address.country.getOrElse(throw new Exception("Country not found."))
-        countryHandler.findByCode(countryCode) map (Success(_)) getOrElse Failure(new CountryDoesNotExistException)
+        val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${signup.address.country}"))
+        countryHandler.findByCode(countryCode) map (Success(_)) getOrElse Failure(CountryDoesNotExistException(s"$countryCode"))
       }.flatten
 
       def address(country: Country): Try[AccountAddress] = Try {
@@ -1194,7 +1194,7 @@ class AccountHandler {
         Success("")
       } else {
         Token.generateAndSaveToken(accountId, TokenType.Signup)
-          .fold(Failure(new AccountAddressDoesNotExistException): Try[Token])(t => Success(t))
+          .fold(Failure(new AccountAddressDoesNotExistException("")): Try[Token])(t => Success(t))
       }
 
       lazy val account = for {

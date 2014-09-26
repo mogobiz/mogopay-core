@@ -17,9 +17,9 @@ class CreditCardHandler {
         EsClient.index(account.copy(creditCards = newCards))
         Success()
       } getOrElse {
-        Failure(new CreditCardDoesNotExistException)
+        Failure(new CreditCardDoesNotExistException(""))
       }
-    }.getOrElse(Failure(new AccountDoesNotExistError))
+    }.getOrElse(Failure(new AccountDoesNotExistError("")))
   }
 
   def findByAccount(accountId: String): Seq[CreditCard] = {

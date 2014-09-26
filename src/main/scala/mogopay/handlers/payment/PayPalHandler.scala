@@ -9,7 +9,7 @@ import mogopay.codes.MogopayConstant
 import mogopay.config.HandlersConfig._
 import mogopay.config.Settings
 import mogopay.es.EsClient
-import mogopay.exceptions.Exceptions.{AccountDoesNotExistError, MogopayError}
+import mogopay.exceptions.Exceptions.{InvalidInputException, InvalidContextException, AccountDoesNotExistError, MogopayError}
 import mogopay.util.GlobalUtil
 import mogopay.util.GlobalUtil._
 import mogopay.model.Mogopay._
@@ -98,7 +98,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
       import scala.concurrent.duration._
       val result = Await.result(res, 30 seconds)
       Success(result)
-    } getOrElse Failure(new AccountDoesNotExistError)
+    } getOrElse Failure(new AccountDoesNotExistError(""))
   }
 
   /*
@@ -108,7 +108,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
     val transactionUuid = sessionData.transactionUuid.orNull
     val token = sessionData.token.get
     if (token != tokenFromParams) {
-      Failure(new Exception)
+      Failure(InvalidContextException(s"$tokenFromParams unknown"))
     } else {
       val pr = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
         "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
@@ -121,7 +121,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
     val token = sessionData.token.get
 
     if (token != tokenFromParams) {
-      Failure(new Exception)
+      Failure(InvalidInputException(s"$tokenFromParams"))
     } else {
       val transactionUUID = sessionData.transactionUuid.get
       val vendorId = sessionData.merchantId.get
@@ -275,7 +275,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
         val result = Await.result(res, 30 seconds)
         Success(result)
     }.getOrElse {
-      Failure(new AccountDoesNotExistError)
+      Failure(new AccountDoesNotExistError(""))
     }
   }
 }

@@ -1,23 +1,21 @@
 package mogopay.services
 
 import akka.actor.ActorRef
-import mogopay.actors.CountryActor._
-import mogopay.actors.CountryActor.Admins1
-import mogopay.actors.CountryActor.Admins2
-import mogopay.actors.CountryActor.CountriesForShipping
-import mogopay.services.Util._
-import scala.concurrent.ExecutionContext
-import spray.routing.Directives
-import mogopay.model.Mogopay.CountryAdmin
-import mogopay.handlers.PhoneVerification
-
+import mogopay.actors.CountryActor.{Admins1, Admins2, CountriesForShipping, _}
 import mogopay.config.Implicits._
+import mogopay.handlers.PhoneVerification
+import mogopay.model.Mogopay.CountryAdmin
+import mogopay.services.Util._
+import spray.routing.Directives
+
+import scala.concurrent.ExecutionContext
 
 class CountryService(country: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
 
   import akka.pattern.ask
   import akka.util.Timeout
-  import scala.concurrent.duration._
+
+import scala.concurrent.duration._
 
   implicit val timeout = Timeout(2.seconds)
 
@@ -47,22 +45,18 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val countryPath = getPath("country") {
-    parameters('code).as(Country) { c =>
+  lazy val countryPath = path("country" / Segment) { code =>
+    get {
       complete {
-        (country ? c).mapTo[Option[Country]]
+        (country ? Country(code)).mapTo[Option[Country]]
       }
     }
   }
-
-  lazy val admins1 = path("admins1") {
+  lazy val admins1 = path(Segment / "admins1") { countryCode =>
     get {
-      parameter('country).as(Admins1) {
-        admins1: Admins1 =>
           complete {
-            (country ? admins1).mapTo[List[CountryAdmin]]
+            (country ? Admins1(countryCode)).mapTo[List[CountryAdmin]]
           }
-      }
     }
   }
 
@@ -78,24 +72,21 @@ class CountryService(country: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val admins2 = path("admins2") {
+  lazy val admins2 = path(Segment / "admins2") { countryCode =>
     get {
-      parameters('country, 'parent_admin1_code.?).as(Admins2) {
-        admins2: Admins2 =>
+      parameters('admin1.?) { admin1 =>
           complete {
-            (country ? admins2).mapTo[Seq[CountryAdmin]]
+            (country ? Admins2(countryCode, admin1)).mapTo[Seq[CountryAdmin]]
           }
       }
     }
   }
 
-  lazy val checkPhoneNumber = path("check-phone-number") {
+  lazy val checkPhoneNumber = path(Segment / "check-phone-number" / Segment) { (countryCode, phone) =>
     get {
-      parameters('phone, 'country).as(CheckPhoneNumber) { checkPhoneNumber =>
         complete {
-          (country ? checkPhoneNumber).mapTo[PhoneVerification]
+          (country ? CheckPhoneNumber(phone, countryCode)).mapTo[PhoneVerification]
         }
-      }
     }
   }
 }

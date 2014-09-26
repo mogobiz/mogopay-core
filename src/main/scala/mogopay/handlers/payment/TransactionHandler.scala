@@ -42,7 +42,7 @@ class TransactionHandler {
       val currency = Currency.getInstance(currencyCode)
       (accountHandler findBySecret secret map { vendor: Account =>
         if (!vendor.roles.contains(RoleName.MERCHANT)) {
-          Failure(new NotAVendorAccountException)
+          Failure(new NotAVendorAccountException(""))
         } else {
           val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
           val txReqUUID = newUUID
@@ -57,8 +57,8 @@ class TransactionHandler {
 
           Success(txReqUUID)
         }
-      }).getOrElse(Failure(new AccountDoesNotExistError))
-    }).getOrElse(Failure(new CurrencyCodeNotFoundException))
+      }).getOrElse(Failure(new AccountDoesNotExistError("")))
+    }).getOrElse(Failure(new CurrencyCodeNotFoundException("")))
   }
 
   /*
@@ -93,7 +93,7 @@ class TransactionHandler {
       )
       EsClient.index(transaction, false)
       Success(transaction)
-    }.getOrElse(Failure(new Exception("transactionService.creerTransaction.vendeur.inconnu")))
+    }.getOrElse(Failure(new InvalidContextException("Vendor not foundu")))
   }
 
   def updateStatus(vendorId: String, transactionUUID: String, ipAddress: String, newStatus: TransactionStatus, comment: String): Try[Unit] = {
@@ -116,7 +116,7 @@ class TransactionHandler {
 
       EsClient.update(newTx, true, false)
       Success()
-    }.getOrElse(Failure(new TransactionNotFoundException))
+    }.getOrElse(Failure(new TransactionNotFoundException("")))
   }
 
   def updateStatus3DS(vendorId: String, transactionUUID: String, status3DS: ResponseCode3DS, codeRetour: String) {
@@ -139,7 +139,7 @@ class TransactionHandler {
       )
 
       EsClient.update(newTx, true, false)
-    }.getOrElse(Failure(new BOTransactionNotFoundException))
+    }.getOrElse(Failure(BOTransactionNotFoundException(s"$transactionUUID")))
   }
 
   def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
@@ -162,7 +162,7 @@ class TransactionHandler {
         else
           EsClient.index(newTx, false)
         Success()
-      }.getOrElse(Failure(new BOTransactionNotFoundException))
+      }.getOrElse(Failure(new BOTransactionNotFoundException(s"$transactionUUID")))
     } catch {
       case NonFatal(e) => Failure(e)
     }
@@ -192,14 +192,14 @@ class TransactionHandler {
     val maybeVendor = accountHandler.findBySecret(secret)
 
     val account: Try[Account] = maybeVendor match {
-      case None => Failure(new AccountDoesNotExistError)
+      case None => Failure(AccountDoesNotExistError("secret=****"))
       case Some(a) => Success(a)
     }
 
     val vendorUUID = account match {
       case Failure(t) => Failure(t)
       case Success(v) if v.roles.contains(RoleName.MERCHANT) => Success(v.uuid)
-      case _ => Failure(new NotAVendorAccountException)
+      case _ => Failure(new NotAVendorAccountException("secret=****"))
     }
 
     val maybeTransaction: Try[Option[BOTransaction]] = vendorUUID match {
@@ -209,7 +209,7 @@ class TransactionHandler {
 
     val transaction = maybeTransaction match {
       case Failure(t) => Failure(t)
-      case Success(None) => Failure(new TransactionNotFoundException)
+      case Success(None) => Failure(new TransactionNotFoundException(s"$transactionUUID"))
       case Success(Some(tx)) => Success(tx)
     }
 
@@ -219,7 +219,7 @@ class TransactionHandler {
         if (amount.map(tx.amount == _).getOrElse(true))
           Success(tx)
         else
-          Failure(UnexpectedAmountException())
+          Failure(UnexpectedAmountException(s"$amount"))
     }
 
     validatedTx match {
@@ -248,7 +248,7 @@ class TransactionHandler {
     val maybeCustomer = accountHandler.load(accountId)
 
     val customer = maybeCustomer match {
-      case None => Failure(new AccountDoesNotExistError)
+      case None => Failure(new AccountDoesNotExistError(s"$accountId"))
       case Some(a) => Success(a)
     }
 
@@ -259,7 +259,7 @@ class TransactionHandler {
 
     val address = maybeAddress match {
       case Failure(t) => Failure(t)
-      case Success(None) => Failure(new NoActiveShippingAddressFound)
+      case Success(None) => Failure(new NoActiveShippingAddressFound("None"))
       case Success(Some(x)) => Success(x)
     }
 
@@ -334,15 +334,15 @@ class TransactionHandler {
       }
 
     if (vendor == null) {
-      return Failure(new AccountDoesNotExistError)
+      return Failure(new AccountDoesNotExistError(s"${submit.params.merchantId.get}"))
     }
 
     val transactionRequest: TransactionRequest = EsClient.load[TransactionRequest](transactionUUID.get).orNull
     if (transactionRequest == null) {
-      return Failure(new TransactionNotFoundException)
+      return Failure(new TransactionNotFoundException(s"${transactionUUID.get}"))
     }
     if (transactionRequest.amount != amount.get) {
-      return Failure(new UnexpectedAmountException)
+      return Failure(new UnexpectedAmountException(s"${amount.get}"))
     }
 
     var transactionExtra = transactionRequest.extra.orNull
@@ -355,12 +355,12 @@ class TransactionHandler {
     listShipping map { listShipping =>
       if (listShipping.length > 0) {
         if (sessionData.selectShippingPrice.isEmpty) {
-          return Failure(new Exception)
+          return Failure(InvalidContextException("Shipping price cannot be empty"))
         } else {
           val sp = sessionData.selectShippingPrice.get
           selectedShippingPrice = shippingPrice(listShipping, sp.provider, sp.service, sp.rateType)
 
-          if (selectedShippingPrice.isEmpty) return Failure(new Exception)
+          if (selectedShippingPrice.isEmpty) return Failure(InvalidContextException("Shipping Price cannot be empty"))
         }
       }
     }
@@ -384,7 +384,7 @@ class TransactionHandler {
     EsClient.delete[TransactionRequest](transactionRequest.uuid, false)
 
     val transaction: Option[BOTransaction] = EsClient.load[BOTransaction](transactionUUID.get)
-    if (transaction.isDefined) return Failure(new BOTransactionNotFoundException)
+    if (transaction.isDefined) return Failure(new BOTransactionNotFoundException(s"${transactionUUID.get}"))
 
     def checkParameters(vendor: Account): Boolean = {
       def checkBCParameters(paymentConfig: PaymentConfig): Boolean = {
@@ -494,7 +494,7 @@ class TransactionHandler {
         }
       }
       else {
-        throw NotACreditCardTransactionException()
+        throw NotACreditCardTransactionException(s"${transactionType.get}")
       }
     }
     else {

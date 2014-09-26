@@ -5,8 +5,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import mogopay.actors.BackofficeActor._
 import mogopay.config.Implicits._
-import mogopay.services.Util._
-import mogopay.model.Mogopay.{BOTransaction, BOTransactionLog, Account}
+import mogopay.model.Mogopay.{BOTransaction, Account, BOTransactionLog}
 import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
 import spray.http.StatusCodes
@@ -25,24 +24,26 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
       getTransaction
   }
 
-  lazy val listCustomers = getPath("list-customers") {
-    parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
-      session { session =>
-        complete {
-          if (session.contains("isMerchant")) {
-            val message = ListCustomers(session("accountId").toString, page, max)
-            (backofficeActor ? message).mapTo[Seq[Account]]
-          } else {
-            StatusCodes.Unauthorized -> ""
+  lazy val listCustomers = path("customers") {
+    get {
+      parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
+        session { session =>
+          complete {
+            if (session.contains("isMerchant")) {
+              val message = ListCustomers(session("accountId").toString, page, max)
+              (backofficeActor ? message).mapTo[Seq[Account]]
+            } else {
+              StatusCodes.Unauthorized -> ""
+            }
           }
         }
       }
     }
   }
 
-  lazy val listTransactionLogs = getPath("list-transanction-logs") {
-    session { session =>
-      parameters('transaction_id) { transactionId =>
+  lazy val listTransactionLogs = path("transactions" / Segment / "logs") { transactionId =>
+    get {
+      session { session =>
         complete {
           if (session.contains("isMerchant")) {
             (backofficeActor ? ListTransactionLogs(transactionId)).mapTo[Seq[BOTransactionLog]]
@@ -54,47 +55,41 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
     }
   }
 
-  lazy val listTransactions = getPath("list-transanctions") {
-    session { session =>
-      val params = parameters('start_date.as[Long] ?, 'end_date.as[Long] ?, 'amount.as[Int] ?, 'transaction_uuid ?)
-      params { (startDate, endDate, amount, transaction) =>
-        complete {
-          if (session.contains("accountId")) {
-            val term = if (session.contains("isMerchant") && session("isMerchant") == true)
-              Left(session("accountId").toString)
-            else
-              Right(session("email").toString)
-
-            val message = ListTransactions(term, startDate, endDate, amount, transaction)
-            (backofficeActor ? message).mapTo[Seq[BOTransaction]]
-          } else {
-            StatusCodes.Unauthorized ->
-              Map('error -> "Account ID missing or incorrect. The user is probably not logged in.")
-          }
-        }
-      }
-    }
-  }
-
-  lazy val getTransaction = path("get-transaction" / JavaUUID) { uuid =>
+  lazy val listTransactions = path("transactions") {
     get {
-      session { session =>
-        complete {
-          (backofficeActor ? GetTransaction(uuid.toString)).mapTo[Option[BOTransaction]]
-        }
+      session {
+        session =>
+          val params = parameters('start_date.as[Long] ?, 'end_date.as[Long] ?, 'amount.as[Int] ?, 'transaction_uuid ?)
+          params {
+            (startDate, endDate, amount, transaction) =>
+              complete {
+                if (session.contains("accountId")) {
+                  val term = if (session.contains("isMerchant") && session("isMerchant") == true)
+                    Left(session("accountId").toString)
+                  else
+                    Right(session("email").toString)
+
+                  val message = ListTransactions(term, startDate, endDate, amount, transaction)
+                  (backofficeActor ? message).mapTo[Seq[BOTransaction]]
+                } else {
+                  StatusCodes.Unauthorized ->
+                    Map('error -> "Account ID missing or incorrect. The user is probably not logged in.")
+                }
+              }
+          }
       }
     }
   }
 
-  private def withSession(response: Session => spray.routing.StandardRoute) = {
-    session { session =>
-      session.sessionData.accountId match {
-        case Some(id: String) => response(session)
-        case _ => complete {
-          StatusCodes.Unauthorized ->
-            Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+  lazy val getTransaction = path("transaction" / JavaUUID) { uuid =>
+      get {
+        session {
+          session =>
+            complete {
+              (backofficeActor ? GetTransaction(uuid.toString)).mapTo[Option[BOTransaction]]
+            }
         }
       }
-    }
   }
+
 }

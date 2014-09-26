@@ -21,7 +21,7 @@ import com.atosorigin.services.cad.apiserver.components.service.office.SIPSParm
 import com.atosorigin.services.cad.common.SIPSDataObject
 import mogopay.config.Settings
 import mogopay.es.EsClient
-import mogopay.exceptions.Exceptions.MogopayError
+import mogopay.exceptions.Exceptions.{InvalidContextException, MogopayError}
 import mogopay.handlers.payment.{BankErrorCodes, ThreeDSResult, PaymentHandler}
 import mogopay.model.Mogopay.ResponseCode3DS
 import mogopay.model.Mogopay.ResponseCode3DS._
@@ -130,7 +130,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
   def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
     if (!sessionData.waitFor3DS) {
       // invalid call
-      Failure(throw new Exception("Invalid payment hain"))
+      Failure(throw InvalidContextException("Invalid payment chain not waiting 3DSecure callback"))
     }
     else {
       val errorURL = sessionData.errorURL.getOrElse("")

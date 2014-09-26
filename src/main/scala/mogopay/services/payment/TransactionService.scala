@@ -51,7 +51,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
     }
   }
 
-  lazy val searchByCustomer = path("search-by-customer" / JavaUUID) { uuid =>
+  lazy val searchByCustomer = path("customer" / JavaUUID) { uuid =>
     import mogopay.config.Implicits._
     get {
       complete {
@@ -69,7 +69,6 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
           res match {
             case Failure(t) => complete(toHTTPResponse(t) -> Map('error -> t.toString))
             case Success(id) => complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
-
           }
         }
       }

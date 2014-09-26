@@ -27,19 +27,19 @@ class UserHandler {
   def register(successURL: String, errorURL: String, merchantId: String,
                email: String, password: String): Try[Map[String, String]] = {
     val user = accountHandler.load(merchantId) match {
-      case None => Failure(new AccountDoesNotExistError)
+      case None => Failure(new AccountDoesNotExistError(""))
       case Some(x) => Success(x)
     }
 
     val vendor = user match {
       case Failure(e) => Failure(e)
       case Success(x) if x.roles.contains(RoleName.MERCHANT) => Success(x)
-      case _ => Failure(new NotAVendorAccountException)
+      case _ => Failure(new NotAVendorAccountException(""))
     }
 
     vendor flatMap { _ =>
       if (accountHandler.findByEmail(email).nonEmpty) {
-        Failure(new AccountAlreadyExistsException)
+        Failure(new AccountAlreadyExistsException(""))
       } else {
         val data1: Map[String, String] = Map(
           "callback_success" -> successURL,
