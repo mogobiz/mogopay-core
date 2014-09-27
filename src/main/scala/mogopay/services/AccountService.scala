@@ -14,14 +14,15 @@ import mogopay.services.Util._
 import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
 import spray.http.MediaTypes._
-import spray.http.{ContentType, HttpResponse, HttpEntity, StatusCodes}
+import spray.http._
 import spray.routing.Directives
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
-class AccountService(account: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+
   import mogopay.config.Implicits._
 
   implicit val timeout = Timeout(10.seconds)
@@ -66,10 +67,9 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   lazy val isPatternValid = path("is-pattern-valid") {
     get {
       parameters('pattern).as(IsPatternValid) { v =>
-        complete {
-          (account ? v).mapTo[Boolean].map { isValid =>
-            HttpResponse(200, HttpEntity(ContentType(`text/plain`), isValid.toString))
-          }
+        onComplete((actor ? v).mapTo[Try[Boolean]]) { call =>
+          handleComplete(call, (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString)))
+          )
         }
       }
     }
@@ -109,14 +109,14 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
         parameters('email, 'merchant_id.?, 'account_type.as[RoleName]) { (email, merchantId, accountType) =>
           assert(accountType == RoleName.CUSTOMER || accountType == RoleName.MERCHANT)
           val isCustomer = accountType == RoleName.CUSTOMER && !session.sessionData.merchantSession
-          complete {
-            if (isCustomer && merchantId.isEmpty) {
-              StatusCodes.BadRequest -> Map('error -> "Merchant ID not specified.")
-            } else {
-              val message = DoesAccountExistByEmail(email, merchantId)
-              (account ? message).mapTo[Boolean].map { exists =>
-                HttpResponse(200, HttpEntity(ContentType(`text/plain`), exists.toString))
-              }
+
+          if (isCustomer && merchantId.isEmpty) {
+            complete(StatusCodes.BadRequest -> Map('error -> "Merchant ID not specified."))
+          } else {
+            val message = DoesAccountExistByEmail(email, merchantId)
+            onComplete((actor ? DoesAccountExistByEmail(email, merchantId)).mapTo[Try[Boolean]]) { call =>
+              handleComplete(call, (exist: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), exist.toString)))
+              )
             }
           }
         }
@@ -128,11 +128,14 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   lazy val id = path("id") {
     get {
       parameters('seller) { seller =>
-        complete {
-          (account ? MerchantComId(seller)).mapTo[Option[String]] map {
-            case None => 404 -> Map()
-            case Some(x) => 200 -> Map("result" -> x)
-          }
+        onComplete((actor ? MerchantComId(seller)).mapTo[Try[Option[String]]]) { call =>
+          handleComplete(call,
+            (res: Option[String]) =>
+              if (res.isEmpty)
+                complete(StatusCodes.NotFound)
+              else
+                complete(StatusCodes.OK -> Map("result" -> res.get))
+          )
         }
       }
     }
@@ -141,29 +144,33 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   lazy val secret = path("secret") {
     get {
       parameters('seller) { seller =>
-        complete {
-          (account ? MerchantComSecret(seller)).mapTo[Option[String]] map {
-            case None => 404 -> Map()
-            case Some(x) => 200 -> Map("result" -> x)
-          }
+        onComplete((actor ? MerchantComSecret(seller)).mapTo[Try[Option[String]]]) { call =>
+          handleComplete(call,
+            (res: Option[String]) =>
+              if (res.isEmpty)
+                complete(StatusCodes.NotFound)
+              else
+                complete(StatusCodes.OK -> Map("result" -> res.get))
+          )
         }
       }
     }
   }
 
 
-  lazy val checkTokenValidity = getPath("check-token-validity") {
-    type UserInfo = Option[Map[Symbol, Option[String]]]
-    parameters('token).as(CheckTokenValidity) { token =>
-      complete {
-        val response = (account ? token).mapTo[(TokenValidity, UserInfo)]
-        response.map { case (validity, userInfo) => {
-          validity match {
-            case TokenValidity.VALID => StatusCodes.OK -> userInfo
-            case TokenValidity.INVALID => StatusCodes.NotFound -> Map('error -> "Invalid token.")
-            case TokenValidity.EXPIRED => StatusCodes.Unauthorized -> Map('error -> "Expired token.")
-          }
-        }
+  lazy val checkTokenValidity = get {
+    path("check-token-validity") {
+      type UserInfo = Option[Map[Symbol, Option[String]]]
+      parameters('token).as(CheckTokenValidity) { token =>
+        onComplete((actor ? token).mapTo[Try[(TokenValidity, UserInfo)]]) { call =>
+          handleComplete(call,
+            (res: (TokenValidity, UserInfo)) =>
+              complete(res._1 match {
+                case TokenValidity.VALID => StatusCodes.OK -> res._2
+                case TokenValidity.INVALID => StatusCodes.NotFound -> Map('error -> "Invalid token.")
+                case TokenValidity.EXPIRED => StatusCodes.Unauthorized -> Map('error -> "Expired token.")
+              })
+          )
         }
       }
     }
@@ -189,11 +196,16 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
   lazy val isValidAccountId = path("is-valid-account-id") {
     get {
       parameters('id).as(IsValidAccountId) { isValidAccountId =>
-        complete {
-          (account ? isValidAccountId).mapTo[Boolean] map {
-            case true => StatusCodes.OK -> Map('result -> true)
-            case false => StatusCodes.NotFound -> Map('result -> false)
-          }
+        onComplete((actor ? isValidAccountId).mapTo[Try[Boolean]]) { call =>
+          handleComplete(call,
+            (res: Boolean) =>
+              complete(
+                res match {
+                  case true => StatusCodes.OK -> Map('result -> true)
+                  case false => StatusCodes.NotFound -> Map('result -> false)
+                }
+              )
+          )
         }
       }
     }
@@ -207,19 +219,17 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
             case Some(accountId: String) =>
               session.sessionData.merchantId match {
                 case Some(vendorId: String) =>
-                  val updatePassword = UpdatePassword(password, vendorId, accountId)
-                  complete {
-                    (account ? updatePassword).mapTo[Try[Unit]] map {
-                      case Failure(e) => toHTTPResponse(e) -> e.toString
-                      case Success(unit) => StatusCodes.OK
-                    }
+                  onComplete((actor ? UpdatePassword(password, vendorId, accountId)).mapTo[Try[Unit]]) { call =>
+                    handleComplete(call,
+                      (_: Unit) => complete(StatusCodes.OK)
+                    )
                   }
                 case _ => complete {
-                  StatusCodes.BadRequest
+                  complete(StatusCodes.BadRequest)
                 }
               }
             case _ => complete {
-              StatusCodes.Unauthorized -> Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+              complete(StatusCodes.Unauthorized -> Map('error -> "ID missing or incorrect. The user is probably not logged in."))
             }
           }
         }
@@ -244,31 +254,35 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       withAccount(
         accountId => {
           complete {
-            val message = GenerateAndSendPincode3(accountId)
-            (account ? message).mapTo[Try[Unit]] map {
-              case Success(_) => StatusCodes.OK -> Map()
-              case Failure(t: NoPhoneNumberFoundException) =>
-                StatusCodes.NotFound -> Map('error -> t.toString)
-              case Failure(t: AccountDoesNotExistError) =>
-                StatusCodes.NotFound -> Map('error -> t.toString)
-              case Failure(t) =>
-                StatusCodes.InternalServerError -> Map('error -> t.toString)
+            onComplete((actor ? GenerateAndSendPincode3(accountId)).mapTo[Try[Unit]]) { call =>
+              handleComplete(call,
+                (_: Unit) => complete(StatusCodes.OK)
+              )
             }
           }
         })
     }
   }
 
-  lazy val enroll = getPath("enroll") {
-    parameters('lphone, 'pin_code) {
-      (lPhone, pinCode) =>
-        withAccount(accountId => complete {
-          val message = Enroll(accountId, lPhone, pinCode)
-          (account ? message) map {
-            case Failure(e) => toHTTPResponse(e) -> e.toString
-            case r => StatusCodes.OK -> Map()
+  lazy val enroll = get {
+    path("enroll") {
+      parameters('lphone, 'pin_code) {
+        (lPhone, pinCode) =>
+          session {
+            session =>
+              session.sessionData.accountId match {
+                case Some(id: String) => onComplete((actor ? Enroll(id, lPhone, pinCode)).mapTo[Try[Unit]]) { call =>
+                  handleComplete(call,
+                    (_: Unit) => complete(StatusCodes.OK)
+                  )
+                }
+                case _ => complete {
+                  StatusCodes.Unauthorized ->
+                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                }
+              }
           }
-        })
+      }
     }
   }
 
@@ -298,7 +312,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       parameters('token).as(ConfirmSignup) {
         confirmSignup =>
           complete {
-            (account ? confirmSignup).mapTo[Try[Boolean]] map {
+            (actor ? confirmSignup).mapTo[Try[Boolean]] map {
               case Failure(e) => toHTTPResponse(e) -> Map('error -> e.toString)
               case Success(true) => StatusCodes.OK -> Map()
               case Success(false) => StatusCodes.Gone ->
@@ -316,7 +330,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
           parameters('token) {
             token =>
               complete {
-                (account ? BypassLogin(token, session)).mapTo[Option[Session]].map {
+                (actor ? BypassLogin(token, session)).mapTo[Option[Session]].map {
                   case Some(s) => setSession(s) {
                     complete {
                       StatusCodes.OK -> Map()
@@ -336,7 +350,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       withAccount(accountId => {
         complete {
           val message = GenerateNewSecret(accountId)
-          (account ? message).mapTo[Option[String]].map {
+          (actor ? message).mapTo[Option[String]].map {
             case None => StatusCodes.NotFound -> Map()
             case Some(uuid) => StatusCodes.OK -> Map('uuid -> uuid)
           }
@@ -351,7 +365,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
         (ccId, holder, number, expiryDate, ccType) =>
           withAccount(accountId => complete {
             val message: AddCreditCard = AddCreditCard(accountId, ccId, holder, number, expiryDate, ccType)
-            (account ? message).mapTo[Try[CreditCard]].map {
+            (actor ? message).mapTo[Try[CreditCard]].map {
               case Failure(e: java.text.ParseException) =>
                 StatusCodes.BadRequest -> Map('error -> e.toString)
               case Failure(e) =>
@@ -368,7 +382,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
       parameters('card_id) {
         ccId =>
           withAccount(accountId => complete {
-            (account ? DeleteCreditCard(accountId, ccId)).mapTo[Try[Unit]].map {
+            (actor ? DeleteCreditCard(accountId, ccId)).mapTo[Try[Unit]].map {
               case Success(_) => StatusCodes.OK -> Map()
               case Failure(t) => StatusCodes.NotFound -> Map('error -> t.toString)
             }
@@ -377,108 +391,130 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
     }
   }
 
-  lazy val logout = getPath("logout") {
-    session {
-      s =>
-        setSession(Session()) {
-          complete(200, Map())
-        }
+  lazy val logout = get {
+    path("logout") {
+      session {
+        s =>
+          setSession(Session()) {
+            complete(200, Map())
+          }
+      }
     }
   }
 
-  lazy val getBillingAddress = getPath("billing-address") {
-    withAccount(accountId => complete {
-      (account ? GetBillingAddress(accountId)).mapTo[Option[AccountAddress]]
-    })
+  lazy val getBillingAddress = get {
+    path("billing-address") {
+      withAccount(accountId => complete {
+        (actor ? GetBillingAddress(accountId)).mapTo[Option[AccountAddress]]
+      })
+    }
   }
 
-  lazy val getShippingAddresses = getPath("shipping-addresses") {
-    withAccount(accountId => complete {
-      val message = GetShippingAddresses(accountId)
-      (account ? message).mapTo[Seq[AccountAddress]]
-    })
+  lazy val getShippingAddresses = get {
+    path("shipping-addresses") {
+      withAccount(accountId => complete {
+        val message = GetShippingAddresses(accountId)
+        (actor ? message).mapTo[Seq[AccountAddress]]
+      })
+    }
   }
 
-  lazy val getShippingAddress = getPath("shipping-address") {
-    withAccount(accountId => complete {
-      val message = GetShippingAddress(accountId)
-      (account ? message).mapTo[Option[AccountAddress]]
-    })
+  lazy val getShippingAddress = get {
+    path("shipping-address") {
+      withAccount(accountId => complete {
+        val message = GetShippingAddress(accountId)
+        (actor ? message).mapTo[Option[AccountAddress]]
+      })
+    }
   }
 
   lazy val profileInfo = path("profile-info") {
     get {
       withAccount(accountId => complete {
-        (account ? ProfileInfo(accountId)).mapTo[Option[Future[Map[Symbol, Any]]]]
+        (actor ? ProfileInfo(accountId)).mapTo[Option[Future[Map[Symbol, Any]]]]
       })
     }
   }
 
-  lazy val assignBillingAddress = getPath("assign-billing-address") {
-    val params = parameters('road, 'city, 'road2.?, 'zip_code.?, 'extra.?, 'civility.?,
-      'firstname.?, 'lastname.?, 'country.?, 'admin1.?, 'admin2.?)
+  lazy val assignBillingAddress = get {
+    path("assign-billing-address") {
+      val params = parameters('road, 'city, 'road2.?, 'zip_code.?, 'extra.?, 'civility.?,
+        'firstname.?, 'lastname.?, 'country.?, 'admin1.?, 'admin2.?)
 
-    params.as(AddressToAssignFromGetParams) {
-      address =>
-        withAccount(accountId => complete {
-          (account ? AssignBillingAddress(accountId, address)).mapTo[Unit]
-        })
+      params.as(AddressToAssignFromGetParams) {
+        address =>
+          withAccount(accountId => complete {
+            (actor ? AssignBillingAddress(accountId, address)).mapTo[Unit]
+          })
+      }
     }
   }
 
-  lazy val deleteShippingAddress = getPath("delete-shipping-address") {
-    parameters('address_id) { addressId =>
-      withAccount(accountId =>
-        complete {
-          account ? DeleteShippingAddress(accountId, addressId)
-        })
+  lazy val deleteShippingAddress = get {
+    path("delete-shipping-address") {
+      parameters('address_id) { addressId =>
+        withAccount(accountId =>
+          complete {
+            actor ? DeleteShippingAddress(accountId, addressId)
+          })
+      }
     }
   }
 
-  lazy val addShippingAddress = getPath("add-shipping-address") {
-    val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-      'firstname, 'lastname, 'country, 'admin1.?, 'admin2.?)
+  lazy val addShippingAddress = get {
+    path("add-shipping-address") {
+      val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
+        'firstname, 'lastname, 'country, 'admin1.?, 'admin2.?)
 
-    params.as(AddressToAddFromGetParams) {
-      address =>
-        withAccount(accountId => complete {
-          (account ? AddShippingAddress(accountId, address)).mapTo[Option[ShippingAddress]]
-        })
+      params.as(AddressToAddFromGetParams) {
+        address =>
+          withAccount(accountId => complete {
+            (actor ? AddShippingAddress(accountId, address)).mapTo[Option[ShippingAddress]]
+          })
+      }
     }
   }
 
-  lazy val updateShippingAddress = getPath("update-shipping-address") {
-    val params = parameters('address_id.as[String], 'road.?, 'city.?, 'road2.?,
-      'zip_code.?, 'extra.?, 'civility.?, 'firstname.?, 'lastname.?, 'country.?,
-      'admin1.?, 'admin2.?)
+  lazy val updateShippingAddress = get {
+    path("update-shipping-address") {
+      val params = parameters('address_id.as[String], 'road.?, 'city.?, 'road2.?,
+        'zip_code.?, 'extra.?, 'civility.?, 'firstname.?, 'lastname.?, 'country.?,
+        'admin1.?, 'admin2.?)
 
-    params.as(AddressToUpdateFromGetParams) {
-      address =>
-        withAccount(accountId => complete {
-          account ? UpdateShippingAddress(accountId, address)
-        })
+      params.as(AddressToUpdateFromGetParams) {
+        address =>
+          withAccount(accountId => complete {
+            actor ? UpdateShippingAddress(accountId, address)
+          })
+      }
     }
   }
 
-  lazy val getActiveCountryState = getPath("active-country-state") {
-    withAccount(accountId => complete {
-      (account ? GetActiveCountryState(accountId)).mapTo[Option[Map[Symbol, String]]]
-    })
+  lazy val getActiveCountryState = get {
+    path("active-country-state") {
+      withAccount(accountId => complete {
+        (actor ? GetActiveCountryState(accountId)).mapTo[Option[Map[Symbol, String]]]
+      })
+    }
   }
 
-  lazy val selectShippingAddress = getPath("select-shipping-address") {
-    parameters('address_id.as[String]) {
-      addressId =>
-        withAccount(accountId => complete {
-          account ? SelectShippingAddress(accountId, addressId)
-        })
+  lazy val selectShippingAddress = get {
+    path("select-shipping-address") {
+      parameters('address_id.as[String]) {
+        addressId =>
+          withAccount(accountId => complete {
+            actor ? SelectShippingAddress(accountId, addressId)
+          })
+      }
     }
   }
 
   lazy val deleteMerchantTestAccount = path("delete-test-account") {
     get {
       complete {
+
         import com.sksamuel.elastic4s.ElasticDsl._
+
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
           .from(Settings.ElasticSearch.Index -> "Account")
           .where(regexQuery("email", "newuser"))
@@ -504,6 +540,7 @@ class AccountService(account: ActorRef)(implicit executionContext: ExecutionCont
 }
 
 class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+
   import mogopay.config.Implicits.MogopaySession
 
   implicit val timeout = Timeout(10.seconds)
@@ -511,8 +548,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   val route = {
     pathPrefix("account") {
       login ~
-      updateProfile ~
-      signup
+        updateProfile ~
+        signup
     }
   }
 
@@ -604,25 +641,26 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   }
 
   import shapeless._
+
   lazy val updateProfile = path("update-profile") {
     post {
       session { session =>
         session.sessionData.accountId match {
           case Some(accountId: String) =>
-            val fields = formFields(('password?) :: ('password2?) :: 'company ::
+            val fields = formFields(('password ?) :: ('password2 ?) :: 'company ::
               'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
-              'road :: ('road2?) :: ('city) :: 'zipCode :: 'country :: 'admin1 :: 'admin2 :: ('vendor?) ::
+              'road :: ('road2 ?) :: ('city) :: 'zipCode :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
               'payment_method :: 'cb_provider ::
-              ('payline_account?) :: ('payline_key?) :: ('payline_contract?) :: ('payline_custom_payment_page_code?) ::
-              ('payline_custom_payment_template_url?) :: ('paybox_site?) :: ('paybox_key?) :: ('paybox_rank?) ::
-              ('paybox_merchant_id?) :: ('sips_merchant_id?) :: ('sips_merchant_country?) ::
+              ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
+              ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
+              ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
               ('sips_merchant_certificate_file_name.?.as[Option[String]]) ::
               ('sips_merchant_certificate_file_content.?.as[Option[String]]) ::
               ('sips_merchant_parcom_file_name.?.as[Option[String]]) ::
-              ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path?) ::
-              ('systempay_shop_id?) :: ('systempay_contract_number?) :: ('systempay_certificate?) ::
-              ('password_subject?) :: ('password_content?) :: ('password_pattern?) :: ('callback_prefix?) ::
-              ('paypal_user?) :: ('paypal_password?) :: ('paypal_signature?) :: ('kwixo_params?) :: HNil)
+              ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path ?) ::
+              ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
+              ('password_subject ?) :: ('password_content ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
+              ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) :: HNil)
             fields.happly { case password :: password2 :: company :: website :: lphone ::
               civility :: firstname :: lastname :: birthday :: road :: road2 ::
               city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
@@ -679,13 +717,13 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 vendor = vendor,
                 passwordSubject = passwordSubject,
                 passwordContent = passwordContent,
-                callbackPrefix  = callbackPrefix,
+                callbackPrefix = callbackPrefix,
                 passwordPattern = passwordPattern,
                 paymentMethod = paymentMethod,
                 cbProvider = cbProvider,
                 payPalParam = PayPalParam(
-                  paypalUser      = paypalUser,
-                  paypalPassword  = paypalPassword,
+                  paypalUser = paypalUser,
+                  paypalPassword = paypalPassword,
                   paypalSignature = paypalSignature
                 ),
                 kwixoParam = KwixoParam(kwixoParams),

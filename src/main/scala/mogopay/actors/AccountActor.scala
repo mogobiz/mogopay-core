@@ -6,6 +6,8 @@ import mogopay.model.Mogopay.{Civility, AccountAddress}
 import org.json4s.JObject
 import mogopay.session.Session
 
+import scala.util.Try
+
 object AccountActor {
 
   case class DoesAccountExistByEmail(email: String, merchantId: Option[String])
@@ -100,6 +102,7 @@ object AccountActor {
   case class MerchantComSecret(seller: String)
 
   case class Enroll(accountId: String, lPhone: String, pinCode: String)
+
   case class Signup(email: String, password: String, password2: String,
                     lphone: String, civility: String, firstName: String,
                     lastName: String, birthDate: String, address: AccountAddress,
@@ -113,18 +116,27 @@ object AccountActor {
                            passwordPattern: Option[String], callbackPrefix: Option[String],
                            paymentMethod: String, cbProvider: String, cbParam: CBParams,
                            payPalParam: PayPalParam, kwixoParam: KwixoParam)
+
   sealed trait CBParams
+
   case class NoCBParams() extends CBParams
+
   case class PayPalParam(paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String]) extends CBParams
+
   case class KwixoParam(kwixoParams: Option[String]) extends CBParams
+
   case class PaylineParams(paylineAccount: String, paylineKey: String, paylineContract: String,
                            paylineCustomPaymentPageCode: String, paylineCustomPaymentTemplateURL: String) extends CBParams
-  case class PayboxParams(payboxSite: String,payboxKey: String, payboxRank: String, payboxMerchantId: String) extends CBParams
+
+  case class PayboxParams(payboxSite: String, payboxKey: String, payboxRank: String, payboxMerchantId: String) extends CBParams
+
   case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
                         sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
                         sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
                         sipsMerchantLogoPath: String) extends CBParams
+
   case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
+
 }
 
 class AccountActor extends Actor {
@@ -133,24 +145,24 @@ class AccountActor extends Actor {
 
   def receive: Receive = {
     case IsPatternValid(pattern: String) => {
-      sender ! accountHandler.isPatternValid(pattern)
+      sender ! Try(accountHandler.isPatternValid(pattern))
     }
 
     case DoesAccountExistByEmail(email, merchantId) => {
-      sender ! accountHandler.alreadyExistEmail(email, merchantId)
+      sender ! Try(accountHandler.alreadyExistEmail(email, merchantId))
     }
 
-    case IsValidAccountId(id) => sender ! accountHandler.load(id).nonEmpty
+    case IsValidAccountId(id) => sender ! Try(accountHandler.load(id).nonEmpty)
 
     /*
     case GenerateLostPasswordToken(email, merchantId) =>
       sender ! accountHandler.generateLostPasswordToken(email, merchantId)
     */
 
-    case CheckTokenValidity(token) => sender ! accountHandler.checkTokenValidity(token)
+    case CheckTokenValidity(token) => sender ! Try(accountHandler.checkTokenValidity(token))
 
     case UpdatePassword(password, vendorId, accountId) =>
-      sender ! accountHandler.updatePassword(password, vendorId, accountId)
+      sender ! Try(accountHandler.updatePassword(password, vendorId, accountId))
 
     /*
     case Verify(email, merchantSecret, mogopayToken) =>
@@ -158,11 +170,11 @@ class AccountActor extends Actor {
     */
 
     case Login(email, password, merchantId, isCustomer) => {
-      sender ! accountHandler.login(email, password, merchantId, isCustomer)
+      sender ! Try(accountHandler.login(email, password, merchantId, isCustomer))
     }
 
     case GenerateAndSendPincode3(accountId) =>
-      sender ! accountHandler.generateAndSendPincode3(accountId)
+      sender ! Try(accountHandler.generateAndSendPincode3(accountId))
 
     /*
     case GenerateNewEmailCode(accountId) =>
@@ -176,53 +188,53 @@ class AccountActor extends Actor {
     */
 
     case ConfirmSignup(token) =>
-      sender ! accountHandler.Emailing.confirmSignup(token)
+      sender ! Try(accountHandler.Emailing.confirmSignup(token))
 
     case BypassLogin(token, session) =>
-      sender ! accountHandler.Emailing.bypassLogin(token, session)
+      sender ! Try(accountHandler.Emailing.bypassLogin(token, session))
 
-    case GenerateNewSecret(accountId) => sender ! accountHandler.generateNewSecret(accountId)
+    case GenerateNewSecret(accountId) => sender ! Try(accountHandler.generateNewSecret(accountId))
 
     case AddCreditCard(accountId, ccId, holder, number, expiry, ccType) =>
-      sender ! accountHandler.addCreditCard(accountId, ccId, holder, number, expiry, ccType)
+      sender ! Try(accountHandler.addCreditCard(accountId, ccId, holder, number, expiry, ccType))
 
-    case DeleteCreditCard(accountId, cardId) => sender ! creditCardHandler.delete(accountId, cardId)
+    case DeleteCreditCard(accountId, cardId) => sender ! Try(creditCardHandler.delete(accountId, cardId))
 
-    case GetBillingAddress(accountId) => sender ! accountHandler.getBillingAddress(accountId)
+    case GetBillingAddress(accountId) => sender ! Try(accountHandler.getBillingAddress(accountId))
 
-    case GetShippingAddresses(accountId) => sender ! accountHandler.getShippingAddresses(accountId)
+    case GetShippingAddresses(accountId) => sender ! Try(accountHandler.getShippingAddresses(accountId))
 
-    case GetShippingAddress(accountId) => sender ! accountHandler.getShippingAddress(accountId)
+    case GetShippingAddress(accountId) => sender ! Try(accountHandler.getShippingAddress(accountId))
 
     case AssignBillingAddress(accountId, address) =>
-      sender ! accountHandler.assignBillingAddress(accountId, address)
+      sender ! Try(accountHandler.assignBillingAddress(accountId, address))
 
     case AddShippingAddress(accountId, address) =>
-      sender ! accountHandler.addShippingAddress(accountId, address)
+      sender ! Try(accountHandler.addShippingAddress(accountId, address))
 
     case DeleteShippingAddress(accountId, addressId) =>
-      sender ! accountHandler.deleteShippingAddress(accountId, addressId)
+      sender ! Try(accountHandler.deleteShippingAddress(accountId, addressId))
 
     case UpdateShippingAddress(accountId, address) =>
-      sender ! accountHandler.updateShippingAddress(accountId, address)
+      sender ! Try(accountHandler.updateShippingAddress(accountId, address))
 
     case GetActiveCountryState(accountId) =>
-      sender ! accountHandler.getActiveCountryState(accountId)
+      sender ! Try(accountHandler.getActiveCountryState(accountId))
 
     case SelectShippingAddress(accountId, addressId) =>
-      sender ! accountHandler.selectShippingAddress(accountId, addressId)
+      sender ! Try(accountHandler.selectShippingAddress(accountId, addressId))
 
-    case ProfileInfo(accountId) => sender ! accountHandler.profileInfo(accountId)
+    case ProfileInfo(accountId) => sender ! Try(accountHandler.profileInfo(accountId))
 
-    case up: UpdateProfile => sender ! accountHandler.updateProfile(up)
+    case up: UpdateProfile => sender ! Try(accountHandler.updateProfile(up))
 
-    case MerchantComId(seller) => sender ! accountHandler.findByEmail(seller + "@merchant.com").map(_.uuid)
+    case MerchantComId(seller) => sender ! Try(accountHandler.findByEmail(seller + "@merchant.com").map(_.uuid))
 
-    case MerchantComSecret(seller) => sender ! accountHandler.findByEmail(seller + "@merchant.com").map(_.secret)
+    case MerchantComSecret(seller) => sender ! Try(accountHandler.findByEmail(seller + "@merchant.com").map(_.secret))
 
     case Enroll(accountId, lPhone, pinCode) =>
-      sender ! accountHandler.enroll(accountId, lPhone, pinCode)
+      sender ! Try(accountHandler.enroll(accountId, lPhone, pinCode))
 
-    case s: Signup => sender ! accountHandler.signup(s)
+    case s: Signup => sender ! Try(accountHandler.signup(s))
   }
 }

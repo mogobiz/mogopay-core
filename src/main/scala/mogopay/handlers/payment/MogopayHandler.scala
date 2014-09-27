@@ -9,15 +9,13 @@ import mogopay.es.EsClient
 import mogopay.exceptions.Exceptions.InvalidTransactionTypeException
 import mogopay.model.Mogopay.{Account, AccountStatus, SessionData}
 import org.apache.shiro.crypto.hash.Sha256Hash
-import mogopay.config.HandlersConfig._
 import spray.http.Uri
-
-import scala.util.{Try, Failure, Left, Success}
+import scala.util.Left
 
 class MogopayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
 
-  def authenticate(sessionData: SessionData): Try[Left[String, Nothing]] = {
+  def authenticate(sessionData: SessionData): Left[String, Nothing] = {
     val ownerFilter =
       sessionData.merchantId.map {
         vendorId => termFilter("owner", vendorId)
@@ -55,7 +53,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
                 <script>document.getElementById("formpay").submit();</script>
               </body>
             </html>"""
-        Success(Left(form))
+        Left(form)
       }
       else {
         val card = cards(0)
@@ -78,7 +76,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
                 <script>document.getElementById("formpay").submit();</script>
               </body>
             </html>"""
-        Success(Left(form))
+        Left(form)
       }
     } getOrElse {
       val form = s"""
@@ -95,18 +93,18 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
                 <script>document.getElementById("formpay").submit();</script>
               </body>
             </html>"""
-      Success(Left(form))
+      Left(form)
 
     }
   }
 
-  def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
+  def startPayment(sessionData: SessionData): Either[String, Uri] = {
     if (sessionData.transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
       val cbProvider = sessionData.paymentConfig.get.cbProvider.toString.toLowerCase()
       PaymentHandler(cbProvider).startPayment(sessionData)
     }
     else {
-      Failure(new InvalidTransactionTypeException(sessionData.transactionType.get))
+      throw new InvalidTransactionTypeException(sessionData.transactionType.get)
     }
   }
 }

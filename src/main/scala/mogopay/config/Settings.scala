@@ -37,7 +37,7 @@ object Settings {
 
   val Interface = config getString "spray.interface"
   val Port = config getInt "spray.port"
-  val ApplicationSecret = config getString "session.application.secret"
+  val SessionSecret = config getString "session.secret"
   val SessionFolder = new File(config getString "session.folder")
   val SessionCookieName = config getString "session.cookie.name"
   val SessionMaxAge = config getLong "session.maxage"
@@ -212,7 +212,10 @@ object Settings {
     }
   }
 
+  val ApplicationSecret = config getString "application.secret"
+
   require(ApplicationSecret.nonEmpty, "application.secret must be non-empty")
+  require(SessionSecret.nonEmpty, "session.secret must be non-empty")
   require(SessionCookieName.nonEmpty, "session.cookie.name must be non-empty")
   require(RememberCookieName.nonEmpty, "session.remember.cookie.name must be non-empty")
   require(Interface.nonEmpty, "interface must be non-empty")

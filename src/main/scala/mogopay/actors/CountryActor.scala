@@ -3,6 +3,8 @@ package mogopay.actors
 import akka.actor.Actor
 import mogopay.config.HandlersConfig._
 
+import scala.util.Try
+
 object CountryActor {
 
   case object CountriesForShipping
@@ -30,22 +32,22 @@ class CountryActor extends Actor {
 
   def receive: Receive = {
     case CountriesForShipping => {
-      sender ! countryHandler.findCountriesForShipping
+      sender ! Try(countryHandler.findCountriesForShipping)
     }
     case CountriesForBilling => {
-      sender ! countryHandler.findCountriesForBilling
+      sender ! Try(countryHandler.findCountriesForBilling)
     }
     case Country(code) => {
-      sender ! countryHandler.findByCode(code)
+      sender ! Try(countryHandler.findByCode(code))
     }
     case Admins1(country) => {
-      sender ! countryAdminHandler.admins1(country)
+      sender ! Try(countryAdminHandler.admins1(country))
     }
     case Admins2(country, parentAdmin) => {
-      sender ! countryAdminHandler.admins2(country, parentAdmin)
+      sender ! Try(countryAdminHandler.admins2(country, parentAdmin))
     }
     case Cities(country, parentAdmin1Code, parentAdmin2Code, cityName) => {
-      sender ! countryAdminHandler.cities(country, parentAdmin1Code, parentAdmin2Code, cityName)
+      sender ! Try(countryAdminHandler.cities(country, parentAdmin1Code, parentAdmin2Code, cityName))
     }
     //    case CheckPhoneNumber(phone, country) => {
     //      sender ! telephoneHandler.checkPhoneNumber(phone, country)

@@ -3,14 +3,14 @@ package mogopay.handlers
 import java.net.{URLConnection, URL, URLEncoder}
 import java.io.{InputStreamReader, BufferedReader}
 import mogopay.config.Settings
-import scala.util.{Failure, Success, Try}
 
 trait ClickatellSMSHandler {
   val sender = Settings.clickatell.sender
   val sessionIdUrl = Settings.clickatell.sessionIdUrl
   val sendFlashUrlPattern = Settings.clickatell.sendFlashUrlPattern
 
-  def sendSms(message: String, receiver: String): Try[Unit] = Try {
+  def sendSms(message: String, receiver: String): Unit = {
+
     val encodedMessage = URLEncoder.encode(message, "UTF-8")
     val urlSession = new URL(sessionIdUrl)
 

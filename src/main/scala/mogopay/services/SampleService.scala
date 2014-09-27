@@ -4,10 +4,9 @@ package mogopay.services
 import spray.routing.Directives
 import mogopay.config.Implicits._
 
-import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
 
-class SampleService extends Directives {
+class SampleService extends Directives with DefaultComplete {
 
   import akka.util.Timeout
   import scala.concurrent.duration._

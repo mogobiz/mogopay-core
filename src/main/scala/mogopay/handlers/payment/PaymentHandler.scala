@@ -7,7 +7,6 @@ import spray.http.Uri
 import spray.http.Uri.Query
 
 import scala.collection.mutable
-import scala.util.Try
 
 trait PaymentHandler {
   /**
@@ -35,7 +34,7 @@ trait PaymentHandler {
     Uri(redirectTo + sep + GlobalUtil.mapToQueryString(query.toMap))
   }
 
-  def startPayment(sessionData: SessionData): Try[Either[String, Uri]]
+  def startPayment(sessionData: SessionData): Either[String, Uri]
 }
 
 object PaymentHandler {

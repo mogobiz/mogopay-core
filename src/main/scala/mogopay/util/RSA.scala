@@ -17,7 +17,8 @@ import java.security.KeyPairGenerator
 import java.security.spec.RSAPrivateKeySpec
 import java.security.spec.RSAPublicKeySpec
 import javax.crypto.Cipher
-import com.ebiznext.utils.Base64
+
+import mogobiz.util.Base64
 
 
 object RSA {

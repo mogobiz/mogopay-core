@@ -6,6 +6,8 @@ import mogopay.handlers.shipping.ShippingPrice
 import mogopay.model.Mogopay.SessionData
 import mogopay.session.Session
 
+import scala.util.Try
+
 object TransactionActor {
 
   case class Init(merchantSecret: String, amount: Long, code: String,
@@ -57,11 +59,11 @@ class TransactionActor extends Actor {
 
   def receive = {
     case Init(merchantRequest, amount, code, rate, extra) =>
-      sender ! transactionHandler.init(merchantRequest, amount, code, rate, extra)
-    case SearchByCustomer(uuid) => sender ! transactionHandler.searchByCustomer(uuid)
-    case GetShippingPrices(c, e, id) => sender ! transactionHandler.shippingPrices(c, e, id)
-    case GetShippingPrice(sps, p, s, rt) => sender ! transactionHandler.shippingPrice(sps, p, s, rt)
-    case Verify(s, a, uuid) => sender ! transactionHandler.verify(s, a, uuid)
-    case submit: Submit => sender ! transactionHandler.submit(submit)
+      sender ! Try(transactionHandler.init(merchantRequest, amount, code, rate, extra))
+    case SearchByCustomer(uuid) => sender ! Try(transactionHandler.searchByCustomer(uuid))
+    case GetShippingPrices(c, e, id) => sender ! Try(transactionHandler.shippingPrices(c, e, id))
+    case GetShippingPrice(sps, p, s, rt) => sender ! Try(transactionHandler.shippingPrice(sps, p, s, rt))
+    case Verify(s, a, uuid) => sender ! Try(transactionHandler.verify(s, a, uuid))
+    case submit: Submit => sender ! Try(transactionHandler.submit(submit))
   }
 }

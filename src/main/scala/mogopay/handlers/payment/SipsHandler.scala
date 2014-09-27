@@ -58,7 +58,7 @@ import scala.util.control.NonFatal
 /**
  * @see com.ebiznext.mogopay.payment.ISipsPaymentService
  */
-class SipsHandler(handlerName:String) extends PaymentHandler {
+class SipsHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {
   }
@@ -66,23 +66,23 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
   import SipsHandler._
 
 
-  def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
+  def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val transactionUUID = sessionData.transactionUuid.get
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
     val vendorUuid = sessionData.merchantId.get
     val paymentRequest = sessionData.paymentRequest.get
 
     if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.SIPS) {
-      Failure(new MogopayError(MogopayConstant.InvalidSystemPayConfig))
+      throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     }
     else {
       transactionHandler.startPayment(vendorUuid, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
       if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest)
         if (resultat.data != null)
-          Success(Left(resultat.data))
+          Left(resultat.data)
         else
-          Success(Right(finishPayment(sessionData, resultat)))
+          Right(finishPayment(sessionData, resultat))
       }
       else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED) {
         val resultat3DS = check3DSecure(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
@@ -103,34 +103,34 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
               |    </body>
               |</html>
               |            """.stripMargin
-          Success(Left(data))
+          Left(data)
         }
         else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           // on lance un paiement classique
           val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest)
-          Success(Right(finishPayment(sessionData, resultat)))
+          Right(finishPayment(sessionData, resultat))
         }
         else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
-          Success(Right(finishPayment(sessionData, GlobalUtil.createThreeDSNotEnrolledResult())))
+          Right(finishPayment(sessionData, GlobalUtil.createThreeDSNotEnrolledResult()))
         }
       }
       else {
         val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest)
-        Success(Right(finishPayment(sessionData, resultat)))
+        Right(finishPayment(sessionData, resultat))
       }
     }
   }
 
-  def callbackPayment(params: Map[String, String], vendorUuid: Document): Try[Uri] = {
+  def callbackPayment(params: Map[String, String], vendorUuid: Document): Uri = {
     handleResponse(vendorUuid, params("DATA"))
-    Success(Uri(Settings.MogopayEndPoint))
+    Uri(Settings.MogopayEndPoint)
   }
 
-  def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Uri = {
     if (!sessionData.waitFor3DS) {
       // invalid call
-      Failure(throw InvalidContextException("Invalid payment chain not waiting 3DSecure callback"))
+      throw InvalidContextException("Invalid payment chain not waiting 3DSecure callback")
     }
     else {
       val errorURL = sessionData.errorURL.getOrElse("")
@@ -144,17 +144,17 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
       sessionData.waitFor3DS = false
       try {
         val result = order3D(sessionData, vendorId, transactionUUID, paymentConfig.orNull, paymentRequest);
-        Success(finishPayment(sessionData, result))
+        finishPayment(sessionData, result)
       }
       catch {
         case ex: Exception =>
           ex.printStackTrace()
-          Success(Uri(errorURL))
+          Uri(errorURL)
       }
     }
   }
 
-  def done(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def done(sessionData: SessionData, params: Map[String, String]): Uri = {
     val transactionUUID = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
@@ -165,14 +165,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
     val successURL = sessionData.successURL
     var resultatPaiement: PaymentResult =
       if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.PAYMENT_REFUSED) {
-        try {
-          handleResponse(vendorId, params("DATA"))
-        }
-        catch {
-          case e: Exception =>
-            e.printStackTrace()
-            throw new Exception("Invalid call")
-        }
+        handleResponse(vendorId, params("DATA"))
       }
       else {
         PaymentResult(
@@ -185,7 +178,7 @@ class SipsHandler(handlerName:String) extends PaymentHandler {
           transaction.errorCodeOrigin.getOrElse(""),
           transaction.errorMessageOrigin, "", "", Some(""), "")
       }
-    Success(finishPayment(sessionData, resultatPaiement))
+    finishPayment(sessionData, resultatPaiement)
 
   }
 

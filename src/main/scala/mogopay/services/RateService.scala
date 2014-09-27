@@ -3,6 +3,7 @@ package mogopay.services
 import mogopay.actors.RateActor._
 import mogopay.config.Implicits._
 import mogopay.model.Mogopay.Rate
+import spray.http.StatusCodes
 import spray.routing.Directives
 
 import akka.actor.ActorRef
@@ -10,8 +11,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.Try
 
-class RateService(rateActor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+class RateService(rateActor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
   implicit val timeout = Timeout(10.seconds)
 
   val route = pathPrefix("rate") {
@@ -21,8 +23,8 @@ class RateService(rateActor: ActorRef)(implicit executionContext: ExecutionConte
 
   lazy val list = path("list") {
     get {
-      complete {
-        (rateActor ? ListRates).mapTo[Seq[Rate]]
+      onComplete((rateActor ? ListRates).mapTo[Try[Seq[Rate]]]) { call =>
+        handleComplete(call, (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
       }
     }
   }
@@ -30,8 +32,8 @@ class RateService(rateActor: ActorRef)(implicit executionContext: ExecutionConte
   lazy val format = path("format") {
     get {
       parameters('amount.as[Long], 'currency, 'country) { (amount, currency, country) =>
-        complete {
-          (rateActor ? Format(amount, currency, country)).mapTo[Option[String]]
+        onComplete((rateActor ? Format(amount, currency, country)).mapTo[Try[Option[String]]]) { call =>
+          handleComplete(call, (res: Option[String]) => complete(StatusCodes.OK -> res))
         }
       }
     }

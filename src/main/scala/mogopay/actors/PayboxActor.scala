@@ -5,6 +5,8 @@ import akka.actor.Actor
 import mogopay.config.HandlersConfig._
 import mogopay.model.Mogopay.SessionData
 
+import scala.util.Try
+
 object PayboxActor {
 
   case class StartPayment(sessionData: SessionData)
@@ -24,11 +26,11 @@ class PayboxActor extends Actor {
   import PayboxActor._
 
   def receive: Receive = {
-    case StartPayment(sessionData) => sender ! payboxHandler.startPayment(sessionData)
-    case CallbackPayment(sessionData, params) => sender ! payboxHandler.callbackPayment(sessionData, params)
-    case Done(sessionData, params, uri) => sender ! payboxHandler.donePayment(sessionData, params, uri)
-    case Done3DSecureCheck(sessionData, params) => sender ! payboxHandler.done3DSecureCheck(sessionData, params)
-    case Callback3DSecureCheck(sessionData, params) => sender ! payboxHandler.callback3DSecureCheck(sessionData, params)
+    case StartPayment(sessionData) => sender ! Try(payboxHandler.startPayment(sessionData))
+    case CallbackPayment(sessionData, params) => sender ! Try(payboxHandler.callbackPayment(sessionData, params))
+    case Done(sessionData, params, uri) => sender ! Try(payboxHandler.donePayment(sessionData, params, uri))
+    case Done3DSecureCheck(sessionData, params) => sender ! Try(payboxHandler.done3DSecureCheck(sessionData, params))
+    case Callback3DSecureCheck(sessionData, params) => sender ! Try(payboxHandler.callback3DSecureCheck(sessionData, params))
   }
 }
 

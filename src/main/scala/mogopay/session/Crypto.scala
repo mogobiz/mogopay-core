@@ -15,7 +15,7 @@ trait Crypto {
   }
 
   def sign(message: String): String =
-    sign(message, Settings.ApplicationSecret.getBytes("utf-8"))
+    sign(message, Settings.SessionSecret.getBytes("utf-8"))
 
 }
 

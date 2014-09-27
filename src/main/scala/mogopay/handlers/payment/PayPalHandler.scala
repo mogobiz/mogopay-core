@@ -26,7 +26,7 @@ import spray.http._
 import spray.client.pipelining._
 
 
-class PayPalHandler(handlerName:String) extends PaymentHandler {
+class PayPalHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val system = ActorSystem()
 
@@ -41,30 +41,24 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
   /**
    * Return (Session, URL to redirect to)
    */
-  def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
+  def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val paymentRequest = sessionData.paymentRequest.get
     val vendorId = sessionData.merchantId.get
     val successURL = Settings.MogopayEndPoint + "paypal/success"
     val failureURL = Settings.MogopayEndPoint + "paypal/fail"
     val paymentConfig = sessionData.paymentConfig.get
     val amount = sessionData.amount.get
-    val tryToken = getToken(vendorId, successURL, failureURL, paymentConfig, amount, paymentRequest)
+    val maybeToken = getToken(vendorId, successURL, failureURL, paymentConfig, amount, paymentRequest)
 
-    tryToken match {
-      case Failure(t) => Failure(t)
-      case Success(token) =>
-        if (token.isEmpty || token == Some("")) {
-          Failure(new MogopayError(MogopayConstant.PaypalTokenError))
-        } else {
-          sessionData.token = token
-          Success(Right(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token.get))))
-        }
-    }
+    maybeToken map { token =>
+      sessionData.token = maybeToken
+      Right(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token)))
+    } getOrElse (throw MogopayError(MogopayConstant.PaypalTokenError))
   }
 
   private def getToken(vendorId: String, successURL: String, failureURL: String,
                        paymentConfig: PaymentConfig, amount: Long,
-                       paymentRequest: PaymentRequest): Try[Option[String]] = {
+                       paymentRequest: PaymentRequest): Option[String] = {
     accountHandler.load(vendorId) map { vendor =>
       val parameters: Map[String, String] = paymentConfig.paypalParam
         .map(parse(_).extract[Map[String, String]])
@@ -73,7 +67,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
       val password: String = parameters.getOrElse("paypalPassword", "")
       val signature: String = parameters.getOrElse("paypalSignature", "")
 
-      val amount2 = amount.toDouble /100.0
+      val amount2 = amount.toDouble / 100.0
       val query = Query(
         "METHOD" -> "SetExpressCheckout",
         "USER" -> user,
@@ -97,31 +91,31 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
       }
       import scala.concurrent.duration._
       val result = Await.result(res, 30 seconds)
-      Success(result)
-    } getOrElse Failure(new AccountDoesNotExistError(""))
+      result
+    } getOrElse (throw AccountDoesNotExistError(""))
   }
 
   /*
    * Returns the redirection URL
    */
-  def fail(sessionData: SessionData, tokenFromParams: String): Try[Uri] = {
+  def fail(sessionData: SessionData, tokenFromParams: String): Uri = {
     val transactionUuid = sessionData.transactionUuid.orNull
     val token = sessionData.token.get
     if (token != tokenFromParams) {
-      Failure(InvalidContextException(s"$tokenFromParams unknown"))
+      throw InvalidContextException(s"$tokenFromParams unknown")
     } else {
       val pr = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
         "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
-      Success(finishPayment(sessionData, pr))
+      finishPayment(sessionData, pr)
     }
   }
 
-  def success(sessionData: SessionData, tokenFromParams: String): Try[Uri] = {
+  def success(sessionData: SessionData, tokenFromParams: String): Uri = {
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.get
     val token = sessionData.token.get
 
     if (token != tokenFromParams) {
-      Failure(InvalidInputException(s"$tokenFromParams"))
+      throw InvalidInputException(s"$tokenFromParams")
     } else {
       val transactionUUID = sessionData.transactionUuid.get
       val vendorId = sessionData.merchantId.get
@@ -130,14 +124,14 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
       val maybePayerId = getPayerId(token, paymentConfig)
       maybePayerId match {
         case None | Some("") =>
-          Failure(new MogopayError(MogopayConstant.PaypalPayerIdError))
+          throw MogopayError(MogopayConstant.PaypalPayerIdError)
         case Some(payerId) =>
           if (paymentConfig == null) {
-            Failure(new MogopayError(MogopayConstant.InvalidPaypalConfig))
+            throw MogopayError(MogopayConstant.InvalidPaypalConfig)
           } else {
             transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
-            val tryPaymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId)
-            tryPaymentResult.map(pr => finishPayment(sessionData, pr))
+            val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId)
+            finishPayment(sessionData, paymentResult)
           }
       }
     }
@@ -176,7 +170,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
   }
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-                     infosPaiement: PaymentRequest, token: String, payerId: String): Try[PaymentResult] = {
+                     infosPaiement: PaymentRequest, token: String, payerId: String): PaymentResult = {
     accountHandler.load(vendorId).map {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
@@ -208,7 +202,7 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
           token = token
         )
 
-        val amount = infosPaiement.amount.toDouble /100.0
+        val amount = infosPaiement.amount.toDouble / 100.0
         val paramMap = Map(
           "USER" -> user,
           "PWD" -> password,
@@ -272,10 +266,9 @@ class PayPalHandler(handlerName:String) extends PaymentHandler {
           }
         }
         import scala.concurrent.duration._
-        val result = Await.result(res, 30 seconds)
-        Success(result)
+        Await.result(res, 30 seconds)
     }.getOrElse {
-      Failure(new AccountDoesNotExistError(""))
+      throw AccountDoesNotExistError("")
     }
   }
 }

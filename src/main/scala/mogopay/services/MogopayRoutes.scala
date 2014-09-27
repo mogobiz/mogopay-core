@@ -1,6 +1,7 @@
 package mogopay.services
 
 import mogoauth.services._
+import mogopay.exceptions.Exceptions.MogopayException
 import mogopay.model.Mogopay.SessionData
 import mogopay.services.payment._
 import spray.routing._
@@ -8,6 +9,7 @@ import akka.actor.{ActorLogging, Actor, Props}
 import mogopay.actors.{MogopaySystem, MogopayActors}
 import spray.routing.directives.CachingDirectives._
 import scala.concurrent.duration.Duration
+import scala.util.{Success, Failure, Try}
 import scala.util.control.NonFatal
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, StatusCode}
@@ -78,4 +80,20 @@ class RoutedHttpService(route: Route) extends Actor with HttpService with ActorL
 
   def receive: Receive =
     runRoute(route)(handler, RejectionHandler.Default, context, RoutingSettings.default, LoggingContext.fromActorRefFactory)
+}
+
+trait DefaultComplete {
+  this : Directives =>
+  def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
+    import mogopay.config.Implicits._
+    call match {
+      case Failure(t) => complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
+      case Success(res) =>
+        res match {
+          case Failure(t:MogopayException) => complete(t.code -> Map('error -> t.toString))
+          case Success(id) => handler(id)
+          case  Failure(t) => throw new Exception("Invalid Exception " + t)
+        }
+    }
+  }
 }

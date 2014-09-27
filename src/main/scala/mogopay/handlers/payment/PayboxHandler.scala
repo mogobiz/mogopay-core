@@ -37,7 +37,7 @@ import scala.concurrent.duration._
 
 import scala.util._
 
-class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslConfiguration {
+class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
   PaymentHandler.register(handlerName, this)
 
   implicit val timeout: Timeout = 30.seconds
@@ -66,7 +66,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
     sig.verify(signature)
   }
 
-  def donePayment(sessionData: SessionData, params: Map[String, String], uri:String): Try[Uri] = {
+  def donePayment(sessionData: SessionData, params: Map[String, String], uri: String): Uri = {
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
     val transaction = EsClient.load[BOTransaction](transactionUuid).get
@@ -90,8 +90,8 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
           // The customer did not give his card number
           null
       }
-      val dataToCheck =uri.substring(uri.indexOf("?")+1, uri.indexOf("&SIGNATURE="))
-      val signature =uri.substring(uri.indexOf("&SIGNATURE=")+"&SIGNATURE=".length)
+      val dataToCheck = uri.substring(uri.indexOf("?") + 1, uri.indexOf("&SIGNATURE="))
+      val signature = uri.substring(uri.indexOf("&SIGNATURE=") + "&SIGNATURE=".length)
       val ok = verifySha1(dataToCheck, signature, Settings.Paybox.publicKey) && paramTransactionUuid == transactionUuid && vendorId == paramVendorId
       if (ok) {
         val codeReponse = params("CODEREPONSE")
@@ -117,10 +117,10 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
           token = ""
         )
         transactionHandler.finishPayment(vendorId, transactionUuid, if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, codeReponse)
-        Success(finishPayment(sessionData, paymentResult))
+        finishPayment(sessionData, paymentResult)
       }
       else {
-        Failure(throw InvalidSignatureException(s"$signature"))
+        throw InvalidSignatureException(s"$signature")
       }
     }
     else {
@@ -144,16 +144,15 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
         bankErrorMessage = Some(""),
         token = ""
       )
-      Success(finishPayment(sessionData, paymentResult))
+      finishPayment(sessionData, paymentResult)
     }
 
   }
 
-  def callbackPayment(sessionData: SessionData, stringToString: Map[String, String]): Try[Unit] = {
-    Success()
+  def callbackPayment(sessionData: SessionData, stringToString: Map[String, String]): Unit = {
   }
 
-  def done3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def done3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Uri = {
     val statusPBX = params("StatusPBX")
     val vendorAndUuid = params("IdSession")
     val vendorAndUuidArray = vendorAndUuid.split("--")
@@ -168,21 +167,19 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
     val paymentRequest = sessionData.paymentRequest.get
     val ctxMode = if (Settings.Env == Environment.PROD) "PRODUCTION" else "TEST"
     if (vendorId != paramVendorId || transactionUuid != paramTransactionUuid) {
-      Failure(InvalidContextException(s"Invalid vendorid $paramVendorId or transactionid $paramTransactionUuid"))
+      throw InvalidContextException(s"Invalid vendorid $paramVendorId or transactionid $paramTransactionUuid")
     } else {
       if (ctxMode == "TEST" || transaction.paymentData.status3DS == ResponseCode3DS.APPROVED) {
         sessionData.id3d = Some(id3d)
         startPayment(sessionData) match {
-          case Failure(t) => Failure(t)
-          case Success(Right(uri)) => Success(uri)
-          case Success(Left(form)) => Failure(InvalidContextException("Unexpected payment chaining"))
+          case Right(uri) => uri
+          case Left(form) => throw InvalidContextException("Unexpected payment chaining")
         }
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
         sessionData.id3d = Some("") /* empty string for id3d means fallback to 2DS */
         startPayment(sessionData) match {
-          case Failure(t) => Failure(t)
-          case Success(Right(uri)) => Success(uri)
-          case Success(Left(form)) => Failure(new InvalidContextException("Unexpected payment chaining"))
+          case Right(uri) => uri
+          case Left(form) => throw new InvalidContextException("Unexpected payment chaining")
         }
       } else {
         val errorCode = "12"
@@ -206,12 +203,12 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(errorCode)),
           token = ""
         )
-        Success(finishPayment(sessionData, paymentResult))
+        finishPayment(sessionData, paymentResult)
       }
     }
   }
 
-  def callback3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Try[Unit] = {
+  def callback3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Unit = {
     val statusPBX = params("StatusPBX")
     val vendorAndUuid = params("IdSession")
     val vendorAndUuidArray = vendorAndUuid.split("--")
@@ -226,7 +223,6 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
       transaction.paymentData.copy(status3DS = Some(ResponseCode3DS.REFUSED))
     }
     EsClient.index(transaction, false)
-    Success()
   }
 
   implicit val system = ActorSystem()
@@ -237,7 +233,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
   implicit val formats = new org.json4s.DefaultFormats {
   }
 
-  def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
+  def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val transactionUUID = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
     val paymentConfig = sessionData.paymentConfig.get
@@ -329,7 +325,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
               </html>
               """
         // We redirect the user to the paybox payment form
-        Success(Left(form))
+        Left(form)
       }
       else {
         val query = scala.collection.mutable.Map(
@@ -399,7 +395,7 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
         }
         transactionHandler.finishPayment(vendorId, transactionUUID, if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, errorCode)
         // We redirect the user to the merchant website
-        Success(Right(finishPayment(sessionData, paymentResult)))
+        Right(finishPayment(sessionData, paymentResult))
       }
     }
     else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
@@ -460,10 +456,10 @@ class PayboxHandler(handlerName:String) extends PaymentHandler with CustomSslCon
 </html>
 """
       // We redirect the user to the payment server
-      Success(Left(form))
+      Left(form)
     }
     else {
-      Failure(throw InvalidContextException(s"""Invalid Paybox payment mode ${parametres("payboxContract")}"""))
+      throw InvalidContextException( s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
     }
   }
 }

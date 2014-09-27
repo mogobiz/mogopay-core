@@ -25,64 +25,53 @@ class UserHandler {
   val SUCCESS = "0"
 
   def register(successURL: String, errorURL: String, merchantId: String,
-               email: String, password: String): Try[Map[String, String]] = {
-    val user = accountHandler.load(merchantId) match {
-      case None => Failure(new AccountDoesNotExistError(""))
-      case Some(x) => Success(x)
-    }
+               email: String, password: String): Map[String, String] = {
+    val vendor = accountHandler.load(merchantId).getOrElse(throw AccountDoesNotExistError(""))
+    if (!vendor.roles.contains(RoleName.MERCHANT)) throw NotAVendorAccountException("")
 
-    val vendor = user match {
-      case Failure(e) => Failure(e)
-      case Success(x) if x.roles.contains(RoleName.MERCHANT) => Success(x)
-      case _ => Failure(new NotAVendorAccountException(""))
-    }
+    if (accountHandler.findByEmail(email).nonEmpty) {
+      throw AccountAlreadyExistsException("")
+    } else {
+      val data1: Map[String, String] = Map(
+        "callback_success" -> successURL,
+        "callback_error" -> errorURL,
+        "merchant_id" -> merchantId,
+        "userEmail" -> email,
+        "userPassword" -> password
+      )
 
-    vendor flatMap { _ =>
-      if (accountHandler.findByEmail(email).nonEmpty) {
-        Failure(new AccountAlreadyExistsException(""))
-      } else {
-        val data1: Map[String, String] = Map(
-          "callback_success" -> successURL,
-          "callback_error" -> errorURL,
-          "merchant_id" -> merchantId,
-          "userEmail" -> email,
-          "userPassword" -> password
-        )
+      val clearData = email + "" + System.currentTimeMillis() + "" + newUUID + "" + SUCCESS
+      val encodedData = RSA.encrypt(clearData, Settings.RSA.publicKey)
 
-        val clearData = email + "" + System.currentTimeMillis() + "" + newUUID + "" + SUCCESS
-        val encodedData = RSA.encrypt(clearData, Settings.RSA.publicKey)
+      val data2 = data1 + ("mogopay_token" -> encodedData)
 
-        val data2 = data1 + ("mogopay_token" -> encodedData)
+      val account = Account(uuid = newUUID,
+        email = email,
+        company = None,
+        website = None,
+        password = new Sha256Hash(password).toHex,
+        civility = None,
+        firstName = None,
+        lastName = None,
+        birthDate = None,
+        address = None,
+        status = AccountStatus.ACTIVE,
+        loginFailedCount = 0,
+        waitingPhoneSince = -1L,
+        waitingEmailSince = -1L,
+        extra = Some(data2.mkString(", ")),
+        lastLogin = None,
+        paymentConfig = None,
+        country = None,
+        roles = Nil,
+        owner = None,
+        emailingToken = None,
+        shippingAddresses = Nil,
+        secret = null,
+        creditCards = Nil)
 
-        val account = Account(uuid = newUUID,
-          email = email,
-          company = None,
-          website = None,
-          password = new Sha256Hash(password).toHex,
-          civility = None,
-          firstName = None,
-          lastName = None,
-          birthDate = None,
-          address = None,
-          status = AccountStatus.ACTIVE,
-          loginFailedCount = 0,
-          waitingPhoneSince = -1L,
-          waitingEmailSince = -1L,
-          extra = Some(data2.mkString(", ")),
-          lastLogin = None,
-          paymentConfig = None,
-          country = None,
-          roles = Nil,
-          owner = None,
-          emailingToken = None,
-          shippingAddresses = Nil,
-          secret = null,
-          creditCards = Nil)
-
-        accountHandler.save(account)
-
-        Success(data2)
-      }
+      accountHandler.save(account)
+      data2
     }
   }
 }

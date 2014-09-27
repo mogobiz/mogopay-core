@@ -6,15 +6,15 @@ import akka.util.Timeout
 import mogopay.actors.BackofficeActor._
 import mogopay.config.Implicits._
 import mogopay.model.Mogopay.{BOTransaction, Account, BOTransactionLog}
-import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
 import spray.http.StatusCodes
 import spray.routing.Directives
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.Try
 
-class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
   implicit val timeout = Timeout(10.seconds)
 
   val route = pathPrefix("backoffice") {
@@ -28,13 +28,9 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
     get {
       parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
         session { session =>
-          complete {
-            if (session.contains("isMerchant")) {
-              val message = ListCustomers(session("accountId").toString, page, max)
-              (backofficeActor ? message).mapTo[Seq[Account]]
-            } else {
-              StatusCodes.Unauthorized -> ""
-            }
+          onComplete((backofficeActor ? ListCustomers(session.sessionData, page, max)).mapTo[Try[Seq[Account]]]) { call =>
+            handleComplete(call, (accounts: Seq[Account]) => complete(StatusCodes.OK -> accounts)
+            )
           }
         }
       }
@@ -44,12 +40,9 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
   lazy val listTransactionLogs = path("transactions" / Segment / "logs") { transactionId =>
     get {
       session { session =>
-        complete {
-          if (session.contains("isMerchant")) {
-            (backofficeActor ? ListTransactionLogs(transactionId)).mapTo[Seq[BOTransactionLog]]
-          } else {
-            StatusCodes.Unauthorized -> Map()
-          }
+        onComplete((backofficeActor ? ListTransactionLogs(transactionId)).mapTo[Try[Seq[BOTransactionLog]]]) { call =>
+          handleComplete(call, (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
+          )
         }
       }
     }
@@ -62,19 +55,8 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
           val params = parameters('start_date.as[Long] ?, 'end_date.as[Long] ?, 'amount.as[Int] ?, 'transaction_uuid ?)
           params {
             (startDate, endDate, amount, transaction) =>
-              complete {
-                if (session.contains("accountId")) {
-                  val term = if (session.contains("isMerchant") && session("isMerchant") == true)
-                    Left(session("accountId").toString)
-                  else
-                    Right(session("email").toString)
-
-                  val message = ListTransactions(term, startDate, endDate, amount, transaction)
-                  (backofficeActor ? message).mapTo[Seq[BOTransaction]]
-                } else {
-                  StatusCodes.Unauthorized ->
-                    Map('error -> "Account ID missing or incorrect. The user is probably not logged in.")
-                }
+              onComplete((backofficeActor ? ListTransactions(session.sessionData, startDate, endDate, amount, transaction)).mapTo[Try[Seq[BOTransactionLog]]]) { call =>
+                handleComplete(call, (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans))
               }
           }
       }
@@ -82,14 +64,13 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
   }
 
   lazy val getTransaction = path("transaction" / JavaUUID) { uuid =>
-      get {
-        session {
-          session =>
-            complete {
-              (backofficeActor ? GetTransaction(uuid.toString)).mapTo[Option[BOTransaction]]
-            }
-        }
+    get {
+      session {
+        session =>
+          onComplete((backofficeActor ? GetTransaction(uuid.toString)).mapTo[Try[Option[BOTransactionLog]]]) { call =>
+            handleComplete(call, (trans: Option[BOTransactionLog]) => complete(StatusCodes.OK -> trans))
+          }
       }
+    }
   }
-
 }

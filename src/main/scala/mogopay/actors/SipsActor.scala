@@ -4,6 +4,8 @@ import akka.actor.Actor
 import mogopay.config.HandlersConfig._
 import mogopay.model.Mogopay.{Document, SessionData}
 
+import scala.util.Try
+
 
 object SipsActor {
 
@@ -22,9 +24,9 @@ class SipsActor extends Actor {
   import SipsActor._
 
   def receive: Receive = {
-    case StartPayment(sessionData) => sender ! sipsHandler.startPayment(sessionData)
-    case Done(sessionData, params) => sender ! sipsHandler.done(sessionData, params)
-    case CallbackPayment(params, vendorUuid) => sender ! sipsHandler.callbackPayment(params, vendorUuid)
-    case ThreeDSCallback(sessionData, params) => sender ! sipsHandler.threeDSCallback(sessionData, params)
+    case StartPayment(sessionData) => sender ! Try(sipsHandler.startPayment(sessionData))
+    case Done(sessionData, params) => sender ! Try(sipsHandler.done(sessionData, params))
+    case CallbackPayment(params, vendorUuid) => sender ! Try(sipsHandler.callbackPayment(params, vendorUuid))
+    case ThreeDSCallback(sessionData, params) => sender ! Try(sipsHandler.threeDSCallback(sessionData, params))
   }
 }

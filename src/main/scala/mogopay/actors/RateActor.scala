@@ -3,6 +3,8 @@ package mogopay.actors
 import akka.actor.Actor
 import mogopay.config.HandlersConfig._
 
+import scala.util.Try
+
 object RateActor {
 
   case class ListRates()
@@ -16,7 +18,7 @@ class RateActor extends Actor {
   import RateActor._
 
   def receive: Receive = {
-    case ListRates => sender ! rateHandler.list
-    case Format(x, y, z) => sender ! rateHandler.format(x, y, z)
+    case ListRates => sender ! Try(rateHandler.list)
+    case Format(x, y, z) => sender ! Try(rateHandler.format(x, y, z))
   }
 }

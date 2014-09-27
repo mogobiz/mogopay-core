@@ -14,7 +14,7 @@ import com.lyra.vads.ws3ds.stub.{VeResPAReqInfo, PaResInfo, ThreeDSecure}
 import mogopay.codes.MogopayConstant
 import mogopay.config.HandlersConfig._
 import mogopay.es.EsClient
-import mogopay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException, BOTransactionNotFoundException, MogopayError}
+import mogopay.exceptions.Exceptions._
 import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.TransactionStatus._
 import mogopay.util.GlobalUtil
@@ -340,7 +340,7 @@ class SystempayClient {
   }
 }
 
-class SystempayHandler (handlerName:String) extends PaymentHandler {
+class SystempayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {}
   val systempayClient = new SystempayClient
@@ -349,7 +349,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
    * Right for a redirect, Left for a complete
    * Returns either raw html of url to be redirected to
    */
-  def startPayment(sessionData: SessionData): Try[Either[String, Uri]] = {
+  def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val transactionUUID = sessionData.transactionUuid.get
 
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
@@ -357,7 +357,7 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
     val paymentRequest = sessionData.paymentRequest.get
 
     if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.SYSTEMPAY) {
-      Failure(new MogopayError(MogopayConstant.InvalidSystemPayConfig))
+      throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     } else {
       transactionHandler.startPayment(
         vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SYSTEMPAY)
@@ -366,13 +366,13 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
 
       if (sessionData.mogopay) {
         val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
-        Success(Right(finishPayment(sessionData, paymentResult)))
+        Right(finishPayment(sessionData, paymentResult))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
         if (paymentResult.data.nonEmpty) {
-          Success(Left(paymentResult.data))
+          Left(paymentResult.data)
         } else {
-          Success(Right(finishPayment(sessionData, paymentResult)))
+          Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
         threeDSResult = systempayClient.check3DSecure(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest)
@@ -393,32 +393,32 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
                 <script>document.getElementById("formpay").submit();</script>
               </body>
             </html>"""
-          Success(Left(form))
+          Left(form)
         } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
-          Success(Right(finishPayment(sessionData, paymentResult)))
+          Right(finishPayment(sessionData, paymentResult))
         } else {
-          Success(Right(finishPayment(sessionData, GlobalUtil.createThreeDSNotEnrolledResult())))
+          Right(finishPayment(sessionData, GlobalUtil.createThreeDSNotEnrolledResult()))
         }
       } else {
         val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
-        Success(Right(finishPayment(sessionData, paymentResult)))
+        Right(finishPayment(sessionData, paymentResult))
       }
     }
   }
 
-  def done(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def done(sessionData: SessionData, params: Map[String, String]): Uri = {
     val transactionUUID = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
     val transaction: BOTransaction = EsClient.load[BOTransaction](transactionUUID).orNull
 
-    val resultatPaiement: Try[PaymentResult] =
+    val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
         handleResponse(params)
       } else {
-        Success(PaymentResult(
+        PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
           if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
             PaymentStatus.COMPLETE
@@ -426,19 +426,14 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
             PaymentStatus.FAILED
           },
           transaction.errorCodeOrigin.getOrElse(""),
-          transaction.errorMessageOrigin, "", "", Some(""), ""))
+          transaction.errorMessageOrigin, "", "", Some(""), "")
       }
-
-    resultatPaiement map {
-      r => finishPayment(sessionData, r)
-    }
+    finishPayment(sessionData, resultatPaiement)
   }
 
-  def callbackPayment(params: Map[String, String]): Try[PaymentResult] = {
-    handleResponse(params)
-  }
+  def callbackPayment(params: Map[String, String]): PaymentResult = handleResponse(params)
 
-  private def handleResponse(params: Map[String, String]): Try[PaymentResult] = {
+  private def handleResponse(params: Map[String, String]): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -485,19 +480,18 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
 
       transactionHandler.finishPayment(vendorId,
         transactionUUID,
-        if (params("vads_result") == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-        pr,
-        params("vads_result"))
-
-      Success(pr)
+        if (params("vads_result") == "00")
+          TransactionStatus.PAYMENT_CONFIRMED
+        else TransactionStatus.PAYMENT_REFUSED, pr, params("vads_result"))
+      pr
     } else {
-      Failure(InvalidSignatureException("Invalid signature"))
+      throw InvalidSignatureException("Invalid signature")
     }
   }
 
-  def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Try[Uri] = {
+  def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Uri = {
     if (!sessionData.waitFor3DS || sessionData.transactionUuid.isEmpty) {
-      Failure(InvalidContextException("""Not verified: sessionData.waitFor3DS || !sessionData.transactionUUID"""))
+      throw InvalidContextException( """Not verified: sessionData.waitFor3DS || !sessionData.transactionUUID""")
     } else {
       sessionData.waitFor3DS = false
       val transactionUUID: String = sessionData.transactionUuid.get
@@ -540,17 +534,17 @@ class SystempayHandler (handlerName:String) extends PaymentHandler {
         status match {
           case "N" | "U" =>
             val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
-            Success(buildURL(errorURL, map))
+            buildURL(errorURL, map)
           case "Y" | "A" =>
             val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
-            Success(finishPayment(sessionData, resultatPaiement))
+            finishPayment(sessionData, resultatPaiement)
           case _ =>
-            throw new Exception
+            throw new InvalidContextException(s"Invalid status $status")
         }
       } catch {
-        case NonFatal(e)=>
+        case NonFatal(e) =>
           val queryString = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.UnknownError)
-          Success(buildURL(errorURL, queryString))
+          buildURL(errorURL, queryString)
       }
     }
   }

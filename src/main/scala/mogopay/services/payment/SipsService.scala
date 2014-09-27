@@ -3,6 +3,7 @@ package mogopay.services.payment
 import akka.actor.ActorRef
 import mogopay.actors.SipsActor._
 import mogopay.model.Mogopay._
+import mogopay.services.DefaultComplete
 import mogopay.services.Util._
 import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
@@ -13,12 +14,12 @@ import spray.routing.Directives
 import scala.concurrent.ExecutionContext
 import scala.util._
 
-class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives {
+class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
 
   import akka.pattern.ask
   import akka.util.Timeout
 
-import scala.concurrent.duration._
+  import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -38,25 +39,20 @@ import scala.concurrent.duration._
         val session = SessionESDirectives.load(xtoken).get
         println("start:" + session.sessionData.uuid)
         val message = StartPayment(session.sessionData)
-        onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) {
-          case Failure(t) => complete(StatusCodes.InternalServerError)
-          case Success(r) =>
-            r match {
-              case Failure(t) =>
-                println(t)
-                complete(toHTTPResponse(t), Map('error -> t.toString))
-              case Success(data) =>
-                setSession(session) {
-                  data match {
-                    case Left(content) =>
-                      println(content)
-                      complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                    case Right(url) =>
-                      println(url)
-                      redirect(url, StatusCodes.TemporaryRedirect)
-                  }
+        onComplete((actor ? message).mapTo[Try[Either[String, Uri]]]) { call =>
+          handleComplete(call,
+            (data: Either[String, Uri]) =>
+              setSession(session) {
+                data match {
+                  case Left(content) =>
+                    complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+                  case Right(url) =>
+                    println(url)
+                    redirect(url, StatusCodes.TemporaryRedirect)
                 }
-            }
+              }
+          )
+
         }
       }
     }
@@ -69,15 +65,13 @@ import scala.concurrent.duration._
         session { session =>
           println("done:" + session.sessionData.uuid)
           val message = Done(session.sessionData, params)
-          onComplete((actor ? message).mapTo[Try[Uri]]) {
-            case Failure(t) => complete(StatusCodes.InternalServerError)
-            case Success(r) =>
-              setSession(session) {
-                r match {
-                  case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-                  case Success(x) => redirect(x, StatusCodes.TemporaryRedirect)
+          onComplete((actor ? message).mapTo[Try[Uri]]) { call =>
+            handleComplete(call,
+              (data: Uri) =>
+                setSession(session) {
+                  redirect(data, StatusCodes.TemporaryRedirect)
                 }
-              }
+            )
           }
         }
       }
@@ -89,14 +83,9 @@ import scala.concurrent.duration._
     get {
       parameterMap { params =>
         val message = CallbackPayment(params, vendorUuid)
-        onComplete((actor ? message).mapTo[Try[PaymentResult]]) {
-          case Failure(t) => complete(StatusCodes.InternalServerError)
-          case Success(r) =>
-            import mogopay.config.Implicits._
-            r match {
-              case Success(pr) => complete(StatusCodes.OK, pr)
-              case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
-            }
+        import mogopay.config.Implicits._
+        onComplete((actor ? message).mapTo[Try[PaymentResult]]) { call =>
+          handleComplete(call, (pr: PaymentResult) => complete(StatusCodes.OK, pr))
         }
       }
     }
@@ -108,15 +97,13 @@ import scala.concurrent.duration._
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
         val message = ThreeDSCallback(session.sessionData, params)
-        onComplete((actor ? message).mapTo[Try[Uri]]) {
-          case Failure(t) => complete(StatusCodes.InternalServerError)
-          case Success(data) =>
-            setSession(session) {
-              data match {
-                case Success(u) => redirect(u, StatusCodes.TemporaryRedirect)
-                case Failure(t) => complete(toHTTPResponse(t), Map('error -> t.toString))
+        onComplete((actor ? message).mapTo[Try[Uri]]) { call =>
+          handleComplete(call,
+            (data: Uri) =>
+              setSession(session) {
+                redirect(data, StatusCodes.TemporaryRedirect)
               }
-            }
+          )
         }
       }
     }
