@@ -450,12 +450,19 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
       val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid)
       EsClient.index(botlog, false)
+      val vads_card_brand = try {
+        CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString))
+      }
+      catch {
+        case NonFatal(e) =>
+          CreditCardType.CB
+      }
 
       var pr = PaymentResult(transaction.uuid,
         transaction.creationDate,
         transaction.amount,
         params("vads_card_number"),
-        CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString)),
+        vads_card_brand,
         null, "", "", null, "", "", null,
         params("vads_result").toString,
         Option(BankErrorCodes.getErrorMessage(params("vads_result").toString)), "", "", Some(""), "")

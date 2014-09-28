@@ -29,7 +29,7 @@ object GlobalUtil {
   def mapToQueryString(m: List[(String, Any)]): String = {
     m.map { case (k, v) =>
       println(s"$k=$v")
-      s"$k=" + URLEncoder.encode(v.toString, "UTF-8")
+      s"$k=" + URLEncoder.encode(if (v == null) "" else v.toString, "UTF-8")
     }.mkString("&")
   }
 
