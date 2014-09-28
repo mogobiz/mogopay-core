@@ -51,7 +51,7 @@ class TransactionHandler {
           EsClient.index(txRequest)
           txReqUUID
         }
-      }).getOrElse(throw AccountDoesNotExistError(""))
+      }).getOrElse(throw AccountDoesNotExistException(""))
     }).getOrElse(throw CurrencyCodeNotFoundException(""))
   }
 
@@ -181,7 +181,7 @@ class TransactionHandler {
     val maybeVendor = accountHandler.findBySecret(secret)
 
     val account: Account = maybeVendor match {
-      case None => throw AccountDoesNotExistError("secret=****")
+      case None => throw AccountDoesNotExistException("secret=****")
       case Some(a) => a
     }
 
@@ -213,7 +213,7 @@ class TransactionHandler {
                      accountId: String): Seq[ShippingPrice] = {
     val maybeCustomer = accountHandler.load(accountId)
 
-    val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistError(s"$accountId"))
+    val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
 
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active).getOrElse(throw NoActiveShippingAddressFound("None"))
 
@@ -282,7 +282,7 @@ class TransactionHandler {
       } else if (submit.params.merchantId.isDefined) {
         EsClient.load[Account](submit.params.merchantId.get).orNull
       } else {
-        throw AccountDoesNotExistError(s"${submit.params.merchantId.get}")
+        throw AccountDoesNotExistException(s"${submit.params.merchantId.get}")
       }
     val transactionRequest: TransactionRequest = EsClient.load[TransactionRequest](transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
     if (transactionRequest.amount != amount.get) {
@@ -428,7 +428,7 @@ class TransactionHandler {
           // the user has been authenticated at this step.
           //forward(controller: "mogopay", action: "startPayment", params: params + [xtoken: sessionData.csrfToken])
           //Success((buildNewSubmit(submit, newSession), "startPayment"))
-          ("mogopay", "start-payment")
+          ("mogopay", "start")
         }
         else if (submit.params.customerPassword.nonEmpty) {
           // User submitted a password we authenticate him
@@ -459,7 +459,7 @@ class TransactionHandler {
       else {
         sessionData.transactionType.get.toLowerCase
       }
-      (handler, "start-payment")
+      (handler, "start")
     }
   }
 

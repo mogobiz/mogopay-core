@@ -20,7 +20,7 @@ object Exceptions {
 
   case class VendorNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class AccountDoesNotExistError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class AccountDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class CannotRetrieveURLPrefixException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 

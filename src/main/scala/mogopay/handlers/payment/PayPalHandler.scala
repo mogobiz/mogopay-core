@@ -9,7 +9,7 @@ import mogopay.codes.MogopayConstant
 import mogopay.config.HandlersConfig._
 import mogopay.config.Settings
 import mogopay.es.EsClient
-import mogopay.exceptions.Exceptions.{InvalidInputException, InvalidContextException, AccountDoesNotExistError, MogopayError}
+import mogopay.exceptions.Exceptions.{InvalidInputException, InvalidContextException, AccountDoesNotExistException, MogopayError}
 import mogopay.util.GlobalUtil
 import mogopay.util.GlobalUtil._
 import mogopay.model.Mogopay._
@@ -92,7 +92,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
       import scala.concurrent.duration._
       val result = Await.result(res, 30 seconds)
       result
-    } getOrElse (throw AccountDoesNotExistError(""))
+    } getOrElse (throw AccountDoesNotExistException(""))
   }
 
   /*
@@ -268,7 +268,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
         import scala.concurrent.duration._
         Await.result(res, 30 seconds)
     }.getOrElse {
-      throw AccountDoesNotExistError("")
+      throw AccountDoesNotExistException("")
     }
   }
 }

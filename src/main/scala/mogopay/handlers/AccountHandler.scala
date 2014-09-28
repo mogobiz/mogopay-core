@@ -154,7 +154,7 @@ class AccountHandler {
         EsClient.update(userAccountToIndex, false, true)
         userAccountToIndex.copy(password = "")
       }
-    }.getOrElse(throw AccountDoesNotExistError(""))
+    }.getOrElse(throw AccountDoesNotExistException(""))
   }
 
   //  def requestPasswordChange(email:String, merchantId:Option[String], isCustomer:Boolean) : Boolean = {
@@ -321,7 +321,7 @@ class AccountHandler {
       }
     }
 
-    val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistError(""))
+    val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistException(""))
     val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException(s"$vendorId"))
     val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException(""))
     val pattern = paymentConfig.passwordPattern.getOrElse(throw PasswordPatternNotFoundException(""))
@@ -383,7 +383,7 @@ class AccountHandler {
    */
   def generateAndSendPincode3(uuid: String): Unit = {
 
-    val acc = accountHandler.load(uuid) getOrElse (throw AccountDoesNotExistError(""))
+    val acc = accountHandler.load(uuid) getOrElse (throw AccountDoesNotExistException(""))
     val phoneNumber: Telephone =
       (for {
         addr <- acc.address
@@ -558,7 +558,7 @@ class AccountHandler {
 
   private def updateCard(accountId: String, ccId: String, holder: String,
                          cardNumber: String, expiryDate: String, ccType: String): CreditCard = {
-    val account: Account = EsClient.load[Account](accountId) getOrElse (throw AccountDoesNotExistError(""))
+    val account: Account = EsClient.load[Account](accountId) getOrElse (throw AccountDoesNotExistException(""))
 
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
@@ -584,7 +584,7 @@ class AccountHandler {
 
   private def createCard(accountId: String, holder: String, number: String,
                          expiryDate: String, ccType: String): CreditCard = {
-    val account = load(accountId) getOrElse (throw AccountDoesNotExistError(""))
+    val account = load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val (hiddenN, cryptedN) =
       if (!UtilHandler.checkLuhn(number)) {
@@ -615,7 +615,7 @@ class AccountHandler {
   def getShippingAddress(accountId: String): Option[ShippingAddress] =
     getShippingAddresses(accountId: String) find (_.active)
 
-  def assignBillingAddress(accountId: String, address: AddressToAssignFromGetParams) {
+  def assignBillingAddress(accountId: String, address: AddressToAssignFromGetParams): Unit = {
     load(accountId).map {
       account =>
         val newAddress = account.address match {
@@ -633,10 +633,10 @@ class AccountHandler {
             admin2 = address.admin2)
         }
         EsClient.index(account.copy(address = Some(newAddress)))
-    }
+    } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
 
-  def deleteShippingAddress(accountId: String, addressId: String): Option[Unit] =
+  def deleteShippingAddress(accountId: String, addressId: String): Unit =
     for {
       account <- load(accountId)
       address <- account.shippingAddresses.find(_.uuid == addressId)
@@ -646,17 +646,16 @@ class AccountHandler {
       update(newAccount)
     }
 
-  def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Option[ShippingAddress] =
+  def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
     load(accountId).map {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
         val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
         EsClient.index(account.copy(shippingAddresses = newAddrs))
-
         shippAddr
-    }
+    } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  def updateShippingAddress(accountId: String, address: AddressToUpdateFromGetParams): Option[Unit] =
+  def updateShippingAddress(accountId: String, address: AddressToUpdateFromGetParams): Unit =
     load(accountId).map {
       account =>
         account.shippingAddresses.find(_.uuid == address.id) map {
@@ -675,9 +674,8 @@ class AccountHandler {
                 admin1 = address.admin1,
                 admin2 = address.admin2))
             EsClient.index(account.copy(shippingAddresses = newAddrs))
-            ()
         }
-    }.flatten
+    } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   type ActiveCountryState = Map[Symbol, Option[String]]
 
@@ -689,61 +687,55 @@ class AccountHandler {
           addr =>
             Map('countryCode -> addr.country, 'stateCode -> addr.admin1)
         }
-    }.flatten
+    } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
 
-  def selectShippingAddress(accountId: String, addrId: String) =
+  def selectShippingAddress(accountId: String, addrId: String): Unit =
     load(accountId).map {
       account =>
         val newAddrs = account.shippingAddresses.map {
           addr => addr.copy(active = addr.uuid == addrId)
         }
         EsClient.index(account.copy(shippingAddresses = newAddrs))
-    }
+    } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  def profileInfo(accountId: String): Option[Future[Map[Symbol, Any]]] = load(accountId).map {
+  def profileInfo(accountId: String): Map[Symbol, Any] = load(accountId).map {
     account =>
-      val cards = Future(creditCardHandler.findByAccount(accountId))
-      val countries = Future(countryHandler.findCountriesForBilling())
+      val cards = creditCardHandler.findByAccount(accountId)
+      val countries = countryHandler.findCountriesForBilling()
 
-      Future.sequence(List(cards, countries)).map {
-        case seq =>
-          val cards = seq(0)
-          val countries = seq(1)
+      val paymentConfig = account.paymentConfig
+      val paypalParam = paymentConfig.map(_.paypalParam).flatten
+      val kwixoParam = paymentConfig.map(_.kwixoParam).flatten
 
-          val paymentConfig = account.paymentConfig
-          val paypalParam = paymentConfig.map(_.paypalParam).flatten
-          val kwixoParam = paymentConfig.map(_.kwixoParam).flatten
+      val basePaymentProviderParam: Option[Map[String, String]] = paymentConfig.map(_.cbParam).flatten
+        .map(JSON.parseFull).flatten
+        .map(_.asInstanceOf[Map[String, String]])
+      val cbParam = basePaymentProviderParam.map {
+        ppp =>
+          val dir = new File(Settings.Sips.CertifDir, account.uuid)
+          dir.mkdirs
+          val targetFile = new File(dir, "certif.fr." + ppp.get("sipsMerchantId"))
 
-          val basePaymentProviderParam: Option[Map[String, String]] = paymentConfig.map(_.cbParam).flatten
-            .map(JSON.parseFull).flatten
-            .map(_.asInstanceOf[Map[String, String]])
-          val cbParam = basePaymentProviderParam.map {
-            ppp =>
-              val dir = new File(Settings.Sips.CertifDir, account.uuid)
-              dir.mkdirs
-              val targetFile = new File(dir, "certif.fr." + ppp.get("sipsMerchantId"))
-
-              if (targetFile.exists) {
-                val certificateData = scala.io.Source.fromFile(targetFile).getLines().mkString
-                ppp ++ "sipsMerchantCertificateData" -> certificateData
-              } else {
-                ppp
-              }
+          if (targetFile.exists) {
+            val certificateData = scala.io.Source.fromFile(targetFile).getLines().mkString
+            ppp ++ "sipsMerchantCertificateData" -> certificateData
+          } else {
+            ppp
           }
-
-          Map('account -> account.copy(password = ""),
-            'cards -> cards,
-            'countries -> countries,
-            'cbParam -> cbParam,
-            'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
-            'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
-            'emailField -> paymentConfig.map(_.emailField),
-            'passwordField -> paymentConfig.map(_.passwordField),
-            'callbackPrefix -> paymentConfig.map(_.callbackPrefix),
-            'passwordPattern -> paymentConfig.map(_.passwordPattern))
       }
-  }
+
+      Map('account -> account.copy(password = ""),
+        'cards -> cards,
+        'countries -> countries,
+        'cbParam -> cbParam,
+        'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
+        'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
+        'emailField -> paymentConfig.map(_.emailField),
+        'passwordField -> paymentConfig.map(_.passwordField),
+        'callbackPrefix -> paymentConfig.map(_.callbackPrefix),
+        'passwordPattern -> paymentConfig.map(_.passwordPattern))
+  } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   /*
   def saveProfileInfo(accountId: String,
@@ -1101,9 +1093,9 @@ class AccountHandler {
               } else {
                 Failure(new MogopayError(MogopayConstant.InvalidPhonePincode3))
               }
-          }.getOrElse(Failure(new AccountDoesNotExistError("")))
+          }.getOrElse(Failure(new AccountDoesNotExistException("")))
         }
-    } getOrElse Failure(new AccountDoesNotExistError(""))
+    } getOrElse Failure(new AccountDoesNotExistException(""))
   }
 
   def signup(signup: Signup): (Token, Account) = {

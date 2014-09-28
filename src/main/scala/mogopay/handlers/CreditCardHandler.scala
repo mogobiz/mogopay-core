@@ -2,7 +2,7 @@ package mogopay.handlers
 
 import mogopay.config.Settings
 import mogopay.config.HandlersConfig._
-import mogopay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistError}
+import mogopay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistException}
 import mogopay.model.Mogopay._
 import mogopay.es.EsClient
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -18,7 +18,7 @@ class CreditCardHandler {
       } getOrElse {
         throw CreditCardDoesNotExistException("")
       }
-    }.getOrElse(throw AccountDoesNotExistError(""))
+    }.getOrElse(throw AccountDoesNotExistException(""))
   }
 
   def findByAccount(accountId: String): Seq[CreditCard] = {
