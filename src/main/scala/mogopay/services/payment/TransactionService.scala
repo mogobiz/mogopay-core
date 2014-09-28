@@ -206,50 +206,44 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
               onComplete((actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]) { call =>
                 handleComplete(call,
-                  ( t : (String, String)) => {
+                  (t: (String, String)) => {
                     val (serviceName, methodName) = t
-                  setSession(session) {
-                    val sessionId = session.id
-                    val pipeline: Future[SendReceive] =
-                      for (
-                        Http.HostConnectorInfo(connector, _) <-
-                        IO(Http) ? Http.HostConnectorSetup(Settings.ServerListen, Settings.ServerPort)
+                    setSession(session) {
+                      val sessionId = session.id
+                      val pipeline: Future[SendReceive] =
+                        for (
+                          Http.HostConnectorInfo(connector, _) <-
+                          IO(Http) ? Http.HostConnectorSetup(Settings.ServerListen, Settings.ServerPort)
 
-                      ) yield sendReceive(connector)
-                    println(s"request ->${
-                      Settings.MogopayEndPoint
-                    }$serviceName/$methodName/$sessionId")
-                    val request = Get(s"${
-                      Settings.MogopayEndPoint
-                    }$serviceName/$methodName/$sessionId")
-                    val response = pipeline.flatMap(_(request))
-                    def cleanSession(session: Session) {
-                      val authenticated = session.sessionData.authenticated
-                      val customerId = session.sessionData.accountId
-                      session.clear()
-                      session.sessionData.authenticated = authenticated
-                      session.sessionData.accountId = customerId
-                    }
-                    onComplete(response) {
-                      case Failure(t) =>
-                        t.printStackTrace()
-                        cleanSession(session)
-                        setSession(session) {
-                          complete(toHTTPResponse(t), t.toString)
+                        ) yield sendReceive(connector)
+                      println(s"request ->${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
+                      val request = Get(s"${
+                        Settings.MogopayEndPoint
+                      }$serviceName/$methodName/$sessionId")
+                      val response = pipeline.flatMap(_(request))
+                      def cleanSession(session: Session) {
+                        val authenticated = session.sessionData.authenticated
+                        val customerId = session.sessionData.accountId
+                        session.clear()
+                        session.sessionData.authenticated = authenticated
+                        session.sessionData.accountId = customerId
+                      }
+                      onComplete(response) {
+                        case Failure(t) =>
+                          t.printStackTrace()
+                          cleanSession(session)
+                          setSession(session) {
+                            complete(toHTTPResponse(t), t.toString)
 
-                        }
-                      case Success(response) =>
-                        println("success->" + response.entity.data.asString)
-                        cleanSession(session)
-                        setSession(session) {
+                          }
+                        case Success(response) =>
+                          println("success->" + response.entity.data.asString)
                           complete {
                             response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
                           }
-
-                        }
+                      }
                     }
                   }
-                }
                 )
               }
           }

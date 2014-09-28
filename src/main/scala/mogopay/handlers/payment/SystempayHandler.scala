@@ -490,62 +490,65 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
   }
 
   def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Uri = {
-    if (!sessionData.waitFor3DS || sessionData.transactionUuid.isEmpty) {
-      throw InvalidContextException( """Not verified: sessionData.waitFor3DS || !sessionData.transactionUUID""")
-    } else {
-      sessionData.waitFor3DS = false
-      val transactionUUID: String = sessionData.transactionUuid.get
-      val paymentConfig: PaymentConfig = sessionData.paymentConfig.get
-      val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
-      val errorURL: String = sessionData.errorURL.get
-      val successURL: String = sessionData.successURL.get
-      val vendorId: String = sessionData.merchantId.get
-      val parametresProvider = parse(org.json4s.StringInput(paymentConfig.cbParam.getOrElse("{}"))).extract[Map[String, String]]
-      val shopId: String = parametresProvider("systempayShopId")
-      val contractNumber: String = parametresProvider("systempayContractNumber")
-      val certificat: String = parametresProvider("systempayCertificate")
+    if (!sessionData.waitFor3DS) {
+      throw InvalidContextException( """Not verified: waitFor3DS""")
+    }
+    if (sessionData.transactionUuid.isEmpty) {
+      throw InvalidContextException( """!sessionData.transactionUUID""")
+    }
 
-      val ctxMode: String = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
+    sessionData.waitFor3DS = false
+    val transactionUUID: String = sessionData.transactionUuid.get
+    val paymentConfig: PaymentConfig = sessionData.paymentConfig.get
+    val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
+    val errorURL: String = sessionData.errorURL.get
+    val successURL: String = sessionData.successURL.get
+    val vendorId: String = sessionData.merchantId.get
+    val parametresProvider = parse(org.json4s.StringInput(paymentConfig.cbParam.getOrElse("{}"))).extract[Map[String, String]]
+    val shopId: String = parametresProvider("systempayShopId")
+    val contractNumber: String = parametresProvider("systempayContractNumber")
+    val certificat: String = parametresProvider("systempayCertificate")
 
-      try {
-        val sessionAndRequestId: String = params("MD")
-        val pares: String = params("PaRes")
-        val newPReq = paymentRequest.copy(
-          paylineMd = sessionAndRequestId,
-          paylinePares = pares
-        )
+    val ctxMode: String = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
 
-        val requestId: String = sessionAndRequestId.substring(sessionAndRequestId.indexOf("|") + 1)
-        val signature: String = SystempayUtilities.makeSignature(certificat, Seq(
-          shopId,
-          contractNumber,
-          ctxMode,
-          requestId,
-          pares
-        ).asJava)
+    try {
+      val sessionAndRequestId: String = params("MD")
+      val pares: String = params("PaRes")
+      val newPReq = paymentRequest.copy(
+        paylineMd = sessionAndRequestId,
+        paylinePares = pares
+      )
 
-        val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
-        val secured: ThreeDSecure = SystempayUtilities.create3DSProxy(
-          "/wsdl/SystemPay_3DSecure.wsdl",
-          new TraceHandler(transaction, "SYSTEMPAY"))
+      val requestId: String = sessionAndRequestId.substring(sessionAndRequestId.indexOf("|") + 1)
+      val signature: String = SystempayUtilities.makeSignature(certificat, Seq(
+        shopId,
+        contractNumber,
+        ctxMode,
+        requestId,
+        pares
+      ).asJava)
 
-        val paresInfo: PaResInfo = secured.analyzePAResTx(shopId, contractNumber, ctxMode, requestId, pares, signature)
-        val status = paresInfo.getStatus
-        status match {
-          case "N" | "U" =>
-            val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
-            buildURL(errorURL, map)
-          case "Y" | "A" =>
-            val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
-            finishPayment(sessionData, resultatPaiement)
-          case _ =>
-            throw new InvalidContextException(s"Invalid status $status")
-        }
-      } catch {
-        case NonFatal(e) =>
-          val queryString = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.UnknownError)
-          buildURL(errorURL, queryString)
+      val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
+      val secured: ThreeDSecure = SystempayUtilities.create3DSProxy(
+        "/wsdl/SystemPay_3DSecure.wsdl",
+        new TraceHandler(transaction, "SYSTEMPAY"))
+
+      val paresInfo: PaResInfo = secured.analyzePAResTx(shopId, contractNumber, ctxMode, requestId, pares, signature)
+      val status = paresInfo.getStatus
+      status match {
+        case "N" | "U" =>
+          val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
+          buildURL(errorURL, map)
+        case "Y" | "A" =>
+          val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
+          finishPayment(sessionData, resultatPaiement)
+        case _ =>
+          throw new InvalidContextException(s"Invalid status $status")
       }
+    } catch {
+      case NonFatal(e) =>
+        val queryString = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.UnknownError)
+        buildURL(errorURL, queryString)
     }
   }
 

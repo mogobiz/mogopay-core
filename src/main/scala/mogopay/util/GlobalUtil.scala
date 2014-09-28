@@ -1,5 +1,7 @@
 package mogopay.util
 
+import java.net.URLEncoder
+
 import mogopay.handlers.payment.BankErrorCodes
 import mogopay.model.Mogopay.{PaymentResult, TransactionStatus, PaymentStatus}
 import mogopay.model.Mogopay.TransactionStatus.TransactionStatus
@@ -27,7 +29,7 @@ object GlobalUtil {
   def mapToQueryString(m: List[(String, Any)]): String = {
     m.map { case (k, v) =>
       println(s"$k=$v")
-      s"$k=$v"
+      s"$k=" + URLEncoder.encode(v.toString, "UTF-8")
     }.mkString("&")
   }
 
