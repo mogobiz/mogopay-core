@@ -92,11 +92,11 @@ class SipsService(actor: ActorRef)(implicit executionContext: ExecutionContext) 
   }
 
   lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
-    import mogopay.config.Implicits._
-    get {
-      parameterMap { params =>
-        val session = SessionESDirectives.load(xtoken).get
-        val message = ThreeDSCallback(session.sessionData, params)
+    post {
+      entity(as[FormData]) { formData =>
+      val session = SessionESDirectives.load(xtoken).get
+        import mogopay.config.Implicits._
+        val message = ThreeDSCallback(session.sessionData, formData.fields.toMap)
         onComplete((actor ? message).mapTo[Try[Uri]]) { call =>
           handleComplete(call,
             (data: Uri) =>

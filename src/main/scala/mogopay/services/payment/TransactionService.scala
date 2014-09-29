@@ -154,6 +154,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                       'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
                       'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
                       'transaction_email -> Option(transaction.email).getOrElse(""),
+                      'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
                       'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
                       'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
                       'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
@@ -218,9 +219,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
                         ) yield sendReceive(connector)
                       println(s"request ->${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
-                      val request = Get(s"${
-                        Settings.MogopayEndPoint
-                      }$serviceName/$methodName/$sessionId")
+                      val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
                       def cleanSession(session: Session) {
                         val authenticated = session.sessionData.authenticated
                         val customerId = session.sessionData.accountId

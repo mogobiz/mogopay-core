@@ -139,11 +139,12 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       val vendorId = sessionData.merchantId.get
       val paymentRequest = sessionData.paymentRequest.orNull
       val paymentConfig = sessionData.paymentConfig
+      sessionData.o3dSessionId = params.get("3d_session_id")
       val parametresProvider: Map[String, String] =
         parse(org.json4s.StringInput(paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
       sessionData.waitFor3DS = false
       try {
-        val result = order3D(sessionData, vendorId, transactionUUID, paymentConfig.orNull, paymentRequest);
+        val result = order3D(sessionData, vendorId, transactionUUID, paymentConfig.orNull, paymentRequest)
         finishPayment(sessionData, result)
       }
       catch {
@@ -394,15 +395,15 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val currency_code: String = sipsResponse.getValue(SIPSCheckoutResponseParm.CURRENCY_CODE)
     val authorisation_id: String = sipsResponse.getValue(SIPSCheckoutResponseParm.AUTHORISATION_ID)
     val bank_response_code: String = sipsResponse.getValue(SIPSCheckoutResponseParm.BANK_RESPONSE_CODE)
-    val dt: Calendar = makeCalendar(diag_date, diag_time);
+    val dt = makeCalendar(diag_date, diag_time)
     val paymentResult: PaymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
-      orderDate = if (diag_response_code == "00" && dt != null) dt.getTime else paymentRequest.orderDate,
+      orderDate = if (diag_response_code == "00") dt.map(_.getTime).getOrElse(paymentRequest.orderDate) else paymentRequest.orderDate,
       amount = paymentRequest.amount,
       cardType = paymentRequest.cardType,
       ccNumber = paymentRequest.ccNumber,
       expirationDate = paymentRequest.expirationDate,
-      transactionDate = dt.getTime,
+      transactionDate = dt.map(_.getTime).getOrElse(new Date()),
       cvv = paymentRequest.cvv,
       gatewayTransactionId = transaction_id,
       errorCodeOrigin = diag_response_code,
@@ -524,16 +525,16 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       val bank_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE)
       val codeErreur = diag_response_code
 
-      val dt: Calendar = makeCalendar(diag_date, diag_time)
+      val dt = makeCalendar(diag_date, diag_time)
 
       val paymentResult = PaymentResult(
         transactionSequence = paymentRequest.transactionSequence,
-        orderDate = if (dt != null) dt.getTime else new Date,
+        orderDate = if (diag_response_code == "00") dt.map(_.getTime).getOrElse(paymentRequest.orderDate) else paymentRequest.orderDate,
         amount = paymentRequest.amount,
         cardType = paymentRequest.cardType,
         ccNumber = paymentRequest.ccNumber,
         expirationDate = paymentRequest.expirationDate,
-        transactionDate = null,
+        transactionDate = dt.map(_.getTime).getOrElse(new Date()),
         cvv = paymentRequest.cvv,
         gatewayTransactionId = transaction_id,
         errorCodeOrigin = codeErreur,
@@ -551,18 +552,18 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  private def makeCalendar(date: String, time: String): Calendar = {
+  private def makeCalendar(date: String, time: String): Option[Calendar] = {
     val df: SimpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss")
     val transTimeFormat: DecimalFormat = new DecimalFormat("000000")
     try {
       val transformDateTime: Date = df.parse(date + time)
       val calendar: Calendar = Calendar.getInstance
       calendar.setTime(transformDateTime)
-      return calendar
+      return Some(calendar)
     }
     catch {
       case NonFatal(e) => {
-        return null
+        return None
       }
     }
   }

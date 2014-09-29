@@ -367,12 +367,12 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
           ) yield logRequest ~> sendReceive(connector) ~> logResponse
 
-        val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query.toMap)))
+        val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
         val response = pipeline.flatMap(_(request))
 
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
 
-        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(tuples))
+        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples))
         EsClient.index(bolog, false)
         val errorCode = tuples.getOrElse("CODEREPONSE", "")
         val errorMessage = tuples.get("COMMENTAIRE")
@@ -418,15 +418,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done",
         "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback/${sessionData.uuid}"
       )
-      def mapQueryStringForHMAC(m: List[(String, Any)]): String = { // No URL Encoding
-        m.map { case (k, v) =>
-          println(s"$k=$v")
-          s"$k=$v"
-        }.mkString("&")
-      }
 
 
-      val queryString = mapQueryStringForHMAC(queryList)
+      val queryString = mapToQueryStringNoEncode(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
       EsClient.index(botlog, false)

@@ -26,10 +26,21 @@ object GlobalUtil {
     mapToQueryString(m.toList)
   }
 
+  def mapToQueryStringNoEncode(m: Map[String, Any]): String = {
+    mapToQueryStringNoEncode(m.toList)
+  }
+
   def mapToQueryString(m: List[(String, Any)]): String = {
     m.map { case (k, v) =>
       println(s"$k=$v")
       s"$k=" + URLEncoder.encode(if (v == null) "" else v.toString, "UTF-8")
+    }.mkString("&")
+  }
+
+  def mapToQueryStringNoEncode(m: List[(String, Any)]): String = {
+    m.map { case (k, v) =>
+      println(s"$k=$v")
+      s"$k=$v"
     }.mkString("&")
   }
 

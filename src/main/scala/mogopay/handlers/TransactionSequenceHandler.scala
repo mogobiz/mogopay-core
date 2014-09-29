@@ -1,10 +1,13 @@
 package mogopay.handlers
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import com.sksamuel.elastic4s.ElasticDsl._
-import mogopay.config.Settings
+import mogopay.config.{Environment, Settings}
 import mogopay.es.EsClient
 import mogopay.model.Mogopay._
-import org.joda.time.{DateTimeComparator, DateTime}
+import org.joda.time.{DateTime, DateTimeComparator}
 
 import scala.util._
 
@@ -36,8 +39,12 @@ class TransactionSequenceHandler {
       }
     } getOrElse {
       // TODO should not be done here. It should be at vendor creation time
-      EsClient.index(TransactionSequence(vendorId, 1L))
-      1L
+      val seq = if (Settings.Env == Environment.DEV)
+        new SimpleDateFormat("HHmmss").format(new Date()).toLong
+      else
+        1L
+      EsClient.index(TransactionSequence(vendorId, seq))
+      seq
     }
   }
 }
