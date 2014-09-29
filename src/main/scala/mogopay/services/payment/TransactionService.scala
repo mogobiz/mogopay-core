@@ -9,8 +9,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import mogopay.actors.TransactionActor._
 import mogopay.config.Settings
+import mogopay.es.EsClient
 import mogopay.handlers.shipping.ShippingPrice
-import mogopay.model.Mogopay.{BOTransaction, TransactionStatus}
+import mogopay.model.Mogopay.{TransactionRequest, BOTransaction, TransactionStatus}
 import mogopay.services.DefaultComplete
 import mogopay.services.Util._
 import mogopay.session.Session
@@ -199,7 +200,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
               def isNewSession(): Boolean = {
                 val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
                 val incomingTrans = submitParams.transactionUUID.getOrElse("__INCOMING_UNDEFINED__")
-                sessionTrans == incomingTrans
+                sessionTrans != incomingTrans
               }
               if (!session.sessionData.authenticated || isNewSession())
                 session.clear()
@@ -220,7 +221,6 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                       val request = Get(s"${
                         Settings.MogopayEndPoint
                       }$serviceName/$methodName/$sessionId")
-                      val response = pipeline.flatMap(_(request))
                       def cleanSession(session: Session) {
                         val authenticated = session.sessionData.authenticated
                         val customerId = session.sessionData.accountId
@@ -228,6 +228,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                         session.sessionData.authenticated = authenticated
                         session.sessionData.accountId = customerId
                       }
+                      val response = pipeline.flatMap(_(request))
                       onComplete(response) {
                         case Failure(t) =>
                           t.printStackTrace()

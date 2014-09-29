@@ -215,9 +215,10 @@ class TransactionHandler {
 
     val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
 
-    val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active).getOrElse(throw NoActiveShippingAddressFound("None"))
+    val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
-    computePrice(address, currencyCode, parse(transactionExtra))
+    address.map(addr => computePrice(addr, currencyCode, parse(transactionExtra))).getOrElse(Seq[ShippingPrice]())
+
   }
 
   def shippingPrice(prices: Seq[ShippingPrice], provider: String,
@@ -476,7 +477,7 @@ class TransactionHandler {
                                  transactionSequence: Long, transactionExtra: String,
                                  transactionCurrency: TransactionCurrency, sessionData: SessionData,
                                  transactionDesc: String, ccCrypto: String, card_number: String,
-                                 card_month: String, card_year: String, card_type: CreditCardType) : PaymentRequest = {
+                                 card_month: String, card_year: String, card_type: CreditCardType): PaymentRequest = {
     var errors: mutable.Seq[Exception] = mutable.Seq()
 
     var cc_type: CreditCardType = null

@@ -1,7 +1,7 @@
 package mogopay.handlers.payment
 
 import java.io.StringReader
-import java.net.URLDecoder
+import java.net.{URLEncoder, URLDecoder}
 import java.security.interfaces.RSAPublicKey
 import java.security.{Signature, NoSuchAlgorithmException, MessageDigest, Security}
 import java.text.SimpleDateFormat
@@ -418,7 +418,15 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done",
         "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback/${sessionData.uuid}"
       )
-      val queryString = mapToQueryString(queryList)
+      def mapQueryStringForHMAC(m: List[(String, Any)]): String = { // No URL Encoding
+        m.map { case (k, v) =>
+          println(s"$k=$v")
+          s"$k=$v"
+        }.mkString("&")
+      }
+
+
+      val queryString = mapQueryStringForHMAC(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
       EsClient.index(botlog, false)

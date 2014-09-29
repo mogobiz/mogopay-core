@@ -17,11 +17,13 @@ trait PaymentHandler {
     val errorURL = sessionData.errorURL.getOrElse("")
     val successURL = sessionData.successURL.getOrElse("")
     val transactionUUID = sessionData.transactionUuid.getOrElse("")
+    val transactionSequence = if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
     val success = paymentResult.status == PaymentStatus.COMPLETE
 
     val query = Query(
       "result" -> (if (success) MogopayConstant.Success else MogopayConstant.Error),
       "transaction_id" -> transactionUUID,
+      "transaction_sequence" -> transactionSequence,
       "transaction_type" -> "CREDIT_CARD",
       "error_code_bank" -> paymentResult.bankErrorCode,
       "error_message_bank" -> paymentResult.bankErrorMessage.getOrElse(""),

@@ -1,5 +1,7 @@
 package mogopay.services
 
+import java.net.UnknownHostException
+
 import mogoauth.services._
 import mogopay.exceptions.Exceptions.MogopayException
 import mogopay.model.Mogopay.SessionData
@@ -90,9 +92,10 @@ trait DefaultComplete {
       case Failure(t) => t.printStackTrace();complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
       case Success(res) =>
         res match {
-          case Failure(t:MogopayException) => t.printStackTrace();complete(t.code -> Map('error -> t.toString))
           case Success(id) => handler(id)
-          case  Failure(t) => t.printStackTrace();throw new Exception("Invalid Exception " + t)
+          case Failure(t:MogopayException) => t.printStackTrace();complete(t.code -> Map('error -> t.toString))
+          case  Failure(t:UnknownHostException) => t.printStackTrace();complete(StatusCodes.NotFound -> Map('error -> t.toString))
+          case  Failure(t) => t.printStackTrace();complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
         }
     }
   }

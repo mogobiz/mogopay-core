@@ -272,7 +272,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       authorizationId = null,
       status = if (resp.getValue("response_code") == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
       errorCodeOrigin = resp.getValue("response_code"),
-      errorMessageOrigin = Option(resp.getValue("response_code")),
+      errorMessageOrigin = Option(errorMessages.getOrElse(resp.getValue("response_code"), "")),
       data = null,
       bankErrorCode = resp.getValue("bank_response_code"),
       bankErrorMessage = Option(BankErrorCodes.getErrorMessage(resp.getValue("bank_response_code"))),
