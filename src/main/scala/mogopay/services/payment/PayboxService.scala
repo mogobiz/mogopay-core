@@ -3,13 +3,10 @@ package mogopay.services.payment
 import akka.actor.ActorRef
 import mogopay.actors.PayboxActor.{CallbackPayment, Done3DSecureCheck, _}
 import mogopay.services.DefaultComplete
-import mogopay.services.Util._
 import mogopay.session.SessionESDirectives
 import mogopay.session.SessionESDirectives._
-import shapeless.{HNil, ::}
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
-import spray.routing.directives.ParameterDirectives
 import spray.routing._
 
 import scala.concurrent.ExecutionContext
@@ -20,7 +17,7 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
   import akka.pattern.ask
   import akka.util.Timeout
 
-  import scala.concurrent.duration._
+import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.seconds)
 
@@ -59,8 +56,9 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
   }
 
 
+  def queryString: Directive1[String] = extract(_.request.uri.toString())
+
   lazy val done = path("done") {
-    def queryString: Directive1[String] = extract(_.request.uri.toString())
     import mogopay.config.Implicits._
     get {
       session { session =>
@@ -86,12 +84,13 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
       import mogopay.config.Implicits.MogopaySession
 
       get {
-        parameterMap {
-          params =>
+        parameterMap { params =>
+          queryString { uri =>
             val session = SessionESDirectives.load(xtoken).get
-            onComplete((actor ? CallbackPayment(session.sessionData, params)).mapTo[Try[Unit]]) { call =>
+            onComplete((actor ? CallbackPayment(session.sessionData, params, uri)).mapTo[Try[Unit]]) { call =>
               handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
             }
+          }
         }
       }
   }

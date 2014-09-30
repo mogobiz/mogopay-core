@@ -11,7 +11,7 @@ object PayboxActor {
 
   case class StartPayment(sessionData: SessionData)
 
-  case class CallbackPayment(sessionData: SessionData, params: Map[String, String])
+  case class CallbackPayment(sessionData: SessionData, params: Map[String, String], uri:String)
 
   case class Done(sessionData: SessionData, params: Map[String, String], uri:String)
 
@@ -27,7 +27,7 @@ class PayboxActor extends Actor {
 
   def receive: Receive = {
     case StartPayment(sessionData) => sender ! Try(payboxHandler.startPayment(sessionData))
-    case CallbackPayment(sessionData, params) => sender ! Try(payboxHandler.callbackPayment(sessionData, params))
+    case CallbackPayment(sessionData, params, uri) => sender ! Try(payboxHandler.callbackPayment(sessionData, params, uri))
     case Done(sessionData, params, uri) => sender ! Try(payboxHandler.donePayment(sessionData, params, uri))
     case Done3DSecureCheck(sessionData, params) => sender ! Try(payboxHandler.done3DSecureCheck(sessionData, params))
     case Callback3DSecureCheck(sessionData, params) => sender ! Try(payboxHandler.callback3DSecureCheck(sessionData, params))

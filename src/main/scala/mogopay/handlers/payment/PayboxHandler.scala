@@ -66,6 +66,12 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     sig.verify(signature)
   }
 
+  def callbackPayment(sessionData: SessionData, params: Map[String, String], uri:String): Unit = {
+    if (params("CODEREPONSE") == "00000") donePayment(sessionData, params, uri)
+  }
+
+
+
   def donePayment(sessionData: SessionData, params: Map[String, String], uri: String): Uri = {
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
@@ -147,9 +153,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       finishPayment(sessionData, paymentResult)
     }
 
-  }
-
-  def callbackPayment(sessionData: SessionData, stringToString: Map[String, String]): Unit = {
   }
 
   def done3DSecureCheck(sessionData: SessionData, params: Map[String, String]): Uri = {
