@@ -65,7 +65,7 @@ object EsClient {
     }
     req.docAsUpsert(upsert)
     val res = client.sync.execute(req)
-    res.isCreated
+    res.isCreated || res.getVersion > 1
   }
 
   def update[T <: Timestamped : Manifest](t: T, version: Long): Boolean = {
