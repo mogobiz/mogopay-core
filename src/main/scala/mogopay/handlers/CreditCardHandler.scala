@@ -1,13 +1,9 @@
 package mogopay.handlers
 
-import mogopay.config.Settings
 import mogopay.config.HandlersConfig._
 import mogopay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistException}
 import mogopay.model.Mogopay._
 import mogopay.es.EsClient
-import com.sksamuel.elastic4s.ElasticDsl._
-
-import scala.util._
 
 class CreditCardHandler {
   def delete(accountId: String, cardId: String): Unit = {

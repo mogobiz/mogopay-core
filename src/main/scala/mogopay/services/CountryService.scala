@@ -34,16 +34,16 @@ class CountryService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val countriesForShipping = path("countries-for-shipping") {
     get {
-      onComplete((actor ? CountriesForShipping).mapTo[Try[List[Country]]]) { call =>
-        handleComplete(call, (countries: List[Country]) => complete(StatusCodes.OK -> countries))
+      onComplete((actor ? CountriesForShipping).mapTo[Try[Seq[Country]]]) { call =>
+        handleComplete(call, (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
       }
     }
   }
 
   lazy val countriesForBilling = get {
     path("countries-for-billing") {
-      onComplete((actor ? CountriesForBilling).mapTo[Try[List[Country]]]) { call =>
-        handleComplete(call, (countries: List[Country]) => complete(StatusCodes.OK -> countries))
+      onComplete((actor ? CountriesForBilling).mapTo[Try[Seq[Country]]]) { call =>
+        handleComplete(call, (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
       }
     }
   }
@@ -55,31 +55,29 @@ class CountryService(actor: ActorRef)(implicit executionContext: ExecutionContex
       }
     }
   }
-  lazy val admins1 = path(Segment / "admins1") { countryCode =>
+  lazy val admins1 = path("admins1" / Segment) { countryCode =>
     get {
-      onComplete((actor ? Admins1(countryCode)).mapTo[Try[List[CountryAdmin]]]) { call =>
-        handleComplete(call, (admins: List[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+      onComplete((actor ? Admins1(countryCode)).mapTo[Try[Seq[CountryAdmin]]]) { call =>
+        handleComplete(call, (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
       }
     }
   }
 
   lazy val cities = path("cities") {
     get {
-      val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin1_code.?, 'city.?)
-      params { (c, a1, a2, city) =>
-        onComplete((actor ? Cities(c, a1, a2, city)).mapTo[Try[Seq[CountryAdmin]]]) { call =>
+      val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin2_code.?, 'name.?)
+      params { (c, a1, a2, name) =>
+        onComplete((actor ? Cities(c, a1, a2, name)).mapTo[Try[Seq[CountryAdmin]]]) { call =>
           handleComplete(call, (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
         }
       }
     }
   }
 
-  lazy val admins2 = path(Segment / "admins2") { countryCode =>
+  lazy val admins2 = path("admins2" / Segment) { admin1 =>
     get {
-      parameters('admin1.?) { admin1 =>
-        onComplete((actor ? Admins2(countryCode, admin1)).mapTo[Try[Seq[CountryAdmin]]]) { call =>
-          handleComplete(call, (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-        }
+      onComplete((actor ? Admins2(admin1)).mapTo[Try[Seq[CountryAdmin]]]) { call =>
+        handleComplete(call, (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
       }
     }
   }

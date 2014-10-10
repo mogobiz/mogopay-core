@@ -13,7 +13,7 @@ object CountryActor {
 
   case class Admins1(country: String)
 
-  case class Admins2(country: String, admin1: Option[String])
+  case class Admins2(admin1: String)
 
   case class Cities(country: Option[String],
                     parentAdmin1Code: Option[String],
@@ -43,14 +43,14 @@ class CountryActor extends Actor {
     case Admins1(country) => {
       sender ! Try(countryAdminHandler.admins1(country))
     }
-    case Admins2(country, parentAdmin) => {
-      sender ! Try(countryAdminHandler.admins2(country, parentAdmin))
+    case Admins2(parentAdmin) => {
+      sender ! Try(countryAdminHandler.admins2(parentAdmin))
     }
     case Cities(country, parentAdmin1Code, parentAdmin2Code, cityName) => {
       sender ! Try(countryAdminHandler.cities(country, parentAdmin1Code, parentAdmin2Code, cityName))
     }
-    //    case CheckPhoneNumber(phone, country) => {
-    //      sender ! telephoneHandler.checkPhoneNumber(phone, country)
-    //    }
+    case CheckPhoneNumber(phone, country) => {
+      sender ! Try(countryHandler.checkPhoneNumber(phone, country))
+    }
   }
 }

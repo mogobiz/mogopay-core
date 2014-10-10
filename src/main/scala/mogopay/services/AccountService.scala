@@ -62,13 +62,11 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
 
-  lazy val isPatternValid = path("is-pattern-valid") {
+  lazy val isPatternValid = path("is-pattern-valid" / Segment) { pattern =>
     get {
-      parameters('pattern).as(IsPatternValid) { v =>
-        onComplete((actor ? v).mapTo[Try[Boolean]]) { call =>
-          handleComplete(call, (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString)))
-          )
-        }
+      onComplete((actor ? IsPatternValid(pattern)).mapTo[Try[Boolean]]) { call =>
+        handleComplete(call, (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString)))
+        )
       }
     }
   }
@@ -376,7 +374,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val addCreditCard = path("add-credit-card") {
     get {
-      parameters('card_id.?, 'holder, 'number, 'expiry_date, 'type) {
+      parameters('card_id.?, 'holder, 'number.?, 'expiry_date, 'type) {
         (ccId, holder, number, expiryDate, ccType) =>
           session {
             session =>
@@ -686,8 +684,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   val route = {
     pathPrefix("account") {
       login ~
-        updateProfile ~
-        signup
+      updateProfile ~
+      signup
     }
   }
 
@@ -778,7 +776,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
                 ('password_subject ?) :: ('password_content ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
-                ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) :: HNil)
+                ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) ::
+                'email_field :: 'password_field :: HNil)
               fields.happly {
                 case password :: password2 :: company :: website :: lphone ::
                   civility :: firstname :: lastname :: birthday :: road :: road2 ::
@@ -790,7 +789,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                   sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
                   systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
                   passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
-                  kwixoParams :: HNil =>
+                  kwixoParams :: emailField :: passwordField :: HNil =>
                   val validPassword: Option[(String, String)] = (password, password2) match {
                     case (Some(p), Some(p2)) => Some((p, p2))
                     case _ => None
@@ -834,6 +833,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                     billingAddress = billingAddress,
                     isMerchant = session.sessionData.isMerchant,
                     vendor = vendor,
+                    emailField = emailField,
+                    passwordField = passwordField,
                     passwordSubject = passwordSubject,
                     passwordContent = passwordContent,
                     callbackPrefix = callbackPrefix,
