@@ -30,27 +30,30 @@ trait MogopayRoutes extends Directives {
         getFromResourceDirectory("static")
       }
   } ~
-    pathPrefix("pay") {
-      new AccountService(accountActor).route ~
-        new AccountServiceJsonless(accountActor).route ~
-        new BackofficeService(backofficeActor).route ~
-        new CountryService(countryActor).route ~
-        new RateService(rateActor).route ~
-        new TransactionService(transactionActor).route ~
-        new SampleService().route ~
-        new TwitterService().route ~
-        new LinkedInService().route ~
-        new GoogleService().route ~
-        new FacebookService().route ~
-        new GithubService().route ~
-        new SystempayService(systempayActor).route ~
-        new PayPalService(payPalActor).route ~
-        new PayboxService(payboxActor).route ~
-        new PaylineService(paylineActor).route ~
-        new MogopayService(mogopayActor).route ~
-        new SipsService(sipsActor).route ~
-        new UserService(userActor).route
-    }
+  pathPrefix("pay") {
+    new AccountService(accountActor).route ~
+      new AccountServiceJsonless(accountActor).route ~
+      new BackofficeService(backofficeActor).route ~
+      new CountryService(countryActor).route ~
+      new RateService(rateActor).route ~
+      new TransactionService(transactionActor).route ~
+      new SampleService().route ~
+      new TwitterService().route ~
+      new LinkedInService().route ~
+      new GoogleService().route ~
+      new FacebookService().route ~
+      new GithubService().route ~
+      new SystempayService(systempayActor).route ~
+      new PayPalService(payPalActor).route ~
+      new PayboxService(payboxActor).route ~
+      new PaylineService(paylineActor).route ~
+      new MogopayService(mogopayActor).route ~
+      new SipsService(sipsActor).route ~
+      new UserService(userActor).route
+  } ~
+  pathPrefix("client") {
+    getFromBrowseableDirectories("/Users/sdi/workspace/work/mogopay-client/src/main/resources/admin")
+  }
   val routesServices = system.actorOf(Props(new RoutedHttpService(routes)))
 }
 

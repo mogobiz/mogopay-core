@@ -86,7 +86,7 @@ object DBInitializationHandler {
       PAYPAL, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
     var merchantAccountInfo = createAccount("Mogopay", "Merchant",
       "mogopay@merchant.com", merchantTelephone, merchantAccountAddress,
-      merchant, Some(paymentConfig1), None, uuid = "mogopay@merchant.com")
+      merchant, Some(paymentConfig1), None, uuid = "mogopay")
 
     val clientAccountInfo = createAccount("Client 1", "TEST", "client@merchant.com", clientTelephone, clientAccountAddress, customer, None, Some(merchantAccountInfo))
     val clientAccountInfo1 = createAccount("Client 2", "TEST 1", "client1@merchant.com", clientTelephone1, clientAccountAddress1, customer, None, Some(merchantAccountInfo))
@@ -143,7 +143,7 @@ object DBInitializationHandler {
   }
 
   private def createAddress(road: String, city: String, zip: String, country: String) = {
-    val tel = Some(Telephone("+33787211284", "0787211284", "", None, TelephoneStatus.ACTIVE))
+    val tel = Some(Telephone("+33123456789", "0123456789", "", None, TelephoneStatus.ACTIVE))
     AccountAddress(road, None, city, Some(zip), None, None, None, None, tel, Some(country), None, None)
     //    AccountAddress(road, None, city, Some(zip), None, None, None, None, None, Some(country), None, None)
   }
@@ -177,7 +177,7 @@ object DBInitializationHandler {
     val account = Account(uuid,
       email,
       Some("COMPA"),
-      Some("http = //www.merchant.com"),
+      Some("http://www.merchant.com"),
       new Sha256Hash("1234").toString,
       Some(Civility.MRS),
       Some(firstName),

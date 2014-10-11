@@ -43,7 +43,7 @@ object AccountActor {
   case class GenerateNewSecret(accountId: String)
 
   case class AddCreditCard(accountId: String, ccId: Option[String], holder: String,
-                           number: String, expiry: String, ccType: String)
+                           number: Option[String], expiry: String, ccType: String)
 
   case class DeleteCreditCard(accountId: String, cardId: String)
 
@@ -112,6 +112,7 @@ object AccountActor {
                            company: String, website: String, lphone: String, civility: String,
                            firstName: String, lastName: String, birthDate: String,
                            billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
+                           emailField: String, passwordField: String,
                            passwordSubject: Option[String], passwordContent: Option[String],
                            passwordPattern: Option[String], callbackPrefix: Option[String],
                            paymentMethod: String, cbProvider: String, cbParam: CBParams,

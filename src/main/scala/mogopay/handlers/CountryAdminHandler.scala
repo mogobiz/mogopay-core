@@ -1,29 +1,40 @@
 package mogopay.handlers
 
+import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.FilterDefinition
+import mogopay.config.Settings
+import mogopay.es.EsClient
 import mogopay.model.Mogopay._
-import scala.concurrent.Future
 
 class CountryAdminHandler {
-  def admins1(countryCode: String) = {
-    val query: Seq[(String, Any)] = Seq("level" -> 1, "country.code" -> countryCode)
-    //    DAO.findAllBy[CountryAdmin](query: _*) map (_.sortBy(_.name))
+  def admins1(countryCode: String): Seq[CountryAdmin] = {
+    val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(
+      termFilter("level" -> 1),
+      termFilter("country.code" -> countryCode)
+    )
+    EsClient.searchAll[CountryAdmin](req) sortBy (_.name)
   }
 
-  def admins2(countryCode: String, admin1Code: Option[String] = None) = {
-    val query = Seq("level" -> 2, "country.code" -> countryCode) ++
-      admin1Code.map(c => Seq("parentCountryAdmin1" -> c)).getOrElse(Nil)
-    //    DAO.findAllBy[CountryAdmin](query: _*) map (_.sortBy(_.name))
+  def admins2(admin1Code: String): Seq[CountryAdmin] = {
+    val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(
+      termFilter("level" -> 2),
+      termFilter("parentCountryAdmin1.code" -> admin1Code)
+    )
+    EsClient.searchAll[CountryAdmin](req) sortBy (_.name)
   }
 
   def cities(countryCode: Option[String] = None,
              admin1Code: Option[String] = None,
              admin2Code: Option[String] = None,
              name: Option[String] = None) = {
-    val query = Seq("level" -> Some(3),
-      "country.code" -> countryCode,
-      "parentCountryAdmin1" -> admin1Code,
-      "parentCountryAdmin2" -> admin2Code,
-      "name" -> name) collect { case (k, Some(v)) => (k, v)}
-    //    DAO.findAllBy[CountryAdmin](query: _*) map (_.sortBy(_.name))
+    val filters: Seq[Option[FilterDefinition]] = List(
+      Option(termFilter("level" -> 3)),
+      name.map(name => regexFilter("name" -> (".*" + name.toLowerCase + ".*"))),
+      countryCode.map(code => termFilter("country.code" -> code)),
+      admin1Code.map(code => termFilter("parentCountryAdmin1.code" -> code)),
+      admin2Code.map(code => termFilter("parentCountryAdmin2.code" -> code))
+    )
+    val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(filters.flatten: _*)
+    EsClient.searchAll[CountryAdmin](req) sortBy (_.name)
   }
 }

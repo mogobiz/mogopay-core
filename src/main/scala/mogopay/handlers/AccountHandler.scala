@@ -551,30 +551,22 @@ class AccountHandler {
   }
 
   def addCreditCard(accountId: String, ccId: Option[String], holder: String,
-                    number: String, expiryDate: String, ccType: String): CreditCard = ccId match {
-    case None => createCard(accountId, holder, number, expiryDate, ccType)
-    case Some(cardId) => updateCard(accountId, cardId, holder, number, expiryDate, ccType)
+                    number: Option[String], expiryDate: String, ccType: String): CreditCard = ccId match {
+    case None => createCard(accountId, holder, number.get, expiryDate, ccType)
+    case Some(cardId) => updateCard(accountId, cardId, holder, expiryDate, ccType)
   }
 
   private def updateCard(accountId: String, ccId: String, holder: String,
-                         cardNumber: String, expiryDate: String, ccType: String): CreditCard = {
+                         expiryDate: String, ccType: String): CreditCard = {
     val account: Account = EsClient.load[Account](accountId) getOrElse (throw AccountDoesNotExistException(""))
-
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
 
-    val (hiddenN, cryptedN) =
-      if (!UtilHandler.checkLuhn(cardNumber)) {
-        throw InvalidCardNumberException("")
-      } else {
-        (UtilHandler.hideCardNumber(cardNumber, "X"), SymmetricCrypt.encrypt(cardNumber, Settings.ApplicationSecret, "AES"))
-      }
-
-    val newCard = card.copy(number = cryptedN,
+    val newCard = card.copy(
       holder = holder,
-      expiryDate = new Timestamp(new SimpleDateFormat("yyyy-MM").parse(expiryDate).getTime),
-      cardType = CreditCardType.withName(ccType),
-      hiddenNumber = hiddenN)
+      expiryDate = new Timestamp(new SimpleDateFormat("MM/yyyy").parse(expiryDate).getTime),
+      cardType = CreditCardType.withName(ccType)
+    )
 
     val newCards = account.creditCards.filter(_.uuid != ccId) :+ newCard
     EsClient.index(account.copy(creditCards = newCards))
@@ -593,7 +585,7 @@ class AccountHandler {
         (UtilHandler.hideCardNumber(number, "X"), SymmetricCrypt.encrypt(number, Settings.ApplicationSecret, "AES"))
       }
 
-    val expiryTime = new Timestamp(new SimpleDateFormat("yyyy-MM").parse(expiryDate).getTime)
+    val expiryTime = new Timestamp(new SimpleDateFormat("MM/yyyy").parse(expiryDate).getTime)
 
     val newCard = CreditCard(uuid = java.util.UUID.randomUUID().toString,
       number = cryptedN,
@@ -604,7 +596,7 @@ class AccountHandler {
       hiddenNumber = hiddenN)
     val newCards = account.creditCards :+ newCard
     EsClient.index(account.copy(creditCards = newCards))
-    newCard
+    newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X"))
   }
 
   def getBillingAddress(accountId: String): Option[AccountAddress] = load(accountId).flatMap(_.address)
@@ -737,213 +729,6 @@ class AccountHandler {
         'passwordPattern -> paymentConfig.map(_.passwordPattern))
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  /*
-  def saveProfileInfo(accountId: String,
-                      fields: JObject,
-                      httpSession: Session): Either[Try[Unit], Session] = {
-    val profile: Profile = (fields \ "user").extract[Profile]
-
-    var updatedHTTPSession: Session = null
-
-    val isMerchant = RoleName.withName(profile.userType) == RoleName.MERCHANT
-    val exists: Boolean = profile.id != None
-    if (!exists && !profile.email.isEmpty) {
-      return Left(Failure(new RuntimeException("error.email.required")))
-    } else if (isMerchant && !profile.email.isEmpty) {
-      val merchantConstraints: Seq[String] = Settings.AccountValidateMerchantEmails.split(",").map(_.trim)
-      val found: Boolean = merchantConstraints.exists {
-        c =>
-          c.equals(profile.email) || (c.startsWith("@") && profile.email.contains(c))
-      }
-      if (!found && merchantConstraints.size > 0) {
-        return Left(Failure(new UserEmailNotAllowedAsMerchantException))
-      }
-    }
-
-    if (!isMerchant) {
-      val merchant: Option[Account] =
-        accountHandler.findByEmail(Settings.AccountValidateMerchantDefault).filter(_.owner.isEmpty)
-      if (merchant != None) updatedHTTPSession = httpSession += "vendorId" -> merchant.get.uuid
-    } else if (profile.company == None || profile.website == None) {
-      return Left(Failure(new LackingInfoForMerchantException(
-        "Company name & website are required for a merchant profile")))
-    }
-
-    if (!exists) {
-      Failure(new AccountDoesNotExistException)
-    } else {
-      try {
-        val paymentConfig: PaymentConfig = PaymentConfig(
-          kwixoParam = Some(compact(render(profile.kwixoParam))),
-          paypalParam = Some(compact(render(profile.paypalParam))),
-          cbParam = null,
-          cbProvider = null,
-          paymentMethod = profile.paymentConfig.fold(CBPaymentMethod.THREEDS_NO)
-            (pc => CBPaymentMethod.withName(pc.paymentMethod)),
-          emailField = profile.paymentConfig.map(_.emailField) getOrElse "user_email",
-          passwordField = profile.paymentConfig.map(_.passwordField) getOrElse "user_password",
-          pwdEmailContent = profile.paymentConfig.map(_.pwdEmailContent).flatten,
-          pwdEmailSubject = profile.paymentConfig.map(_.pwdEmailSubject).flatten,
-          callbackPrefix = profile.paymentConfig.map(_.callbackPrefix).flatten,
-          passwordPattern = profile.paymentConfig.map(_.passwordPattern).flatten)
-        val roles = Seq(if (isMerchant) RoleName.MERCHANT else RoleName.CUSTOMER)
-
-        val sessionMerchant: Option[Account] =
-          if (httpSession.sessionData.isMerchant) {
-            httpSession.sessionData.vendorId.map(uuid => {
-              EsClient.load[Account](uuid)
-            }).flatten
-          }
-          else
-            None
-        //accountHandler.saveProfile(profile, paymentConfig, roles, sessionMerchant)
-
-        profile.paymentConfig.map(_.cbProvider).map {
-          cbProvider: String =>
-            if (CBPaymentProvider.withName(cbProvider) == CBPaymentProvider.SIPS) {
-              val paymentProviderParam = fields \ "paymentProviderParam"
-
-              val certificateData: Option[String] =
-                (fields \ "paymentProviderParamEx" \ "sipsMerchantCertificateData").extractOpt[String]
-              val certificateFile: Option[String] =
-                (paymentProviderParam \ "sipsMerchantCertificateFile").extractOpt[String]
-
-              val dir = new File(Settings.SipsCertifDir, profile.id.map(_.toString).getOrElse(""))
-              dir.mkdirs
-              val certificateTargetFile: File = new File(dir,
-                "certif.%s.%s".format(
-                  (paymentProviderParam \ "sipsMerchantCountry").extractOpt[String].get,
-                  (paymentProviderParam \ "sipsMerchantId").extractOpt[String].get))
-
-              if (certificateData != None && certificateFile != None) {
-                certificateTargetFile.delete
-                writeToFile(certificateTargetFile) {
-                  p => p.print(certificateData.get.trim)
-                }
-              }
-
-              val parcomData = (fields \ "paymentProviderParamEx" \ "sipsMerchantParcomData").extractOpt[String]
-              val parcomFile = (paymentProviderParam \ "sipsMerchantParcomFile").extractOpt[String]
-              val parcomTargetFile = new File(dir,
-                "parcom." + (paymentProviderParam \ "sipsMerchantId").extractOpt[String].getOrElse(""))
-              if (parcomData != None && parcomFile != None) {
-                parcomTargetFile.delete
-                writeToFile(parcomTargetFile) {
-                  p => p.print(parcomData.get.trim)
-                }
-              }
-              val targetFile = new File(dir, "pathfile")
-              var isJSP = false
-              if (certificateData != None) {
-                isJSP = certificateData.get.indexOf("!jsp!") > 0
-              } else if (targetFile.exists()) {
-                val paramReader = new FileParamReader(targetFile.getAbsolutePath)
-                isJSP = paramReader.getParam("F_CTYPE") == "jsp"
-              }
-              targetFile.delete
-
-              writeToFile(targetFile) {
-                p =>
-                  p.print("D_LOGO!" + Settings.MogopayEndPoint + "images/sips/logo/!\n")
-                  p.print("F_DEFAULT!" + Settings.SipsCertifDir + "parmcom.defaut!\n")
-                  p.print("F_PARAM!" + new File(dir, "parcom").getAbsolutePath + "!\n")
-                  p.print("F_CERTIFICATE!" + new File(dir, "certif").getAbsolutePath + "!\n")
-                  if (isJSP) p.print("F_CTYPE!jsp!\n")
-              }
-              if (isJSP)
-                certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
-            }
-        }
-      } catch {
-        case t: Throwable => Left(Failure(t))
-      }
-    }
-    if (updatedHTTPSession == null) Left(Success(()))
-    else Right(updatedHTTPSession)
-  }
-  */
-
-  /*
-  def saveProfile(profile: Profile, paymentConfig: PaymentConfig,
-                  roles: Seq[RoleName], vendor: Option[Account]) = {
-    def update(): Try[Unit] = {
-      val uuid: Try[String] = profile.id match {
-        case None => Failure(new NoAccountIdProvidedException)
-        case Some(x) => Success(x)
-      }
-
-      val account: Try[Account] = uuid match {
-        case Failure(t) => Failure(t)
-        case Success(uuid) => accountHandler.load(uuid) match {
-          case None => Failure(new AccountDoesNotExistError)
-          case Some(x) => Success(x)
-        }
-      }
-
-      val save: Try[(Account, Account)] = account match {
-        case Failure(t) => Failure(t)
-        case Success(acc) =>
-          val isCustomer = acc.roles.contains(RoleName.CUSTOMER)
-
-          if (isCustomer && vendor == None) {
-            Failure(new VendorNotProvidedError)
-          } else {
-            val newPassword: String = profile.password.fold(acc.password)(pwd =>
-              if (true) new Sha256Hash(pwd).toHex else acc.password
-            )
-
-            val newAddress: Option[AccountAddress] = profile.billingAddress.map { addr =>
-              val tel = profile.lphone.map { lphone =>
-                val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
-                val phoneNumber = phoneUtil.parse(lphone, profile.billingAddress.map(_.country).flatten.getOrElse(""))
-                Telephone(phone = phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL),
-                  lphone = phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL),
-                  isoCode = profile.billingAddress.map(_.country).flatten.getOrElse(""),
-                  pinCode3 = None,
-                  status = TelephoneStatus.WAITING_ENROLLMENT)
-              }
-              addr.copy(telephone = tel)
-            } orElse acc.address
-
-            val updatedAccount = acc.copy(
-              email = profile.email,
-              company = profile.company,
-              website = profile.website,
-              password = newPassword,
-              civility = profile.civility.map(c => Civility.withName(c)),
-              firstName = profile.firstName,
-              lastName = profile.lastName,
-              birthDate = profile.birthDate.map(bd => buildDate(bd, "yyyy-MM-dd")),
-              address = newAddress,
-              paymentConfig = Some(paymentConfig),
-              roles = roles.to[List])
-
-            accountHandler.save(updatedAccount)
-
-            Success(acc, updatedAccount)
-          }
-      }
-
-      save match {
-        case Failure(t) => Failure(t)
-        case Success((oldAcc, acc)) =>
-          val validateMerchantPhone: Boolean = false
-          val validateCustomerPhone: Boolean = false
-
-          if ((profile.isMerchant && validateMerchantPhone) || (!profile.isMerchant && validateCustomerPhone)) {
-            val lphone: Option[String] = acc.address.map(_.telephone.map(_.lphone)).flatten
-            val oldLPhone: Option[String] = oldAcc.address.map(_.telephone.map(_.lphone)).flatten
-            if (acc.address.map(_.telephone).flatten != None && (oldLPhone == None || oldLPhone != lphone)) {
-              generateAndSendPincode3(acc.uuid)
-            }
-          }
-
-          Success(())
-      }
-    }
-  }
-  */
-
   def find(uuid: String) = EsClient.load[Account](uuid)
 
   def updateProfile(profile: UpdateProfile): Unit = {
@@ -999,26 +784,12 @@ class AccountHandler {
           targetFile.delete()
           scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
             s"""
-             |"D_LOGO!${
-              Settings.MogopayEndPoint
-            }${
-              Settings.ImagesPath
-            }sips/logo/!"
-             |"F_DEFAULT!${
-              Settings.Sips.CertifDir
-            }${
-              File.separator
-            }parmcom.defaut!"
-             |"F_PARAM!${
-              new File(dir, "parcom").getAbsolutePath
-            }!"
-             |"F_CERTIFICATE!${
-              new File(dir, "certif").getAbsolutePath
-            }!"
-             |"${
-              if (isJSP) "F_CTYPE!jsp!" else ""
-            }"
-           """.stripMargin
+             |D_LOGO!${Settings.MogopayEndPoint}${Settings.ImagesPath}sips/logo/!
+             |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!
+             |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
+             |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
+             |${if (isJSP) "F_CTYPE!jsp!" else ""}"
+           """.stripMargin.trim
           )
           if (isJSP)
             certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
@@ -1030,6 +801,8 @@ class AccountHandler {
           kwixoParam = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
           cbParam = Some(write(cbParam)),
+          emailField = if (profile.emailField == "") "user_email" else profile.emailField,
+          passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
           pwdEmailContent = profile.passwordContent,
           pwdEmailSubject = profile.passwordSubject,
           callbackPrefix = profile.callbackPrefix,
@@ -1202,43 +975,3 @@ object Token {
     }
   }
 }
-
-case class PaymentConfigForProfile(cbParam: Option[String],
-                                   cbProvider: String,
-                                   paymentMethod: String,
-                                   emailField: String = "user_email",
-                                   passwordField: String = "user_password",
-                                   pwdEmailContent: Option[String],
-                                   pwdEmailSubject: Option[String],
-                                   callbackPrefix: Option[String],
-                                   passwordPattern: Option[String])
-
-case class PaymentProviderParam(paylineAccount: String,
-                                paylineKey: String,
-                                paylineContract: String,
-                                paylineCustomPaymentPageCode: String,
-                                paylineCustomPaymentTemplateURL: String,
-                                payboxContract: String,
-                                payboxSite: String,
-                                payboxKey: String,
-                                payboxRank: String,
-                                payboxMerchantId: String,
-                                sipsMerchantId: String,
-                                sipsMerchantCountry: String,
-                                sipsMerchantCertificateFile: String,
-                                sipsMerchantParcomFile: String,
-                                sipsMerchantLogoPath: String,
-                                systempayShopId: String,
-                                systempayContractNumber: String,
-                                systempayCertificate: String)
-
-case class PaymentProviderParamEx(sipsMerchantCertificateFile: String,
-                                  sipsMerchantCertificateData: String,
-                                  sipsMerchantParcomFile: String,
-                                  sipsMerchantParcomData: String)
-
-case class PaypalProviderParam(paypaluser: String,
-                               paypalPassword: String,
-                               paypalSignature: String)
-
-case class KwixoProviderParam(kwixoParam: String)
