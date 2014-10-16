@@ -1,10 +1,6 @@
 package mogopay.handlers
 
 import java.security.SecureRandom
-import org.json4s._
-import scala.slick.driver.PostgresDriver.simple._
-import scala.slick.jdbc.JdbcBackend
-import scala.util._
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 

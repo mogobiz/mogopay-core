@@ -42,8 +42,10 @@ val jacksonV = "2.4.0"
 
 val elastic4sV = "1.2.1.3"
 
+val elasticSearchV = "1.2.1"
+
 libraryDependencies ++= Seq(
-  "com.typesafe.slick" % "slick_2.11.0-RC4" % "2.1.0-M1",
+  //"com.typesafe.slick" %% "slick" % "2.1.0",
   "joda-time" % "joda-time" % "2.3",
   "org.joda" % "joda-convert" % "1.7",
   "com.github.fernandospr" % "javapns-jdk16" % "2.2.1",
@@ -53,10 +55,10 @@ libraryDependencies ++= Seq(
   "com.jolbox" % "bonecp" % "0.8.0.RELEASE",
   "io.spray" %% "spray-can" % sprayV,
   "io.spray" %% "spray-routing" % sprayV,
-  "io.spray" %% "spray-testkit" % sprayV,
+  "io.spray" %% "spray-testkit" % sprayV % "test",
   "io.spray" %% "spray-client" % sprayV,
   "com.typesafe.akka" %% "akka-actor" % akkaV,
-  "com.typesafe.akka" %% "akka-testkit" % akkaV,
+  "com.typesafe.akka" %% "akka-testkit" % akkaV % "test",
   "org.json4s" %% "json4s-native" % "3.2.9",
   "org.json4s" %% "json4s-jackson" % "3.2.9",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonV,
@@ -66,7 +68,8 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.3.12" % "test",
   "org.apache.commons" % "commons-email" % "1.3.2",
   "org.apache.shiro" % "shiro-all" % "1.2.0",
-  "com.sksamuel.elastic4s" %% "elastic4s" % elastic4sV,
+  "com.sksamuel.elastic4s"     %% "elastic4s"                  % elastic4sV      exclude("org.elasticsearch", "elasticsearch"),
+  "org.elasticsearch"           % "elasticsearch"              % elasticSearchV,
   "com.sun.xml.messaging.saaj" % "saaj-impl" % "1.3.18"
 )
 
