@@ -80,12 +80,12 @@ object EsClient {
   }
 
   def searchAll[T: Manifest](req: SearchDefinition): Seq[T] = {
-    val res = EsClient().execute(req.size(Integer.MAX_VALUE))
+    val res = EsClient().execute(req)
     res.getHits.getHits.map { hit => JacksonConverter.deserialize[T](hit.getSourceAsString)}
   }
 
   def search[T: Manifest](req: SearchDefinition): Option[T] = {
-    val res = EsClient().execute(req.size(Integer.MAX_VALUE))
+    val res = EsClient().execute(req)
     if (res.getHits.getTotalHits == 0)
       None
     else
@@ -93,12 +93,12 @@ object EsClient {
   }
 
   def searchAllRaw(req: SearchDefinition): Array[SearchHit] = {
-    val res = EsClient().execute(req.size(Integer.MAX_VALUE))
+    val res = EsClient().execute(req)
     res.getHits.getHits
   }
 
   def searchRaw(req: SearchDefinition): Option[SearchHit] = {
-    val res = EsClient().execute(req.size(Integer.MAX_VALUE))
+    val res = EsClient().execute(req)
     if (res.getHits.getTotalHits == 0)
       None
     else
