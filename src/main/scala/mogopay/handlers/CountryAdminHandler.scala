@@ -11,7 +11,7 @@ class CountryAdminHandler {
     val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(
       termFilter("level" -> 1),
       termFilter("country.code" -> countryCode)
-    )
+    ) size Integer.MAX_VALUE
     EsClient.searchAll[CountryAdmin](req) sortBy (_.name)
   }
 
@@ -19,7 +19,7 @@ class CountryAdminHandler {
     val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(
       termFilter("level" -> 2),
       termFilter("parentCountryAdmin1.code" -> admin1Code)
-    )
+    ) size Integer.MAX_VALUE
     EsClient.searchAll[CountryAdmin](req) sortBy (_.name)
   }
 
@@ -34,7 +34,7 @@ class CountryAdminHandler {
       admin1Code.map(code => termFilter("parentCountryAdmin1.code" -> code)),
       admin2Code.map(code => termFilter("parentCountryAdmin2.code" -> code))
     )
-    val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(filters.flatten: _*)
+    val req = search in Settings.ElasticSearch.Index -> "CountryAdmin" filter and(filters.flatten: _*) size Integer.MAX_VALUE
     EsClient.searchAll[CountryAdmin](req) sortBy (_.name)
   }
 }
