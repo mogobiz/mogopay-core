@@ -94,3 +94,5 @@ publishArtifact in(Compile, packageSrc) := false
 publishArtifact in(Test, packageSrc) := false
 
 parallelExecution in Test := false
+
+packAutoSettings
