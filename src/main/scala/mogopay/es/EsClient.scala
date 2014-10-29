@@ -3,11 +3,11 @@ package mogopay.es
 import java.util.{Calendar, Date}
 
 import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.DocumentSource
 import mogopay.config.Settings
 import mogopay.util.JacksonConverter
 import org.elasticsearch.common.settings.ImmutableSettings
-import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.search.SearchHit
 
 object EsClient {
@@ -103,5 +103,10 @@ object EsClient {
       None
     else
       Some(res.getHits.getHits()(0))
+  }
+
+  def esType[T: Manifest]: String = {
+    val rt = manifest[T].runtimeClass
+    rt.getSimpleName
   }
 }

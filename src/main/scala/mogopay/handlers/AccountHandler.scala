@@ -221,22 +221,16 @@ class AccountHandler {
     this.findByEmail(email).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
-  //    def generateLostPasswordToken(email: String, merchantId: Option[String]): String = {
-  //      import org.joda.time.DateTime
-  //      val req = merchantId.map { merchantId =>
-  //          val merchEsClient.load(merchantId)
-  //      } getOrElse
-  //      val futureResult = merchantId match {
-  //        case Some(id) => DAO.findBy[Account]("owner" -> id)
-  //        case None => DAO.findBy[Account]("email" -> "null")
-  //      }
-  //      futureResult map { r =>
-  //        r.filter(_.email == email).map { a =>
-  //          val date = new DateTime().plusSeconds(Settings.Emailing.MaxAge)
-  //          Success(RSA.encrypt(a.email + ";" + date.toString(), Settings.RSA.publicKey))
-  //        } getOrElse Failure(new AccountDoesNotExistException)
-  //      }
-  //    }
+
+  def generateLostPasswordToken(email: String, merchantId: Option[String]): String = {
+    val req = buildFindAccountRequest(email, merchantId)
+    val account = EsClient.search[Account](req)
+    account map { account =>
+      import org.joda.time.DateTime
+      val date = new DateTime().plusSeconds(Settings.Mail.MaxAge)
+      SymmetricCrypt.encrypt(s"$email;${date.toDate.getTime}", Settings.ApplicationSecret, "AES")
+    } getOrElse (throw new AccountDoesNotExistException(s"$email/$merchantId"))
+  }
 
   //
   //

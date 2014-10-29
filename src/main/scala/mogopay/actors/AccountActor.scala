@@ -155,10 +155,8 @@ class AccountActor extends Actor {
 
     case IsValidAccountId(id) => sender ! Try(accountHandler.load(id).nonEmpty)
 
-    /*
     case GenerateLostPasswordToken(email, merchantId) =>
-      sender ! accountHandler.generateLostPasswordToken(email, merchantId)
-    */
+      sender ! Try(accountHandler.generateLostPasswordToken(email, merchantId))
 
     case CheckTokenValidity(token) => sender ! Try(accountHandler.checkTokenValidity(token))
 

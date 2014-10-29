@@ -10,6 +10,7 @@ import spray.routing._
 import akka.actor.{ActorLogging, Actor, Props}
 import mogopay.actors.{MogopaySystem, MogopayActors}
 import spray.routing.directives.CachingDirectives._
+import spray.routing.directives.LogEntry
 import scala.concurrent.duration.Duration
 import scala.util.{Success, Failure, Try}
 import scala.util.control.NonFatal
@@ -19,41 +20,52 @@ import spray.util.LoggingContext
 import spray.routing.Directives
 import mogopay.session.SessionESDirectives._
 import spray.http._
+import akka.event.Logging._
 
 trait MogopayRoutes extends Directives {
   this: MogopayActors with MogopaySystem =>
 
   private implicit val _ = system.dispatcher
 
-  val routes = pathPrefix("static") {
-      compressResponse() {
-        getFromResourceDirectory("static")
-      }
-  } ~
-  pathPrefix("pay") {
-    new AccountService(accountActor).route ~
-      new AccountServiceJsonless(accountActor).route ~
-      new BackofficeService(backofficeActor).route ~
-      new CountryService(countryActor).route ~
-      new RateService(rateActor).route ~
-      new TransactionService(transactionActor).route ~
-      new SampleService().route ~
-      new TwitterService().route ~
-      new LinkedInService().route ~
-      new GoogleService().route ~
-      new FacebookService().route ~
-      new GithubService().route ~
-      new SystempayService(systempayActor).route ~
-      new PayPalService(payPalActor).route ~
-      new PayboxService(payboxActor).route ~
-      new PaylineService(paylineActor).route ~
-      new MogopayService(mogopayActor).route ~
-      new SipsService(sipsActor).route ~
-      new UserService(userActor).route
-  } ~
-  pathPrefix("client") {
-    getFromBrowseableDirectories("/Users/sdi/workspace/work/mogopay-client/src/main/resources/admin")
+  def showRequest(request: HttpRequest): HttpResponsePart ⇒ Option[LogEntry] = {
+    case HttpResponse(s, _, _, _) ⇒ Some(LogEntry(s"${s.intValue}: ${request.uri}", InfoLevel))
+    case ChunkedResponseStart(HttpResponse(OK, _, _, _)) ⇒ Some(LogEntry(" 200 (chunked): ${request.uri}", InfoLevel))
+    case _ ⇒ None
   }
+
+  val routes =
+    logRequestResponse(showRequest _) {
+      pathPrefix("static") {
+        compressResponse() {
+          getFromResourceDirectory("static")
+        }
+      } ~
+        pathPrefix("pay") {
+          new AccountService(accountActor).route ~
+            new AccountServiceJsonless(accountActor).route ~
+            new BackofficeService(backofficeActor).route ~
+            new CountryService(countryActor).route ~
+            new RateService(rateActor).route ~
+            new TransactionService(transactionActor).route ~
+            new SampleService().route ~
+            new TwitterService().route ~
+            new LinkedInService().route ~
+            new GoogleService().route ~
+            new FacebookService().route ~
+            new GithubService().route ~
+            new SystempayService(systempayActor).route ~
+            new PayPalService(payPalActor).route ~
+            new PayboxService(payboxActor).route ~
+            new PaylineService(paylineActor).route ~
+            new MogopayService(mogopayActor).route ~
+            new SipsService(sipsActor).route ~
+            new UserService(userActor).route
+        } ~
+        pathPrefix("client") {
+          getFromBrowseableDirectories("/Users/sdi/workspace/work/mogopay-client/src/main/resources/admin")
+        }
+    }
+
   val routesServices = system.actorOf(Props(new RoutedHttpService(routes)))
 }
 
@@ -88,17 +100,17 @@ class RoutedHttpService(route: Route) extends Actor with HttpService with ActorL
 }
 
 trait DefaultComplete {
-  this : Directives =>
+  this: Directives =>
   def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
     import mogopay.config.Implicits._
     call match {
-      case Failure(t) => t.printStackTrace();complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
+      case Failure(t) => t.printStackTrace(); complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
       case Success(res) =>
         res match {
           case Success(id) => handler(id)
-          case Failure(t:MogopayException) => t.printStackTrace();complete(t.code -> Map('error -> t.toString))
-          case  Failure(t:UnknownHostException) => t.printStackTrace();complete(StatusCodes.NotFound -> Map('error -> t.toString))
-          case  Failure(t) => t.printStackTrace();complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
+          case Failure(t: MogopayException) => t.printStackTrace(); complete(t.code -> Map('error -> t.toString))
+          case Failure(t: UnknownHostException) => t.printStackTrace(); complete(StatusCodes.NotFound -> Map('error -> t.toString))
+          case Failure(t) => t.printStackTrace(); complete(StatusCodes.InternalServerError -> Map('error -> t.toString))
         }
     }
   }

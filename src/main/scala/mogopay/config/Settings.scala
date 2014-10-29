@@ -117,7 +117,7 @@ object Settings {
       val IsStartTLSEnabled = config.getBoolean("mail.smtp.starttls")
     }
 
-    val MaxAge = config.getLong("mail.confirmation.maxAge")
+    val MaxAge = config.getInt("mail.confirmation.maxAge")
   }
 
   object RSA {
@@ -144,7 +144,7 @@ object Settings {
     val Port = config.getInt("elasticsearch.port")
     val Index = config.getString("elasticsearch.index")
     val Cluster = config.getString("elasticsearch.cluster")
-    val FullUrl = Host + ":" + HttpPort
+    val FullUrl = s"$Host:$HttpPort"
     println("ElascticSearch on " + Host+":"+Port+",index->"+Index+", cluster->"+Cluster)
   }
 

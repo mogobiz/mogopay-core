@@ -69,7 +69,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
       params { (secret, amount, code, rate, extra) =>
         onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { call =>
           handleComplete(call, (id: String) =>
-            complete(StatusCodes.OK -> Map('transaction_id -> id, 'url -> "/pay/transaction/submit"))
+            complete(StatusCodes.OK -> Map('transaction_id -> id))
           )
         }
       }

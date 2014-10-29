@@ -54,11 +54,11 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         getActiveCountryState ~
         selectShippingAddress ~
         deleteShippingAddress ~
-        deleteMerchantTestAccount
+        deleteMerchantTestAccount ~
+        generateLostPasswordToken
 
       // generateNewEmailCode ~
       // sendConfirmationEmail ~
-      // generateLostPasswordToken ~
     }
   }
 
@@ -171,23 +171,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       }
     }
   }
-
-
-  /*
-  lazy val generateLostPasswordToken = path("generateLostPasswordToken") {
-    get {
-      parameters('email, 'merchantId.as[Option[String]]) { (email, merchantId) =>
-        complete {
-          val message: GenerateLostPasswordToken = GenerateLostPasswordToken(email, merchantId)
-          (account ? message).mapTo[Try[String]].map { try_ => try_ match {
-            case Failure(t) => StatusCodes.NotFound -> Map('error -> t.toString)
-            case Success(t) => StatusCodes.OK       -> Map('token -> t)
-          }}
-        }
-      }
-    }
-  }
-  */
 
   lazy val isValidAccountId = path("is-valid-account-id") {
     get {
@@ -630,6 +613,18 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                 Map('error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
+      }
+    }
+  }
+
+  lazy val generateLostPasswordToken = path("request-password-token") {
+    get {
+      parameters('email, 'merchantId.as[Option[String]]) { (email, merchantId) =>
+        complete {
+          onComplete((actor ? GenerateLostPasswordToken(email, merchantId)).mapTo[Try[String]]) { call =>
+            handleComplete(call, (res: String) => Map('token -> res))
+          }
+        }
       }
     }
   }
