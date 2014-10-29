@@ -31,4 +31,5 @@ object HandlersConfig {
   val mogopayHandler = new MogopayHandler("mogopay")
   val userHandler = new UserHandler
   val payboxHandler = new PayboxHandler("paybox")
+  val pdfHandler = new PdfHandler
 }

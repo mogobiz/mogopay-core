@@ -44,8 +44,11 @@ val elastic4sV = "1.2.1.3"
 
 val elasticSearchV = "1.2.1"
 
+val itextV = "5.5.3"
+
 libraryDependencies ++= Seq(
-  //"com.typesafe.slick" %% "slick" % "2.1.0",
+  "com.itextpdf" % "itextpdf" % itextV,
+  "com.itextpdf.tool" % "xmlworker" % itextV,
   "joda-time" % "joda-time" % "2.3",
   "org.joda" % "joda-convert" % "1.7",
   "com.github.fernandospr" % "javapns-jdk16" % "2.2.1",

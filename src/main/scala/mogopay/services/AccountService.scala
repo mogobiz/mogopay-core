@@ -635,7 +635,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       parameters('email, 'merchantId.as[Option[String]]) { (email, merchantId) =>
         complete {
           onComplete((actor ? GenerateLostPasswordToken(email, merchantId)).mapTo[Try[String]]) { call =>
-            handleComplete(call, (res: String) => Map('token -> res))
+            handleComplete(call, (res: String) => complete(StatusCodes.OK, Map('token -> res)))
           }
         }
       }
