@@ -325,6 +325,20 @@ class AccountHandler {
     update(account.copy(password = new Sha256Hash(password).toHex))
   }
 
+  def updateLostPassword(password: String, token: String): Unit = {
+    val clearText = SymmetricCrypt.decrypt(token, Settings.ApplicationSecret, "AES").split(";")
+    val email = clearText(0)
+    val date = clearText(1).toLong
+    val now = new Date().getTime
+    if (now > date) {
+      throw TokenExpiredException(s"$now > $date")
+    }
+    else {
+      val account = this.findByEmail(email).getOrElse(throw InvalidEmailException(s"$email"))
+      update(account.copy(password = new Sha256Hash(password).toHex))
+    }
+  }
+
   /*
   def verify(userEmail: String, merchantSecret: String,
              mogopayToken: String): Try[Either[String, String]] = {

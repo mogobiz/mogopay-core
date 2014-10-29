@@ -38,6 +38,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         confirmSignup ~
         bypassLogin ~
         updatePassword ~
+        updateLostPassword ~
         generateNewPhoneCode ~
         enroll ~
         generateNewSecret ~
@@ -211,6 +212,18 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               complete(StatusCodes.Unauthorized -> Map('error -> "ID missing or incorrect. The user is probably not logged in."))
             }
           }
+        }
+      }
+    }
+  }
+
+  lazy val updateLostPassword = path("update-lost-password") {
+    get {
+      parameters('password, 'token) { (password, token) =>
+        onComplete((actor ? UpdateLostPassword(password, token)).mapTo[Try[Unit]]) { call =>
+          handleComplete(call,
+            (_: Unit) => complete(StatusCodes.OK)
+          )
         }
       }
     }
@@ -679,8 +692,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   val route = {
     pathPrefix("account") {
       login ~
-      updateProfile ~
-      signup
+        updateProfile ~
+        signup
     }
   }
 

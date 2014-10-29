@@ -98,6 +98,8 @@ object Exceptions {
 
   case class InvalidEmailException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class TokenExpiredException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class InvalidTokenException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   // Paybox

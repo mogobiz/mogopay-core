@@ -27,6 +27,8 @@ object AccountActor {
 
   case class UpdatePassword(password: String, vendorId: String, accountId: String)
 
+  case class UpdateLostPassword(password: String, token: String)
+
   case class Verify(email: String, merchantSecret: String, mogopayToken: String)
 
   case class Login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean)
@@ -162,6 +164,9 @@ class AccountActor extends Actor {
 
     case UpdatePassword(password, vendorId, accountId) =>
       sender ! Try(accountHandler.updatePassword(password, vendorId, accountId))
+
+    case UpdateLostPassword(password, token) =>
+      sender ! Try(accountHandler.updateLostPassword(password, token))
 
     /*
     case Verify(email, merchantSecret, mogopayToken) =>
