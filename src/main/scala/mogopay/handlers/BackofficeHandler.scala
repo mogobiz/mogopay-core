@@ -33,30 +33,43 @@ class BackofficeHandler {
   /**
    * @param term Either a Left(merchantId) if the user's a vendor or Right(email) if the user's a customer
    */
-  def listTransactions(sessionData: SessionData, startDate: Option[Long], endDate: Option[Long],
-                       amount: Option[Int], transactionUuid: Option[String]): Seq[BOTransaction] = {
-    def timestampToDate(timestamp: Long) = new SimpleDateFormat(Settings.ElasticSearch.DateFormat).format(new Date(timestamp))
+  def listTransactions(sessionData: SessionData, email: Option[String],
+                       startDate: Option[String], startTime: Option[String],
+                       endDate: Option[String], endTime: Option[String],
+                       amount: Option[Int], transactionUUID: Option[String]): Seq[BOTransaction] = {
+    def parseDateAndTime(date: Option[String], time: Option[String]) = date.map { d =>
+      val date = new SimpleDateFormat("yyyy-MM-dd").parse(d)
+      time match {
+        case None    => date
+        case Some(t) =>
+          date.setHours(t.split(':')(0).toInt)
+          date.setMinutes(t.split(':')(1).toInt)
+          date
+      }
+    }
+
+    val parsedStartDatetime = parseDateAndTime(startDate, startTime)
+    val parsedEndDatetime = parseDateAndTime(endDate, endTime)
 
     val accountFilter =
       if (sessionData.isMerchant) {
         val accountId = sessionData.accountId.getOrElse(throw InvalidContextException("No logged user found"))
-        termFilter("vendor.uuid", accountId)
-      }
-      else {
+        List(Some(termFilter("vendor.uuid", accountId)), email.map(termFilter("email", _))).flatten
+      } else {
         val accountEmail = sessionData.email.getOrElse(throw InvalidContextException("No logged user found"))
-        termFilter("email", accountEmail)
+        List(termFilter("email", accountEmail))
       }
 
-    val filters = List(accountFilter) ++
-      transactionUuid.map(uuid => termFilter("transactionUuid", uuid)) ++
+    val filters = accountFilter ++
+      transactionUUID.map(uuid => termFilter("transactionUUID", uuid)) ++
       amount.map(x => termFilter("amount", x))
 
     val req = search in Settings.ElasticSearch.Index -> "BOTransaction" filter {
       and(filters: _*)
     } query {
-      range("creationDate") from startDate.map(timestampToDate).orNull to endDate.map(timestampToDate).orNull
+      range("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime.map(_.getTime).orNull
     } sort {
-      by field "dateCreated" order DESC
+      by field "transactionDate" order DESC
     } start 0 limit Settings.MaxQueryResults
 
     EsClient.searchAll[BOTransaction](req)

@@ -725,16 +725,17 @@ class AccountHandler {
           }
       }
 
-      Map('account -> account.copy(password = ""),
-        'cards -> cards,
-        'countries -> countries,
-        'cbParam -> cbParam,
-        'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
-        'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
-        'emailField -> paymentConfig.map(_.emailField),
-        'passwordField -> paymentConfig.map(_.passwordField),
-        'callbackPrefix -> paymentConfig.map(_.callbackPrefix),
-        'passwordPattern -> paymentConfig.map(_.passwordPattern))
+      Map('account       -> account.copy(password = ""),
+        'cards           -> cards,
+        'countries       -> countries,
+        'cbParam         -> cbParam,
+        'paypalParam     -> paypalParam.map(JSON.parseFull).flatten,
+        'kwixoParam      -> kwixoParam.map(JSON.parseFull).flatten,
+        'emailField      -> paymentConfig.map(_.emailField),
+        'passwordField   -> paymentConfig.map(_.passwordField),
+        'callbackPrefix  -> paymentConfig.map(_.callbackPrefix),
+        'passwordPattern -> paymentConfig.map(_.passwordPattern),
+        'isMerchant      -> account.owner.isEmpty)
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def find(uuid: String) = EsClient.load[Account](uuid)

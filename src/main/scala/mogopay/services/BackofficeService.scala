@@ -19,9 +19,9 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
 
   val route = pathPrefix("backoffice") {
     listCustomers ~
-      listTransactionLogs ~
-      listTransactions ~
-      getTransaction
+    listTransactionLogs ~
+    listTransactions ~
+    getTransaction
   }
 
   lazy val listCustomers = path("customers") {
@@ -52,10 +52,18 @@ class BackofficeService(backofficeActor: ActorRef)(implicit executionContext: Ex
     get {
       session {
         session =>
-          val params = parameters('start_date.as[Long] ?, 'end_date.as[Long] ?, 'amount.as[Int] ?, 'transaction_uuid ?)
+          val params = parameters('email ?,
+            'start_date.as[String] ?, 'start_time.as[String] ?,
+            'end_date.as[String] ?, 'end_time.as[String] ?,
+            'amount.as[Int] ?, 'transaction_uuid ?)
           params {
-            (startDate, endDate, amount, transaction) =>
-              onComplete((backofficeActor ? ListTransactions(session.sessionData, startDate, endDate, amount, transaction)).mapTo[Try[Seq[BOTransactionLog]]]) { call =>
+            (email, startDate, startTime, endDate, endTime, amount, transaction) =>
+              onComplete((backofficeActor ? ListTransactions(session.sessionData,
+                email.filter(_.trim.nonEmpty),
+                startDate, startTime,
+                endDate, endTime,
+                amount,
+                transaction.filter(_.trim.nonEmpty))).mapTo[Try[Seq[BOTransactionLog]]]) { call =>
                 handleComplete(call, (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans))
               }
           }

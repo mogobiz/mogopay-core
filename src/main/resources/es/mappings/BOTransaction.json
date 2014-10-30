@@ -15,7 +15,8 @@
                         "index": "not_analyzed"
                     },
                     "expiryDate": {
-                        "type": "long"
+                        "type": "date",
+                        "index": "no"
                     },
                     "holder": {
                         "type": "string",
@@ -132,7 +133,8 @@
                 }
             },
             "dateCreated": {
-                "type": "long"
+                "type": "date",
+                "index": "no"
             },
             "email": {
                 "type": "string",
@@ -173,7 +175,8 @@
                         "index": "not_analyzed"
                     },
                     "dateCommandCB": {
-                        "type": "long"
+                        "type": "long",
+                        "index": "no"
                     },
                     "idCommandCB": {
                         "type": "long"
@@ -187,7 +190,8 @@
                         "index": "not_analyzed"
                     },
                     "transactionDate": {
-                        "type": "long"
+                        "type": "date",
+                        "index": "no"
                     },
                     "transactionId": {
                         "type": "string",

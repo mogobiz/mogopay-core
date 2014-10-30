@@ -12,7 +12,9 @@ object BackofficeActor {
 
   case class ListTransactionLogs(transactionId: String)
 
-  case class ListTransactions(sessionData : SessionData, startDate: Option[Long], endDate: Option[Long],
+  case class ListTransactions(sessionData : SessionData, email: Option[String],
+                              startDate: Option[String], startTime: Option[String],
+                              endDate: Option[String], endTime: Option[String],
                               amount: Option[Int], transactionUuid: Option[String])
 
   case class GetTransaction(uuid: String)
@@ -26,8 +28,16 @@ class BackofficeActor extends Actor {
   def receive: Receive = {
     case ListCustomers(merchantId, page, max) => sender ! Try(backofficeHandler.listCustomers(merchantId, page, max))
     case ListTransactionLogs(transactionId) => sender ! Try(backofficeHandler.listTransactionLogs(transactionId))
-    case ListTransactions(sessionData, startDate, endDate, amount, transactionUuid) =>
-      sender ! Try(backofficeHandler.listTransactions(sessionData, startDate, endDate, amount, transactionUuid))
+    case ListTransactions(sessionData, email, startDate, startTime, endDate, endTime, amount, transactionUuid) => {
+      sender ! Try(backofficeHandler.listTransactions(sessionData,
+        email,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        amount,
+        transactionUuid))
+    }
     case GetTransaction(uuid) => sender ! Try(backofficeHandler.getTransaction(uuid))
   }
 }

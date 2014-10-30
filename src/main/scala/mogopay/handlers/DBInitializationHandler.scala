@@ -182,7 +182,7 @@ object DBInitializationHandler {
       Some(Civility.MRS),
       Some(firstName),
       Some(lastName),
-      None,
+      Some(new Timestamp(0)),
       Some(accountAddress),
       status,
       0,
@@ -204,6 +204,7 @@ object DBInitializationHandler {
 
   private def now(): Timestamp = new Timestamp(new java.util.Date().getTime)
 
+  var i = 0
   private def createBOTransaction(vendor: Account,
                                   transactionUuid: Option[String] = None,
                                   customer: Option[Account] = None) = {
@@ -225,16 +226,16 @@ object DBInitializationHandler {
     val trans = BOTransaction(
       newUUID,
       transactionUUID = transactionUuid.getOrElse(newUUID),
-      authorizationId = "",
-      transactionDate = Option(new Date),
-      amount = 100,
+      authorizationId = Math.abs(rn.nextLong).toString,
+      transactionDate = Option(new Date((2014 - 1900) - i, 1, 1)),
+      amount = (i + 1) * 100,
       currency = currency,
       status = TransactionStatus.PAYMENT_CONFIRMED,
       creationDate = now(),
       endDate = Some(now()),
       paymentData = boPaymentData,
       merchantConfirmation = true,
-      email = Some("client1@merchant.com"),
+      email = Some(s"client${i += 1; i}@merchant.com"),
       errorCodeOrigin = Some("000"),
       errorMessageOrigin = Some("OK IMPEC"),
       extra = Some( """{"price": 100, "count": 1}"""),
