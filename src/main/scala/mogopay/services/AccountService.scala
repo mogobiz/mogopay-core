@@ -692,8 +692,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   val route = {
     pathPrefix("account") {
       login ~
-        updateProfile ~
-        signup
+      updateProfile ~
+      signup
     }
   }
 
@@ -727,11 +727,11 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       val fields = formFields('email, 'password, 'password2,
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
         'road, 'city, 'zip_code, 'admin1, 'admin2, 'country,
-        'is_merchant.as[Boolean], 'merchant_id ?)
+        'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?)
 
       fields { (email, password, password2, lphone, civility, firstname,
                 lastname, birthday, road, city, zipCode, admin1, admin2, country,
-                isMerchant, merchantId: Option[String]) =>
+                isMerchant, merchantId: Option[String], company, website) =>
         val address = AccountAddress(
           road = road,
           city = city,
@@ -752,7 +752,9 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
           birthDate = birthday,
           address = address,
           isMerchant = isMerchant,
-          vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault))
+          vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault)),
+          company = company,
+          website = website
         )
 
         import mogopay.config.Implicits._
@@ -773,7 +775,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
             case Some(accountId: String) =>
               val fields = formFields(('password ?) :: ('password2 ?) :: 'company ::
                 'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
-                'road :: ('road2 ?) :: ('city) :: 'zipCode :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
+                'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
                 'payment_method :: 'cb_provider ::
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
                 ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
