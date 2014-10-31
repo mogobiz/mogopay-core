@@ -19,7 +19,7 @@ object AccountActor {
   case class RequestPasswordChange(email: String, merchantId: String,
                                    passwordCB: String, isCustomer: Boolean)
 
-  case class GenerateLostPasswordToken(email: String, merchantId: Option[String])
+  case class GenerateLostPasswordToken(email: String, merchantSecret: String)
 
   case class CheckTokenValidity(token: String)
 
@@ -157,8 +157,8 @@ class AccountActor extends Actor {
 
     case IsValidAccountId(id) => sender ! Try(accountHandler.load(id).nonEmpty)
 
-    case GenerateLostPasswordToken(email, merchantId) =>
-      sender ! Try(accountHandler.generateLostPasswordToken(email, merchantId))
+    case GenerateLostPasswordToken(email, merchantSecret) =>
+      sender ! Try(accountHandler.generateLostPasswordToken(email, merchantSecret))
 
     case CheckTokenValidity(token) => sender ! Try(accountHandler.checkTokenValidity(token))
 

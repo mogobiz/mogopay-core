@@ -632,9 +632,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val generateLostPasswordToken = path("request-password-token") {
     get {
-      parameters('email, 'merchantId.as[Option[String]]) { (email, merchantId) =>
+      parameters('email, 'merchantSecret) { (email, merchantSecret) =>
         complete {
-          onComplete((actor ? GenerateLostPasswordToken(email, merchantId)).mapTo[Try[String]]) { call =>
+          onComplete((actor ? GenerateLostPasswordToken(email, merchantSecret)).mapTo[Try[String]]) { call =>
             handleComplete(call, (res: String) => complete(StatusCodes.OK, Map('token -> res)))
           }
         }

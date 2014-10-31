@@ -1,45 +1,30 @@
 package mogopay.handlers
 
+import java.io.File
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Calendar, Date, UUID}
 
+import com.atosorigin.services.cad.common.util.FileParamReader
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
-import java.io.File
-import java.util.{Calendar, UUID}
 import com.sksamuel.elastic4s.ElasticDsl._
 import mogopay.actors.AccountActor._
 import mogopay.codes.MogopayConstant
-import mogopay.config._
 import mogopay.config.HandlersConfig._
-import mogopay.config.Implicits._
+import mogopay.config._
 import mogopay.es.EsClient
 import mogopay.exceptions.Exceptions._
-import mogopay.handlers.UtilHandler._
-import mogopay.model.Mogopay._
-import mogopay.model.Mogopay.RoleName.RoleName
 import mogopay.model.Mogopay.TokenValidity.TokenValidity
+import mogopay.model.Mogopay._
 import mogopay.session.Session
-import mogopay.util.{SymmetricCrypt, RSA}
 import mogopay.util.GlobalUtil._
+import mogopay.util.SymmetricCrypt
 import org.apache.shiro.crypto.hash.Sha256Hash
-import org.elasticsearch.action.index.IndexRequest
-import org.elasticsearch.action.search.SearchResponse
-import org.elasticsearch.index.query.TermQueryBuilder
-import org.json4s._
-import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
-import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.util._
-import com.atosorigin.services.cad.common.util.FileParamReader
-import com.sksamuel.elastic4s.ElasticDsl._
-import mogopay.util.GlobalUtil._
 
+import scala.util._
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
 
@@ -47,7 +32,7 @@ class LoginException(msg: String) extends Exception(msg)
 
 class AccountHandler {
 
-  import Token._
+  import mogopay.handlers.Token._
 
   implicit val formats = new org.json4s.DefaultFormats {}
 
@@ -222,14 +207,22 @@ class AccountHandler {
   }
 
 
-  def generateLostPasswordToken(email: String, merchantId: Option[String]): String = {
-    val req = buildFindAccountRequest(email, merchantId)
-    val account = EsClient.search[Account](req)
-    account map { account =>
-      import org.joda.time.DateTime
-      val date = new DateTime().plusSeconds(Settings.Mail.MaxAge)
-      SymmetricCrypt.encrypt(s"$email;${date.toDate.getTime}", Settings.ApplicationSecret, "AES")
-    } getOrElse (throw new AccountDoesNotExistException(s"$email/$merchantId"))
+  def generateLostPasswordToken(email: String, merchantSecret: String): String = {
+    val findByMerchantSecretRequest = search in Settings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+      and(
+        termFilter("secret", merchantSecret)
+      )
+    }
+    val merchantAccount = EsClient.search[Account](findByMerchantSecretRequest)
+    merchantAccount.map { merchantAccount =>
+      val req = buildFindAccountRequest(email, Some(merchantAccount.uuid))
+      val account = EsClient.search[Account](req)
+      account map { account =>
+        import org.joda.time.DateTime
+        val date = new DateTime().plusSeconds(Settings.Mail.MaxAge)
+        SymmetricCrypt.encrypt(s"$email;${date.toDate.getTime}", Settings.ApplicationSecret, "AES")
+      } getOrElse (throw new AccountDoesNotExistException(s"$email/${merchantAccount.uuid}"))
+    } getOrElse (throw new AccountDoesNotExistException("Unknown merchant secret"))
   }
 
   //
@@ -437,15 +430,12 @@ class AccountHandler {
   object Emailing {
 
     import mogopay.util._
-    import mogopay.handlers.EmailHandler._
 
     object EmailType extends Enumeration {
       type EmailType = Value
       val Signup = Value(0)
       val BypassLogin = Value(1)
     }
-
-    import EmailType._
 
     /*
     private def generateAndSaveEmailingToken(accountId: String, tokenType: EmailType): String = {
@@ -725,17 +715,17 @@ class AccountHandler {
           }
       }
 
-      Map('account       -> account.copy(password = ""),
-        'cards           -> cards,
-        'countries       -> countries,
-        'cbParam         -> cbParam,
-        'paypalParam     -> paypalParam.map(JSON.parseFull).flatten,
-        'kwixoParam      -> kwixoParam.map(JSON.parseFull).flatten,
-        'emailField      -> paymentConfig.map(_.emailField),
-        'passwordField   -> paymentConfig.map(_.passwordField),
-        'callbackPrefix  -> paymentConfig.map(_.callbackPrefix),
+      Map('account -> account.copy(password = ""),
+        'cards -> cards,
+        'countries -> countries,
+        'cbParam -> cbParam,
+        'paypalParam -> paypalParam.map(JSON.parseFull).flatten,
+        'kwixoParam -> kwixoParam.map(JSON.parseFull).flatten,
+        'emailField -> paymentConfig.map(_.emailField),
+        'passwordField -> paymentConfig.map(_.passwordField),
+        'callbackPrefix -> paymentConfig.map(_.callbackPrefix),
         'passwordPattern -> paymentConfig.map(_.passwordPattern),
-        'isMerchant      -> account.owner.isEmpty)
+        'isMerchant -> account.owner.isEmpty)
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def find(uuid: String) = EsClient.load[Account](uuid)
@@ -972,7 +962,7 @@ object Token {
     val BypassLogin = Value(1)
   }
 
-  import TokenType._
+  import mogopay.handlers.Token.TokenType._
 
   def generateAndSaveToken(accountId: String, tokenType: TokenType): Option[String] = {
     val timestamp: Long = (new java.util.Date).getTime
