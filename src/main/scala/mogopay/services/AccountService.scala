@@ -630,13 +630,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
 
-  lazy val generateLostPasswordToken = path("request-password-token") {
-    get {
-      parameters('email, 'merchantSecret) { (email, merchantSecret) =>
-        complete {
-          onComplete((actor ? GenerateLostPasswordToken(email, merchantSecret)).mapTo[Try[String]]) { call =>
-            handleComplete(call, (res: String) => complete(StatusCodes.OK, Map('token -> res)))
-          }
   lazy val generateLostPasswordToken = get {
     path("request-password-token") {
       parameters('email, 'secret) { (email, secret) =>
