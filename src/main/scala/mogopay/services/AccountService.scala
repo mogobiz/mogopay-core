@@ -6,9 +6,9 @@ import akka.util.Timeout
 import mogopay.actors.AccountActor._
 import mogopay.config.Settings
 import mogopay.handlers.UtilHandler
+import mogopay.model.Mogopay._
 import mogopay.model.Mogopay.RoleName.RoleName
 import mogopay.model.Mogopay.TokenValidity._
-import mogopay.model.Mogopay._
 import mogopay.session.Session
 import mogopay.session.SessionESDirectives._
 import spray.http.MediaTypes._
@@ -630,10 +630,10 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
 
-  lazy val generateLostPasswordToken = path("request-password-token") {
-    get {
-      parameters('email, 'merchantSecret) { (email, merchantSecret) =>
-        onComplete((actor ? GenerateLostPasswordToken(email, merchantSecret)).mapTo[Try[String]]) { call =>
+  lazy val generateLostPasswordToken = get {
+    path("request-password-token") {
+      parameters('email, 'secret) { (email, secret) =>
+        onComplete((actor ? GenerateLostPasswordToken(email, secret)).mapTo[Try[String]]) { call =>
           handleComplete(call, (res: String) => complete(StatusCodes.OK, Map('token -> res)))
         }
       }
@@ -690,8 +690,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
   val route = {
     pathPrefix("account") {
       login ~
-        updateProfile ~
-        signup
+      updateProfile ~
+      signup
     }
   }
 
@@ -708,6 +708,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               session.sessionData.merchantId = account.owner
               session.sessionData.isMerchant = account.owner.isEmpty
               setSession(session) {
+                import mogopay.config.Implicits._
                 complete(StatusCodes.OK, account)
               }
             })

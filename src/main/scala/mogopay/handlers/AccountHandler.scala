@@ -1,9 +1,14 @@
 package mogopay.handlers
 
+import java.io.File
+import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, UUID}
 
+import com.atosorigin.services.cad.common.util.FileParamReader
+import com.google.i18n.phonenumbers.PhoneNumberUtil
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.sksamuel.elastic4s.ElasticDsl._
 import mogopay.actors.AccountActor._
 import mogopay.codes.MogopayConstant
@@ -11,14 +16,20 @@ import mogopay.config.HandlersConfig._
 import mogopay.config._
 import mogopay.es.EsClient
 import mogopay.exceptions.Exceptions._
+import mogopay.handlers.Token.{Token, TokenType}
+import mogopay.handlers.Token.TokenType.TokenType
+import mogopay.util.GlobalUtil._
 import mogopay.model.Mogopay.TokenValidity.TokenValidity
 import mogopay.model.Mogopay._
 import mogopay.session.Session
 import mogopay.util.SymmetricCrypt
 import org.apache.shiro.crypto.hash.Sha256Hash
+import org.json4s.jackson.Serialization.write
+import org.json4s.jackson.Serialization.read
 
 import scala.util._
 import scala.util.control.NonFatal
+import scala.util.parsing.json.JSON
 
 class LoginException(msg: String) extends Exception(msg)
 
