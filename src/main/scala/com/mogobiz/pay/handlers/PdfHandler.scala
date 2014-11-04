@@ -1,8 +1,6 @@
 package com.mogobiz.pay.handlers
 
-import java.io.{File, InputStream}
-
-import com.mogobiz.pay.html2pdf.Html2Pdf
+import com.mogobiz.html2pdf.Html2Pdf
 
 
 /**
