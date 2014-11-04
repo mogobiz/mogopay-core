@@ -1,0 +1,169 @@
+<header ng-include src="'partials/header.html'"></header>
+
+<div class="tab-content container-fluid editProfile">
+<div class="tab-pane active" id="profileInfo">
+    <fieldset>
+        <legend>Sign up</legend>
+        <form role="form" class="form-horizontal">
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileEmail">Email</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="email" class="form-control" id="profileEmail" placeholder="Enter email" required autofocus value="{{userProfile.account.email}}" ng-disabled="createPage==false" pattern="[a-zA-Z0-9._-]+\@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}" />
+                </div>
+            </div>
+            <div class="form-group" ng-if="createPage==true">
+                <div style="padding:0px 3px;">
+                    <label for="profilePassword">Password</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="password" class="form-control" id="profilePassword" placeholder="Password" required/>
+                </div>
+            </div>
+            <div class="form-group" ng-if="createPage==true">
+                <div style="padding:0px 3px;">
+                    <label for="profileConfirmPassword">Confirm Password</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="password" class="form-control" id="profileConfirmPassword" placeholder="Confirm Password" required ng-blur="profileCheckPasswordConfrimation()"/>
+                </div>
+            </div>
+            <div class="form-group" ng-if="isMerchant==true">
+                <div style="padding:0px 3px;">
+                    <label for="profileCompanyName">Company Name</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profileCompanyName" placeholder="Company Name" pattern="[^<]+" required value="{{userProfile.account.company}}"/>
+                </div>
+            </div>
+            <div class="form-group" ng-if="isMerchant==true">
+                <div style="padding:0px 3px;">
+                    <label for="profileWebsite">Website</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profileWebsite" placeholder="Website" pattern="https?://.+" required value="http://"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileCivility">Civility</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <select id="profileCivility" class="form-control" ng-model="profileCivilityModel" ng-options="obj.name for obj in profileCivilityOptions"></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileFirstName">First name</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profileFirstName" placeholder="First name" required value="{{userProfile.account.firstName}}"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileLastName">Last name</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profileLastName" placeholder="Last name" required value="{{userProfile.account.lastName}}"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileBirthDate">Birthdate</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="date" class="form-control" max="{{maxBirthDate | date:'yyyy-MM-dd'}}" min="{{minBirthDate | date:'yyyy-MM-dd'}}" id="profileBirthDate" placeholder="Birthdate" required value="{{bithDateValue | date:'yyyy-MM-dd'}}"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileCountry">Country</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <select id="profileCountry" class="form-control" required ng-model="profileCountriesModel" ng-options="obj.name for obj in profileCountriesOptions" ng-change="profileLoadStatesForCountry()">
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileState">State</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <select id="profileState" class="form-control" ng-model="profileStateModel" ng-options="obj.name for obj in profileStateOptions" ng-change="profileLoadRegionsForState()">
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileRegion">Region</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <select id="profileRegion" class="form-control" ng-model="profileRegionModel" ng-options="obj.name for obj in profileRegionOptions" >
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileCity">City</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profileCity" placeholder="City" required/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profileRoad">Road</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profileRoad" placeholder="Road" required value="{{userProfile.account.address.road}}"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profilePostalCode">Postal Code</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profilePostalCode" placeholder="Postal Code" required value="{{userProfile.account.address.zipCode}}"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="padding:0px 3px;">
+                    <label for="profilePhoneNumber">Phone number</label>
+                </div>
+                <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+                    <input type="text" class="form-control" id="profilePhoneNumber" placeholder="Phone number" required value="{{userProfile.account.address.telephone.lphone}}" ng-blur="profileCheckPhoneNumberForCountry()"/>
+                </div>
+                <div class="col-xs-4 col-sm-6 col-md-6 col-lg-6" style="padding:7px 3px 0px 0px;">
+                </div>
+            </div>
+        </form>
+    </fieldset>
+</div>
+</div>
+
+<!--
+<div ng-if="createPage==true">
+    <form role="form" class="form-horizontal">
+        <img src="{{serverUrl}}simpleCaptcha/captcha" style="margin-left: 3px;"/><br/>
+        <div class="form-group">
+            <div style="padding:0px 18px;">
+                <label for="captchaText">Type the letters above in the box below:</label>
+            </div>
+            <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 18px;">
+                <input type="text" class="form-control" id="captchaText" required />
+            </div>
+        </div>
+    </form>
+</div>
+-->
+
+<div class="row row-fluid" style="margin: 0px 0px 20px 0px;">
+    <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6">
+        <input type="button" class="btn btn-default pull-right" value="Sign up" ng-click="createProfile()"/>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+<header ng-include src="'partials/header.html'"></header>
+<div class="table-responsive" ng-show="transactionLogs.length > 0">
+    <table class="table table-bordered table-striped">
+        <thead>
+        <tr>
+            <th>Direction</th>
+            <th>Log</th>
+        </tr>
+        </thead>
+        <tr ng-repeat="log in transactionLogs">
+            <td>{{log.direction}}</td>
+            <td>
+                <div ng-repeat="detail in log.logTable track by $index">{{detail}}</div>
+            </td>
+        </tr>
+    </table>
+</div>
