@@ -2,6 +2,7 @@ package com.mogobiz.pay.config
 
 import akka.actor.Props
 import com.mogobiz.pay.actors._
+import com.mogobiz.system.MogobizSystem
 
 
 /**
@@ -9,7 +10,7 @@ import com.mogobiz.pay.actors._
  * ``BootedCore`` for running code or ``TestKit`` for unit and integration tests.
  */
 trait MogopayActors {
-  this: MogopaySystem =>
+  this: MogobizSystem =>
 
   val accountActor = system.actorOf(Props[AccountActor])
   val backofficeActor = system.actorOf(Props[BackofficeActor])

@@ -111,7 +111,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
           val isCustomer = accountType == RoleName.CUSTOMER && !session.sessionData.merchantSession
 
           if (isCustomer && merchantId.isEmpty) {
-            complete(StatusCodes.BadRequest -> Map('error -> "Merchant ID not specified."))
+            complete(StatusCodes.BadRequest -> Map('type -> "BadRequest", 'error -> "Merchant ID not specified."))
           } else {
             val message = DoesAccountExistByEmail(email, merchantId)
             onComplete((actor ? DoesAccountExistByEmail(email, merchantId)).mapTo[Try[Boolean]]) { call =>
@@ -167,8 +167,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             (res: (TokenValidity, UserInfo)) =>
               complete(res._1 match {
                 case TokenValidity.VALID => StatusCodes.OK -> res._2
-                case TokenValidity.INVALID => StatusCodes.NotFound -> Map('error -> "Invalid token.")
-                case TokenValidity.EXPIRED => StatusCodes.Unauthorized -> Map('error -> "Expired token.")
+                case TokenValidity.INVALID => StatusCodes.NotFound -> Map('type -> "NotFound", 'error -> "Invalid token.")
+                case TokenValidity.EXPIRED => StatusCodes.Unauthorized -> Map('type -> "Unauthorized", 'error -> "Expired token.")
               })
           )
         }
@@ -212,7 +212,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                 }
               }
             case _ => complete {
-              complete(StatusCodes.Unauthorized -> Map('error -> "ID missing or incorrect. The user is probably not logged in."))
+              complete(StatusCodes.Unauthorized -> Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in."))
             }
           }
         }
@@ -258,7 +258,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -279,7 +279,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                 }
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -317,8 +317,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               if (ok)
                 complete(StatusCodes.OK -> Map())
               else
-                complete(StatusCodes.Unauthorized -> """{"error": "The token is either not for signup, or expired."}""")
-            )
+                complete(StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "The token is either not for signup, or expired")))
           }
       }
     }
@@ -333,7 +333,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               onComplete((actor ? BypassLogin(token, session)).mapTo[Try[Option[Session]]]) { call =>
                 handleComplete(call, (s: Option[Session]) =>
                   if (s.isEmpty)
-                    complete(StatusCodes.Unauthorized -> """{"error": "The token is either not for login bypass, or expired."}""")
+                    complete(StatusCodes.Unauthorized ->
+                      Map('type -> "Unauthorized", 'error -> "The token is either not for signup, or expired"))
                   else
                     setSession(s.get) {
                       complete {
@@ -364,7 +365,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               }
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -384,7 +385,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                   }
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -406,7 +407,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                   }
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -442,7 +443,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               }
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -461,7 +462,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               }
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -484,7 +485,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               }
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -503,7 +504,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               }
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -528,7 +529,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                   }
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -550,7 +551,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                   }
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -576,7 +577,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -602,7 +603,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                   }
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -626,7 +627,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
               }
             case _ => complete {
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }
@@ -658,7 +659,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
                 case _ => complete {
                   StatusCodes.Unauthorized ->
-                    Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
               }
           }
@@ -669,15 +670,13 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val deleteMerchantTestAccount = path("delete-test-account") {
     get {
       complete {
-
         import com.sksamuel.elastic4s.ElasticDsl._
-
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
           .from(esSettings.ElasticSearch.Index -> "Account")
           .where(regexQuery("email", "newuser"))
         com.mogobiz.es.EsClient().execute(req)
 
-        "{}"
+        StatusCodes.OK -> Map()
       }
     }
   }
@@ -873,7 +872,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               import Implicits._
 
               StatusCodes.Unauthorized ->
-                Map('error -> "ID missing or incorrect. The user is probably not logged in.")
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
       }

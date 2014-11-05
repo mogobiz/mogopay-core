@@ -1,9 +1,6 @@
 package com.mogobiz.pay
 
-import com.mogobiz.pay.actors.BootedMogopaySystem
 import com.mogobiz.pay.config.MogopayActors
+import com.mogobiz.system.BootedMogobizSystem
 
-/**
- * Created by hayssams on 04/11/14.
- */
-object Cli extends App with MogopayActors with BootedMogopaySystem
+object Cli extends App with BootedMogobizSystem with MogopayActors
