@@ -727,14 +727,15 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
 
       val fields = formFields('email, 'password, 'password2,
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-        'road, 'city, 'zip_code, 'admin1, 'admin2, 'country,
+        'road, 'road2.?, 'city, 'zip_code, 'admin1, 'admin2, 'country,
         'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?)
 
       fields { (email, password, password2, lphone, civility, firstname,
-                lastname, birthday, road, city, zipCode, admin1, admin2, country,
+                lastname, birthday, road, road2, city, zipCode, admin1, admin2, country,
                 isMerchant, merchantId: Option[String], company, website) =>
         val address = AccountAddress(
           road = road,
+          road2 = road2,
           city = city,
           zipCode = Some(zipCode),
           country = Some(country),
