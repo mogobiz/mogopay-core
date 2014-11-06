@@ -1,0 +1,263 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSCheckoutResponseParm.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.SIPSException;
+import java.lang.reflect.Field;
+import java.util.Hashtable;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            SIPSParm, Nls
+
+public final class SIPSCheckoutResponseParm extends SIPSParm
+{
+
+    public SIPSCheckoutResponseParm(int idx_fonction)
+    {
+        super(mandatoryKeys[idx_fonction], keys);
+        valHash = super.valHash;
+    }
+
+    public void check()
+        throws SIPSException
+    {
+        super.check();
+        checkSpecific();
+    }
+
+    public void check(String key, String val)
+        throws SIPSException
+    {
+        try
+        {
+            Class sipsOffice3DRequestParm = getClass();
+            if(val.length() > sipsOffice3DRequestParm.getDeclaredField((new StringBuilder("LG_")).append(key.toUpperCase()).toString()).getInt(null))
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("length_too_long")).append(" ) ").toString());
+            if(val.length() > 0 && sipsOffice3DRequestParm.getDeclaredField((new StringBuilder("F_")).append(key.toUpperCase()).toString()).getInt(null) == 0)
+                try
+                {
+                    Long.valueOf(val).longValue();
+                }
+                catch(Exception e)
+                {
+                    throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("not_numeric")).append(" ) ").toString());
+                }
+        }
+        catch(NoSuchFieldException e)
+        {
+            throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("unknown_field")).append(" ) ").toString());
+        }
+        catch(Exception e)
+        {
+            throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").toString());
+        }
+    }
+
+    public void checkSpecific()
+        throws SIPSException
+    {
+        if(idx_fonction == 0 && ((String)valHash.get(O3D_RESPONSE_CODE)).equals("00"))
+        {
+            if(((String)valHash.get(CARD_NUMBER)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( card_number ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(CARD_TYPE)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( card_type ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(CARD_VALIDITY)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( card_validity ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+        }
+        if(idx_fonction == 1 && ((String)valHash.get(TRANSACTION_RESPCODE)).equals("00"))
+        {
+            if(((String)valHash.get(AUTHORISATION_ID)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( authorisation_id ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(COMPLEMENTARY_CODE)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( complementary_code ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(CURRENCY_CODE)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( currency_code ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(STATUS)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( status ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+            if(((String)valHash.get(TRANSACTION_CERTIFICATE)).length() < 1)
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( transaction_certificate ").append(Nls.getErrorMessage("not_filled")).append(" ) ").toString());
+        }
+    }
+
+    public static String TRANSACTION_CERTIFICATE;
+    public static String TRANSACTION_TIME;
+    public static String TRANSACTION_DATE;
+    public static String TRANSACTION_RESPCODE;
+    public static String CURRENCY_CODE;
+    public static String COMPLEMENTARY_CODE;
+    public static String COMPLEMENTARY_INFO;
+    public static String AUTHORISATION_ID;
+    public static String DATA;
+    public static String CVV_RESPONSE_CODE;
+    public static String BANK_RESPONSE_CODE;
+    public static String CARD_NUMBER;
+    public static String CARD_TYPE;
+    public static String CARD_VALIDITY;
+    public static String STATUS;
+    public static String RETURN_CONTEXT;
+    public static String AVS_RESPONSE_CODE;
+    public static String RESPONSE_CODE;
+    public static String O3D_RESPONSE_CODE;
+    public static String MERCHANT_COUNTRY;
+    public static String MERCHANT_ID;
+    public static String TRANSMISSION_DATE;
+    public static String CORRECT_CARD_TYPE;
+    public static String MERCHANT_URL_RETURN;
+    public static String O3D_SESSION_ID;
+    public static String O3D_OFFICE_URL_ACS;
+    public static String PAYMENT_MEAN_ID;
+    public static String PAYMENT_MEAN_ALIAS;
+    public static String MASKED_PAN;
+    public static String AMOUNT;
+    public static String TRANSACTION_ID;
+    public static String REDIRECTION_URL;
+    public static String MERCHANT_SESSION_ID;
+    public static String RESPONSE_DESCRIPTION;
+    public static String GUARANTEE_INDICATOR;
+    public static String ENROLLMENT_INDICATOR;
+    public static String THREED_LS_CODE;
+    public static String THREED_STATUS;
+    private static String mandatoryKeys[][];
+    private static String keys[];
+    public static int F_TRANSACTION_CERTIFICATE = 1;
+    public static int F_TRANSACTION_TIME = 0;
+    public static int F_TRANSACTION_DATE = 0;
+    public static int F_TRANSACTION_RESPCODE = 0;
+    public static int F_O3D_RESPONSE_CODE = 0;
+    public static int F_RESPONSE_CODE = 0;
+    public static int F_CURRENCY_CODE = 0;
+    public static int F_COMPLEMENTARY_CODE = 0;
+    public static int F_COMPLEMENTARY_INFO = 1;
+    public static int F_TRANSMISSION_DATE = 0;
+    public static int F_AUTHORISATION_ID = 1;
+    public static int F_DATA = 2;
+    public static int F_CVV_RESPONSE_CODE = 1;
+    public static int F_BANK_RESPONSE_CODE = 0;
+    public static int F_CARD_NUMBER = 0;
+    public static int F_CARD_TYPE = 1;
+    public static int F_CARD_VALIDITY = 0;
+    public static int F_STATUS = 2;
+    public static int F_RETURN_CONTEXT = 2;
+    public static int F_MERCHANT_COUNTRY = 1;
+    public static int F_MERCHANT_ID = 0;
+    public static int F_CORRECT_CARD_TYPE = 1;
+    public static int F_MERCHANT_URL_RETURN = 1;
+    public static int F_O3D_SESSION_ID = 1;
+    public static int F_O3D_OFFICE_URL_ACS = 1;
+    public static int F_PAYMENT_MEAN_ID = 0;
+    public static int F_PAYMENT_MEAN_ALIAS = 1;
+    public static int F_MASKED_PAN = 1;
+    public static int F_AMOUNT = 0;
+    public static int F_TRANSACTION_ID = 0;
+    public static int F_RESPONSE_DESCRIPTION = 2;
+    public static int F_MERCHANT_SESSION_ID = 1;
+    public static int F_THREED_LS_CODE = 1;
+    public static int F_THREED_STATUS = 1;
+    public static int LG_TRANSACTION_CERTIFICATE = 12;
+    public static int LG_TRANSACTION_TIME = 6;
+    public static int LG_TRANSACTION_DATE = 8;
+    public static int LG_TRANSACTION_RESPCODE = 2;
+    public static int LG_O3D_RESPONSE_CODE = 2;
+    public static int LG_RESPONSE_CODE = 2;
+    public static int LG_CURRENCY_CODE = 3;
+    public static int LG_COMPLEMENTARY_CODE = 2;
+    public static int LG_COMPLEMENTARY_INFO = 255;
+    public static int LG_TRANSMISSION_DATE = 14;
+    public static int LG_AUTHORISATION_ID = 32;
+    public static int LG_DATA = 1024;
+    public static int LG_CVV_RESPONSE_CODE = 2;
+    public static int LG_BANK_RESPONSE_CODE = 2;
+    public static int LG_CARD_NUMBER = 21;
+    public static int LG_CARD_TYPE = 20;
+    public static int LG_CARD_VALIDITY = 6;
+    public static int LG_STATUS = 20;
+    public static int LG_RETURN_CONTEXT = 256;
+    public static int LG_MERCHANT_COUNTRY = 2;
+    public static int LG_MERCHANT_ID = 15;
+    public static int LG_CORRECT_CARD_TYPE = 20;
+    public static int LG_MERCHANT_URL_RETURN = 256;
+    public static int LG_O3D_SESSION_ID = 256;
+    public static int LG_O3D_OFFICE_URL_ACS = 256;
+    public static int LG_PAYMENT_MEAN_ID = 6;
+    public static int LG_PAYMENT_MEAN_ALIAS = 20;
+    public static int LG_MASKED_PAN = 21;
+    public static int LG_AMOUNT = 12;
+    public static int LG_TRANSACTION_ID = 6;
+    public static int LG_RESPONSE_DESCRIPTION = 512;
+    public static int LG_MERCHANT_SESSION_ID = 256;
+    public static int LG_THREED_LS_CODE = 1;
+    public static int LG_THREED_STATUS = 2;
+
+    static 
+    {
+        TRANSACTION_CERTIFICATE = "transaction_certificate";
+        TRANSACTION_TIME = "transaction_time";
+        TRANSACTION_DATE = "transaction_date";
+        TRANSACTION_RESPCODE = "transaction_respcode";
+        CURRENCY_CODE = "currency_code";
+        COMPLEMENTARY_CODE = "complementary_code";
+        COMPLEMENTARY_INFO = "complementary_info";
+        AUTHORISATION_ID = "authorisation_id";
+        DATA = "data";
+        CVV_RESPONSE_CODE = "cvv_response_code";
+        BANK_RESPONSE_CODE = "bank_response_code";
+        CARD_NUMBER = "card_number";
+        CARD_TYPE = "card_type";
+        CARD_VALIDITY = "card_validity";
+        STATUS = "transaction_status";
+        RETURN_CONTEXT = "return_context";
+        AVS_RESPONSE_CODE = "avs_response_code";
+        RESPONSE_CODE = "response_code";
+        O3D_RESPONSE_CODE = "o3d_response_code";
+        MERCHANT_COUNTRY = "merchant_country";
+        MERCHANT_ID = "merchant_id";
+        TRANSMISSION_DATE = "transmission_date";
+        CORRECT_CARD_TYPE = "correct_card_type";
+        MERCHANT_URL_RETURN = "merchant_url_return";
+        O3D_SESSION_ID = "o3d_session_id";
+        O3D_OFFICE_URL_ACS = "o3d_office_url_acs";
+        PAYMENT_MEAN_ID = "payment_mean_id";
+        PAYMENT_MEAN_ALIAS = "payment_mean_alias";
+        MASKED_PAN = "masked_pan";
+        AMOUNT = "amount";
+        TRANSACTION_ID = "transaction_id";
+        REDIRECTION_URL = "redirection_url";
+        MERCHANT_SESSION_ID = "merchant_session_id";
+        RESPONSE_DESCRIPTION = "response_description";
+        GUARANTEE_INDICATOR = "guarantee_indicator";
+        ENROLLMENT_INDICATOR = "enrollment_indicator";
+        THREED_LS_CODE = "threed_ls_code";
+        THREED_STATUS = "threed_status";
+        mandatoryKeys = (new String[][] {
+            new String[] {
+                O3D_RESPONSE_CODE, O3D_SESSION_ID
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_RESPCODE, BANK_RESPONSE_CODE, TRANSACTION_DATE, TRANSACTION_TIME
+            }, new String[] {
+                O3D_RESPONSE_CODE
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, O3D_RESPONSE_CODE
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_CERTIFICATE, TRANSACTION_TIME, TRANSACTION_DATE, TRANSACTION_RESPCODE, CURRENCY_CODE, COMPLEMENTARY_CODE, COMPLEMENTARY_INFO, DATA, 
+                CARD_TYPE, STATUS, PAYMENT_MEAN_ID, AMOUNT
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_RESPCODE, RESPONSE_DESCRIPTION, TRANSACTION_ID, TRANSACTION_DATE, REDIRECTION_URL, MERCHANT_SESSION_ID
+            }, new String[] {
+                MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_RESPCODE, RESPONSE_DESCRIPTION, TRANSACTION_ID, TRANSACTION_DATE, TRANSACTION_TIME, TRANSACTION_CERTIFICATE, AUTHORISATION_ID, DATA, 
+                STATUS, AMOUNT, MERCHANT_SESSION_ID
+            }, new String[] {
+                O3D_RESPONSE_CODE, O3D_SESSION_ID
+            }
+        });
+        keys = (new String[] {
+            TRANSACTION_CERTIFICATE, TRANSACTION_TIME, TRANSACTION_DATE, TRANSACTION_RESPCODE, CURRENCY_CODE, COMPLEMENTARY_CODE, AUTHORISATION_ID, DATA, CVV_RESPONSE_CODE, BANK_RESPONSE_CODE, 
+            MERCHANT_COUNTRY, MERCHANT_ID, O3D_RESPONSE_CODE, CARD_NUMBER, STATUS, RETURN_CONTEXT, CARD_TYPE, CARD_VALIDITY, COMPLEMENTARY_INFO, TRANSMISSION_DATE, 
+            CORRECT_CARD_TYPE, MERCHANT_URL_RETURN, AVS_RESPONSE_CODE, O3D_SESSION_ID, O3D_OFFICE_URL_ACS, PAYMENT_MEAN_ID, PAYMENT_MEAN_ALIAS, MASKED_PAN, AMOUNT, TRANSACTION_ID, 
+            GUARANTEE_INDICATOR, ENROLLMENT_INDICATOR, RESPONSE_CODE, THREED_LS_CODE, THREED_STATUS
+        });
+    }
+}

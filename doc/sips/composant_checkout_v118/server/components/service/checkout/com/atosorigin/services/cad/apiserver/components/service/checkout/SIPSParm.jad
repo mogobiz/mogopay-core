@@ -1,0 +1,298 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSParm.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import com.atosorigin.services.cad.common.*;
+import com.atosorigin.services.cad.common.util.StringUtil;
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.*;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.checkout:
+//            Nls
+
+public abstract class SIPSParm
+    implements SIPSDataObject
+{
+
+    public SIPSParm(String mandatoryKeys[], String optionalKeys[])
+    {
+        valHash = new Hashtable();
+        keyV = new Vector();
+        for(int i = 0; i < mandatoryKeys.length; i++)
+        {
+            valHash.put(mandatoryKeys[i], "");
+            keyV.addElement(mandatoryKeys[i]);
+        }
+
+        for(int i = 0; i < optionalKeys.length; i++)
+        {
+            valHash.put(optionalKeys[i], "");
+            keyV.addElement(optionalKeys[i]);
+        }
+
+        mandatory = new Vector();
+        for(int i = 0; i < mandatoryKeys.length; i++)
+            mandatory.addElement(mandatoryKeys[i]);
+
+    }
+
+    public void serialize(String userFile, String sep)
+        throws IOException, SIPSException
+    {
+        char cr;
+        FileWriter fw;
+        cr = '\273';
+        fw = new FileWriter(userFile, false);
+        try
+        {
+            for(Enumeration e = getKeyEnum(); e.hasMoreElements(); fw.flush())
+            {
+                String key = (String)e.nextElement();
+                StringBuffer sb = new StringBuffer(getValue(key));
+                for(int i = 0; i < sb.length(); i++)
+                    if(sb.charAt(i) == '\n')
+                        sb.setCharAt(i, cr);
+
+                fw.write((new StringBuilder(String.valueOf(key.toUpperCase()))).append(sep).append(sb.toString()).append("\n").toString());
+            }
+
+        }
+        catch(IOException ioe)
+        {
+            NlsV2.setPackage(NlsV2.PACKAGE);
+            String msg = "114";
+            try
+            {
+                msg = NlsV2.getErrorMessage(msg);
+            }
+            catch(Exception exception) { }
+            throw new SIPSException((new StringBuilder(String.valueOf(msg))).append(" : ").append(userFile).toString());
+        }
+        break MISSING_BLOCK_LABEL_214;
+        Exception exception1;
+        exception1;
+        fw.close();
+        throw exception1;
+        fw.close();
+        return;
+    }
+
+    public void deserialize(String userFile, String sep)
+        throws IOException, SIPSException
+    {
+        char cr;
+        FileReader fr;
+        LineNumberReader lr;
+        cr = '\n';
+        fr = new FileReader(userFile);
+        lr = new LineNumberReader(fr);
+        String line = new String();
+        try
+        {
+            do
+            {
+                String line = lr.readLine();
+                if(line == null)
+                    break;
+                String values[] = StringUtil.split(sep, line);
+                StringBuffer sb = new StringBuffer(values[1]);
+                for(int i = 0; i < sb.length(); i++)
+                    if(sb.charAt(i) == '\273')
+                        sb.setCharAt(i, cr);
+
+                valHash.put(values[0].toLowerCase(), sb.toString());
+            } while(true);
+        }
+        catch(IOException ioe)
+        {
+            NlsV2.setPackage(NlsV2.PACKAGE);
+            String msg = "114";
+            try
+            {
+                msg = NlsV2.getErrorMessage(msg);
+            }
+            catch(Exception exception) { }
+            throw new SIPSException((new StringBuilder(String.valueOf(msg))).append(" : ").append(userFile).toString());
+        }
+          goto _L1
+        Exception exception1;
+        exception1;
+        fr.close();
+        throw exception1;
+_L1:
+        fr.close();
+        return;
+    }
+
+    public String getValue(String key)
+        throws SIPSException
+    {
+        if(!keyV.contains(key))
+        {
+            NlsV2.setPackage(NlsV2.PACKAGE);
+            String msg = "invalid_key";
+            try
+            {
+                msg = NlsV2.getErrorMessage(msg);
+            }
+            catch(Exception exception) { }
+            throw new SIPSException((new StringBuilder(String.valueOf(msg))).append(" : ").append(key).toString());
+        } else
+        {
+            return (String)valHash.get(key);
+        }
+    }
+
+    public void setValue(String key, String val)
+        throws SIPSException
+    {
+        if(!keyV.contains(key))
+        {
+            NlsV2.setPackage(NlsV2.PACKAGE);
+            String msg = "invalid_key";
+            try
+            {
+                msg = NlsV2.getErrorMessage(msg);
+            }
+            catch(Exception exception) { }
+            throw new SIPSException((new StringBuilder(String.valueOf(msg))).append(" : ").append(key).toString());
+        } else
+        {
+            valHash.put(key, val);
+            return;
+        }
+    }
+
+    public Enumeration getKeyEnum()
+    {
+        return keyV.elements();
+    }
+
+    public String getDate()
+    {
+        GregorianCalendar current = (GregorianCalendar)GregorianCalendar.getInstance();
+        String year = String.valueOf(current.get(1));
+        String month = String.valueOf(1 + current.get(2));
+        if(month.length() == 1)
+            month = (new StringBuilder("0")).append(month).toString();
+        String day = String.valueOf(current.get(5));
+        if(day.length() == 1)
+            day = (new StringBuilder("0")).append(day).toString();
+        String hour = String.valueOf(current.get(11));
+        if(hour.length() == 1)
+            hour = (new StringBuilder("0")).append(hour).toString();
+        String min = String.valueOf(current.get(12));
+        if(min.length() == 1)
+            min = (new StringBuilder("0")).append(min).toString();
+        String sec = String.valueOf(current.get(13));
+        if(sec.length() == 1)
+            sec = (new StringBuilder("0")).append(sec).toString();
+        return new String((new StringBuilder(String.valueOf(year))).append(month).append(day).append(hour).append(min).append(sec).toString());
+    }
+
+    public void loadStaticValue(String filename)
+        throws SIPSException
+    {
+        Properties defparm = new Properties();
+        try
+        {
+            FileInputStream in = new FileInputStream(filename);
+            defparm.load(in);
+        }
+        catch(Exception nf)
+        {
+            throw new SIPSException((new StringBuilder("Cannot open ")).append(filename).append(" (").append(nf).append(")").toString());
+        }
+        for(Enumeration e = getKeyEnum(); e.hasMoreElements();)
+        {
+            String key = (String)e.nextElement();
+            String val = defparm.getProperty(key);
+            if(val != null)
+                try
+                {
+                    setValue(key, val);
+                }
+                catch(Exception exception) { }
+        }
+
+    }
+
+    public abstract void check(String s, String s1)
+        throws SIPSException;
+
+    public void check()
+        throws SIPSException
+    {
+        checkMandatory();
+        String key;
+        String val;
+        for(Enumeration e = valHash.keys(); e.hasMoreElements(); check(key, val))
+        {
+            key = (String)e.nextElement();
+            val = (String)valHash.get(key);
+            try
+            {
+                Class sipsOffice3DRequestParm = getClass();
+                if(val.length() > sipsOffice3DRequestParm.getDeclaredField((new StringBuilder("LG_")).append(key.toUpperCase()).toString()).getInt(null))
+                    throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("length_too_long")).append(" ) ").toString());
+                if(val.length() > 0 && sipsOffice3DRequestParm.getDeclaredField((new StringBuilder("F_")).append(key.toUpperCase()).toString()).getInt(null) == 0)
+                    try
+                    {
+                        Long.valueOf(val).longValue();
+                    }
+                    catch(Exception ex)
+                    {
+                        throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("not_numeric")).append(" ) ").toString());
+                    }
+            }
+            catch(NoSuchFieldException ex)
+            {
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" ").append(Nls.getErrorMessage("unknown_field")).append(" ) ").toString());
+            }
+            catch(Exception ex)
+            {
+                throw new SIPSException((new StringBuilder(String.valueOf(Nls.getErrorMessage("call_field_error")))).append(" ( ").append(key).append(" : ").append(ex.getMessage()).append(" )").toString());
+            }
+        }
+
+    }
+
+    public void checkMandatory()
+        throws SIPSException
+    {
+        for(Enumeration e = mandatory.elements(); e.hasMoreElements();)
+        {
+            String key = (String)e.nextElement();
+            String val = getValue(key);
+            if(val == null || val.length() < 1)
+            {
+                NlsV2.setPackage(NlsV2.PACKAGE);
+                String msg = "missing_mandatory parameter";
+                try
+                {
+                    msg = NlsV2.getErrorMessage(msg);
+                }
+                catch(Exception exception) { }
+                throw new SIPSException((new StringBuilder(String.valueOf(msg))).append(" : ").append(key).toString());
+            }
+        }
+
+    }
+
+    protected int idx_fonction;
+    protected Hashtable valHash;
+    protected Vector keyV;
+    protected Vector mandatory;
+    public static final int IDX_CHECKENROLL3D = 0;
+    public static final int IDX_AUTHOR3D = 1;
+    public static final int IDX_AUTHENT3D = 2;
+    public static final int IDX_CHECKOFFICE3D = 3;
+    public static final int IDX_MERCHANTWALLETORDER = 4;
+    public static final int IDX_BUYSTERINIT = 5;
+    public static final int IDX_BUYSTERCONFIRM = 6;
+    public static final int IDX_CHECKENROLL3DWITHWALLET = 7;
+}

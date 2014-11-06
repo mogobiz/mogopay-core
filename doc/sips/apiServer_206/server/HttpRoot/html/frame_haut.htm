@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+  <HEAD>
+<SCRIPT language=JavaScript>
+function preloadImages( imgName)
+{
+var btn_image = new Image();
+btn_image.src = imgName;
+}
+function swap(imgName, newSrc)
+{
+window.document.getElementById(imgName).src=newSrc;
+}
+function pullUp(targetId, seqId)
+{
+var target;
+target = document.all(targetId);
+target.style.visibility = 'visible';
+target.style.left = 0;
+target.style.top = document.body.offsetHeight;
+contractIt(targetId, seqId);
+}
+function contractIt(targetId, seqId)
+{
+var target;
+var x;
+var hasMoved;
+target = document.all (targetId);
+hasMoved = 0;
+if (seqId == yCurr)
+{
+if (parseInt(target.style.left) != 0)
+{
+target.style.left = parseInt(target.style.left) * 0.6;
+hasMoved = 1;
+}
+if (parseInt(target.style.top) != 0)
+{
+target.style.top = parseInt(target.style.top) * 0.6;
+hasMoved = 1;
+}
+}
+if (hasMoved == 1)
+{
+x = window.setTimeout('contractIt(\'' + targetId + '\', ' + seqId + ')', 50);
+}
+else if (seqId > yCurr)
+{
+x = window.setTimeout('contractIt(\'' + targetId + '\', ' + seqId + ')', 50);
+}
+}
+function dropDown(targetId, seqId)
+{
+var target;
+target = document.all(targetId);
+target.style.visibility = 'visible';
+target.style.left = 0;
+target.style.top = -2 * document.body.offsetHeight;
+contractIt(targetId, seqId);
+}
+function fromLeft(targetId, seqId)
+{
+var target;
+target = document.all(targetId);
+target.style.visibility = 'visible';
+target.style.left = -document.body.offsetWidth;
+target.style.top = 0;
+contractIt(targetId, seqId);
+}
+function fromRight(targetId, seqId)
+{
+var target;
+target = document.all(targetId);
+target.style.visibility = 'visible';
+target.style.left = document.body.offsetWidth;
+target.style.top = 0;
+contractIt(targetId, seqId);
+}
+var x;
+var n1;
+var y;
+n1 = new Date();
+x = ((n1.getSeconds()) % 4);
+y = 0;
+yCurr = 0;
+function animIt(targetId)
+{
+var dynHtml;
+var seqId;
+seqId = y;
+dynHtml = ((navigator.appName == "Microsoft Internet Explorer") && (parseInt(navigator.appVersion) >= 4 ));
+if (dynHtml)
+{
+if (x == 0)
+{
+fromRight(targetId, seqId);
+}
+else if (x == 1)
+{
+dropDown(targetId, seqId);
+}
+else if (x == 2)
+{
+pullUp(targetId, seqId);
+}
+else
+{
+fromLeft(targetId, seqId);
+}
+x = (x + 1) % 4;
+}
+}
+</SCRIPT>
+    <META http-equiv=Content-Type content="text/html; charset=utf-8">
+    <META content="Atos Origin Services" name=keywords>
+    <LINK href="default_style.css" type=text/css rel=stylesheet>
+    <base target="frame_haut">
+  </HEAD>
+  <BODY bgColor=#ffffff leftMargin=0 topMargin=0 marginwidth="0" marginheight="0">
+    <?xml version="1.0" encoding="UTF-8"?>
+    <?cocoon-format type="text/html"?>
+    <TABLE cellSpacing=0 cellPadding=0 width=770 border=0 height="92">
+      <TBODY>
+        <TR height=1>
+          <TD>
+            <IMG src="spacer.gif"></TD>
+        </TR>
+        <TR vAlign=bottom>
+          <TD vAlign=bottom height="33">
+            <IMG height=30 src="spacer.gif" width=18></TD>
+          <TD vAlign=center rowSpan=4 height="89">
+            <IMG height=67 src="logo.gif" width=136 align=bottom border=0 name=logo></TD>
+          <TD height="33">
+            <TABLE>
+              <TBODY>
+                <TR>
+                  <TD vAlign=bottom align=left width=25 height=25>
+                    <A             	onmouseover="swap('Home_button', 'but_home_over.gif');"             	onmouseout="swap('Home_button', 'but_home.gif');"          	HREF="commande.htm" target="principal">
+<SCRIPT language=JavaScript>
+preloadImages('but_home_over.gif');
+</SCRIPT></A>
+                    <a 	  	onmouseover="swap('Home_button', 'but_home_over.gif');" 	  	onmouseout="swap('Home_button', 'but_home.gif');" 	  	HREF="commande.htm" target="principal">
+                      <IMG height=23 alt= Home hspace=0 src="but_home.gif" width=23 border=0 name=Home_button align="middle"></a></TD>
+                </TR>
+              </TBODY>
+            </TABLE></TD>
+          <TD vAlign=bottom height="33"></TD>
+          <TD vAlign=bottom width=8 height="33"></TD>
+          <TR>
+            <TD height="17">
+              <IMG height=8 src="spacer.gif" width=1></TD>
+            <TD vAlign=bottom colSpan=5 height="17">
+              <IMG height=1 src="spacer_gray.gif" width=616 align=bottom></TD>
+          </TR>
+          <TR vAlign=top>
+            <TD colSpan=10 height="22">
+              <TABLE width=770>
+                <TBODY>
+                  <TR>
+                    <TD align=right>
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </TD>
+                  </TR>
+                </TBODY>
+              </TABLE></TD>
+          </TR>
+          <TR>
+            <TD height="17"></TD>
+            <TD colSpan=7 height="17">
+              <p  class=SmallText align="right"> Version 2.06 07/2011
+                <TD vAlign=bottom width=8 height="17"></TD>
+          </TR>
+      </TBODY>
+    </TABLE>
+    <TABLE cellSpacing=0 cellPadding=0 width=769 border=0>
+      <TBODY>
+        <TR>
+          <TD width="7" colspan="2">
+            <IMG height=1 src="spacer.gif" width=7></TD>
+          <TD width="451" colspan="2">
+            <IMG height=1 src="spacer.gif" width=460></TD>
+        </TR>
+        <TR bgColor=#0066A1>
+          <TD width="4">
+            <TD width="3">
+              <TD width="71">
+                <TABLE cellSpacing=0 cellPadding=0 width=120 align=left border=0>
+                  <TBODY>
+                    <TR>
+                      <TD class=WhiteBoldHeader></TD>
+                    </TR>
+                  </TBODY>
+                </TABLE>
+                <TABLE cellSpacing=0 cellPadding=0 align=left border=0>
+                  <TBODY>
+                    <TR>
+                      <TD>
+                        <p align="center">
+                          <IMG height=31 src="title_between.gif" width=33 align=left name=TitleBetweenBlanc>
+                        </p></TD>
+                    </TR>
+                  </TBODY>
+                </TABLE></TD>
+              <TD width="380">
+                <p align="right">
+                  <span id="actor1;"	STYLE="position:relative; visibility:hidden;">
+                    <font face="Century Gothic,Century Gothic MT,Century Gothic MS,Arial,Helvetica">
+                      <font size=+1>
+                        <strong>CONSOLE</strong>
+                      </font>
+                  </span>
+<script language="JavaScript">
+<!--
+animIt('actor1;');
+-->
+</script>
+                  <span id="actor2;"	 STYLE="position:relative; visibility:hidden;">
+                    <font face="Century Gothic,Century Gothic MT,Century Gothic MS,Arial,Helvetica">
+                      <font size=+1>
+                        <strong>D'ADMINISTRATION </strong>
+                      </font>
+                  </span>
+<script language="JavaScript">
+<!--
+animIt('actor2;');
+-->
+</script>
+                  <span id="actor3;"	 STYLE="position:relative; visibility:hidden;">
+                    <font face="Century Gothic,Century Gothic MT,Century Gothic MS,Arial,Helvetica" >
+                      <font size=+1>
+                        <strong>API Server</strong>
+                      </font>
+                  </span>
+<script language="JavaScript">
+<!--
+animIt('actor3;');
+-->
+</script>
+                </p></TD>
+        </TR>
+      </TBODY>
+    </TABLE>
+  </BODY>
+</HTML>

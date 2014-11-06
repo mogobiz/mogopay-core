@@ -1,0 +1,46 @@
+#########################################################################
+#
+#	Pathfile 
+#
+#	Liste des fichiers parametres utilises par le module de paiement
+#
+#########################################################################
+#
+#
+#-------------------------------------------------------------------------
+# Activation (YES) / Désactivation (NO) du mode DEBUG
+#-------------------------------------------------------------------------
+#
+DEBUG!NO!
+#
+# ------------------------------------------------------------------------
+# Chemin vers le répertoire des logos depuis le web alias  
+# Exemple pour le répertoire www.merchant.com/sips/payment/logo/
+# indiquer:
+# ------------------------------------------------------------------------
+#
+D_LOGO!/sips/payment/logo/!
+#
+# --------------------------------------------------------------------------
+#  Fichiers paramètres liés a l'api sips paiement	
+# --------------------------------------------------------------------------
+#
+# fichier des  paramètres sips
+#
+F_DEFAULT!/home/sips/payment/param/parmcom.defaut!
+#
+# fichier paramètre commercant
+#
+F_PARAM!/home/sips/payment/param/parmcom!
+#
+# certificat du commercant
+#
+F_CERTIFICATE!/home/sips/payment/param/certif!
+#
+# type du certificat
+#
+F_CTYPE!jsp!
+#
+# --------------------------------------------------------------------------
+# 	end of file
+# --------------------------------------------------------------------------

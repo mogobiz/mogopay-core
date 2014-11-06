@@ -1,0 +1,5 @@
+Composant		: Office
+Version composant	: 3.20
+OS			: Windows xp
+microprocesseur 	: Intel pentium 4
+JRE			: 1.4.2

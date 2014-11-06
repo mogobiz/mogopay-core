@@ -1,0 +1,11 @@
+api sips_p615_JAVA.tar créée le 01/03/11 à 11:35:07
+
+type d'api = JAVA
+offre = SIPS
+OS = all all
+version = p615
+-----------------------------------
+API P615
+jdk = jdk 1.5.0_06
+-----------------------------------
+

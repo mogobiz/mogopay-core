@@ -1,0 +1,207 @@
+BODY {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif; BACKGROUND-COLOR: white
+}
+TABLE {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+TD {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+TH {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+BR {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+P {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+OL {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+UL {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+LI {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+H1 {
+	FONT-SIZE: 14pt; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+H2 {
+	FONT-SIZE: 14px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+H3 {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+A.WhiteHeaderLink {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #ffffff; TEXT-DECORATION: underline
+}
+A.BlackHeaderLink {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: underline
+}
+A.BlackLink {
+	COLOR: #000000; TEXT-DECORATION: underline
+}
+A.RedLink {
+	COLOR: #ff3333; TEXT-DECORATION: underline
+}
+A.WhiteLinkNU {
+	COLOR: #ffffff; TEXT-DECORATION: none
+}
+A.WhiteLinkNU:hover {
+	COLOR: #ffffff; TEXT-DECORATION: underline
+}
+A.GrayLinkNU {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #666666; TEXT-DECORATION: none
+}
+A.GrayLinkNU:hover {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #666666; TEXT-DECORATION: underline
+}
+A.GrayLink {
+	COLOR: #666666; TEXT-DECORATION: underline
+}
+A.GrayLink:hover {
+	COLOR: #666666; TEXT-DECORATION: underline
+}
+A.SubDocTableLink {
+	COLOR: #000000; TEXT-DECORATION: none
+}
+A.SubDocTableLink:hover {
+	COLOR: #ff3333; TEXT-DECORATION: underline
+}
+A.NavigationTrailLink {
+	COLOR: #ffffff; TEXT-DECORATION: none
+}
+A.NavigationTrailLink:hover {
+	COLOR: #ffffff; TEXT-DECORATION: underline
+}
+A.WhiteBoldHeaderLink {
+	FONT-WEIGHT: bold; FONT-SIZE: 13px; COLOR: #ffffff; TEXT-DECORATION: none
+}
+A.WhiteBoldHeaderLink:hover {
+	FONT-WEIGHT: bold; FONT-SIZE: 13px; COLOR: #ffffff; TEXT-DECORATION: underline
+}
+A.FooterLink {
+	COLOR: #666666; TEXT-DECORATION: none
+}
+A.FooterLink:hover {
+	COLOR: #666666; TEXT-DECORATION: underline
+}
+.BigGrayText {
+	FONT-SIZE: 21px; COLOR: #999999
+}
+.H1BlackText {
+	FONT-SIZE: 32px
+}
+.MainItemTextNorm {
+	FONT-SIZE: 12px; COLOR: #000000; FONT-FAMILY: Arial, Helvetica, sans-serif
+}
+.MainItemTextHiglight {
+	COLOR: #ff3333
+}
+.NavigationTrail {
+	COLOR: #ffffff
+}
+.NavigationSubDocHeader {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #333333
+}
+.WhiteBoldHeader {
+	FONT-WEIGHT: bold; FONT-SIZE: 13px; VERTICAL-ALIGN: middle; COLOR: #ffffff
+}
+.WhiteText {
+	COLOR: #ffffff
+}
+.FooterText {
+	COLOR: #666666
+}
+.SmallText {
+	FONT-SIZE: 10px; COLOR: #666666
+}
+.ContentPageTitle {
+	FONT-WEIGHT: bold; FONT-SIZE: 16px; COLOR: #cc0000
+}
+.navCat {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: underline
+}
+.subnavCat {
+	FONT-SIZE: 12px; COLOR: #333333
+}
+.lang {
+	FONT-WEIGHT: bold; FONT-SIZE: 10px; COLOR: #555555
+}
+.BigSiteMapLink {
+	FONT-WEIGHT: bold; FONT-SIZE: 15px;  COLOR: #666666; TEXT-DECORATION: none
+}
+A.BigSiteMapLink {
+	FONT-WEIGHT: bold; FONT-SIZE: 15px;  COLOR: #666666; TEXT-DECORATION: none
+}
+A.BigSiteMapLink:hover {
+	FONT-WEIGHT: bold; FONT-SIZE: 15px; COLOR: #ff3333; TEXT-DECORATION: underline
+}
+.SiteMapLink {
+	FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: none
+}
+A.SiteMapLink {
+	FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: underline
+}
+A.SiteMapLink:hover {
+	FONT-SIZE: 12px; COLOR: #ff3333; TEXT-DECORATION: underline
+}
+A.subl2 {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: none
+}
+A.subl2:hover {
+	TEXT-DECORATION: underline
+}
+A.subl2cur {
+	FONT-WEIGHT: bold; FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: none
+}
+A.subl2cur:hover {
+	TEXT-DECORATION: underline
+}
+A.subl3 {
+	FONT-SIZE: 12px; COLOR: #000000; TEXT-DECORATION: none
+}
+A.subl3:hover {
+	TEXT-DECORATION: underline
+}
+A.subl3cur {
+	FONT-SIZE: 12px; COLOR: #ff3333; TEXT-DECORATION: none
+}
+A.subl3cur:hover {
+	TEXT-DECORATION: underline
+}
+A.subl4 {
+	FONT-SIZE: 10px; COLOR: #000000; TEXT-DECORATION: none
+}
+A.subl4:hover {
+	TEXT-DECORATION: underline
+}
+A.subl4cur {
+	FONT-SIZE: 10px; COLOR: #ff3333; TEXT-DECORATION: none
+}
+A.subl4cur:hover {
+	TEXT-DECORATION: underline
+}
+A.subl5 {
+	FONT-SIZE: 10px; COLOR: #000000; TEXT-DECORATION: none
+}
+A.subl5:hover {
+	TEXT-DECORATION: underline
+}
+A.subl5cur {
+	FONT-SIZE: 10px; COLOR: #ff3333; TEXT-DECORATION: none
+}
+A.subl5cur:hover {
+	TEXT-DECORATION: underline
+}
+.macPopup {
+	MARGIN: 5px; COLOR: #ffffff; BACKGROUND-COLOR: #000000
+}
+A.macPopup {
+	COLOR: #ffffff; TEXT-DECORATION: none
+}
+A.macPopup:hover {
+	TEXT-DECORATION: underline
+}

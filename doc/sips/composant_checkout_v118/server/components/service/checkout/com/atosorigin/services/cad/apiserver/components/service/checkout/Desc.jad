@@ -1,0 +1,72 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Desc.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+import java.util.ResourceBundle;
+import java.util.StringTokenizer;
+
+public class Desc
+{
+
+    public Desc()
+    {
+    }
+
+    public String[] APIRegister(String mode)
+    {
+        try
+        {
+            String PACKAGE = "com.atosorigin.services.cad.apiserver.components.service.checkout";
+            String buffer[] = new String[3];
+            ResourceBundle rb_ = ResourceBundle.getBundle((new StringBuilder(String.valueOf(PACKAGE))).append(".checkout").toString());
+            buffer[0] = (new StringBuilder("<APIItem name=\"")).append(rb_.getString("name")).append("\" ").append("version=\"").append(rb_.getString("version")).append("\" ").append("creationDate=\"").append(rb_.getString("creation_date")).append("\" ").append("shortDesc=\"").append(rb_.getString("short_desc")).append("\" >").append("<classId>").append("<").append(rb_.getString("type_request")).append(" class=\"").append(rb_.getString("class")).append("\"/>").append("</classId>").append("<serviceList>").toString();
+            buffer[1] = rb_.getString("type_request");
+            buffer[2] = (new StringBuilder("<!ELEMENT ")).append(rb_.getString("type")).append(" (").toString();
+            for(int i = 0; i < Integer.parseInt(rb_.getString("nb_functions")); i++)
+            {
+                String functionMode = rb_.getString((new StringBuilder("mode_function_")).append(i + 1).toString());
+                String functionName = rb_.getString((new StringBuilder("name_function_")).append(i + 1).toString());
+                if(mode.equals("private") || functionMode.equals("public"))
+                {
+                    buffer[0] = (new StringBuilder(String.valueOf(buffer[0]))).append("<").append(functionName).append(">").append(rb_.getString((new StringBuilder("class_function_")).append(i + 1).toString())).append("</").append(functionName).append(">").toString();
+                    buffer[2] = (new StringBuilder(String.valueOf(buffer[2]))).append(functionName).append("?,").toString();
+                }
+            }
+
+            buffer[0] = (new StringBuilder(String.valueOf(buffer[0]))).append("</serviceList>").append("</APIItem>").toString();
+            buffer[2] = buffer[2].substring(0, buffer[2].lastIndexOf(","));
+            buffer[2] = (new StringBuilder(String.valueOf(buffer[2]))).append(")>\n").append("<!ATTLIST ").append(rb_.getString("type")).append("\n").append("component CDATA #REQUIRED\n").append("name CDATA #REQUIRED\n").append(">\n").toString();
+            for(int i = 0; i < Integer.parseInt(rb_.getString("nb_functions")); i++)
+            {
+                String functionMode = rb_.getString((new StringBuilder("mode_function_")).append(i + 1).toString());
+                String functionName = rb_.getString((new StringBuilder("name_function_")).append(i + 1).toString());
+                StringTokenizer tkAttListRequired;
+                StringTokenizer tkAttListImplied;
+                if(mode.equals("private") || functionMode.equals("public"))
+                {
+                    buffer[2] = (new StringBuilder(String.valueOf(buffer[2]))).append("<!ELEMENT ").append(functionName).append(" (#PCDATA)>\n").append("<!ATTLIST ").append(functionName).append("\n").toString();
+                    for(tkAttListRequired = new StringTokenizer(rb_.getString((new StringBuilder("required_function_")).append(i + 1).toString()), ","); tkAttListRequired.hasMoreTokens();)
+                        buffer[2] = (new StringBuilder(String.valueOf(buffer[2]))).append(tkAttListRequired.nextToken()).append(" CDATA #REQUIRED\n").toString();
+
+                    for(tkAttListImplied = new StringTokenizer(rb_.getString((new StringBuilder("implied_function_")).append(i + 1).toString()), ","); tkAttListImplied.hasMoreTokens();)
+                        buffer[2] = (new StringBuilder(String.valueOf(buffer[2]))).append(tkAttListImplied.nextToken()).append(" CDATA #IMPLIED\n").toString();
+
+                    buffer[2] = (new StringBuilder(String.valueOf(buffer[2]))).append(">\n").toString();
+                }
+                tkAttListRequired = null;
+                tkAttListImplied = null;
+            }
+
+            return buffer;
+        }
+        catch(Exception e)
+        {
+            return (new String[] {
+                (new StringBuilder("<error ")).append(e.getMessage()).append(">").toString(), ""
+            });
+        }
+    }
+}

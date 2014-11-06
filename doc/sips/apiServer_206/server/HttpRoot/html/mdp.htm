@@ -1,0 +1,40 @@
+<html>
+<head><title>SIPS ADMIN </title></head>
+<script language="JavaScript">
+  function verifform()
+  {
+   if(document.formulaire.password.value != document.formulaire.confirm.value)
+    {
+     alert("Le mot de passe et sa confirmation sont différents, veuillez recommencer.");
+     document.formulaire.password.value = "";
+     document.formulaire.confirm.value = "";
+     document.formulaire.password.focus();
+     return false;
+    }
+  }
+ </script>
+ 
+<body bgcolor="#ffffff" text="#000000" alink="#00c000" vlink="#0000ff" link="#ff0000">
+<center>
+        <br><br><br>
+        <FORM NAME="formulaire" METHOD="GET" ACTION="ChangePassword.class" onSubmit="return verifform()">
+        <table border=0>
+                <TR>
+                        <TD>Saisir le nouveau login  </TD>
+                        <TD><INPUT type=text name="login" SIZE="10" MAXLENGHT="12" ></TD>
+                </TR>
+                <TR>
+                        <TD>Saisir le nouveau mot de passe </TD>
+                        <TD><INPUT type=password name="password" SIZE="10" MAXLENGHT="12" ></TD>
+                </TR>
+                <TR>
+                        <TD>Confirmer le nouveau mot de passe </TD>
+                        <TD><INPUT type=password name="confirm" SIZE="10" MAXLENGHT="12" ></TD>
+                </TR>
+		   <TR><TD colspan=2 height=60 valign=bottom><center><INPUT type="submit" value="Valider" ><INPUT type="button" value="Retour" OnClick="history.back()" ></center></TD>
+               </TR>
+	  </table>
+        </FORM>
+</center>
+</body>
+</html>

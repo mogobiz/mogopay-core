@@ -1,0 +1,9 @@
+Api Server
+Version 	: 2.06 (b101)
+JRE		: 1.5.0_22-b03
+
+Versions minimales des composants
+office		: 3.03
+diag		: 3.03
+
+Version minimale de java: 1.5

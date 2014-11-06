@@ -1,0 +1,352 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   SIPSOfficeResponseParm.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.common.SIPSException;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            SIPSParm, Nls
+
+public final class SIPSOfficeResponseParm extends SIPSParm
+{
+
+    public SIPSOfficeResponseParm()
+    {
+        super(mandatoryKeys, optionalKeys);
+        valHash = super.valHash;
+    }
+
+    public void check(String key, String val)
+        throws SIPSException
+    {
+        if(key.compareTo(TRANSACTION_CERTIFICATE) == 0)
+            if(val.length() > LG_TRANSACTION_CERTIFICATE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(TRANSACTION_TIME) == 0)
+            if(val.length() > LG_TRANSACTION_TIME)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(TRANSACTION_DATE) == 0)
+            if(val.length() > LG_TRANSACTION_DATE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(TRANSACTION_RESPCODE) == 0)
+            if(val.length() > LG_TRANSACTION_RESPCODE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CURRENCY_CODE) == 0)
+            if(val.length() > LG_CURRENCY_CODE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(AMOUNT) == 0)
+        {
+            if(val.length() > LG_AMOUNT)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            if(val.length() < 3)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + Nls.getErrorMessage("amount_length") + " ) ");
+            if(!isNumeric(val))
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_numeric") + " ) ");
+            else
+                return;
+        }
+        if(key.compareTo(COMPLEMENTARY_CODE) == 0)
+            if(val.length() > LG_COMPLEMENTARY_CODE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(COMPLEMENTARY_INFO) == 0)
+            if(val.length() > LG_COMPLEMENTARY_INFO)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(AUTHORISATION_ID) == 0)
+            if(val.length() > LG_AUTHORISATION_ID)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(TRANSACTION_STATUS) == 0)
+            if(val.length() > LG_TRANSACTION_STATUS)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CREDIT_AMOUNT) == 0)
+            if(val.length() > LG_CREDIT_AMOUNT)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(DATA) == 0)
+            if(val.length() > LG_DATA)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(CVV_RESPONSE_CODE) == 0)
+            if(val.length() > LG_CVV_RESPONSE_CODE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(AVS_RESPONSE_CODE) == 0)
+            if(val.length() > LG_AVS_RESPONSE_CODE)
+                throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MERCHANT_COUNTRY) == 0)
+            if(val.length() > LG_MERCHANT_COUNTRY)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+            else
+                return;
+        if(key.compareTo(MERCHANT_ID) == 0)
+        {
+            if(val.length() > LG_MERCHANT_ID)
+                throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+        } else
+        {
+            if(key.compareTo(TRANSACTION_ID) == 0)
+            {
+                if(val.length() > LG_TRANSACTION_ID)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                if(!isNumeric(val))
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("not_numeric") + " ) ");
+                else
+                    return;
+            }
+            if(key.compareTo(TRANSMISSION_DATE) == 0)
+                if(val.length() > LG_TRANSMISSION_DATE)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(BANK_RESPONSE_CODE) == 0)
+                if(val.length() > LG_BANK_RESPONSE_CODE)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(ACCOUNT_SERIAL) == 0)
+                if(val.length() > LG_ACCOUNT_SERIAL)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(AUTHOR_SESSION) == 0)
+                if(val.length() > LG_AUTHOR_SESSION)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(PAYMENT_REFERENCE) == 0)
+                if(val.length() > LG_PAYMENT_REFERENCE)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(ACCOUNT_HOLDER) == 0)
+                if(val.length() > LG_ACCOUNT_HOLDER)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(BANK_NAME) == 0)
+                if(val.length() > LG_BANK_NAME)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(CITY) == 0)
+                if(val.length() > LG_CITY)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SWIFTCODE) == 0)
+                if(val.length() > LG_SWIFTCODE)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SPECIAL_ID) == 0)
+                if(val.length() > LG_SPECIAL_ID)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(BANK_ACCOUNT_NUMBER) == 0)
+                if(val.length() > LG_BANK_ACCOUNT_NUMBER)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(COUNTRY_DESCRIPTION) == 0)
+                if(val.length() > LG_COUNTRY_DESCRIPTION)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(IBAN) == 0)
+                if(val.length() > LG_IBAN)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(ORDER_CHANNEL) == 0)
+                if(val.length() > LG_ORDER_CHANNEL)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(PAYMENT_PATTERN) == 0)
+                if(val.length() > LG_PAYMENT_PATTERN)
+                    throw new SIPSException(Nls.getErrorMessage("response_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SCORE_VALUE) == 0)
+                if(val.length() > LG_SCORE_VALUE)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SCORE_COLOR) == 0)
+                if(val.length() > LG_SCORE_COLOR)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SCORE_INFO) == 0)
+                if(val.length() > LG_SCORE_INFO)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SCORE_PROFILE) == 0)
+                if(val.length() > LG_SCORE_PROFILE)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+            if(key.compareTo(SCORE_THRESHOLD) == 0)
+                if(val.length() > LG_SCORE_THRESHOLD)
+                    throw new SIPSException(Nls.getErrorMessage("call_field_error") + " ( " + key + " " + Nls.getErrorMessage("length_too_long") + " ) ");
+                else
+                    return;
+        }
+    }
+
+    public boolean isNumeric(String input)
+    {
+        return input.matches("\\d+");
+    }
+
+    private static String mandatoryKeys[] = new String[0];
+    public static String TRANSACTION_CERTIFICATE;
+    public static String TRANSACTION_TIME;
+    public static String TRANSACTION_DATE;
+    public static String TRANSACTION_RESPCODE;
+    public static String CURRENCY_CODE;
+    public static String AMOUNT;
+    public static String COMPLEMENTARY_CODE;
+    public static String COMPLEMENTARY_INFO;
+    public static String AUTHORISATION_ID;
+    public static String TRANSACTION_STATUS;
+    public static String CREDIT_AMOUNT;
+    public static String DATA;
+    public static String CVV_RESPONSE_CODE;
+    public static String AVS_RESPONSE_CODE;
+    public static String BANK_RESPONSE_CODE;
+    public static String ACCOUNT_SERIAL;
+    public static String AUTHOR_SESSION;
+    public static String MERCHANT_COUNTRY;
+    public static String MERCHANT_ID;
+    public static String TRANSACTION_ID;
+    public static String TRANSMISSION_DATE;
+    public static String PAYMENT_REFERENCE;
+    public static String ACCOUNT_HOLDER;
+    public static String BANK_NAME;
+    public static String CITY;
+    public static String SWIFTCODE;
+    public static String SPECIAL_ID;
+    public static String BANK_ACCOUNT_NUMBER;
+    public static String COUNTRY_DESCRIPTION;
+    public static String IBAN;
+    public static String ORDER_CHANNEL;
+    public static String PAYMENT_PATTERN;
+    public static String SCORE_VALUE;
+    public static String SCORE_COLOR;
+    public static String SCORE_INFO;
+    public static String SCORE_PROFILE;
+    public static String SCORE_THRESHOLD;
+    private static String optionalKeys[];
+    public static int LG_TRANSACTION_CERTIFICATE = 12;
+    public static int LG_TRANSACTION_TIME = 6;
+    public static int LG_TRANSACTION_DATE = 8;
+    public static int LG_TRANSACTION_RESPCODE = 2;
+    public static int LG_CURRENCY_CODE = 3;
+    public static int LG_AMOUNT = 12;
+    public static int LG_COMPLEMENTARY_CODE = 2;
+    public static int LG_COMPLEMENTARY_INFO = 255;
+    public static int LG_AUTHORISATION_ID = 32;
+    public static int LG_TRANSACTION_STATUS = 15;
+    public static int LG_CREDIT_AMOUNT = 12;
+    public static int LG_DATA = 1024;
+    public static int LG_CVV_RESPONSE_CODE = 2;
+    public static int LG_AVS_RESPONSE_CODE = 2;
+    public static int LG_BANK_RESPONSE_CODE = 2;
+    public static int LG_ACCOUNT_SERIAL = 24;
+    public static int LG_AUTHOR_SESSION = 16;
+    public static int LG_MERCHANT_COUNTRY = 2;
+    public static int LG_MERCHANT_ID = 15;
+    public static int LG_TRANSACTION_ID = 6;
+    public static int LG_TRANSMISSION_DATE = 8;
+    public static int LG_PAYMENT_REFERENCE = 12;
+    public static int LG_ACCOUNT_HOLDER = 50;
+    public static int LG_BANK_NAME = 55;
+    public static int LG_CITY = 50;
+    public static int LG_SWIFTCODE = 255;
+    public static int LG_SPECIAL_ID = 255;
+    public static int LG_BANK_ACCOUNT_NUMBER = 50;
+    public static int LG_COUNTRY_DESCRIPTION = 50;
+    public static int LG_IBAN = 50;
+    public static int LG_ORDER_CHANNEL = 15;
+    public static int LG_PAYMENT_PATTERN = 15;
+    public static int LG_SCORE_VALUE = 10;
+    public static int LG_SCORE_COLOR = 30;
+    public static int LG_SCORE_INFO = 512;
+    public static int LG_SCORE_PROFILE = 50;
+    public static int LG_SCORE_THRESHOLD = 10;
+
+    static 
+    {
+        TRANSACTION_CERTIFICATE = "transaction_certificate";
+        TRANSACTION_TIME = "transaction_time";
+        TRANSACTION_DATE = "transaction_date";
+        TRANSACTION_RESPCODE = "transaction_respcode";
+        CURRENCY_CODE = "currency_code";
+        AMOUNT = "amount";
+        COMPLEMENTARY_CODE = "complementary_code";
+        COMPLEMENTARY_INFO = "complementary_info";
+        AUTHORISATION_ID = "authorisation_id";
+        TRANSACTION_STATUS = "transaction_status";
+        CREDIT_AMOUNT = "credit_amount";
+        DATA = "data";
+        CVV_RESPONSE_CODE = "cvv_response_code";
+        AVS_RESPONSE_CODE = "avs_response_code";
+        BANK_RESPONSE_CODE = "bank_response_code";
+        ACCOUNT_SERIAL = "account_serial";
+        AUTHOR_SESSION = "author_session";
+        MERCHANT_COUNTRY = "merchant_country";
+        MERCHANT_ID = "merchant_id";
+        TRANSACTION_ID = "transaction_id";
+        TRANSMISSION_DATE = "transmission_date";
+        PAYMENT_REFERENCE = "payment_reference";
+        ACCOUNT_HOLDER = "account_holder";
+        BANK_NAME = "bank_name";
+        CITY = "city";
+        SWIFTCODE = "swiftcode";
+        SPECIAL_ID = "special_id";
+        BANK_ACCOUNT_NUMBER = "bank_account_number";
+        COUNTRY_DESCRIPTION = "country_description";
+        IBAN = "iban";
+        ORDER_CHANNEL = "order_channel";
+        PAYMENT_PATTERN = "payment_pattern";
+        SCORE_VALUE = "score_value";
+        SCORE_COLOR = "score_color";
+        SCORE_INFO = "score_info";
+        SCORE_PROFILE = "score_profile";
+        SCORE_THRESHOLD = "score_threshold";
+        optionalKeys = (new String[] {
+            TRANSACTION_CERTIFICATE, TRANSACTION_TIME, TRANSACTION_DATE, TRANSACTION_RESPCODE, CURRENCY_CODE, AMOUNT, COMPLEMENTARY_CODE, COMPLEMENTARY_INFO, AUTHORISATION_ID, TRANSACTION_STATUS, 
+            CREDIT_AMOUNT, DATA, CVV_RESPONSE_CODE, BANK_RESPONSE_CODE, ACCOUNT_SERIAL, AUTHOR_SESSION, MERCHANT_COUNTRY, MERCHANT_ID, TRANSACTION_ID, TRANSMISSION_DATE, 
+            AVS_RESPONSE_CODE, PAYMENT_REFERENCE, ACCOUNT_HOLDER, BANK_NAME, CITY, SWIFTCODE, SPECIAL_ID, BANK_ACCOUNT_NUMBER, COUNTRY_DESCRIPTION, IBAN, 
+            ORDER_CHANNEL, PAYMENT_PATTERN, SCORE_VALUE, SCORE_COLOR, SCORE_INFO, SCORE_PROFILE, SCORE_THRESHOLD
+        });
+    }
+}

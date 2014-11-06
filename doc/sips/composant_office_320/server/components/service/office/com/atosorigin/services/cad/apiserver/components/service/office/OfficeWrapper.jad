@@ -1,0 +1,725 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   OfficeWrapper.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import com.atosorigin.services.cad.apiserver.common.*;
+import com.atosorigin.services.cad.apiserver.watchdog.RmiInterface;
+import com.atosorigin.services.cad.common.SIPSDataObject;
+import com.atosorigin.services.cad.common.SIPSException;
+import com.atosorigin.services.cad.common.util.FileParamReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.net.Socket;
+import java.rmi.Naming;
+
+// Referenced classes of package com.atosorigin.services.cad.apiserver.components.service.office:
+//            SIPSOfficeRequestParm, SIPSOfficeResponseParm, SIPSOfficeApi, SIPSOfficeTransactionParm, 
+//            Nls
+
+public class OfficeWrapper
+{
+
+    public OfficeWrapper(String fonction, Dom dom, String req, Socket sock)
+        throws FileNotFoundException, SIPSException
+    {
+        pseudoPid = 0;
+        this.fonction = fonction;
+        pseudoPid = dom.getPseudoPid();
+        String requestTrace = "fonction : " + fonction + " ";
+        int rmiPort = 7183;
+        try
+        {
+            rmiPort = Integer.parseInt(Config.getParam("survPort"));
+        }
+        catch(APINGException e) { }
+        String url = "rmi://localhost:" + rmiPort + "/";
+        try
+        {
+            writeTraces = (RmiInterface)Naming.lookup(url + "ServeurRMI");
+        }
+        catch(Exception ex) { }
+        pathfile = "";
+        try
+        {
+            int nbPathfile = Config.getNbElement("pathfile");
+            for(int i = 0; i < nbPathfile; i++)
+                if(Config.getParamAttribut("pathfile", i + 1, "id").equals("office"))
+                    pathfile = Config.getParamAttribut("pathfile", i + 1, "path");
+
+        }
+        catch(APINGException e) { }
+        request = new SIPSOfficeRequestParm();
+        response = new SIPSOfficeResponseParm();
+        try
+        {
+            api = new SIPSOfficeApi(pathfile);
+            String attr;
+            String attrValue;
+            for(int i = 0; i < dom.getNbAttributs(fonction); i++)
+            {
+                attr = dom.getElementAttributName(fonction, i + 1);
+                attrValue = dom.getFirstElementAttribut(fonction, attr);
+                request.setValue(attr, attrValue);
+            }
+
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : " + requestTrace);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : merchant_id=" + request.getValue("merchant_id") + ", " + "merchant_country=" + request.getValue("merchant_country"));
+            }
+            catch(Exception ex) { }
+            attr = null;
+            attrValue = null;
+            requestTrace = null;
+        }
+        catch(FileNotFoundException e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + requestTrace);
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : Error message: " + e.getMessage());
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            throw e;
+        }
+        catch(SIPSException se)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + requestTrace);
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : Error message: " + se.getMessage());
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            throw se;
+        }
+    }
+
+    public static String formatComplementaryInfo(String initialComplementaryInfo)
+    {
+        String secondComplementaryInfo = "";
+        String finalComplementaryInfo = "";
+        if(initialComplementaryInfo == null || initialComplementaryInfo.equals(""))
+            return "";
+        String resultSeparation[] = initialComplementaryInfo.split(",");
+        for(int i = 0; i < resultSeparation.length; i++)
+        {
+            String firstCharacter = resultSeparation[i].substring(0, 1);
+            String last2Characters = resultSeparation[i].substring(resultSeparation[i].length() - 2, resultSeparation[i].length());
+            if(!firstCharacter.equalsIgnoreCase("<") || !last2Characters.equalsIgnoreCase("/>"))
+            {
+                secondComplementaryInfo = secondComplementaryInfo + "<" + resultSeparation[i].replaceAll("=", " VALUE=") + "/>";
+            } else
+            {
+                String withoutUselessSpace = resultSeparation[i].replaceAll("  ", " ");
+                withoutUselessSpace = withoutUselessSpace.replaceAll(" />", "/>");
+                secondComplementaryInfo = secondComplementaryInfo + withoutUselessSpace;
+            }
+        }
+
+        resultSeparation = null;
+        resultSeparation = secondComplementaryInfo.split("=");
+        finalComplementaryInfo = resultSeparation[0] + "=\"";
+        for(int i = 1; i < resultSeparation.length - 1; i++)
+        {
+            int index;
+            if(resultSeparation[i].indexOf("/>") > -1)
+                index = resultSeparation[i].lastIndexOf("/>");
+            else
+                index = resultSeparation[i].lastIndexOf(" ");
+            finalComplementaryInfo = finalComplementaryInfo + resultSeparation[i].substring(0, index) + "\"" + resultSeparation[i].substring(index, resultSeparation[i].length()) + "=\"";
+        }
+
+        finalComplementaryInfo = finalComplementaryInfo + resultSeparation[resultSeparation.length - 1].substring(0, resultSeparation[resultSeparation.length - 1].length() - 2) + "\"/>";
+        finalComplementaryInfo = finalComplementaryInfo.replaceAll("&", "&amp;");
+        return finalComplementaryInfo;
+    }
+
+    public static String formatData(String initialData)
+    {
+        String finalData = "";
+        if(initialData != null)
+            finalData = initialData;
+        finalData = finalData.replaceAll("<", "&lt;");
+        finalData = finalData.replaceAll(">", "&gt;");
+        return finalData;
+    }
+
+    public String asoAuthorTransaction()
+    {
+        try
+        {
+            api.asoAuthorTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoValidateTransaction()
+    {
+        try
+        {
+            api.asoValidateTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoSplitTransaction()
+    {
+        try
+        {
+            api.asoSplitTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoCancelTransaction()
+    {
+        try
+        {
+            api.asoCancelTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoCreditTransaction()
+    {
+        try
+        {
+            api.asoCreditTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoAdviceTransaction()
+    {
+        try
+        {
+            api.asoAdviceTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoSettleTransaction()
+    {
+        try
+        {
+            api.asoSettleTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoFinanceTransaction()
+    {
+        try
+        {
+            api.asoFinanceTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoDuplicateTransaction()
+    {
+        try
+        {
+            api.asoDuplicateTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoCheck()
+    {
+        try
+        {
+            request.setValue("transaction_id", getTransactionId());
+            request.setValue("amount", getTransactionId());
+            request.setValue("payment_date", getPaymentDate());
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            request.check();
+            return formatCheckResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoReadTransaction()
+    {
+        try
+        {
+            transData = new SIPSOfficeTransactionParm();
+            api.asoReadTransaction(request, response, transData);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatReadTransactionResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoPrepaidTransaction()
+    {
+        try
+        {
+            api.asoPrepaidTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatPrepaidResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoCreditHolderTransaction()
+    {
+        try
+        {
+            api.asoCreditHolderTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoELVAuthor()
+    {
+        try
+        {
+            api.asoELVAuthor(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatELVResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoDirectDebitTransaction()
+    {
+        try
+        {
+            api.asoDirectDebitTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatDirectDebitResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public String asoCreditTransferTransaction()
+    {
+        try
+        {
+            api.asoCreditTransferTransaction(request, response);
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : transaction_id=" + request.getValue("transaction_id") + ", " + "payment_date=" + request.getValue("payment_date"));
+            }
+            catch(Exception ex) { }
+            return formatCreditTransferResponse();
+        }
+        catch(Exception e)
+        {
+            try
+            {
+                writeTraces.rmiError("office", pseudoPid, "OfficeWrapper : " + e.getMessage() + " " + "Processing_code=" + request.getValue("processing_code") + " " + "Merchant_country=" + request.getValue("merchant_country") + " " + "Merchant_id=" + request.getValue("merchant_id") + " " + "Transaction_id=" + request.getValue("transaction_id") + " " + "Amount=" + request.getValue("amount"));
+            }
+            catch(Exception ex) { }
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    public static String getTransactionId()
+    {
+        return SIPSOfficeApi.getTransactionId();
+    }
+
+    public static String getPaymentDate()
+    {
+        return SIPSOfficeApi.getPaymentDate();
+    }
+
+    private String formatResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSOfficeResponseParm.DATA));
+            xmlResponse = "<response component=\"office\" name=\"" + fonction + "\">" + "<" + fonction + " response_code=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE) + "\" " + "transaction_time=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME) + "\" " + "transaction_date=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE) + "\" " + "transaction_certificate=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE) + "\" " + "authorisation_id=\"" + response.getValue(SIPSOfficeResponseParm.AUTHORISATION_ID) + "\" " + "new_status=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS) + "\" " + "new_amount=\"" + response.getValue(SIPSOfficeResponseParm.AMOUNT) + "\" " + "credit_amount=\"" + response.getValue(SIPSOfficeResponseParm.CREDIT_AMOUNT) + "\" " + "currency_code=\"" + response.getValue(SIPSOfficeResponseParm.CURRENCY_CODE) + "\" " + "data=\"" + data + "\" " + "cvv_response_code=\"" + response.getValue(SIPSOfficeResponseParm.CVV_RESPONSE_CODE) + "\" " + "avs_response_code=\"" + response.getValue(SIPSOfficeResponseParm.AVS_RESPONSE_CODE) + "\" " + "bank_response_code=\"" + response.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE) + "\" " + "complementary_code=\"" + response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_CODE) + "\" " + "score_value=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_VALUE) + "\" " + "score_color=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_COLOR) + "\" " + "score_info=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_INFO) + "\" " + "score_profile=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_PROFILE) + "\" " + "score_threshold=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_THRESHOLD) + "\" " + ">" + "<complementary_info>" + complementaryInfo + "</complementary_info>" + "</" + fonction + ">" + "</response>";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response_code=" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private String formatPrepaidResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String data = formatData(response.getValue(SIPSOfficeResponseParm.DATA));
+            xmlResponse = "<response component=\"office\" name=\"" + fonction + "\">" + "<" + fonction + " response_code=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE) + "\" " + "transaction_time=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME) + "\" " + "transaction_date=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE) + "\" " + "transaction_certificate=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE) + "\" " + "new_status=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS) + "\" " + "authorised_amount=\"" + response.getValue(SIPSOfficeResponseParm.AMOUNT) + "\" " + "author_session=\"" + response.getValue(SIPSOfficeResponseParm.AUTHOR_SESSION) + "\" " + "account_serial=\"" + response.getValue(SIPSOfficeResponseParm.ACCOUNT_SERIAL) + "\" " + "currency_code=\"" + response.getValue(SIPSOfficeResponseParm.CURRENCY_CODE) + "\" " + "data=\"" + data + "\" " + "bank_response_code=\"" + response.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE) + "\" " + "/>" + "</response>";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response_code=" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private String formatELVResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSOfficeResponseParm.DATA));
+            xmlResponse = "<response component=\"office\" name=\"" + fonction + "\">" + "<" + fonction + " response_code=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE) + "\" " + "transaction_time=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME) + "\" " + "transaction_date=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE) + "\" " + "transaction_certificate=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE) + "\" " + "authorisation_id=\"" + response.getValue(SIPSOfficeResponseParm.AUTHORISATION_ID) + "\" " + "new_status=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS) + "\" " + "currency_code=\"" + response.getValue(SIPSOfficeResponseParm.CURRENCY_CODE) + "\" " + "data=\"" + data + "\" " + "bank_response_code=\"" + response.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE) + "\" " + "complementary_code=\"" + response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_CODE) + "\" " + "score_value=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_VALUE) + "\" " + "score_color=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_COLOR) + "\" " + "score_info=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_INFO) + "\" " + "score_profile=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_PROFILE) + "\" " + "score_threshold=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_THRESHOLD) + "\" " + ">" + "<complementary_info>" + complementaryInfo + "</complementary_info>" + "</" + fonction + ">" + "</response>";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response_code=" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private String formatDirectDebitResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSOfficeResponseParm.DATA));
+            xmlResponse = "<response component=\"office\" name=\"" + fonction + "\">" + "<" + fonction + " response_code=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE) + "\" " + "transaction_time=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME) + "\" " + "transaction_date=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE) + "\" " + "transaction_certificate=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE) + "\" " + "authorisation_id=\"" + response.getValue(SIPSOfficeResponseParm.AUTHORISATION_ID) + "\" " + "new_status=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS) + "\" " + "new_amount=\"" + response.getValue(SIPSOfficeResponseParm.AMOUNT) + "\" " + "currency_code=\"" + response.getValue(SIPSOfficeResponseParm.CURRENCY_CODE) + "\" " + "data=\"" + data + "\" " + "bank_response_code=\"" + response.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE) + "\" " + "complementary_code=\"" + response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_CODE) + "\" " + "score_value=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_VALUE) + "\" " + "score_color=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_COLOR) + "\" " + "score_info=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_INFO) + "\" " + "score_profile=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_PROFILE) + "\" " + "score_threshold=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_THRESHOLD) + "\" " + ">" + "<complementary_info>" + complementaryInfo + "</complementary_info>" + "</" + fonction + ">" + "</response>";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response_code=" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private String formatCreditTransferResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String complementaryInfo = formatComplementaryInfo(response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_INFO));
+            String data = formatData(response.getValue(SIPSOfficeResponseParm.DATA));
+            xmlResponse = "<response component=\"office\" name=\"" + fonction + "\">" + "<" + fonction + " response_code=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE) + "\" " + "transaction_time=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME) + "\" " + "transaction_date=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE) + "\" " + "transaction_certificate=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE) + "\" " + "authorisation_id=\"" + response.getValue(SIPSOfficeResponseParm.AUTHORISATION_ID) + "\" " + "new_status=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS) + "\" " + "new_amount=\"" + response.getValue(SIPSOfficeResponseParm.AMOUNT) + "\" " + "currency_code=\"" + response.getValue(SIPSOfficeResponseParm.CURRENCY_CODE) + "\" " + "data=\"" + data + "\" " + "bank_response_code=\"" + response.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE) + "\" " + "complementary_code=\"" + response.getValue(SIPSOfficeResponseParm.COMPLEMENTARY_CODE) + "\" " + "score_value=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_VALUE) + "\" " + "score_color=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_COLOR) + "\" " + "score_info=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_INFO) + "\" " + "score_profile=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_PROFILE) + "\" " + "score_threshold=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_THRESHOLD) + "\" " + "payment_reference=\"" + response.getValue(SIPSOfficeResponseParm.PAYMENT_REFERENCE) + "\" " + "account_holder=\"" + response.getValue(SIPSOfficeResponseParm.ACCOUNT_HOLDER) + "\" " + "bank_name=\"" + response.getValue(SIPSOfficeResponseParm.BANK_NAME) + "\" " + "city=\"" + response.getValue(SIPSOfficeResponseParm.CITY) + "\" " + "swiftcode=\"" + response.getValue(SIPSOfficeResponseParm.SWIFTCODE) + "\" " + "special_id=\"" + response.getValue(SIPSOfficeResponseParm.SPECIAL_ID) + "\" " + "bank_account_number=\"" + response.getValue(SIPSOfficeResponseParm.BANK_ACCOUNT_NUMBER) + "\" " + "country_description=\"" + response.getValue(SIPSOfficeResponseParm.COUNTRY_DESCRIPTION) + "\" " + "iban=\"" + response.getValue(SIPSOfficeResponseParm.IBAN) + "\" " + ">" + "<complementary_info>" + complementaryInfo + "</complementary_info>" + "</" + fonction + ">" + "</response>";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response_code=" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private String formatCheckResponse()
+    {
+        String certifPath = "";
+        FileParamReader fpr;
+        try
+        {
+            fpr = new FileParamReader(pathfile);
+        }
+        catch(Exception ex)
+        {
+            return "<Error message=\"" + Nls.getErrorMessage("cannot_read_file") + " (" + pathfile + ")" + "\"/>";
+        }
+        try
+        {
+            if(request.getValue("alternate_certificate").length() == 0)
+                certifPath = "" + fpr.getParam("F_CERTIFICATE") + "." + request.getValue("merchant_country") + "." + request.getValue("merchant_id");
+            else
+                certifPath = "" + fpr.getParam("F_CERTIFICATE") + "." + request.getValue("alternate_certificate");
+        }
+        catch(Exception ex) { }
+        FileInputStream certifStream;
+        try
+        {
+            certifStream = new FileInputStream(certifPath);
+        }
+        catch(FileNotFoundException fnf)
+        {
+            return "<Error message=\"" + Nls.getErrorMessage("Cannot_open_certif") + " (" + certifPath + ")" + "\"/>";
+        }
+        try
+        {
+            String xmlResponse = "";
+            xmlResponse = "<response  pathfile=\"OK\"  certificate=\"OK\" />";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private String formatReadTransactionResponse()
+    {
+        try
+        {
+            String xmlResponse = "";
+            String data = formatData(response.getValue(SIPSOfficeResponseParm.DATA));
+            xmlResponse = "<response response_code=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE) + "\" " + "transaction_time=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME) + "\" " + "transaction_date=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE) + "\" " + "transaction_certificate=\"" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE) + "\" " + "transaction_type=\"" + transData.getValue(SIPSOfficeTransactionParm.TRANSACTION_TYPE) + "\" " + "authorisation_id=\"" + transData.getValue(SIPSOfficeTransactionParm.AUTHORISATION_ID) + "\" " + "new_status=\"" + transData.getValue(SIPSOfficeTransactionParm.TRANSACTION_STATUS) + "\" " + "new_amount=\"" + transData.getValue(SIPSOfficeTransactionParm.ORIGIN_AMOUNT) + "\" " + "credit_amount=\"" + transData.getValue(SIPSOfficeTransactionParm.CREDIT_AMOUNT) + "\" " + "currency_code=\"" + transData.getValue(SIPSOfficeTransactionParm.CURRENCY_CODE) + "\" " + "cvv_response_code=\"" + transData.getValue(SIPSOfficeTransactionParm.CVV_RESPONSE_CODE) + "\" " + "avs_response_code=\"" + response.getValue(SIPSOfficeResponseParm.AVS_RESPONSE_CODE) + "\" " + "payment_date=\"" + transData.getValue(SIPSOfficeTransactionParm.PAYMENT_DATE) + "\" " + "payment_time=\"" + transData.getValue(SIPSOfficeTransactionParm.PAYMENT_TIME) + "\" " + "card_number=\"" + transData.getValue(SIPSOfficeTransactionParm.CARD_NUMBER) + "\" " + "card_validity=\"" + transData.getValue(SIPSOfficeTransactionParm.CARD_VALIDITY) + "\" " + "card_type=\"" + transData.getValue(SIPSOfficeTransactionParm.CARD_TYPE) + "\" " + "order_id=\"" + transData.getValue(SIPSOfficeTransactionParm.ORDER_ID) + "\" " + "order_validity=\"" + transData.getValue(SIPSOfficeTransactionParm.ORDER_VALIDITY) + "\" " + "score_value=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_VALUE) + "\" " + "score_color=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_COLOR) + "\" " + "score_info=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_INFO) + "\" " + "score_profile=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_PROFILE) + "\" " + "score_threshold=\"" + response.getValue(SIPSOfficeResponseParm.SCORE_THRESHOLD) + "\" " + "data=\"" + data + "\" " + "/>";
+            try
+            {
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response_code=" + response.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE));
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : response : " + xmlResponse);
+                writeTraces.rmiNormal("office", pseudoPid, "OfficeWrapper : -------------------------------------------------------------------------");
+            }
+            catch(Exception ex) { }
+            return xmlResponse;
+        }
+        catch(Exception e)
+        {
+            return "<Error message=\"" + e + "\"/>";
+        }
+    }
+
+    private SIPSOfficeApi api;
+    private SIPSDataObject request;
+    private SIPSDataObject response;
+    private SIPSDataObject transData;
+    private RmiInterface writeTraces;
+    private String pathfile;
+    private String fonction;
+    private int pseudoPid;
+}

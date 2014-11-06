@@ -1,0 +1,5 @@
+Composant		: diag
+Version composant	: 3.05
+OS			: Windows 2003 Server
+microprocesseur 	: Intel
+JRE			: 1.4.2_04

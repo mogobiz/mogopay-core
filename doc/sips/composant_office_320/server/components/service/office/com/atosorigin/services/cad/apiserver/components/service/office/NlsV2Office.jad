@@ -1,0 +1,128 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   NlsV2Office.java
+
+package com.atosorigin.services.cad.apiserver.components.service.office;
+
+import java.util.*;
+
+public class NlsV2Office
+{
+
+    public NlsV2Office()
+    {
+    }
+
+    public static void setPackage(String packageName)
+    {
+        PACKAGE = packageName;
+        bundleList = new Hashtable();
+    }
+
+    public static String getConstant(String key)
+        throws Exception
+    {
+        return get(key, "Constant");
+    }
+
+    public static String getResource(String key)
+        throws Exception
+    {
+        return get(key, "Resources");
+    }
+
+    public static String getErrorMessage(String key)
+        throws Exception
+    {
+        return get(key, "Error");
+    }
+
+    private static String get(String key, String bundleName)
+        throws Exception
+    {
+        ResourceBundle rb_ = (ResourceBundle)bundleList.get(bundleName);
+        if(rb_ == null)
+        {
+            rb_ = ResourceBundle.getBundle(PACKAGE + "." + bundleName);
+            bundleList.put(bundleName, rb_);
+        }
+        String response = rb_.getString(key);
+        if(response == null)
+            throw new Exception("key " + key + "is empty");
+        else
+            return response;
+    }
+
+    public static String getConstant(String key, String packageName)
+        throws Exception
+    {
+        return get(key, "Constant", packageName);
+    }
+
+    public static String getResource(String key, String packageName)
+        throws Exception
+    {
+        return get(key, "Resources", packageName);
+    }
+
+    public static String getErrorMessage(String key, String packageName)
+        throws Exception
+    {
+        return get(key, "Error", packageName);
+    }
+
+    private static String get(String key, String bundleName, String packageName)
+        throws Exception
+    {
+        ResourceBundle rb_ = ResourceBundle.getBundle(packageName + "." + bundleName);
+        String response = rb_.getString(key);
+        if(response == null)
+            throw new Exception("key " + key + "is empty");
+        else
+            return response;
+    }
+
+    private void setLocale(String ISOLanguage)
+    {
+        defaultLocale = Locale.getDefault();
+        Locale.setDefault(new Locale(ISOLanguage, ""));
+    }
+
+    private void restoreLocale()
+    {
+        Locale.setDefault(defaultLocale);
+    }
+
+    public String getConstant(String key, String packageName, String ISOLanguage)
+        throws Exception
+    {
+        setLocale(ISOLanguage);
+        String value = get(key, "Constant", packageName);
+        restoreLocale();
+        return value;
+    }
+
+    public String getResource(String key, String packageName, String ISOLanguage)
+        throws Exception
+    {
+        setLocale(ISOLanguage);
+        String value = get(key, "Resources", packageName);
+        restoreLocale();
+        return value;
+    }
+
+    public String getErrorMessage(String key, String packageName, String ISOLanguage)
+        throws Exception
+    {
+        setLocale(ISOLanguage);
+        String value = get(key, "Error", packageName);
+        restoreLocale();
+        return value;
+    }
+
+    private static Hashtable bundleList = new Hashtable();
+    public static String PACKAGE = "com.atos.sips.common";
+    private Locale defaultLocale;
+
+}

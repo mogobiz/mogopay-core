@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration SYSTEM "config.dtd">
+<configuration>
+	<service>
+		<servicePort>7180</servicePort>
+		<maxServiceRequest>5</maxServiceRequest>
+		<queueSizeMaxService>5</queueSizeMaxService>
+		<accessListService>chemin_du_fichier_accessListService.xml</accessListService>
+	</service>
+	<command>
+		<commandPort>7181</commandPort>
+		<maxCommandRequest>5</maxCommandRequest>
+		<queueSizeMaxCommand>5</queueSizeMaxCommand>
+		<accessListCommand>chemin_du_fichier_accessListCommand.xml</accessListCommand>
+	</command>
+	<httpRequest>
+		<httpRequestPort>7182</httpRequestPort>
+		<maxHttpRequest>1</maxHttpRequest>
+		<queueSizeMaxHttpRequest>1</queueSizeMaxHttpRequest>
+		<accessListHttpRequest>chemin_du_fichier_accessListHttpRequest.xml</accessListHttpRequest>
+	</httpRequest>
+	<watchdog>
+		<pollingTimer>6000</pollingTimer>
+		<survPort>7183</survPort>
+		<trace level="0" sizeLimit="1000" unit="Line" path="chemin_du_repertoire_de_traces" prefix="APIServer" />
+<!--		<alternateTrace id="example" path="chemin_du_repertoire_de_traces" prefix="example" />	-->
+		<alternateTrace id="" path="./" prefix="" />
+	</watchdog>
+	<documentRoot>chemin_du_repertoire_HttpRoot</documentRoot>
+	<routing>
+		<componentDir>chemin_du_repertoire_components</componentDir>
+	</routing>
+	<alert>
+		<alertURL></alertURL>
+		<alertProxyHost></alertProxyHost>
+		<alertProxyPort></alertProxyPort>
+	</alert>
+	<components>
+		<pathfile id="example" path="chemin_du_fichier_pathfile" />
+	</components>
+</configuration>

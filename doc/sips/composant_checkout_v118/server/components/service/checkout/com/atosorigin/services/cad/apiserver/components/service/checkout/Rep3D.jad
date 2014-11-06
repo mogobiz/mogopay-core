@@ -1,0 +1,144 @@
+// Decompiled by Jad v1.5.8g. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.kpdus.com/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Rep3D.java
+
+package com.atosorigin.services.cad.apiserver.components.service.checkout;
+
+
+public class Rep3D
+{
+
+    public Rep3D(String mpiTag, String mpiPareq, String mpiDate, String listCodeDS, String mpiUrlAcs, String mpiSid, String mpiStatus3D, 
+            String sign, String card_type)
+    {
+        tag = mpiTag;
+        cardType = card_type;
+        pareq = mpiPareq;
+        date = mpiDate;
+        listeCodeDS = listCodeDS;
+        urlACS = mpiUrlAcs;
+        sid = mpiSid;
+        status3D = mpiStatus3D;
+    }
+
+    public Rep3D()
+    {
+    }
+
+    public String getPareq()
+    {
+        return pareq;
+    }
+
+    public void setPareq(String pareq)
+    {
+        this.pareq = pareq;
+    }
+
+    public String getSid()
+    {
+        return sid;
+    }
+
+    public void setSid(String sid)
+    {
+        this.sid = sid;
+    }
+
+    public String getTag()
+    {
+        return tag;
+    }
+
+    public void setTag(String tag)
+    {
+        this.tag = tag;
+    }
+
+    public String getDate()
+    {
+        return date;
+    }
+
+    public void setDate(String date)
+    {
+        this.date = date;
+    }
+
+    public String getListeCodeDS()
+    {
+        return listeCodeDS;
+    }
+
+    public void setListeCodeDS(String listeCodeDS)
+    {
+        this.listeCodeDS = listeCodeDS;
+    }
+
+    public String getStatus3D()
+    {
+        return status3D;
+    }
+
+    public void setStatus3D(String status3D)
+    {
+        this.status3D = status3D;
+    }
+
+    public String getUrlACS()
+    {
+        return urlACS;
+    }
+
+    public void setUrlACS(String urlACS)
+    {
+        this.urlACS = urlACS;
+    }
+
+    public String toString()
+    {
+        StringBuffer sb = new StringBuffer();
+        sb.append("tag :").append(tag);
+        return sb.toString();
+    }
+
+    public String getCardType()
+    {
+        return cardType;
+    }
+
+    public void setCardType(String cardType)
+    {
+        this.cardType = cardType;
+    }
+
+    public String concatRep3D()
+    {
+        String msgToSend = "";
+        msgToSend = (new StringBuilder("checkEnroll3d&")).append(getStatus3D()).append("&").append(getCardType()).append("&").append(getPareq()).append("&").append(getDate()).append("&").append(getListeCodeDS()).append("&").append(getUrlACS()).append("&").append(getSid()).toString();
+        return msgToSend;
+    }
+
+    public void unconcatRep3D(String msgReceived)
+    {
+        String tab[] = msgReceived.split("&");
+        setTag(tab[0]);
+        setStatus3D(tab[1]);
+        setCardType(tab[2]);
+        setPareq(tab[3]);
+        setDate(tab[4]);
+        setListeCodeDS(tab[5]);
+        setUrlACS(tab[6]);
+        setSid(tab[7]);
+    }
+
+    String tag;
+    String cardType;
+    String pareq;
+    String date;
+    String listeCodeDS;
+    String urlACS;
+    String sid;
+    String status3D;
+}

@@ -1,0 +1,16 @@
+<!ELEMENT list (accept, deny)>
+<!ELEMENT accept (acceptList*, acceptAddress*)>
+	<!ELEMENT acceptList (#PCDATA)>
+		<!ATTLIST acceptList
+			from CDATA #REQUIRED
+			to CDATA #REQUIRED
+		>
+	<!ELEMENT acceptAddress (#PCDATA)>
+
+<!ELEMENT deny (denyList*, denyAddress*)>
+	<!ELEMENT denyList (#PCDATA)>
+		<!ATTLIST denyList
+			from CDATA #REQUIRED
+			to CDATA #REQUIRED
+		>
+	<!ELEMENT denyAddress (#PCDATA)>
