@@ -1,4 +1,0 @@
-set -x
-# Compilation sous Solaris
-cc GetStatus.c	-o GetStatus	-lsocket -lnsl 
- 
