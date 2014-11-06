@@ -216,7 +216,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                       val pipeline: Future[SendReceive] =
                         for (
                           Http.HostConnectorInfo(connector, _) <-
-                          IO(Http) ? Http.HostConnectorSetup(Settings.ServerListen, Settings.ServerPort)
+                          IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
 
                         ) yield sendReceive(connector)
                       println(s"request ->${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")

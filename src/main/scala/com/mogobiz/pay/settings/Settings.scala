@@ -12,8 +12,6 @@ object Settings {
   } else {
     Environment.DEV
   }
-  val ServerListen = config.getString("spray.interface")
-  val ServerPort = config.getInt("spray.port")
 
   val ResourcesPath = config.getString("resources.path")
   val IsResourcesLocal = ResourcesPath.isEmpty
@@ -157,7 +155,10 @@ object Settings {
   object Mogopay {
     val EsIndex = config.getString("mogopay.esindex")
     val Secret = config getString "mogopay.secret"
-    val BaseEndPoint = config getString "mogopay.endpoint"
+    val Protocol = config getString "mogopay.protocol"
+    val Host = config getString "mogopay.host"
+    val Port = config getInt "mogopay.port"
+    val BaseEndPoint = s"$Protocol://$Host:$Port"
     val EndPoint = s"${BaseEndPoint}/pay/"
   }
 
