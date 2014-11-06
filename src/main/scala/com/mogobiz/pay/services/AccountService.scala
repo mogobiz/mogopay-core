@@ -672,7 +672,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       complete {
         import com.sksamuel.elastic4s.ElasticDsl._
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
-          .from(esSettings.ElasticSearch.Index -> "Account")
+          .from(Settings.Mogopay.EsIndex -> "Account")
           .where(regexQuery("email", "newuser"))
         com.mogobiz.es.EsClient().execute(req)
 

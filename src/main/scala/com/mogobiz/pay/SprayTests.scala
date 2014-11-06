@@ -2,9 +2,6 @@ package com.mogobiz.pay
 
 import scala.concurrent.Future
 
-/**
- * Created by hayssams on 12/03/14.
- */
 object SprayTestsNoMagnet {
 
   trait Route

@@ -15,13 +15,13 @@ import com.mogobiz.es.{Settings => esSettings}
 
 class TransactionSequenceHandler {
   def findByVendorId(uuid: String): Option[TransactionSequence] = {
-    val req = search in esSettings.ElasticSearch.Index -> "TransactionSequence" filter termFilter("vendorId" -> uuid)
+    val req = search in Settings.Mogopay.EsIndex -> "TransactionSequence" filter termFilter("vendorId" -> uuid)
     EsClient.search[TransactionSequence](req)
   }
 
   // TODO Maybe we should check what the payment provider is
   def nextTransactionId(vendorId: String): Long = {
-    val maybeRes = EsClient.loadWithVersion[TransactionSequence](vendorId)
+    val maybeRes = EsClient.loadWithVersion[TransactionSequence](Settings.Mogopay.EsIndex, vendorId)
     maybeRes map { case (seq, version) =>
       val newTxId =
         if (DateTimeComparator.getDateOnlyInstance.compare(new DateTime(seq.lastUpdated), new DateTime()) == 0) {
@@ -31,7 +31,7 @@ class TransactionSequenceHandler {
         }
 
       val tryUpdate = Try {
-        EsClient.update[TransactionSequence](seq.copy(transactionId = newTxId), version)
+        EsClient.update[TransactionSequence](Settings.Mogopay.EsIndex, seq.copy(transactionId = newTxId), version)
         newTxId
       }
 
@@ -45,7 +45,7 @@ class TransactionSequenceHandler {
         new SimpleDateFormat("HHmmss").format(new Date()).toLong
       else
         1L
-      EsClient.index(TransactionSequence(vendorId, seq))
+      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq))
       seq
     }
   }

@@ -102,7 +102,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
-    val transaction: BOTransaction = EsClient.load[BOTransaction](transactionUUID).orNull
+    val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
 
     val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
@@ -130,16 +130,16 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val vendorAndUuid = params("vads_order_info").split("--")
     val vendorId = vendorAndUuid(0)
     val transactionUUID = vendorAndUuid(1)
-    val vendor = EsClient.load[Account](vendorId).orNull
+    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorId).orNull
     val parametresProvider: Map[String, String] =
       parse(org.json4s.StringInput(vendor.paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
     val ok: Boolean = SystempayUtilities.checkSignature(params("signature"),
       parametresProvider("systempayCertificate"), values.asJava)
     if (ok) {
-      val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
+      val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
 
       val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid)
-      EsClient.index(botlog, false)
+      EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
       val vads_card_brand = try {
         CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString))
       }
@@ -225,7 +225,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         pares
       ).asJava)
 
-      val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
+      val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
       val secured: ThreeDSecure = SystempayUtilities.create3DSProxy(
         "/wsdl/SystemPay_3DSecure.wsdl",
         new TraceHandler(transaction, "SYSTEMPAY"))
@@ -309,7 +309,7 @@ class SystempayClient {
       val vads_site_id: String = shopId
       val vads_trans_date: String = transDate
       val vads_trans_id: String = "%06d".format(paymentRequest.transactionSequence.toLong)
-      val vads_url_return: String = Settings.MogopayEndPoint + "systempay/done"
+      val vads_url_return: String = Settings.Mogopay.EndPoint + "systempay/done"
       val vads_version: String = Settings.Systempay.Version
       val signature: String =
         SystempayUtilities.encode(Seq(
@@ -467,7 +467,7 @@ class SystempayClient {
 
   def check3DSecure(sessionDataUuid: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
-    val transaction = EsClient.load[BOTransaction](transactionUUID).orNull
+    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException("")
 
     val parametres: Map[String, String] = parse(StringInput(paymentConfig.cbParam.getOrElse("{}"))).extract[Map[String, String]]
@@ -529,7 +529,7 @@ class SystempayClient {
           pareqName = "PaReq",
           pareqValue = encodedPareq,
           termUrlName = "TermUrl",
-          termUrlValue = s"${Settings.MogopayEndPoint}systempay/3ds-callback/${sessionDataUuid}",
+          termUrlValue = s"${Settings.Mogopay.EndPoint}systempay/3ds-callback/${sessionDataUuid}",
           url = acsURL,
           method = "POST"
         )

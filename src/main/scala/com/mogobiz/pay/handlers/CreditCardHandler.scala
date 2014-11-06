@@ -4,13 +4,14 @@ import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistException}
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.settings.Settings
 
 class CreditCardHandler {
   def delete(accountId: String, cardId: String): Unit = {
     accountHandler.load(accountId).map { account: Account =>
       account.creditCards.find(_.uuid == cardId).map { card =>
         val newCards = account.creditCards.diff(Seq(card))
-        EsClient.index(account.copy(creditCards = newCards))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards))
       } getOrElse {
         throw CreditCardDoesNotExistException("")
       }

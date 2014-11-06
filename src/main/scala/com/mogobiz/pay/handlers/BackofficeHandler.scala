@@ -16,14 +16,14 @@ class BackofficeHandler {
     if (!sessionData.isMerchant)
       throw InvalidContextException("User not a merchant")
     val merchantId = sessionData.accountId.getOrElse(throw InvalidContextException("No logged merchant found"))
-    val req = search in esSettings.ElasticSearch.Index -> "Account" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "Account" filter {
       termFilter("owner", merchantId)
     } start page * max limit max
     EsClient.searchAll[Account](req)
   }
 
   def listTransactionLogs(transactionId: String): Seq[BOTransactionLog] = {
-    val req = search in esSettings.ElasticSearch.Index -> "BOTransactionLog" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransactionLog" filter {
       termFilter("transaction", transactionId)
     } sort {
       by field "dateCreated" order DESC
@@ -65,7 +65,7 @@ class BackofficeHandler {
       transactionUUID.map(uuid => termFilter("transactionUUID", uuid)) ++
       amount.map(x => termFilter("amount", x))
 
-    val req = search in esSettings.ElasticSearch.Index -> "BOTransaction" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" filter {
       and(filters: _*)
     } query {
       range("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime.map(_.getTime).orNull
@@ -77,7 +77,7 @@ class BackofficeHandler {
   }
 
   def getTransaction(uuid: String): Option[BOTransaction] =
-    EsClient.search[BOTransaction](search in esSettings.ElasticSearch.Index -> "BOTransaction" filter {
+    EsClient.search[BOTransaction](search in Settings.Mogopay.EsIndex -> "BOTransaction" filter {
       termFilter("uuid", uuid)
     })
 }

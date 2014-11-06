@@ -4,7 +4,7 @@ import java.io.File
 import java.sql.Timestamp
 import java.util.{Calendar, Currency, Date, Random}
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.settings.{Mapping, Settings}
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
@@ -24,7 +24,7 @@ object DBInitializationHandler {
     fillDB(fillWithFixtures)
   }
 
-  private def initDB() = com.mogobiz.es.Mapping.set
+  private def initDB() = Mapping.set
 
   private def fillDB(fillWithFixtures: Boolean) {
     if (fillWithFixtures) {
@@ -138,9 +138,9 @@ object DBInitializationHandler {
     createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "seller9")
 
     val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
-    EsClient.index(rateEUR)
+    EsClient.index(Settings.Mogopay.EsIndex, rateEUR)
     val rateGBP = new Rate(newUUID, "GBP", Calendar.getInstance.getTime, 0.00829348, 2)
-    EsClient.index(rateGBP)
+    EsClient.index(Settings.Mogopay.EsIndex, rateGBP)
   }
 
   private def createAddress(road: String, city: String, zip: String, country: String) = {
@@ -288,7 +288,7 @@ object DBInitializationHandler {
     //      Some("Payment confirmed"),
     //      trans.uuid)
 
-    EsClient.index(trans)
+    EsClient.index(Settings.Mogopay.EsIndex, trans)
   }
 
   private def createCertification(merchant: Account) = {
@@ -474,12 +474,12 @@ __FIN__*/
 
 object Main2 extends App {
   try {
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "BOTransactionLog")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransactionLog")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
   }
   catch{
     case NonFatal(_) => println()

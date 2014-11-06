@@ -14,7 +14,7 @@ import scala.util.control.NonFatal
 
 class CountryImportHandler {
   private def findCountryAdmin(code: String, level: Int): Option[CountryAdmin] = {
-    val req = search in esSettings.ElasticSearch.Index -> "CountryAdmin" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" filter {
       and(
         termFilter("code", code),
         termFilter("level", level)
@@ -27,13 +27,13 @@ class CountryImportHandler {
     assert(countriesFile.exists(), s"${countriesFile.getAbsolutePath} does not exist.")
     assert(currenciesFile.exists(), s"${currenciesFile.getAbsolutePath} does not exist.")
 
-    val req = search in esSettings.ElasticSearch.Index -> "Country" aggs {
+    val req = search in Settings.Mogopay.EsIndex -> "Country" aggs {
       aggregation max "agg" field "lastUpdated"
     }
     EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
       if (lastUpdated >= countriesFile.lastModified) {
         EsClient.client.client
-          .prepareDeleteByQuery(esSettings.ElasticSearch.Index)
+          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
           .setQuery(new TermQueryBuilder("_type", "Country"))
           .execute
           .actionGet
@@ -68,7 +68,7 @@ class CountryImportHandler {
                 currencyName = Option(currencyName),
                 currencyNumericCode = Option(currencyMap(currencyCode)),
                 phoneCode = Option(phoneCode))
-              EsClient.index(newCountry, true)
+              EsClient.index(Settings.Mogopay.EsIndex, newCountry, true)
             }
           }
         }
@@ -110,7 +110,7 @@ class CountryImportHandler {
                   CountryRef(country.uuid, country.code),
                   None,
                   None)
-                EsClient.index(newCountryAdmin, true)
+                EsClient.index(Settings.Mogopay.EsIndex, newCountryAdmin, true)
               }
             }
           }
@@ -164,7 +164,7 @@ class CountryImportHandler {
                   country = countryAdmin1.country,
                   parentCountryAdmin1 = Some(CountryAdminRef(countryAdmin1.uuid, countryAdmin1.code.getOrElse(""))),
                   parentCountryAdmin2 = None)
-                EsClient.index(countryAdmin2ToIndex, true)
+                EsClient.index(Settings.Mogopay.EsIndex, countryAdmin2ToIndex, true)
               }
             }
           }
@@ -200,7 +200,7 @@ class CountryImportHandler {
             }
           } else {
             val cityFullCode = s"$countryCode.$a1code.$a2code.$cityCode"
-            val findCityReq = search in esSettings.ElasticSearch.Index -> "CountryAdmin" filter {
+            val findCityReq = search in Settings.Mogopay.EsIndex -> "CountryAdmin" filter {
               and(
                 termFilter("code" -> cityFullCode),
                 termFilter("level" -> 3)
@@ -210,7 +210,7 @@ class CountryImportHandler {
 
             if (city.isEmpty) {
               val admin2Code = s"$countryCode.$a1code.$a2code"
-              val findAdmin2Req = search in esSettings.ElasticSearch.Index -> "CountryAdmin" filter {
+              val findAdmin2Req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" filter {
                 and(
                   termFilter("code" -> admin2Code),
                   termFilter("level" -> 2)
@@ -225,7 +225,7 @@ class CountryImportHandler {
                   admin2.country,
                   admin2.parentCountryAdmin1,
                   Some(CountryAdminRef(admin2.uuid, admin2.code.getOrElse(""))))
-                EsClient.index(city, false)
+                EsClient.index(Settings.Mogopay.EsIndex, city, false)
               }
             }
           }
@@ -237,10 +237,10 @@ class CountryImportHandler {
 
 object Main extends App {
   println("Start...\n")
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(esSettings.ElasticSearch.Index).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
+  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
 
   countryImportHandler.importCountries(Settings.Import.countriesFile, Settings.Import.currenciesFile)
   countryImportHandler.importAdmins1(Settings.Import.admins1File)

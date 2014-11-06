@@ -76,7 +76,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   def donePayment(sessionData: SessionData, params: Map[String, String], uri: String): Uri = {
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
-    val transaction = EsClient.load[BOTransaction](transactionUuid).get
+    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid).get
     val amount = sessionData.amount
     val paymentRequest = sessionData.paymentRequest.get
     val errorUrl = sessionData.errorURL
@@ -162,7 +162,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val vendorAndUuidArray = vendorAndUuid.split("--")
     val paramVendorId = vendorAndUuidArray(0)
     val paramTransactionUuid = vendorAndUuidArray(1)
-    val transaction = EsClient.load[BOTransaction](paramTransactionUuid).get
+    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, paramTransactionUuid).get
     val id3d = params("ID3D")
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
@@ -218,7 +218,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val vendorAndUuidArray = vendorAndUuid.split("--")
     val vendorId = vendorAndUuidArray(0)
     val transactionUuid = vendorAndUuidArray(1)
-    val transaction = EsClient.load[BOTransaction](transactionUuid).get
+    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid).get
     val id3d = params("ID3D")
 
     if (params("3DSTATUS") == "Y" && params("3DSIGNVAL") == "Y" && params("3DENROLLED") == "Y" && params("3DERROR") == "0") {
@@ -226,7 +226,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     } else {
       transaction.paymentData.copy(status3DS = Some(ResponseCode3DS.REFUSED))
     }
-    EsClient.index(transaction, false)
+    EsClient.index(Settings.Mogopay.EsIndex, transaction, false)
   }
 
   implicit val system = ActorSystem()
@@ -247,11 +247,11 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     val transaction =
       if (id3d != null)
-        EsClient.load[BOTransaction](transactionUUID).get
+        EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).get
       else
         transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
 
-    val vendor = EsClient.load[Account](vendorId).get
+    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorId).get
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
@@ -292,8 +292,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val XCurrency = currency.toString
     val CCNumber = paymentRequest.ccNumber
     val CVVCode = paymentRequest.cvv
-    val URLRetour = s"${Settings.MogopayEndPoint}paybox/done-3ds"
-    val URLHttpDirect = s"${Settings.MogopayEndPoint}paybox/callback-3ds/${sessionData.uuid}"
+    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds"
+    val URLHttpDirect = s"${Settings.Mogopay.EndPoint}paybox/callback-3ds/${sessionData.uuid}"
     if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
       val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
       if (id3d == null && (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)) {
@@ -358,7 +358,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           query += "ID3D" -> id3d
 
         val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
-        EsClient.index(botlog, false)
+        EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
 
         val uri = Uri(Settings.Paybox.DirectEndPoint)
         val host = uri.authority.host
@@ -377,7 +377,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
 
         val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples))
-        EsClient.index(bolog, false)
+        EsClient.index(Settings.Mogopay.EsIndex, bolog, false)
         val errorCode = tuples.getOrElse("CODEREPONSE", "")
         val errorMessage = tuples.get("COMMENTAIRE")
         paymentResult = paymentResult.copy(
@@ -417,17 +417,17 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
-        "PBX_EFFECTUE" -> s"${Settings.MogopayEndPoint}paybox/done",
-        "PBX_REFUSE" -> s"${Settings.MogopayEndPoint}paybox/done",
-        "PBX_ANNULE" -> s"${Settings.MogopayEndPoint}paybox/done",
-        "PBX_REPONDRE_A" -> s"${Settings.MogopayEndPoint}paybox/callback/${sessionData.uuid}"
+        "PBX_EFFECTUE" -> s"${Settings.Mogopay.EndPoint}paybox/done",
+        "PBX_REFUSE" -> s"${Settings.Mogopay.EndPoint}paybox/done",
+        "PBX_ANNULE" -> s"${Settings.Mogopay.EndPoint}paybox/done",
+        "PBX_REPONDRE_A" -> s"${Settings.Mogopay.EndPoint}paybox/callback/${sessionData.uuid}"
       )
 
 
       val queryString = mapToQueryStringNoEncode(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
       val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
-      EsClient.index(botlog, false)
+      EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
       val action = Settings.Paybox.SystemEndPoint
       val query = queryList.toMap
 

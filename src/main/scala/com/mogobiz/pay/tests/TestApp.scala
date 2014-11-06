@@ -2,8 +2,9 @@ package com.mogobiz.pay.tests
 
 import java.util.{Calendar, UUID}
 
-import com.mogobiz.es.EsClient
+import com.mogobiz.es.{EsClient}
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.settings.Settings
 import com.mogobiz.session.{ESBackend, Session}
 import com.sksamuel.elastic4s.ElasticDsl._
 
@@ -62,10 +63,10 @@ object TestApp extends App {
     Nil,
     UUID.randomUUID().toString,
     Nil)
-  EsClient.index(account)
-  val obj = EsClient.load[Account](account.uuid)
-  val created = EsClient.update(account.copy(email = "you@you.com"), false, false)
-  val deleted = EsClient.delete[Account](Uuid, false)
+  EsClient.index(Settings.Mogopay.EsIndex, account)
+  val obj = EsClient.load[Account](Settings.Mogopay.EsIndex, account.uuid)
+  val created = EsClient.update(Settings.Mogopay.EsIndex, account.copy(email = "you@you.com"), false, false)
+  val deleted = EsClient.delete[Account](Settings.Mogopay.EsIndex, Uuid, false)
   println(obj)
   println(created)
   println(deleted)

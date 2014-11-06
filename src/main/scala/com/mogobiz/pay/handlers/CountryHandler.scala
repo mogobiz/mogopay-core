@@ -16,18 +16,18 @@ case class PhoneVerification(isValid: Boolean,
 class CountryHandler {
   def findCountriesForShipping(): Seq[Country] = {
     // (Integer.MAX_VALUE / 2) because Lucene says us `Caused by: java.lang.IllegalArgumentException: maxSize must be <= 2147483391; got: 2147483647`
-    val req = search in esSettings.ElasticSearch.Index -> "Country" filter termFilter("shipping" -> true) size (Integer.MAX_VALUE / 2)
+    val req = search in Settings.Mogopay.EsIndex -> "Country" filter termFilter("shipping" -> true) size (Integer.MAX_VALUE / 2)
     EsClient.searchAll[Country](req) sortBy (_.name)
   }
 
   def findCountriesForBilling(): Seq[Country] = {
-    val req = search in esSettings.ElasticSearch.Index -> "Country" filter termFilter("billing" -> true) size (Integer.MAX_VALUE / 2)
+    val req = search in Settings.Mogopay.EsIndex -> "Country" filter termFilter("billing" -> true) size (Integer.MAX_VALUE / 2)
     EsClient.searchAll[Country](req) sortBy (_.name)
   }
 
 
   def findByCode(code: String): Option[Country] = {
-    val req = search in esSettings.ElasticSearch.Index types "Country" filter termFilter("code", code) size (Integer.MAX_VALUE / 2)
+    val req = search in Settings.Mogopay.EsIndex types "Country" filter termFilter("code", code) size (Integer.MAX_VALUE / 2)
     EsClient.search[Country](req)
   }
 

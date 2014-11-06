@@ -32,7 +32,7 @@ trait MogopayRoutes extends Directives {
       pathPrefix("static" / "admin") {
         pathEndOrSingleSlash {
           compressResponse() {
-            redirect(s"${Settings.ApplicationEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
+            redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
           }
         }
       } ~

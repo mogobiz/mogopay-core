@@ -39,10 +39,10 @@ class AccountHandler {
 
   implicit val formats = new org.json4s.DefaultFormats {}
 
-  def update(account: Account) = EsClient.update(account, true, false)
+  def update(account: Account) = EsClient.update(Settings.Mogopay.EsIndex, account, true, false)
 
   def findByEmail(email: String): Option[Account] = {
-    val req = search in esSettings.ElasticSearch.Index types "Account" limit 1 from 0 filter {
+    val req = search in Settings.Mogopay.EsIndex  types "Account" limit 1 from 0 filter {
       termFilter("email", email)
     }
     EsClient.search[Account](req)
@@ -59,14 +59,14 @@ class AccountHandler {
 
   private def buildFindAccountRequest(email: String, merchantId: Option[String]): SearchDefinition = {
     if (!Settings.sharedCustomers && merchantId.nonEmpty) {
-      search in esSettings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+      search in Settings.Mogopay.EsIndex  -> "Account" limit 1 from 0 filter {
         and(
           termFilter("email", email),
           termFilter("owner", merchantId.get)
         )
       }
     } else {
-      search in esSettings.ElasticSearch.Index types "Account" filter {
+      search in Settings.Mogopay.EsIndex types "Account" filter {
         and(
           termFilter("email", email),
           missingFilter("owner") existence true includeNull true
@@ -91,14 +91,14 @@ class AccountHandler {
     val userAccountRequest =
       if (isCustomer) {
         val merchantReq = if (merchantId.isDefined) {
-          search in esSettings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+          search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
             and(
               termFilter("uuid", merchantId.get),
               missingFilter("owner") existence true includeNull true
             )
           }
         } else {
-          search in esSettings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+          search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
             and(
               termFilter("email", Settings.AccountValidateMerchantDefault),
               missingFilter("owner") existence true includeNull true
@@ -114,14 +114,14 @@ class AccountHandler {
         if (merchant.status == AccountStatus.INACTIVE) {
           throw InactiveMerchantException("")
         }
-        search in esSettings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
             termFilter("owner", merchant.uuid)
           )
         }
       } else {
-        search in esSettings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
             missingFilter("owner") existence true includeNull true
@@ -135,11 +135,11 @@ class AccountHandler {
       else if (userAccount.status == AccountStatus.INACTIVE)
         throw InactiveAccountException(s"${userAccount.email}")
       else if (userAccount.password != new Sha256Hash(password).toString) {
-        EsClient.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true)
+        EsClient.update(Settings.Mogopay.EsIndex, userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true)
         throw InvalidPasswordErrorException(s"${userAccount.email}")
       } else {
         val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
-        EsClient.update(userAccountToIndex, false, true)
+        EsClient.update(Settings.Mogopay.EsIndex, userAccountToIndex, false, true)
         userAccountToIndex.copy(password = "")
       }
     }.getOrElse(throw AccountDoesNotExistException(""))
@@ -211,7 +211,7 @@ class AccountHandler {
 
 
   def generateLostPasswordToken(email: String, merchantSecret: String): String = {
-    val findBySecretReq = search in esSettings.ElasticSearch.Index -> "Account" limit 1 from 0 filter {
+    val findBySecretReq = search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
       termFilter("secret", merchantSecret)
     }
     val merchantAccount = EsClient.search[Account](findBySecretReq)
@@ -221,7 +221,7 @@ class AccountHandler {
       account map { account =>
         import org.joda.time.DateTime
         val date = new DateTime().plusSeconds(Settings.Mail.MaxAge)
-        SymmetricCrypt.encrypt(s"$email;${date.toDate.getTime}", Settings.ApplicationSecret, "AES")
+        SymmetricCrypt.encrypt(s"$email;${date.toDate.getTime}", Settings.Mogopay.Secret, "AES")
       } getOrElse (throw new AccountDoesNotExistException(s"$email"))
     } getOrElse (throw new AccountDoesNotExistException("Invalid merchant secret"))
   }
@@ -243,11 +243,11 @@ class AccountHandler {
   //    DAO.findBy("firstName" -> firstName, "lastName" -> lastName)
 
   def load(uuid: String): Option[Account] = {
-    EsClient.load[Account](uuid)
+    EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
   }
 
   def findBySecret(secret: String): Option[Account] = {
-    val req = search in esSettings.ElasticSearch.Index -> "Account" filter termFilter("secret", secret)
+    val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("secret", secret)
     EsClient.search[Account](req)
   }
 
@@ -264,11 +264,11 @@ class AccountHandler {
   //
   def save(account: Account): Try[Unit] = findByEmail(account.email) match {
     case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
-    case None => EsClient.index(account); Success()
+    case None => EsClient.index(Settings.Mogopay.EsIndex, account); Success()
   }
 
   def getMerchant(merchantId: String): Option[Account] = {
-    val merchant = EsClient.load[Account](merchantId)
+    val merchant = EsClient.load[Account](Settings.Mogopay.EsIndex, merchantId)
     merchant flatMap { merchant =>
       if (merchant.owner.isEmpty) Some(merchant) else None
     }
@@ -279,7 +279,7 @@ class AccountHandler {
   def checkTokenValidity(token: String): (TokenValidity, UserInfo) = {
     import org.joda.time._
 
-    val uncryptedToken = SymmetricCrypt.decrypt(token, Settings.ApplicationSecret, "AES").split(";")
+    val uncryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split(";")
     val (email, date) = (uncryptedToken(0), DateTime.parse(uncryptedToken(1)))
 
     val account = findByEmail(email)
@@ -320,7 +320,7 @@ class AccountHandler {
   }
 
   def updateLostPassword(password: String, token: String): Unit = {
-    val clearText = SymmetricCrypt.decrypt(token, Settings.ApplicationSecret, "AES").split(";")
+    val clearText = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split(";")
     val email = clearText(0)
     val date = clearText(1).toLong
     val now = new Date().getTime
@@ -398,7 +398,7 @@ class AccountHandler {
     val pinCode3 = new String(md.digest(), "UTF-8")
 
     val newTelephone = phoneNumber.copy(status = TelephoneStatus.WAITING_ENROLLMENT, pinCode3 = Some(pinCode3))
-    EsClient.index(acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))))
+    EsClient.index(Settings.Mogopay.EsIndex, acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))))
 
     def message = "Your 3 digits code is: " + plainTextPinCode
     smsHandler.sendSms(message, phoneNumber.phone)
@@ -479,7 +479,7 @@ class AccountHandler {
       if (!token.contains("-")) {
         throw InvalidTokenException("Invalid token.")
       } else {
-        val splitToken = SymmetricCrypt.decrypt(token, Settings.ApplicationSecret, "AES").split("-")
+        val splitToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split("-")
         val timestamp = splitToken(1).toLong
         val accountId = splitToken(2)
 
@@ -492,7 +492,7 @@ class AccountHandler {
             false
           } else {
             load(accountId).map { acc =>
-              EsClient.index(acc.copy(status = AccountStatus.ACTIVE))
+              EsClient.index(Settings.Mogopay.EsIndex, acc.copy(status = AccountStatus.ACTIVE))
             }
             true
           }
@@ -524,7 +524,7 @@ class AccountHandler {
     */
 
     def bypassLogin(token: String, session: Session): Option[Session] = {
-      val splitToken = SymmetricCrypt.decrypt(token, Settings.ApplicationSecret, "AES").split("-")
+      val splitToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split("-")
       val timestamp = splitToken(1).toLong
       val accountId = splitToken(2).toLong
 
@@ -557,7 +557,7 @@ class AccountHandler {
 
   private def updateCard(accountId: String, ccId: String, holder: String,
                          expiryDate: String, ccType: String): CreditCard = {
-    val account: Account = EsClient.load[Account](accountId) getOrElse (throw AccountDoesNotExistException(""))
+    val account: Account = EsClient.load[Account](Settings.Mogopay.EsIndex, accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
 
@@ -568,7 +568,7 @@ class AccountHandler {
     )
 
     val newCards = account.creditCards.filter(_.uuid != ccId) :+ newCard
-    EsClient.index(account.copy(creditCards = newCards))
+    EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards))
 
     newCard
   }
@@ -581,7 +581,7 @@ class AccountHandler {
       if (!UtilHandler.checkLuhn(number)) {
         throw InvalidCardNumberException("")
       } else {
-        (UtilHandler.hideCardNumber(number, "X"), SymmetricCrypt.encrypt(number, Settings.ApplicationSecret, "AES"))
+        (UtilHandler.hideCardNumber(number, "X"), SymmetricCrypt.encrypt(number, Settings.Mogopay.Secret, "AES"))
       }
 
     val expiryTime = new Timestamp(new SimpleDateFormat("MM/yyyy").parse(expiryDate).getTime)
@@ -594,7 +594,7 @@ class AccountHandler {
       account = accountId,
       hiddenNumber = hiddenN)
     val newCards = account.creditCards :+ newCard
-    EsClient.index(account.copy(creditCards = newCards))
+    EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards))
     newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X"))
   }
 
@@ -623,7 +623,7 @@ class AccountHandler {
             admin1 = address.admin1,
             admin2 = address.admin2)
         }
-        EsClient.index(account.copy(address = Some(newAddress)))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(address = Some(newAddress)))
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
 
@@ -642,7 +642,7 @@ class AccountHandler {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
         val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
-        EsClient.index(account.copy(shippingAddresses = newAddrs))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs))
         shippAddr
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -664,7 +664,7 @@ class AccountHandler {
                 country = address.country,
                 admin1 = address.admin1,
                 admin2 = address.admin2))
-            EsClient.index(account.copy(shippingAddresses = newAddrs))
+            EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs))
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -687,7 +687,7 @@ class AccountHandler {
         val newAddrs = account.shippingAddresses.map {
           addr => addr.copy(active = addr.uuid == addrId)
         }
-        EsClient.index(account.copy(shippingAddresses = newAddrs))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs))
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def profileInfo(accountId: String): Map[Symbol, Any] = load(accountId).map {
@@ -729,7 +729,7 @@ class AccountHandler {
         'isMerchant -> account.owner.isEmpty)
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  def find(uuid: String) = EsClient.load[Account](uuid)
+  def find(uuid: String) = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
 
   def updateProfile(profile: UpdateProfile): Unit = {
     if (!profile.isMerchant && profile.vendor.isEmpty) Failure(new VendorNotProvidedError(""))
@@ -810,7 +810,7 @@ class AccountHandler {
             targetFile.delete()
             scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
               s"""
-             |D_LOGO!${Settings.MogopayEndPoint}${Settings.ImagesPath}sips/logo/!
+             |D_LOGO!${Settings.Mogopay.EndPoint}${Settings.ImagesPath}sips/logo/!
              |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!
              |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
              |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
@@ -886,13 +886,13 @@ class AccountHandler {
   }
 
   def recycle() {
-    val req = select in esSettings.ElasticSearch.Index -> "Account" filter {
+    val req = select in Settings.Mogopay.EsIndex -> "Account" filter {
       and(
         termFilter("status", AccountStatus.WAITING_ENROLLMENT),
-        rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.RecycleAccountDuration)
+        rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.AccountRecycleDuration)
       )
     }
-    EsClient.searchAllRaw(req) map (_.getId) foreach (EsClient.delete[Account](_, false))
+    EsClient.searchAllRaw(req) map (_.getId) foreach (EsClient.delete[Account](Settings.Mogopay.EsIndex, _, false))
   }
 
   def enroll(accountId: String, lPhone: String, pinCode: String): Try[Unit] = {
@@ -903,7 +903,7 @@ class AccountHandler {
           val newTel = user.address.get.telephone.get.copy(lphone = lPhone)
           val newAddr = user.address.get.copy(telephone = Some(newTel))
           val newUser = user.copy(address = Some(newAddr))
-          EsClient.index(newUser)
+          EsClient.index(Settings.Mogopay.EsIndex, newUser)
           Success(())
         } else {
           load(accountId).map {
@@ -912,7 +912,7 @@ class AccountHandler {
               if (account.address.map(_.telephone.map(_.pinCode3)).flatten == Some(encryptedCode) &&
                 account.address.map(_.telephone.map(_.status)).flatten == Some(TelephoneStatus.WAITING_ENROLLMENT)) {
                 val newTel = Telephone("", lPhone, "", None, TelephoneStatus.ACTIVE)
-                EsClient.index(account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))))
+                EsClient.index(Settings.Mogopay.EsIndex, account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))))
                 Success(())
               } else {
                 Failure(new MogopayError(MogopayConstant.InvalidPhonePincode3))
@@ -926,7 +926,7 @@ class AccountHandler {
     if (!signup.isMerchant && signup.vendor.isEmpty) {
       throw VendorNotProvidedError("Vendor cannot be null")
     } else {
-      val req = search in esSettings.ElasticSearch.Index -> "Account" filter termFilter("email", signup.email)
+      val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("email", signup.email)
       if (EsClient.search[Account](req).isDefined)
         throw new AccountWithSameEmailAddressAlreadyExistsError("")
 
@@ -1003,7 +1003,7 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
-      EsClient.index(account)
+      EsClient.index(Settings.Mogopay.EsIndex, account)
 
       (token, account)
     }
@@ -1022,7 +1022,7 @@ object Token {
   def generateAndSaveToken(accountId: String, tokenType: TokenType): Option[String] = {
     val timestamp: Long = (new java.util.Date).getTime
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
-    val token = SymmetricCrypt.encrypt(clearToken, Settings.ApplicationSecret, "AES")
+    val token = SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
     accountHandler.find(accountId).map { account =>
       accountHandler.save(account.copy(emailingToken = Some(token)))
       token
@@ -1032,6 +1032,6 @@ object Token {
   def generateToken(accountId: String, tokenType: TokenType): String = {
     val timestamp: Long = (new java.util.Date).getTime
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
-    SymmetricCrypt.encrypt(clearToken, Settings.ApplicationSecret, "AES")
+    SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
   }
 }

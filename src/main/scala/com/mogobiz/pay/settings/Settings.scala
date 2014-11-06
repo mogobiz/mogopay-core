@@ -5,7 +5,7 @@ import java.io.File
 import com.typesafe.config.ConfigFactory
 
 object Settings {
-  private val config = ConfigFactory.load()
+  private val config = ConfigFactory.load("mogopay")
 
   val Env = if (System.getenv.containsKey("PRODUCTION")) {
     Environment.PROD
@@ -26,8 +26,8 @@ object Settings {
   val AccountValidateMerchantDefault = config.getString("account.validate.merchant.default")
   val AccountValidateCustomershared = config.getBoolean("account.validate.customershared")
   val AccountValidatePasswordMaxattempts = config.getInt("account.validate.password.maxattempts")
-  val RecycleAccountDuration = config.getInt("recycleAccount.duration")
-  val TransactionRequestDuration = config.getInt("transactionRequest.duration")
+  val AccountRecycleDuration = config.getInt("account.recycle.duration")
+  val TransactionRequestDuration = config.getInt("transaction.equest.duration")
   val TransactionDuration = config.getInt("transaction.duration")
   val SelectForUpdate = config.getString("db.select.forupdate")
   val MaxQueryResults = config.getInt("maxQueryResults")
@@ -37,8 +37,6 @@ object Settings {
   val EmailSenderAddress = "noreply@mogobiz.com"
   val EmailSenderName = "noreply@mogobiz.com"
   val ImagesPath = "/static/images/"
-  val ApplicationEndPoint = config getString "application.endpoint"
-  val MogopayEndPoint = s"${ApplicationEndPoint}/pay/"
 
   val Interface = config getString "spray.interface"
   val Port = config getInt "spray.port"
@@ -156,14 +154,20 @@ object Settings {
     }
 
   }
+  object Mogopay {
+    val EsIndex = config.getString("mogopay.esindex")
+    val Secret = config getString "mogopay.secret"
+    val BaseEndPoint = config getString "mogopay.endpoint"
+    val EndPoint = s"${BaseEndPoint}/pay/"
+  }
 
-  val ApplicationSecret = config getString "application.secret"
 
-  require(ApplicationSecret.nonEmpty, "application.secret must be non-empty")
+
+  require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(Interface.nonEmpty, "interface must be non-empty")
   require(0 < Port && Port < 65536, "illegal port")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
-  require(MogopayEndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
+  require(Mogopay.EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
 }
 
 object Environment extends Enumeration {

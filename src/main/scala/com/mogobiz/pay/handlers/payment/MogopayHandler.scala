@@ -25,7 +25,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
       }
 
 
-    val req = select in esSettings.ElasticSearch.Index -> "Account" filter {
+    val req = select in Settings.Mogopay.EsIndex -> "Account" filter {
       and(
         termFilter("status", AccountStatus.ACTIVE),
         termFilter("email", sessionData.email.get),

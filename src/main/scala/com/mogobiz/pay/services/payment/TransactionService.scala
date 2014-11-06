@@ -219,8 +219,8 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                           IO(Http) ? Http.HostConnectorSetup(Settings.ServerListen, Settings.ServerPort)
 
                         ) yield sendReceive(connector)
-                      println(s"request ->${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
-                      val request = Get(s"${Settings.MogopayEndPoint}$serviceName/$methodName/$sessionId")
+                      println(s"request ->${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
+                      val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
                       def cleanSession(session: Session) {
                         val authenticated = session.sessionData.authenticated
                         val customerId = session.sessionData.accountId
