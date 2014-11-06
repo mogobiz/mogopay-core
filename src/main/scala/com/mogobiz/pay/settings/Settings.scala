@@ -25,7 +25,7 @@ object Settings {
   val AccountValidateCustomershared = config.getBoolean("account.validate.customershared")
   val AccountValidatePasswordMaxattempts = config.getInt("account.validate.password.maxattempts")
   val AccountRecycleDuration = config.getInt("account.recycle.duration")
-  val TransactionRequestDuration = config.getInt("transaction.equest.duration")
+  val TransactionRequestDuration = config.getInt("transaction.request.duration")
   val TransactionDuration = config.getInt("transaction.duration")
   val SelectForUpdate = config.getString("db.select.forupdate")
   val MaxQueryResults = config.getInt("maxQueryResults")
@@ -35,10 +35,6 @@ object Settings {
   val EmailSenderAddress = "noreply@mogobiz.com"
   val EmailSenderName = "noreply@mogobiz.com"
   val ImagesPath = "/static/images/"
-
-  val Interface = config getString "spray.interface"
-  val Port = config getInt "spray.port"
-
 
   object ImportCountries {
     val codes = config.getStringList("import.countries.codes")
@@ -165,8 +161,6 @@ object Settings {
 
 
   require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
-  require(Interface.nonEmpty, "interface must be non-empty")
-  require(0 < Port && Port < 65536, "illegal port")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
   require(Mogopay.EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
 }
