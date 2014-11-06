@@ -5,6 +5,7 @@ import java.net.UnknownHostException
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.mogobiz.auth.services._
+import com.mogobiz.pay.boot.DBInitializer
 import com.mogobiz.pay.exceptions.Exceptions.MogopayException
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.services._
@@ -26,6 +27,8 @@ trait MogopayRoutes extends Directives {
   private implicit val _ = system.dispatcher
 
   private val adminIndex = new File(new File(new File(s"${Settings.ResourcesPath}", "admin"), "html"), "index.html")
+
+  def bootstrap() = DBInitializer()
 
   def routes =
     logRequestResponse(showRequest _) {

@@ -158,8 +158,6 @@ object Settings {
     val EndPoint = s"${BaseEndPoint}/pay/"
   }
 
-
-
   require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
   require(Mogopay.EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")

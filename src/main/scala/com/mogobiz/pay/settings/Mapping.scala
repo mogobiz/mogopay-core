@@ -21,8 +21,6 @@ object Mapping {
     implicit val system = akka.actor.ActorSystem("mogopay-boot")
     val pipeline: HttpRequest => scala.concurrent.Future[HttpResponse] = sendReceive
 
-    EsClient.client.sync.execute(create index com.mogobiz.pay.settings.Settings.Mogopay.EsIndex)
-
     mappingFiles foreach { name =>
       val url = s"/${Settings.Mogopay.EsIndex}/$name/_mapping"
       val mapping = scala.io.Source.fromFile(mappingFor(name)).mkString

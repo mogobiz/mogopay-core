@@ -1,30 +1,36 @@
-package com.mogobiz.pay.handlers
+package com.mogobiz.pay.boot
 
 import java.io.File
 import java.sql.Timestamp
 import java.util.{Calendar, Currency, Date, Random}
+
+import com.mogobiz.es.{EsClient, Settings => esSettings}
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.{Mapping, Settings}
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
-import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
+import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
+import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.settings.{Mapping, Settings}
 import com.mogobiz.utils.GlobalUtil._
+import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
+import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.index.query.TermQueryBuilder
+
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
-import com.mogobiz.es.{Settings => esSettings}
 
-object DBInitializationHandler {
-  def boot(init: Boolean = true, fillWithFixtures: Boolean = false) {
-    if (init) initDB()
+object DBInitializer {
+  def apply(fillWithFixtures: Boolean = false) = try {
+    EsClient.client.sync.execute(create index Settings.Mogopay.EsIndex)
+    Mapping.set
     fillDB(fillWithFixtures)
+  } catch {
+    case e: IndexAlreadyExistsException =>
+      println(s"Index ${Settings.Mogopay.EsIndex} was not created because it already exists.")
+    case e: Throwable => e.printStackTrace()
   }
-
-  private def initDB() = Mapping.set
 
   private def fillDB(fillWithFixtures: Boolean) {
     if (fillWithFixtures) {
@@ -484,5 +490,5 @@ object Main2 extends App {
   catch{
     case NonFatal(_) => println()
   }
-  DBInitializationHandler.boot()
+  DBInitializer()
 }
