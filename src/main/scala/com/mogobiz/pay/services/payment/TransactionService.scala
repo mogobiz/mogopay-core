@@ -124,7 +124,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                     handleComplete(call,
                       (shippingPrices: Seq[ShippingPrice]) => {
                         val message = GetShippingPrice(shippingPrices, provider, service, rateType)
-                        val shippingPrice = Await.result((actor ? message).mapTo[Option[ShippingPrice]], Duration.Inf)
+                        val shippingPrice = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
                         setSession(session += ("selectedShippingPrice" -> shippingPrice)) {
                           complete {
                             StatusCodes.OK -> shippingPrice
