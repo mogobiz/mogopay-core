@@ -21,7 +21,7 @@ import com.lyra.vads.ws3ds.stub.ThreeDSecure_Service;
 
 public class SystempayUtilities {
     /**
-     * Permet de vérifier une signature à chaque reponse
+     * Permet de verifier une signature a chaque reponse
      */
     public static Boolean checkSignature(String expectedSignature,
                                          String certificate, List<String> parameters) {
@@ -30,7 +30,7 @@ public class SystempayUtilities {
     }
 
     /**
-     * Crée un signature pour la requete
+     * Cree un signature pour la requete
      */
     static public final String SEPARATOR = "+";
 
