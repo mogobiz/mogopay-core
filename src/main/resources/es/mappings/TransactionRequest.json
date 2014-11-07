@@ -1,5 +1,10 @@
 {
     "TransactionRequest": {
+        "_ttl" : {
+            "enabled" : true,
+            "index":"not_analyzed",
+            "default": "10m"
+        },
         "properties": {
             "uuid": {
                 "type": "string",
