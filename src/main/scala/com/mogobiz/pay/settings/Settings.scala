@@ -134,20 +134,17 @@ object Settings {
   }
 
   object Jobs {
-
     object Interval {
-      val cleanTransactionRequests = config.getInt("jobs.cron.transactionrequest")
       val cleanAccounts = config.getInt("jobs.cron.recycleaccount")
       val importCountries = config.getInt("jobs.cron.importcountries")
     }
 
     object Delay {
-      val cleanTransactionRequests = config.getInt("jobs.delay.transactionrequest")
       val cleanAccounts = config.getInt("jobs.delay.recycleaccount")
       val importCountries = config.getInt("jobs.delay.importcountries")
     }
-
   }
+
   object Mogopay {
     val EsIndex = config.getString("mogopay.esindex")
     val Secret = config getString "mogopay.secret"
