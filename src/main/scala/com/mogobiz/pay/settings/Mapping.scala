@@ -38,7 +38,7 @@ object Mapping {
   }
 
   private def mappingFiles = {
-    val dir = new File(this.getClass.getClassLoader.getResource(s"es/mappings").toURI)
+    val dir = new File(this.getClass.getClassLoader.getResource(s"es/pay/mappings").toURI)
     dir.listFiles.map(_.getName.split('.')(0))
   }
 }

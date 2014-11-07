@@ -23,7 +23,7 @@ import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
 
 object DBInitializer {
-  def apply(fillWithFixtures: Boolean = false) =  {
+  def apply(fillWithFixtures: Boolean = false) = {
     try {
       EsClient.client.sync.execute(create index Settings.Mogopay.EsIndex)
       Mapping.set
@@ -31,16 +31,22 @@ object DBInitializer {
     } catch {
       case e: RemoteTransportException if e.getCause().isInstanceOf[IndexAlreadyExistsException] =>
         println(s"Index ${Settings.Mogopay.EsIndex} was not created because it already exists.")
-      case e: Throwable => println("*****"+e.getClass.getName());e.printStackTrace()
+      case e: Throwable => println("*****" + e.getClass.getName()); e.printStackTrace()
     }
   }
 
   private def fillDB(fillWithFixtures: Boolean) {
     if (fillWithFixtures) {
-      countryImportHandler.importCountries(Settings.Import.countriesFile, Settings.Import.currenciesFile)
-      countryImportHandler.importAdmins1(Settings.Import.admins1File)
-      countryImportHandler.importAdmins2(Settings.Import.admins2File)
-      countryImportHandler.importCities(Settings.Import.citiesFile)
+      if (Settings.Import.rootDir.exists()) {
+        println(s"Importing from ${Settings.Import.rootDir.getAbsolutePath}")
+        countryImportHandler.importCountries(Settings.Import.countriesFile, Settings.Import.currenciesFile)
+        countryImportHandler.importAdmins1(Settings.Import.admins1File)
+        countryImportHandler.importAdmins2(Settings.Import.admins2File)
+        countryImportHandler.importCities(Settings.Import.citiesFile)
+      }
+      else {
+        println(s"No country to import from ${Settings.Import.rootDir.getAbsolutePath}")
+      }
     }
 
     val PAYPAL = Map("paypalUser" -> "hayssams-facilitator_api1.yahoo.com", "paypalPassword" -> "1365940711", "paypalSignature" -> "An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG")
