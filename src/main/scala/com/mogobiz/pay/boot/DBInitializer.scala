@@ -17,19 +17,22 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.index.query.TermQueryBuilder
+import org.elasticsearch.transport.RemoteTransportException
 
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
 
 object DBInitializer {
-  def apply(fillWithFixtures: Boolean = false) = try {
-    EsClient.client.sync.execute(create index Settings.Mogopay.EsIndex)
-    Mapping.set
-    fillDB(fillWithFixtures)
-  } catch {
-    case e: IndexAlreadyExistsException =>
-      println(s"Index ${Settings.Mogopay.EsIndex} was not created because it already exists.")
-    case e: Throwable => e.printStackTrace()
+  def apply(fillWithFixtures: Boolean = false) =  {
+    try {
+      EsClient.client.sync.execute(create index Settings.Mogopay.EsIndex)
+      Mapping.set
+      fillDB(fillWithFixtures)
+    } catch {
+      case e: RemoteTransportException if e.getCause().isInstanceOf[IndexAlreadyExistsException] =>
+        println(s"Index ${Settings.Mogopay.EsIndex} was not created because it already exists.")
+      case e: Throwable => println("*****"+e.getClass.getName());e.printStackTrace()
+    }
   }
 
   private def fillDB(fillWithFixtures: Boolean) {
@@ -159,7 +162,7 @@ object DBInitializer {
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
                                   paypalConfig: M,
-                                  cbConfig:M,
+                                  cbConfig: M,
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
                                   passwordPattern: Option[String] = Some("")) = {
@@ -212,6 +215,7 @@ object DBInitializer {
   private def now(): Timestamp = new Timestamp(new java.util.Date().getTime)
 
   var i = 0
+
   private def createBOTransaction(vendor: Account,
                                   transactionUuid: Option[String] = None,
                                   customer: Option[Account] = None) = {
@@ -343,7 +347,7 @@ qRYApJkYmWXLLANZn46w0I65L63PlBVrpYPSvFAu25aUMaSwcELNUKcpgFq5tsI1wG
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++END
-                   """
+      """
 
 
     val certifDir = getCertifDir(merchant)
@@ -362,7 +366,7 @@ BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
 
   private def createParcom(merchant: Account) = {
     val parcomContent =
-"""CANCEL_URL!http://!
+      """CANCEL_URL!http://!
 RETURN_URL!http://!
 ADVERT!!
 BACKGROUND!!
@@ -378,15 +382,15 @@ PAYMENT_MEANS!CB,2,VISA,2,MASTERCARD,2!
 RETURN_LOGO!!
 SUBMIT_LOGO!!
 TEMPLATE!!
-"""
+      """
 
     val parcomDefaultContent =
-"""BGCOLOR!FFFFFF!
+      """BGCOLOR!FFFFFF!
 BLOCK_ALIGN!center!
 BLOCK_ORDER!1,2,3,4,5,6,7,8,9!
 HEADER_FLAG!yes!
 TEXTCOLOR!000000!
-"""
+      """
 
     val certifContent = """
 <%
@@ -480,14 +484,14 @@ __FIN__*/
 
 object Main2 extends App {
   try {
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransactionLog")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
+    EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
+    EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
+    EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransactionLog")).execute.actionGet
+    EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
+    EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
+    EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
   }
-  catch{
+  catch {
     case NonFatal(_) => println()
   }
   DBInitializer()
