@@ -24,7 +24,8 @@ object Mapping {
     mappingFiles foreach { name =>
       val url = s"/${Settings.Mogopay.EsIndex}/$name/_mapping"
       val mapping = scala.io.Source.fromFile(mappingFor(name)).mkString
-      val x: Future[Any] = pipeline(Post(route(url), mapping)) map { response: HttpResponse =>
+      val updatedMapping = mapping.replaceAllLiterally("{{ttl}}", Settings.TransactionRequestDuration.toString + "s")
+      val x: Future[Any] = pipeline(Post(route(url), updatedMapping)) map { response: HttpResponse =>
         response.status match {
           case StatusCodes.OK => System.err.println(s"The mapping for `$name` was successfully set.")
           case _ => System.err.println(s"Error while setting the mapping for `$name`: ${response.entity.asString}")

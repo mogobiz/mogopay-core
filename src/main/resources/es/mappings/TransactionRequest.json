@@ -3,7 +3,7 @@
         "_ttl" : {
             "enabled" : true,
             "index":"not_analyzed",
-            "default": "10m"
+            "default": "{{ttl}}"
         },
         "properties": {
             "uuid": {
