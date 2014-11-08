@@ -68,7 +68,8 @@ trait MogopayRoutes extends Directives {
             new PaylineService(paylineActor).route ~
             new MogopayService(mogopayActor).route ~
             new SipsService(sipsActor).route ~
-            new UserService(userActor).route
+            new UserService(userActor).route ~
+            new PdfService(pdfActor).route
         }
     }
 

@@ -24,4 +24,5 @@ trait MogopayActors {
   val mogopayActor = system.actorOf(Props[MogopayActor])
   val sipsActor = system.actorOf(Props[SipsActor])
   val userActor = system.actorOf(Props[UserActor])
+  val pdfActor = system.actorOf(Props[PdfActor])
 }
