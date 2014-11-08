@@ -82,13 +82,15 @@ object Settings {
 
 
   object Import {
-    private def path(fileName: String) = s"""${config.getString("import.countries.dir")}$fileName.txt"""
+    val rootDir = new File(config.getString("import.countries.dir"))
 
-    lazy val currenciesFile = new File(path("currencies"))
-    lazy val countriesFile = new File(path("countries"))
-    lazy val admins1File = new File(path("admins1"))
-    lazy val admins2File = new File(path("admins2"))
-    lazy val citiesFile = new File(path("cities"))
+    private def path(fileName: String) = new File(rootDir, fileName)
+
+    val currenciesFile = path("currencies.txt")
+    val countriesFile = path("countries.txt")
+    val admins1File = path("admins1.txt")
+    val admins2File = path("admins2.txt")
+    val citiesFile = path("cities.txt")
   }
 
   object Transaction {
@@ -136,18 +138,17 @@ object Settings {
   object Jobs {
 
     object Interval {
-      val cleanTransactionRequests = config.getInt("jobs.cron.transactionrequest")
       val cleanAccounts = config.getInt("jobs.cron.recycleaccount")
       val importCountries = config.getInt("jobs.cron.importcountries")
     }
 
     object Delay {
-      val cleanTransactionRequests = config.getInt("jobs.delay.transactionrequest")
       val cleanAccounts = config.getInt("jobs.delay.recycleaccount")
       val importCountries = config.getInt("jobs.delay.importcountries")
     }
 
   }
+
   object Mogopay {
     val EsIndex = config.getString("mogopay.esindex")
     val Secret = config getString "mogopay.secret"

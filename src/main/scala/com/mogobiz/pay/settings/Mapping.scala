@@ -16,7 +16,7 @@ object Mapping {
 
   def set() {
     def route(url: String) = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
-    def mappingFor(name: String) = new File(this.getClass.getClassLoader.getResource(s"es/mappings/$name.json").toURI)
+    def mappingFor(name: String) = new File(this.getClass.getClassLoader.getResource(s"es/pay/mappings/$name.json").toURI)
 
     implicit val system = akka.actor.ActorSystem("mogopay-boot")
     val pipeline: HttpRequest => scala.concurrent.Future[HttpResponse] = sendReceive
@@ -24,7 +24,8 @@ object Mapping {
     mappingFiles foreach { name =>
       val url = s"/${Settings.Mogopay.EsIndex}/$name/_mapping"
       val mapping = scala.io.Source.fromFile(mappingFor(name)).mkString
-      val x: Future[Any] = pipeline(Post(route(url), mapping)) map { response: HttpResponse =>
+      val updatedMapping = mapping.replaceAllLiterally("{{ttl}}", Settings.TransactionRequestDuration.toString + "m")
+      val x: Future[Any] = pipeline(Post(route(url), updatedMapping)) map { response: HttpResponse =>
         response.status match {
           case StatusCodes.OK => System.err.println(s"The mapping for `$name` was successfully set.")
           case _ => System.err.println(s"Error while setting the mapping for `$name`: ${response.entity.asString}")
@@ -37,7 +38,7 @@ object Mapping {
   }
 
   private def mappingFiles = {
-    val dir = new File(this.getClass.getClassLoader.getResource(s"es/mappings").toURI)
+    val dir = new File(this.getClass.getClassLoader.getResource(s"es/pay/mappings").toURI)
     dir.listFiles.map(_.getName.split('.')(0))
   }
 }

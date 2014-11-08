@@ -564,6 +564,14 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         token = null,
         data = null
       )
+      val creditCard = BOCreditCard(
+        number = paymentResult.ccNumber,
+        holder = None,
+        expiryDate = paymentResult.expirationDate,
+        cardType = paymentResult.cardType
+      )
+      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
+
       transactionHandler.finishPayment(vendorUuid, transactionUuid, computeTransactionStatus(paymentResult.status), paymentResult, paymentResult.errorCodeOrigin)
       paymentResult
     }
