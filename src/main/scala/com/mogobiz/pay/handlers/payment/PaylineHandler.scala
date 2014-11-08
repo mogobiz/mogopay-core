@@ -704,6 +704,14 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       token = null,
       data = null)
 
+    val creditCard = BOCreditCard(
+      number = paymentResult.ccNumber,
+      holder = None,
+      expiryDate = paymentResult.expirationDate,
+      cardType = paymentResult.cardType
+    )
+    EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
+
     transactionHandler.finishPayment(vendorUuid, transactionUuid, if (result.getResult.getCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, result.getResult().getCode())
     paymentResult
   }

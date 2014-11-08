@@ -1,7 +1,7 @@
 package com.mogobiz.pay.handlers.payment
 
 import java.io.StringReader
-import java.net.{URLEncoder, URLDecoder}
+import java.net.{URLDecoder}
 import java.security.interfaces.RSAPublicKey
 import java.security.{Signature, NoSuchAlgorithmException, MessageDigest, Security}
 import java.text.SimpleDateFormat
@@ -11,7 +11,7 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.util.Timeout
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.{Environment, Settings}
+import com.mogobiz.pay.settings.{Environment}
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.handlers.UtilHandler
@@ -123,6 +123,14 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(bankErrorCode)),
           token = ""
         )
+        val creditCard = BOCreditCard(
+          number = paymentResult.ccNumber,
+          holder = None,
+          expiryDate = paymentResult.expirationDate,
+          cardType = paymentResult.cardType
+        )
+        EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
+
         transactionHandler.finishPayment(vendorId, transactionUuid, if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, codeReponse)
         finishPayment(sessionData, paymentResult)
       }

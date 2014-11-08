@@ -175,6 +175,13 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         status = if (params("vads_result") == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED
       )
 
+      val creditCard = BOCreditCard(
+        number = pr.ccNumber,
+        holder = None,
+        expiryDate = pr.expirationDate,
+        cardType = pr.cardType
+      )
+      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
       transactionHandler.finishPayment(vendorId,
         transactionUUID,
         if (params("vads_result") == "00")
