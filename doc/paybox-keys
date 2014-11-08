@@ -1,0 +1,20 @@
+Paybox system non 3Dsecure rang = 32
+Paybox system 3Dsecure rang = 43
+
+Paybox Non 3ds Direct
+rang = 85
+CLE = 1999888I
+SITE=1999888
+
+Paybox 3ds Direct
+rang = 69
+CLE = 1999888I
+SITE=1999888
+
+Paybox  3ds Direct ave abonnement
+rang = 69
+CLE = 1999888I
+SITE=1999888
+
+Création de l'abonné en paybox system
+et stockage de l'abonné puis sollicitation en direct

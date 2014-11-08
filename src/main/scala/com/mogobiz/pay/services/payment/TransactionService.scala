@@ -29,7 +29,7 @@ import scala.util.{Failure, Success, Try}
 
 
 class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
-  implicit val timeout = Timeout(10 seconds)
+  implicit val timeout = Timeout(40 seconds)
 
   //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
   //  val responseFuture = pipeline {

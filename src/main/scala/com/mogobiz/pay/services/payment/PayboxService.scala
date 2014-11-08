@@ -20,7 +20,7 @@ class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext
 
 import scala.concurrent.duration._
 
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(40.seconds)
 
   val route = {
     pathPrefix("paybox") {

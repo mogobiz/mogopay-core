@@ -41,7 +41,7 @@ import scala.util._
 class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
   PaymentHandler.register(handlerName, this)
 
-  implicit val timeout: Timeout = 30.seconds
+    implicit val timeout: Timeout = 40.seconds
 
   def verifySha1(data: String, sign: String, pemdata: String): Boolean = {
     val Charset = "UTF-8"
