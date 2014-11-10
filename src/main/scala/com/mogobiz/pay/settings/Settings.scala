@@ -5,7 +5,9 @@ import java.io.File
 import com.typesafe.config.ConfigFactory
 
 object Settings {
-  private val config = ConfigFactory.load("mogopay")
+  private val config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
+
+
 
   val Env = if (System.getenv.containsKey("PRODUCTION")) {
     Environment.PROD
