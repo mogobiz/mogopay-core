@@ -21,7 +21,6 @@ import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
 import spray.routing._
-import spray.routing.directives.CookieDirectives._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
