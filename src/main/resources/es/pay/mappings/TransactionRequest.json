@@ -1,59 +1,59 @@
 {
-    "TransactionRequest": {
-        "_ttl" : {
-            "enabled" : true,
-            "index":"not_analyzed",
-            "default": "{{ttl}}"
-        },
+  "TransactionRequest": {
+    "_ttl": {
+      "enabled": true,
+      "index": "not_analyzed",
+      "default": "{{ttl}}"
+    },
+    "properties": {
+      "uuid": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "tid": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "amount": {
+        "type": "long"
+      },
+      "extra": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "currency": {
         "properties": {
-            "uuid": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "tid": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "amount": {
-                "type": "long"
-            },
-            "extra": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "currency": {
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "index": "not_analyzed"
-                    },
-                    "fractionDigits": {
-                        "type": "long"
-                    },
-                    "numericCode": {
-                        "type": "long"
-                    },
-                    "rate": {
-                        "type": "double"
-                    }
-                }
-            },
-            "vendor": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "session": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "dateCreated": {
-                "type": "date",
-                "format": "dateOptionalTime"
-            },
-            "lastUpdated": {
-                "type": "date",
-                "format": "dateOptionalTime"
-            }
+          "code": {
+            "type": "string",
+            "index": "not_analyzed"
+          },
+          "fractionDigits": {
+            "type": "long"
+          },
+          "numericCode": {
+            "type": "long"
+          },
+          "rate": {
+            "type": "double"
+          }
         }
+      },
+      "vendor": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "session": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "dateCreated": {
+        "type": "date",
+        "format": "dateOptionalTime"
+      },
+      "lastUpdated": {
+        "type": "date",
+        "format": "dateOptionalTime"
+      }
     }
+  }
 }

@@ -2,13 +2,11 @@ package com.mogobiz.pay.handlers
 
 import java.io.File
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.config._
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.settings.Settings
 import org.elasticsearch.index.query.TermQueryBuilder
-import com.mogobiz.es.{Settings => esSettings}
 
 import scala.util.control.NonFatal
 
@@ -30,6 +28,7 @@ class CountryImportHandler {
     val req = search in Settings.Mogopay.EsIndex -> "Country" aggs {
       aggregation max "agg" field "lastUpdated"
     }
+
     EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
       if (lastUpdated >= countriesFile.lastModified) {
         EsClient.client.client

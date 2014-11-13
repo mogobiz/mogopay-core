@@ -1,32 +1,32 @@
 {
-    "Rate": {
-        "properties": {
-            "currencyCode": {
-                "type": "string",
-                "index": "not_analyzed"
-            },
-            "activationDate": {
-                "type": "date",
-                "format": "dateOptionalTime"
-            },
-            "currencyRate": {
-                "type": "double"
-            },
-            "currencyFractionDigits": {
-                "type": "integer"
-            },
-            "dateCreated": {
-                "type": "date",
-                "format": "dateOptionalTime"
-            },
-            "lastUpdated": {
-                "type": "date",
-                "format": "dateOptionalTime"
-            },
-            "uuid": {
-                "type": "string",
-                "index": "not_analyzed"
-            }
-        }
+  "Rate": {
+    "properties": {
+      "currencyCode": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "activationDate": {
+        "type": "date",
+        "format": "dateOptionalTime"
+      },
+      "currencyRate": {
+        "type": "double"
+      },
+      "currencyFractionDigits": {
+        "type": "integer"
+      },
+      "dateCreated": {
+        "type": "date",
+        "format": "dateOptionalTime"
+      },
+      "lastUpdated": {
+        "type": "date",
+        "format": "dateOptionalTime"
+      },
+      "uuid": {
+        "type": "string",
+        "index": "not_analyzed"
+      }
     }
+  }
 }
