@@ -20,7 +20,6 @@ import spray.routing.Directives
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Try
-import com.mogobiz.es.{Settings => esSettings}
 
 class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
 
