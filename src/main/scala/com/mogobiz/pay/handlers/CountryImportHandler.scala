@@ -38,7 +38,7 @@ class CountryImportHandler {
           .actionGet
 
         val currencyMap: Map[String, String] =
-          scala.io.Source.fromFile(currenciesFile, "utf-16").getLines().map {
+          scala.io.Source.fromFile(currenciesFile, "utf-8").getLines().map {
             case line if line.trim().length() > 0 =>
               val field = line.trim.split('\t')
               Some((field(0).trim, field(1).trim))
