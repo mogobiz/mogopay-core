@@ -570,7 +570,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         expiryDate = paymentResult.expirationDate,
         cardType = paymentResult.cardType
       )
-      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
+      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)), false)
 
       transactionHandler.finishPayment(vendorUuid, transactionUuid, computeTransactionStatus(paymentResult.status), paymentResult, paymentResult.errorCodeOrigin)
       paymentResult

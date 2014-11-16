@@ -50,7 +50,7 @@ class TransactionHandler {
           val txCurrency = TransactionCurrency(currencyCode, currency.getNumericCode, currencyRate, rate.currencyFractionDigits)
           val txRequest = TransactionRequest(txReqUUID, txSeqId, amount, extra, txCurrency, vendor.uuid)
 
-          EsClient.index(Settings.Mogopay.EsIndex, txRequest)
+          EsClient.index(Settings.Mogopay.EsIndex, txRequest, false)
           txReqUUID
         }
       }).getOrElse(throw AccountDoesNotExistException(""))

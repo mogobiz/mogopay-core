@@ -129,7 +129,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           expiryDate = paymentResult.expirationDate,
           cardType = paymentResult.cardType
         )
-        EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
+        EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)), false)
 
         transactionHandler.finishPayment(vendorId, transactionUuid, if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, codeReponse)
         finishPayment(sessionData, paymentResult)

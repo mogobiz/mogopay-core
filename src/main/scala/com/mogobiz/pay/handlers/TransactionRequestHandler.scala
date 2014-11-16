@@ -9,7 +9,7 @@ import com.mogobiz.pay.model.Mogopay.TransactionRequest
 import com.mogobiz.es.{Settings => esSettings}
 
 class TransactionRequestHandler {
-  def save(txRequest: TransactionRequest) = EsClient.index(Settings.Mogopay.EsIndex, txRequest)
+  def save(txRequest: TransactionRequest) = EsClient.index(Settings.Mogopay.EsIndex, txRequest, false)
 
   def update(txRequest: TransactionRequest) = EsClient.update(Settings.Mogopay.EsIndex, txRequest, true, false)
 

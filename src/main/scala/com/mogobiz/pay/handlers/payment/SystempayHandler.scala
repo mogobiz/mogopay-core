@@ -181,7 +181,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         expiryDate = pr.expirationDate,
         cardType = pr.cardType
       )
-      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)))
+      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)), false)
       transactionHandler.finishPayment(vendorId,
         transactionUUID,
         if (params("vads_result") == "00")

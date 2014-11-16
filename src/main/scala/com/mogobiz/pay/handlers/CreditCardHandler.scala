@@ -11,7 +11,7 @@ class CreditCardHandler {
     accountHandler.load(accountId).map { account: Account =>
       account.creditCards.find(_.uuid == cardId).map { card =>
         val newCards = account.creditCards.diff(Seq(card))
-        EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards), false)
       } getOrElse {
         throw CreditCardDoesNotExistException("")
       }

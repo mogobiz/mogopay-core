@@ -45,7 +45,7 @@ class TransactionSequenceHandler {
         new SimpleDateFormat("HHmmss").format(new Date()).toLong
       else
         1L
-      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq))
+      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq), false)
       seq
     }
   }

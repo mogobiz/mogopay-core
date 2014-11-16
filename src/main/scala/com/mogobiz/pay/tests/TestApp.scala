@@ -63,7 +63,7 @@ object TestApp extends App {
     Nil,
     UUID.randomUUID().toString,
     Nil)
-  EsClient.index(Settings.Mogopay.EsIndex, account)
+  EsClient.index(Settings.Mogopay.EsIndex, account, false)
   val obj = EsClient.load[Account](Settings.Mogopay.EsIndex, account.uuid)
   val created = EsClient.update(Settings.Mogopay.EsIndex, account.copy(email = "you@you.com"), false, false)
   val deleted = EsClient.delete[Account](Settings.Mogopay.EsIndex, Uuid, false)

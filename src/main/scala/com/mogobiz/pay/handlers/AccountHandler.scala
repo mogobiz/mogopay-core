@@ -39,8 +39,6 @@ class AccountHandler {
 
   implicit val formats = new org.json4s.DefaultFormats {}
 
-  def update(account: Account) = EsClient.update(Settings.Mogopay.EsIndex, account, true, false)
-
   def findByEmail(email: String): Option[Account] = {
     val req = search in Settings.Mogopay.EsIndex  types "Account" limit 1 from 0 filter {
       termFilter("email", email)
@@ -264,7 +262,7 @@ class AccountHandler {
   //
   def save(account: Account): Try[Unit] = findByEmail(account.email) match {
     case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
-    case None => EsClient.index(Settings.Mogopay.EsIndex, account); Success()
+    case None => EsClient.index(Settings.Mogopay.EsIndex, account, true); Success()
   }
 
   def getMerchant(merchantId: String): Option[Account] = {
@@ -316,7 +314,7 @@ class AccountHandler {
     val matching: Boolean = `match`(pattern, password)
 
     if (!matching) throw PasswordDoesNotMatchPatternException("")
-    update(account.copy(password = new Sha256Hash(password).toHex))
+    EsClient.update(Settings.Mogopay.EsIndex, account.copy(password = new Sha256Hash(password).toHex), true, false)
   }
 
   def updateLostPassword(password: String, token: String): Unit = {
@@ -329,7 +327,7 @@ class AccountHandler {
     }
     else {
       val account = this.findByEmail(email).getOrElse(throw InvalidEmailException(s"$email"))
-      update(account.copy(password = new Sha256Hash(password).toHex))
+      EsClient.update(Settings.Mogopay.EsIndex, account.copy(password = new Sha256Hash(password).toHex), true, false)
     }
   }
 
@@ -398,7 +396,7 @@ class AccountHandler {
     val pinCode3 = new String(md.digest(), "UTF-8")
 
     val newTelephone = phoneNumber.copy(status = TelephoneStatus.WAITING_ENROLLMENT, pinCode3 = Some(pinCode3))
-    EsClient.index(Settings.Mogopay.EsIndex, acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))))
+    EsClient.index(Settings.Mogopay.EsIndex, acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))), false)
 
     def message = "Your 3 digits code is: " + plainTextPinCode
     smsHandler.sendSms(message, phoneNumber.phone)
@@ -492,7 +490,7 @@ class AccountHandler {
             false
           } else {
             load(accountId).map { acc =>
-              EsClient.index(Settings.Mogopay.EsIndex, acc.copy(status = AccountStatus.ACTIVE))
+              EsClient.index(Settings.Mogopay.EsIndex, acc.copy(status = AccountStatus.ACTIVE), false)
             }
             true
           }
@@ -545,7 +543,7 @@ class AccountHandler {
   def generateNewSecret(accountId: String): Option[String] = load(accountId).map {
     acc =>
       val secret = UUID.randomUUID().toString
-      update(acc.copy(secret = secret))
+      EsClient.update(Settings.Mogopay.EsIndex, acc.copy(secret = secret), true, false)
       secret
   }
 
@@ -568,7 +566,7 @@ class AccountHandler {
     )
 
     val newCards = account.creditCards.filter(_.uuid != ccId) :+ newCard
-    EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards))
+    EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards), true)
 
     newCard
   }
@@ -594,7 +592,7 @@ class AccountHandler {
       account = accountId,
       hiddenNumber = hiddenN)
     val newCards = account.creditCards :+ newCard
-    EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards))
+    EsClient.index(Settings.Mogopay.EsIndex, account.copy(creditCards = newCards), true)
     newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X"))
   }
 
@@ -623,7 +621,7 @@ class AccountHandler {
             admin1 = address.admin1,
             admin2 = address.admin2)
         }
-        EsClient.index(Settings.Mogopay.EsIndex, account.copy(address = Some(newAddress)))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(address = Some(newAddress)), true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
 
@@ -634,7 +632,7 @@ class AccountHandler {
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
       val newAccount = account.copy(shippingAddresses = newAddresses)
-      update(newAccount)
+      EsClient.update(Settings.Mogopay.EsIndex, newAccount, true, false)
     }
 
   def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
@@ -642,7 +640,7 @@ class AccountHandler {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
         val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
-        EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs), true)
         shippAddr
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -664,7 +662,7 @@ class AccountHandler {
                 country = address.country,
                 admin1 = address.admin1,
                 admin2 = address.admin2))
-            EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs))
+            EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs), true)
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -687,7 +685,7 @@ class AccountHandler {
         val newAddrs = account.shippingAddresses.map {
           addr => addr.copy(active = addr.uuid == addrId)
         }
-        EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs))
+        EsClient.index(Settings.Mogopay.EsIndex, account.copy(shippingAddresses = newAddrs), true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def profileInfo(accountId: String): Map[Symbol, Any] = load(accountId).map {
@@ -881,7 +879,7 @@ class AccountHandler {
             generateAndSendPincode3(newAccount.uuid)
           }
         }
-        update(newAccount)
+        EsClient.update(Settings.Mogopay.EsIndex, newAccount, true, false)
     }
   }
 
@@ -903,7 +901,7 @@ class AccountHandler {
           val newTel = user.address.get.telephone.get.copy(lphone = lPhone)
           val newAddr = user.address.get.copy(telephone = Some(newTel))
           val newUser = user.copy(address = Some(newAddr))
-          EsClient.index(Settings.Mogopay.EsIndex, newUser)
+          EsClient.index(Settings.Mogopay.EsIndex, newUser, true)
           Success(())
         } else {
           load(accountId).map {
@@ -912,7 +910,7 @@ class AccountHandler {
               if (account.address.map(_.telephone.map(_.pinCode3)).flatten == Some(encryptedCode) &&
                 account.address.map(_.telephone.map(_.status)).flatten == Some(TelephoneStatus.WAITING_ENROLLMENT)) {
                 val newTel = Telephone("", lPhone, "", None, TelephoneStatus.ACTIVE)
-                EsClient.index(Settings.Mogopay.EsIndex, account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))))
+                EsClient.index(Settings.Mogopay.EsIndex, account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))), true)
                 Success(())
               } else {
                 Failure(new MogopayError(MogopayConstant.InvalidPhonePincode3))
@@ -1003,7 +1001,7 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
-      EsClient.index(Settings.Mogopay.EsIndex, account)
+      EsClient.index(Settings.Mogopay.EsIndex, account, true)
 
       (token, account)
     }
