@@ -36,19 +36,6 @@ object DBInitializer {
   }
 
   private def fillDB(fillWithFixtures: Boolean) {
-    if (fillWithFixtures) {
-      if (Settings.Import.rootDir.exists()) {
-        println(s"Importing from ${Settings.Import.rootDir.getAbsolutePath}")
-        countryImportHandler.importCountries(Settings.Import.countriesFile, Settings.Import.currenciesFile)
-        countryImportHandler.importAdmins1(Settings.Import.admins1File)
-        countryImportHandler.importAdmins2(Settings.Import.admins2File)
-        countryImportHandler.importCities(Settings.Import.citiesFile)
-      }
-      else {
-        println(s"No country to import from ${Settings.Import.rootDir.getAbsolutePath}")
-      }
-    }
-
     val PAYPAL = Map("paypalUser" -> "hayssams-facilitator_api1.yahoo.com", "paypalPassword" -> "1365940711", "paypalSignature" -> "An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG")
     val PAYLINE = Map("paylineAccount" -> "26399702760590", "paylineKey" -> "SH0gPsNhvHmePmlZz3Mj", "paylineContract" -> "1234567")
     val SIPS = Map("sipsMerchantId" -> "011223344553333", "sipsMerchantCountry" -> "fr")
