@@ -1,6 +1,5 @@
 package com.mogobiz.pay.settings
 
-import java.io.File
 
 import com.mogobiz.es.EsClient
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -12,18 +11,21 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 object Mapping {
+
+  def mappingNames = List("Account", "BOTransaction", "BOTransactionLog", "Country", "CountryAdmin", "Rate", "TransactionRequest", "TransactionSequence")
+
   def clear = Await.result(EsClient.client.execute(delete index Settings.Mogopay.EsIndex), Duration.Inf)
 
   def set() {
     def route(url: String) = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
-    def mappingFor(name: String) = new File(this.getClass.getClassLoader.getResource(s"es/pay/mappings/$name.json").toURI)
+    def mappingFor(name: String) = getClass().getResourceAsStream(s"/es/pay/mappings/$name.json")
 
     implicit val system = akka.actor.ActorSystem("mogopay-boot")
     val pipeline: HttpRequest => scala.concurrent.Future[HttpResponse] = sendReceive
 
-    mappingFiles foreach { name =>
+    mappingNames foreach { name =>
       val url = s"/${Settings.Mogopay.EsIndex}/$name/_mapping"
-      val mapping = scala.io.Source.fromFile(mappingFor(name)).mkString
+      val mapping = scala.io.Source.fromInputStream(mappingFor(name)).mkString
       val updatedMapping = mapping.replaceAllLiterally("{{ttl}}", Settings.TransactionRequestDuration.toString + "m")
       val x: Future[Any] = pipeline(Post(route(url), updatedMapping)) map { response: HttpResponse =>
         response.status match {
@@ -37,8 +39,4 @@ object Mapping {
     system.shutdown
   }
 
-  private def mappingFiles = {
-    val dir = new File(this.getClass.getClassLoader.getResource(s"es/pay/mappings").toURI)
-    dir.listFiles.map(_.getName.split('.')(0))
-  }
 }
