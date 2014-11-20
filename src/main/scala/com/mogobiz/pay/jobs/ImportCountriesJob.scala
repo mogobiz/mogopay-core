@@ -16,16 +16,15 @@ object ImportCountriesJob {
     if (Settings.Jobs.Interval.importCountries > 0) {
       system.scheduler.schedule(
         initialDelay = Settings.Jobs.Delay.importCountries seconds,
-        interval     = Settings.Jobs.Interval.importCountries seconds,
-        receiver     = system.actorOf(Props[ImportCountriesJob]),
-        message      = "")
+        interval = Settings.Jobs.Interval.importCountries seconds,
+        receiver = system.actorOf(Props[ImportCountriesJob]),
+        message = "")
     }
   }
 }
 
 /**
  * Periodically import countries into the database
- * In prodution mode, imported files are renamed to the current date/time
  */
 class ImportCountriesJob extends Actor {
   def receive = {
@@ -38,20 +37,19 @@ class ImportCountriesJob extends Actor {
       val admins2 = Settings.Import.admins2File
       val cities = Settings.Import.citiesFile
 
-      countryImportHandler.importCountries(countries, currencies)
-      countryImportHandler.importAdmins1(admins1)
-      countryImportHandler.importAdmins2(admins2)
-      countryImportHandler.importCities(cities)
-
-//      val now = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
-//      cities.renameTo(new File(cities.getAbsolutePath + "." + now))
-//      countries.renameTo(new File(countries.getAbsolutePath + "." + now))
-//      admins1.renameTo(new File(admins1.getAbsolutePath + "." + now))
-//      admins2.renameTo(new File(admins2.getAbsolutePath + "." + now))
-//
-      println(" == ImportCountriesJob: done.")
+      if (countryImportHandler.importCountries(countries, currencies)) {
+        countryImportHandler.importAdmins1(admins1)
+        countryImportHandler.importAdmins2(admins2)
+        countryImportHandler.importCities(cities)
+        println(" == ImportCountriesJob: done.")
+      }
+      else {
+        println(" == ImportCountriesJob: skipped.")
+      }
     } catch {
-      case NonFatal(_) => println(" == ImportCountriesJob: files missing, skipping…")
+      case NonFatal(e) =>
+        e.printStackTrace()
+        println(" == ImportCountriesJob: files missing, skipping…")
     }
   }
 }

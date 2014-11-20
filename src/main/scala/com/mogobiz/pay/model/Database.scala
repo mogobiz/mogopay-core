@@ -342,6 +342,9 @@ object Mogopay {
                           expiryDate: java.util.Date,
                           @JsonScalaEnumeration(classOf[CreditCardTypeRef]) cardType: CreditCardType)
 
+
+  case class TransactionUser(email:String, amount : Long, status: PaymentStatus, master:Boolean)
+
   case class BOTransaction(uuid: String,
                            transactionUUID: String,
                            authorizationId: String,

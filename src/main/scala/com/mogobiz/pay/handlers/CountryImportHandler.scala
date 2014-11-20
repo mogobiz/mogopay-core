@@ -21,16 +21,16 @@ class CountryImportHandler {
     EsClient.search[CountryAdmin](req)
   }
 
-  def importCountries(countriesFile: File, currenciesFile: File) {
-    assert(countriesFile.exists(), s"${countriesFile.getAbsolutePath} does not exist.")
+  def importCountries(countriesFile: File, currenciesFile: File) : Boolean = {
     assert(currenciesFile.exists(), s"${currenciesFile.getAbsolutePath} does not exist.")
+    assert(countriesFile.exists(), s"${countriesFile.getAbsolutePath} does not exist.")
 
     val req = search in Settings.Mogopay.EsIndex -> "Country" aggs {
       aggregation max "agg" field "lastUpdated"
     }
 
     EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
-      if (lastUpdated >= countriesFile.lastModified) {
+      if (lastUpdated <= countriesFile.lastModified) {
         EsClient.client.client
           .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
           .setQuery(new TermQueryBuilder("_type", "Country"))
@@ -71,8 +71,12 @@ class CountryImportHandler {
             }
           }
         }
+        true
       }
-    }
+      else {
+        false
+      }
+    } get
   }
 
   def importAdmins1(admins1File: File) {
