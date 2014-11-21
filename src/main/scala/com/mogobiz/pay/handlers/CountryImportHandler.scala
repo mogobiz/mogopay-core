@@ -238,15 +238,15 @@ class CountryImportHandler {
   }
 }
 
-object Main extends App {
+object CountryImportMain extends App {
   println("Start...\n")
   EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
   EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
   EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
   EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
 
-  countryImportHandler.importCountries(Settings.Import.countriesFile, Settings.Import.currenciesFile)
-  countryImportHandler.importAdmins1(Settings.Import.admins1File)
-  countryImportHandler.importAdmins2(Settings.Import.admins2File)
-  countryImportHandler.importCities(Settings.Import.citiesFile)
+  countryImportHandler.importCountries(Settings.Import.CountriesFile, Settings.Import.CurrenciesFile)
+  countryImportHandler.importAdmins1(Settings.Import.Admins1File)
+  countryImportHandler.importAdmins2(Settings.Import.Admins2File)
+  countryImportHandler.importCities(Settings.Import.CitiesFile)
 }

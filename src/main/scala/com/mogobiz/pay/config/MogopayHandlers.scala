@@ -13,6 +13,7 @@ object  MogopayHandlers {
   val boTransactionLogHandler = new BOTransactionLogHandler
   val countryAdminHandler = new CountryAdminHandler
   val countryImportHandler = new CountryImportHandler
+  val rateImportHandler = new RateImportHandler
   val countryHandler = new CountryHandler
   val creditCardHandler = new CreditCardHandler
   val rateHandler = new RateHandler

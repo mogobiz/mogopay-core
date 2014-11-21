@@ -139,10 +139,10 @@ object DBInitializer {
     val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "seller9")
 
-    val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
-    EsClient.index(Settings.Mogopay.EsIndex, rateEUR, true)
-    val rateGBP = new Rate(newUUID, "GBP", Calendar.getInstance.getTime, 0.00829348, 2)
-    EsClient.index(Settings.Mogopay.EsIndex, rateGBP, true)
+//    val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
+//    EsClient.index(Settings.Mogopay.EsIndex, rateEUR, true)
+//    val rateGBP = new Rate(newUUID, "GBP", Calendar.getInstance.getTime, 0.00829348, 2)
+//    EsClient.index(Settings.Mogopay.EsIndex, rateGBP, true)
   }
 
   private def createAddress(road: String, city: String, zip: String, country: String) = {
@@ -475,7 +475,7 @@ __FIN__*/
   }
 }
 
-object Main2 extends App {
+object DbInitMain extends App {
   try {
     EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
     EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet

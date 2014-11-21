@@ -31,11 +31,11 @@ class ImportCountriesJob extends Actor {
     case _ => try {
       println(" == ImportCountriesJob: start.")
 
-      val currencies = Settings.Import.currenciesFile
-      val countries = Settings.Import.countriesFile
-      val admins1 = Settings.Import.admins1File
-      val admins2 = Settings.Import.admins2File
-      val cities = Settings.Import.citiesFile
+      val currencies = Settings.Import.CurrenciesFile
+      val countries = Settings.Import.CountriesFile
+      val admins1 = Settings.Import.Admins1File
+      val admins2 = Settings.Import.Admins2File
+      val cities = Settings.Import.CitiesFile
 
       if (countryImportHandler.importCountries(countries, currencies)) {
         countryImportHandler.importAdmins1(admins1)

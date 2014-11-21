@@ -88,11 +88,12 @@ object Settings {
 
     private def path(fileName: String) = new File(rootDir, fileName)
 
-    val currenciesFile = path("currencies.txt")
-    val countriesFile = path("countries.txt")
-    val admins1File = path("admins1.txt")
-    val admins2File = path("admins2.txt")
-    val citiesFile = path("cities.txt")
+    val RatesFile = path("rates.txt")
+    val CurrenciesFile = path("currencies.txt")
+    val CountriesFile = path("countries.txt")
+    val Admins1File = path("admins1.txt")
+    val Admins2File = path("admins2.txt")
+    val CitiesFile = path("cities.txt")
   }
 
   object Transaction {
@@ -142,11 +143,13 @@ object Settings {
     object Interval {
       val cleanAccounts = config.getInt("jobs.cron.recycleaccount")
       val importCountries = config.getInt("jobs.cron.importcountries")
+      val importRates = config.getInt("jobs.cron.importrates")
     }
 
     object Delay {
       val cleanAccounts = config.getInt("jobs.delay.recycleaccount")
       val importCountries = config.getInt("jobs.delay.importcountries")
+      val importRates = config.getInt("jobs.delay.importrates")
     }
 
   }
