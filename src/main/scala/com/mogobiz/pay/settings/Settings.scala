@@ -141,15 +141,15 @@ object Settings {
   object Jobs {
 
     object Interval {
-      val cleanAccounts = config.getInt("jobs.cron.recycleaccount")
-      val importCountries = config.getInt("jobs.cron.importcountries")
-      val importRates = config.getInt("jobs.cron.importrates")
+      val CleanAccounts = config.getInt("jobs.cron.recycleaccount")
+      val ImportCountries = config.getInt("jobs.cron.importcountries")
+      val ImportRates = config.getInt("jobs.cron.importrates")
     }
 
     object Delay {
-      val cleanAccounts = config.getInt("jobs.delay.recycleaccount")
-      val importCountries = config.getInt("jobs.delay.importcountries")
-      val importRates = config.getInt("jobs.delay.importrates")
+      val CleanAccounts = config.getInt("jobs.delay.recycleaccount")
+      val ImportCountries = config.getInt("jobs.delay.importcountries")
+      val ImportRates = config.getInt("jobs.delay.importrates")
     }
 
   }

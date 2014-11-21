@@ -10,10 +10,10 @@ object ImportRatesJob {
   def start(system: ActorSystem) {
     import system.dispatcher
 
-    if (Settings.Jobs.Interval.importRates > 0) {
+    if (Settings.Jobs.Interval.ImportRates > 0) {
       system.scheduler.schedule(
-        initialDelay = Settings.Jobs.Delay.importRates seconds,
-        interval = Settings.Jobs.Interval.importRates seconds,
+        initialDelay = Settings.Jobs.Delay.ImportRates seconds,
+        interval = Settings.Jobs.Interval.ImportRates seconds,
         receiver = system.actorOf(Props[ImportRatesJob]),
         message = "")
     }

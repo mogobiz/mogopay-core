@@ -9,10 +9,10 @@ object CleanAccountsJob {
   def start(system: ActorSystem) {
     import system.dispatcher
 
-    if (Settings.Jobs.Interval.cleanAccounts > 0) {
+    if (Settings.Jobs.Interval.CleanAccounts > 0) {
       system.scheduler.schedule(
-        initialDelay = Settings.Jobs.Delay.cleanAccounts seconds,
-        interval     = Settings.Jobs.Interval.cleanAccounts seconds,
+        initialDelay = Settings.Jobs.Delay.CleanAccounts seconds,
+        interval     = Settings.Jobs.Interval.CleanAccounts seconds,
         receiver     = system.actorOf(Props[CleanAccountsJob]),
         message      = ""
       )
