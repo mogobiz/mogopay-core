@@ -1,37 +1,33 @@
 package com.mogobiz.pay.handlers.payment
 
 import java.io.StringReader
-import java.net.{URLDecoder}
+import java.net.URLDecoder
 import java.security.interfaces.RSAPublicKey
 import java.security.{Signature, NoSuchAlgorithmException, MessageDigest, Security}
 import java.text.SimpleDateFormat
 import java.util.Date
 
 import akka.actor.ActorSystem
-import akka.io.IO
 import akka.util.Timeout
-import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.{Environment}
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
+import net.authorize.sim._
+import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.Environment
+import com.mogobiz.es.EsClient
+import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.model.Mogopay.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.settings.Settings
-import com.mogobiz.utils.{CustomSslConfiguration, Sha512, GlobalUtil}
+import com.mogobiz.pay.config.Settings
+import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.PEMReader
-import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
 import com.mogobiz.utils.GlobalUtil._
-import spray.can.Http
 import spray.http.{HttpResponse, Uri}
 import sun.misc.BASE64Decoder
-import akka.pattern.ask
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import spray.http._
 import spray.client.pipelining._
 import scala.concurrent.duration._
@@ -66,12 +62,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     sig.update(data.getBytes(Charset))
     sig.verify(signature)
   }
-
-  def callbackPayment(sessionData: SessionData, params: Map[String, String], uri:String): Unit = {
-    if (params("CODEREPONSE") == "00000") donePayment(sessionData, params, uri)
-  }
-
-
 
   def donePayment(sessionData: SessionData, params: Map[String, String], uri: String): Uri = {
     val transactionUuid = sessionData.transactionUuid.get
@@ -250,20 +240,20 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val vendorId = sessionData.merchantId.get
     val paymentConfig = sessionData.paymentConfig.get
     val paymentRequest = sessionData.paymentRequest.get
-    val id3d = sessionData.id3d.getOrElse(null)
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val id3d = sessionData.id3d.orNull
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val transaction =
       if (id3d != null)
         EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).get
       else
-        transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
+        transactionHandler.startPayment(vendorId, sessionData.accountId, transactionUUID, paymentRequest,
+          PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
 
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorId).get
+//    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorId).get
 
-    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
-    val ctxMode = context
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    /*
     var paymentResult: PaymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
@@ -284,25 +274,74 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       bankErrorMessage = Some(""),
       token = ""
     )
+    */
+
+//    val amount = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
+    val amount = paymentRequest.amount.toString
     val currency: Int = paymentRequest.currency.numericCode
-    val site: String = parametres("payboxSite")
-    val key: String = parametres("payboxKey")
-    val rank: String = parametres("payboxRank")
-    val idMerchant: String = parametres("payboxMerchantId")
-    val transDate: String = new SimpleDateFormat("yyyyMMddHHmmss").format(paymentRequest.orderDate)
-    //      val xx: String = URLEncoder.encode(Settings.MogopayEndPoint + "systempay/done/" + paymentRequest.csrfToken, "UTF-8")
+    val apiLoginID: String = parameters("apiLoginID")
+    val transactionKey: String = parameters("transactionKey")
 
+//    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds"
+    if (true) {
+//      val URLHttpDirect = s"${Settings.Mogopay.EndPoint}authorize-net/callback-3ds/${sessionData.uuid}"
+      val action = ""
+      val receiptCode =
+        s"""
+           |<form id="return-form" method="POST" action="$action">
+           |  <input type="hidden" value="" />
+           |  <input type="hidden" value="" />
+           |  <input type="hidden" value="" />
+           |  <input type="hidden" value="" />
+           |  <input type="hidden" value="" />
+           |</form>
+           |<script>alert("!!!"); document.getElementById("return-form").submit();</script>
+         """.stripMargin
 
-    val action = Settings.Paybox.MPIEndPoint
-    val IdMerchant = idMerchant
-    val IdSession = vendorId + "--" + transactionUUID
-    val Amount = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
-    val XCurrency = currency.toString
-    val CCNumber = paymentRequest.ccNumber
-    val CVVCode = paymentRequest.cvv
-    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds"
-    val URLHttpDirect = s"${Settings.Mogopay.EndPoint}paybox/callback-3ds/${sessionData.uuid}"
-    if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
+      val relayURL = s"${Settings.Mogopay.EndPoint}authorize-net/relay"
+
+      val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
+      val x_fp_sequence = fingerprint.getSequence
+      val x_fp_timestamp = fingerprint.getTimeStamp
+      val x_fp_hash = fingerprint.getFingerprintHash
+
+      val form = s"""
+      <form name='authorizenet' id='authorizenet' action='https://test.authorize.net/gateway/transact.dll' method='post'>
+        <input type='hidden' name='x_login' value='$apiLoginID' />
+        <input type='hidden' name='x_fp_sequence' value='$x_fp_sequence' />
+        <input type='hidden' name='x_fp_timestamp' value='$x_fp_timestamp' />
+        <input type='hidden' name='x_fp_hash' value='$x_fp_hash' />
+        <input type='hidden' name='x_version' value='3.1' />
+        <input type='hidden' name='x_method' value='CC' />
+        <input type='hidden' name='x_type' value='AUTH_CAPTURE' />
+        <input type='text' name='x_amount' value='$amount' />
+        <input type='hidden' name='x_show_form' value='payment_form' />
+        <input type='hidden' name='x_test_request' value='FALSE' />
+        <input type='submit' name='submit_button' value='Submit' />
+        <input TYPE='hidden' name="x_relay_response" value="true" />
+        <input type='hidden" name="x_relay_url" value="$relayURL" />
+      </form>
+      <script>document.getElementById("authorizenet").submit();</script>
+       """.stripMargin
+
+      val query = Map(
+        "amount" -> amount,
+        "apiLoginID" -> apiLoginID,
+        "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
+        "currency" -> currency,
+        "cc_holder" -> paymentRequest.holder,
+        "cc_number" -> UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+        "cc_cvv" -> paymentRequest.cvv,
+        "cc_expirationDate" -> paymentRequest.expirationDate
+      )
+
+      val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
+        transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
+      EsClient.index(Settings.Mogopay.EsIndex, log1, false)
+
+      Left(form)
+
+      /*
       val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
       if (id3d == null && (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)) {
         val query = Map(
@@ -338,8 +377,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
               """
         // We redirect the user to the paybox payment form
         Left(form)
-      }
-      else {
+      } else {
         val query = scala.collection.mutable.Map(
           "NUMQUESTION" -> String.format("%010d", paymentRequest.transactionSequence.toInt.asInstanceOf[AnyRef]),
           "REFERENCE" -> IdSession,
@@ -359,7 +397,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           //          "NUMAPPEL" -> "",
           //          "NUMTRANS" -> "",
           //          "AUTORISATION" -> "",
-          "VERSION" -> (if (parametres("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
+          "VERSION" -> (if (parameters("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
         if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED)
           query += "ID3D" -> id3d
         else if (id3d != "" && paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
@@ -409,8 +447,9 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         // We redirect the user to the merchant website
         Right(finishPayment(sessionData, paymentResult))
       }
-    }
-    else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
+      */
+    } else if (parameters("payboxContract") == "PAYBOX_SYSTEM") {
+      /*
       val hmackey = idMerchant
       val pbxtime = ISODateTimeFormat.dateTimeNoMillis().print(org.joda.time.DateTime.now())
       val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
@@ -471,11 +510,15 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 """
       // We redirect the user to the payment server
       Left(form)
+      */
+      ???
     }
     else {
-      throw InvalidContextException( s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
+      throw InvalidContextException( s"""Invalid Paybox payment mode ${parameters("payboxContract")}""")
     }
   }
+
+  def relay() = "hello"
 }
 
 object AuthorizeNetHandler {

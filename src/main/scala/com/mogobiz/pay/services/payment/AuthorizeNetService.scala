@@ -1,8 +1,8 @@
 package com.mogobiz.pay.services.payment
 
-import akka.actor.ActorRef
-import com.mogobiz.pay.actors.PayboxActor.{CallbackPayment, Done3DSecureCheck, _}
+import com.mogobiz.pay.actors.AuthorizeNetActor._
 import com.mogobiz.pay.config.DefaultComplete
+import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
@@ -13,7 +13,7 @@ import spray.routing._
 import scala.concurrent.ExecutionContext
 import scala.util._
 
-class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+class AuthorizeNetService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
 
   import akka.pattern.ask
   import akka.util.Timeout
@@ -23,12 +23,13 @@ class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionC
   implicit val timeout = Timeout(40.seconds)
 
   val route = {
-    pathPrefix("anet") {
+    pathPrefix("authorizenet") {
       startPayment ~
       done ~
-      callbackPayment ~
-      callback3DSecureCheck ~
-      done3DSecureCheck
+//      callbackPayment ~
+//      callback3DSecureCheck ~
+//      done3DSecureCheck ~
+      relay
     }
   }
 
@@ -37,21 +38,17 @@ class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionC
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        println("start:" + xtoken)
-        onComplete((actor ? StartPayment(session.sessionData)).mapTo[Try[Either[String, Uri]]]) { call =>
-          handleComplete(call,
+        handleCall(authorizeNetHandler.startPayment(session.sessionData),
             (data: Either[String, Uri]) =>
               setSession(session) {
                 data match {
                   case Left(content) =>
                     complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
                   case Right(url) =>
-                    println(url)
                     redirect(url, StatusCodes.TemporaryRedirect)
                 }
               }
-          )
-        }
+        )
       }
     }
   }
@@ -64,20 +61,19 @@ class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionC
       session { session =>
         parameterMap { params =>
           queryString { uri =>
-            onComplete((actor ? Done(session.sessionData, params, uri)).mapTo[Try[Uri]]) { call =>
-              handleComplete(call,
+            handleCall(authorizeNetHandler.donePayment(session.sessionData, params, uri),
                 (data: Uri) =>
                   setSession(session) {
                     redirect(data, StatusCodes.TemporaryRedirect)
                   }
               )
-            }
           }
         }
       }
     }
   }
 
+  /*
   lazy val callbackPayment = path("callback" / Segment) {
     xtoken =>
 
@@ -94,7 +90,9 @@ class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionC
         }
       }
   }
+  */
 
+  /*
   lazy val done3DSecureCheck = path("done-3ds") {
     post {
       entity(as[FormData]) {
@@ -116,7 +114,9 @@ class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionC
       }
     }
   }
+  */
 
+  /*
   lazy val callback3DSecureCheck = path("callback-3ds" / Segment) {
     xtoken =>
 
@@ -131,5 +131,14 @@ class AuthorizeNetService(actor: ActorRef)(implicit executionContext: ExecutionC
             }
         }
       }
+  }
+  */
+
+  lazy val relay = path("relay") {
+    get {
+      handleCall(authorizeNetHandler.relay(),
+        (_: Any) => complete(StatusCodes.OK)
+      )
+    }
   }
 }
