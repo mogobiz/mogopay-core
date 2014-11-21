@@ -62,7 +62,6 @@ class PaylineService extends Directives with DefaultComplete {
     }
   }
 
-
   lazy val callback = path("callback" / Segment) { xtoken =>
     import Implicits._
     get {

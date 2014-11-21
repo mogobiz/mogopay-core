@@ -6,6 +6,7 @@ import com.mogobiz.pay.handlers.payment._
 import com.mogobiz.pay.handlers.shipping._
 
 object  MogopayHandlers {
+  val authorizeNetHandler = new AuthorizeNetHandler("authorizenet")
   val accountAddressHandler = new AccountAddressHandler
   val accountHandler = new AccountHandler
   val backofficeHandler = new BackofficeHandler
