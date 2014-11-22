@@ -1,7 +1,5 @@
 package com.mogobiz.pay.actors
 
-import java.io.File
-
 import akka.actor.Actor
 import com.mogobiz.pay.config.MogopayHandlers._
 
