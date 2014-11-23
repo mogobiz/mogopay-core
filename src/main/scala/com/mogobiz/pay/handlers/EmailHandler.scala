@@ -28,7 +28,7 @@ object EmailHandler {
                   attachment: Option[(java.io.File)] = None)
 
   object send {
-    def a(mail: Mail) {
+    def to(mail: Mail) {
       import org.apache.commons.mail._
 
       val format =

@@ -16,6 +16,7 @@ object Settings {
   }
 
   val ResourcesPath = config.getString("resources.path")
+  val TemplatesPath = config.getString("templates.path")
   val IsResourcesLocal = ResourcesPath.isEmpty
 
   val AccountValidateMerchantPhone = config.getBoolean("account.validate.merchantphone")

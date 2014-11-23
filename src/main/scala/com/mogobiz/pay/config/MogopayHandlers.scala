@@ -33,4 +33,6 @@ object  MogopayHandlers {
   val userHandler = new UserHandler
   val payboxHandler = new PayboxHandler("paybox")
   val pdfHandler = new PdfHandler
+  val templateHandler = new TemplateHandler
+
 }

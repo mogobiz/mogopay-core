@@ -3,6 +3,7 @@ package com.mogobiz.pay.handlers.payment
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Currency, Date}
 
+import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.actors.TransactionActor.Submit
 import com.mogobiz.pay.codes.MogopayConstant
@@ -10,7 +11,7 @@ import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.UtilHandler
+import com.mogobiz.pay.handlers.{EmailHandler, UtilHandler}
 import com.mogobiz.pay.handlers.shipping.{ShippingService, ShippingPrice}
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
@@ -21,7 +22,7 @@ import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.{SymmetricCrypt, RSA, GlobalUtil}
 import com.mogobiz.utils.GlobalUtil._
-import org.json4s.JValue
+import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import scala.collection._
 import scala.util._
@@ -150,13 +151,32 @@ class TransactionHandler {
         errorMessageOrigin = paymentResult.errorMessageOrigin,
         modifications = transaction.modifications :+ modification
       )
-
-      if (paymentResult.transactionDate != null)
-        EsClient.update(Settings.Mogopay.EsIndex, newTx.copy(transactionDate = Option(paymentResult.transactionDate)), true, false)
-      else
+      if (paymentResult.transactionDate != null) {
+        val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
+        EsClient.update(Settings.Mogopay.EsIndex, finalTrans, true, false)
+        email(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
+      }
+      else {
         EsClient.index(Settings.Mogopay.EsIndex, newTx, false)
+        email(newTx.copy(extra = None), newTx.extra.getOrElse(""))
+      }
       Success()
     }.getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
+  }
+
+  def email(transaction: BOTransaction, jsonCart: String): Unit = {
+    val jcart = parse(jsonCart)
+    val jtransaction = Extraction.decompose(transaction)
+    val json = jtransaction merge jcart
+    val jsonString = compact(render(json))
+    transaction.vendor.map { vendor =>
+      val mailContent = templateHandler.mustache(s"${vendor.company.get}/order.mustache", jsonString)
+      val eol = mailContent.indexOf('\n')
+      require(eol > 0, "No new line found in mustache file to distinguish subject from body")
+      val subject = mailContent.substring(0, eol)
+      val body = mailContent.substring(eol + 1)
+      //EmailHandler.send.to()
+    } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
   }
 
   private def toCardType(xtype: String): CreditCardType = {
