@@ -1,5 +1,6 @@
 package com.mogobiz.pay.handlers.payment
 
+import java.io.{InputStreamReader, File, FileReader}
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Currency, Date}
 
@@ -154,23 +155,34 @@ class TransactionHandler {
       if (paymentResult.transactionDate != null) {
         val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
         EsClient.update(Settings.Mogopay.EsIndex, finalTrans, true, false)
-        email(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
+        notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
         EsClient.index(Settings.Mogopay.EsIndex, newTx, false)
-        email(newTx.copy(extra = None), newTx.extra.getOrElse(""))
+        notify(newTx.copy(extra = None), newTx.extra.getOrElse(""))
       }
       Success()
     }.getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
   }
 
-  def email(transaction: BOTransaction, jsonCart: String): Unit = {
+  def notify(transaction: BOTransaction, jsonCart: String): Unit = {
     val jcart = parse(jsonCart)
     val jtransaction = Extraction.decompose(transaction)
     val json = jtransaction merge jcart
     val jsonString = compact(render(json))
     transaction.vendor.map { vendor =>
-      val mailContent = templateHandler.mustache(s"${vendor.company.get}/order.mustache", jsonString)
+      val templateFile = new File(new File(Settings.TemplatesPath, vendor.company.get), "mail-order.mustache")
+      val template = if (templateFile.exists()) {
+        val source = scala.io.Source.fromFile(templateFile)
+        val lines = source.mkString
+        source.close()
+        lines
+      }
+      else {
+        scala.io.Source.fromInputStream(classOf[TransactionHandler].getResourceAsStream("/template/mustache.js")).mkString
+      }
+
+      val mailContent = templateHandler.mustache(template, jsonString)
       val eol = mailContent.indexOf('\n')
       require(eol > 0, "No new line found in mustache file to distinguish subject from body")
       val subject = mailContent.substring(0, eol)
