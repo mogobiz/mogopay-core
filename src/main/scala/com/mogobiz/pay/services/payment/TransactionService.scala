@@ -193,7 +193,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
       formFields('callback_success.?, 'callback_error.?, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id.?,
         'transaction_amount.?.as[Option[Long]], 'merchant_id.?, 'transaction_type.?,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
-        'card_month.?, 'card_year.?, 'card_type.?).as(SubmitParams) {
+        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
         submitParams =>
           session {
             session =>

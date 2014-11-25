@@ -28,7 +28,7 @@ object TransactionActor {
                           transactionType: Option[String], customerCVV: Option[String], ccNum: Option[String],
                           customerEmail: Option[String], customerPassword: Option[String],
                           transactionDescription: Option[String],
-                          ccMonth: Option[String], ccYear: Option[String], ccType: Option[String]) {
+                          ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean]) {
     def toMap = Map(
       "_successURL" -> "_successURL",
       "_errorURL" -> "_errorURL",

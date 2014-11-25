@@ -301,6 +301,7 @@ class TransactionHandler {
     val authURL = submit.params.authURL
     val cvvURL = submit.params.cvvURL
     val sessionData = submit.sessionData
+    var cardStore = submit.params.ccStore.getOrElse(true)
 
     // The first time a user come, mogopay is false & cardinfo is true.
     // This definitely set the mogopay status for the whole session.
@@ -410,12 +411,12 @@ class TransactionHandler {
     sessionData.password = submit.params.customerPassword
 
     if (!sessionData.mogopay)
-      sessionData.mogopay = sessionData.authenticated || submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty)
+      sessionData.mogopay = cardStore && (sessionData.authenticated || submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty))
 
     sessionData.accountId.map {
       customerId =>
         // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
-        if (submit.params.ccNum.nonEmpty) {
+        if (submit.params.ccNum.nonEmpty && cardStore) {
           val cust = EsClient.load[Account](Settings.Mogopay.EsIndex, customerId).orNull
           // Mogopay avec une nouvele carte
           val ccNum = submit.params.ccNum.orNull
