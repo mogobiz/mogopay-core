@@ -179,7 +179,7 @@ class TransactionHandler {
         lines
       }
       else {
-        scala.io.Source.fromInputStream(classOf[TransactionHandler].getResourceAsStream("/template/mustache.js")).mkString
+        scala.io.Source.fromInputStream(classOf[TransactionHandler].getResourceAsStream("/template/mail-order.mustache")).mkString
       }
 
       val mailContent = templateHandler.mustache(template, jsonString)
@@ -292,11 +292,11 @@ class TransactionHandler {
             String merchantId = MogopayUtil.extractStringParam(params["merchant_id"]);
             String transactionType = MogopayUtil.extractStringParam(params["transaction_type"]);
      */
-    var transactionUUID = submit.params.transactionUUID
-    var errorURL = submit.params.errorURL
-    var successURL = submit.params.successURL
-    var transactionType = submit.params.transactionType
-    var amount = submit.params.amount
+    var transactionUUID = Option(submit.params.transactionUUID)
+    var errorURL = Option(submit.params.errorURL)
+    var successURL = Option(submit.params.successURL)
+    var transactionType = Option(submit.params.transactionType)
+    var amount = Option(submit.params.amount)
     val cardinfoURL = submit.params.cardinfoURL
     val authURL = submit.params.authURL
     val cvvURL = submit.params.cvvURL
@@ -315,10 +315,8 @@ class TransactionHandler {
         transactionType = sessionData.transactionType
         amount = sessionData.amount
         EsClient.load[Account](Settings.Mogopay.EsIndex, sessionData.merchantId.get).orNull
-      } else if (submit.params.merchantId.isDefined) {
-        EsClient.load[Account](Settings.Mogopay.EsIndex, submit.params.merchantId.get).orNull
       } else {
-        throw AccountDoesNotExistException(s"${submit.params.merchantId.get}")
+        EsClient.load[Account](Settings.Mogopay.EsIndex, submit.params.merchantId).orNull
       }
     val transactionRequest: TransactionRequest = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
     if (transactionRequest.amount != amount.get) {
