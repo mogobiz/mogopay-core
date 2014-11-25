@@ -33,7 +33,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
         ownerFilter
       ) cache (false)
     }
-    val account = EsClient.search[Account](req)
+    val account = if (sessionData.authenticated) EsClient.load[Account](Settings.Mogopay.EsIndex, sessionData.accountId.get) else EsClient.search[Account](req)
     account map { account =>
       sessionData.authenticated = true
       sessionData.accountId = Some(account.uuid)

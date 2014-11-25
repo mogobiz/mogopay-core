@@ -272,7 +272,7 @@ class TransactionHandler {
    *         2. Custom Payment
    *         callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount,
    *         card_type, card_month,card_year,card_cvv
-   *         3. Mogpay Payment
+   *         3. Mogopay Payment
    *         3.1 First URL (amount only)
    *         callback_success, callback_error, merchant_id, transaction_id, transaction_type, transaction_amount
    *         callback_cardinfo, callback_cvv, callback_auth
@@ -410,14 +410,14 @@ class TransactionHandler {
     sessionData.password = submit.params.customerPassword
 
     if (!sessionData.mogopay)
-      sessionData.mogopay = submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty)
+      sessionData.mogopay = sessionData.authenticated || submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty)
 
     sessionData.accountId.map {
       customerId =>
         // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
-        val cust = EsClient.load[Account](Settings.Mogopay.EsIndex, customerId).orNull
         if (submit.params.ccNum.nonEmpty) {
-          // Mogopay avec unen nouvele carte
+          val cust = EsClient.load[Account](Settings.Mogopay.EsIndex, customerId).orNull
+          // Mogopay avec une nouvele carte
           val ccNum = submit.params.ccNum.orNull
           val ccMonth = submit.params.ccMonth.orNull
           val ccYear = submit.params.ccYear.orNull
@@ -429,21 +429,20 @@ class TransactionHandler {
           EsClient.update(Settings.Mogopay.EsIndex, cust2, false, false)
         }
     }
-    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
-      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
-      // Mogopay has to determine what to do.
-      // if user is authenticated, then route him to cvv
-      // if user is not authenticated then route him to auth screen
-      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
-      if (sessionData.authenticated) {
-        (null, cvvURL.get)
-      }
-      else {
-        (null, authURL.get)
-      }
-
-    }
-
+//    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
+//      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
+//      // Mogopay has to determine what to do.
+//      // if user is authenticated, then route him to cvv
+//      // if user is not authenticated then route him to auth screen
+//      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
+//      if (sessionData.authenticated) {
+//        (null, cvvURL.get)
+//      }
+//      else {
+//        (null, authURL.get)
+//      }
+//
+//    }
     if (sessionData.mogopay) {
       // this is a mogopay payment
       if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
@@ -465,7 +464,8 @@ class TransactionHandler {
           //Success((buildNewSubmit(submit, newSession), "startPayment"))
           ("mogopay", "start")
         }
-        else if (submit.params.customerPassword.nonEmpty) {
+        else //if (submit.params.customerPassword.nonEmpty or sessionData.authenticated)
+        {
           // User submitted a password we authenticate him
           // we redirect the user to authentication screen
           // but we need first to recreate the transaction request
@@ -474,9 +474,10 @@ class TransactionHandler {
           //Success((build{ewSubmit(submit, newSession), "authenticate"))
           ("mogopay", "authenticate")
         }
-        else {
-          throw SomeParameterIsMissingException("CVV is missing")
-        }
+//        else {
+//          // throw SomeParameterIsMissingException("CVV is missing")
+//          ("mogopay", "authenticate")
+//        }
       }
       else {
         throw NotACreditCardTransactionException(s"${transactionType}")

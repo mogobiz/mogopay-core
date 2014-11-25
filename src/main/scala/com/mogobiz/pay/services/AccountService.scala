@@ -708,6 +708,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               session.sessionData.accountId = Some(account.uuid)
               session.sessionData.merchantId = account.owner
               session.sessionData.isMerchant = account.owner.isEmpty
+              session.sessionData.authenticated = true
               setSession(session) {
                 import Implicits._
                 complete(StatusCodes.OK, account)
