@@ -301,7 +301,7 @@ class TransactionHandler {
     val authURL = submit.params.authURL
     val cvvURL = submit.params.cvvURL
     val sessionData = submit.sessionData
-    var cardStore = submit.params.ccStore.getOrElse(true)
+    var cardStore = submit.params.ccStore.getOrElse(false)
 
     // The first time a user come, mogopay is false & cardinfo is true.
     // This definitely set the mogopay status for the whole session.
@@ -344,22 +344,10 @@ class TransactionHandler {
     }
 
     selectedShippingPrice.map { selectedShippingPrice =>
-      val cart0: JValue = parse(transactionExtra) merge parse( s""""
-        {
-        "shipping" : ${
-        selectedShippingPrice.price
-      }
-        }
-        """)
+      val cart0: JValue = parse(transactionExtra) merge parse(s"""{"shipping" : ${selectedShippingPrice.price}}""")
 
-      val cart1 = cart0 merge parse( s"""
-        {
-        "finalPrice" : ${
-        (cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price
-      }
-        }
-      """)
-      transactionExtra = render(cart1).toString
+      val cart1 = cart0 merge parse( s"""{"finalPrice" : ${(cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price}}""")
+      transactionExtra = compact(render(cart1))
     }
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
