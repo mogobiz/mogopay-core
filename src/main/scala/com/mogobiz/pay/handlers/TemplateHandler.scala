@@ -20,3 +20,4 @@ class TemplateHandler {
     invocable.invokeMethod(mustache, "render", template, data).toString
   }
 }
+
