@@ -179,7 +179,7 @@ class TransactionHandler {
         lines
       }
       else {
-        scala.io.Source.fromInputStream(classOf[TransactionHandler].getResourceAsStream("/template/mustache.js")).mkString
+        scala.io.Source.fromInputStream(classOf[TransactionHandler].getResourceAsStream("/template/mail-order.mustache")).mkString
       }
 
       val mailContent = templateHandler.mustache(template, jsonString)

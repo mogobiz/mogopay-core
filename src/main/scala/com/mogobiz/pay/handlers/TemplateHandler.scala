@@ -7,7 +7,7 @@ class TemplateHandler {
   def mustache(template: String, jsonString: String): String = {
     val manager: ScriptEngineManager = new ScriptEngineManager
     val engineManager: ScriptEngineManager = new ScriptEngineManager
-    val engine: ScriptEngine = engineManager.getEngineByName("rhino@")
+    val engine: ScriptEngine = engineManager.getEngineByName("rhino")
     engine.eval(new InputStreamReader(classOf[TemplateHandler].getResourceAsStream("/template/mustache.js")))
     val invocable: Invocable = engine.asInstanceOf[Invocable]
 //    val template: String = "Email addresses of {{contact.name}}:\n" + "{{#contact.emails}}\n" + "- {{.}}\n" + "{{/contact.emails}}"
@@ -20,3 +20,4 @@ class TemplateHandler {
     invocable.invokeMethod(mustache, "render", template, data).toString
   }
 }
+
