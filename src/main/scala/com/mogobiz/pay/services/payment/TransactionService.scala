@@ -123,10 +123,11 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                     handleComplete(call,
                       (shippingPrices: Seq[ShippingPrice]) => {
                         val message = GetShippingPrice(shippingPrices, provider, service, rateType)
-                        val shippingPrice = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
-                        setSession(session += ("selectedShippingPrice" -> shippingPrice)) {
+                        val shippingPrice : Try[Option[ShippingPrice]] = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
+                        session.sessionData.selectShippingPrice = shippingPrice.get
+                        setSession(session) {
                           complete {
-                            StatusCodes.OK -> shippingPrice
+                            StatusCodes.OK -> shippingPrice.get
                           }
                         }
                       }
@@ -204,7 +205,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                 sessionTrans != incomingTrans
               }
 
-              if (submitParams.merchantId == session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__"))
+              if (submitParams.merchantId != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__"))
                 complete {
                   StatusCodes.Unauthorized -> "Invalid Merchant id"
                 }
