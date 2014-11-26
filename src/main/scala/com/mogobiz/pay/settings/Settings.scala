@@ -57,6 +57,7 @@ object Settings {
     object Smtp {
       val Host = config.getString("mail.smtp.host")
       val Port = config.getInt("mail.smtp.port")
+      val SslPort = config.getInt("mail.smtp.sslport")
       val Username = config.getString("mail.smtp.username")
       val Password = config.getString("mail.smtp.password")
       val IsSSLEnabled = config.getBoolean("mail.smtp.ssl")

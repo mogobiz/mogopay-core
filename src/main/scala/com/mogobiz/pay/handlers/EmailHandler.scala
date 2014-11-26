@@ -6,9 +6,6 @@ import com.mogobiz.pay.settings.Settings
  * From https://gist.github.com/mariussoutier/3436111
  */
 object EmailHandler {
-  implicit def stringToSeq(single: String): Seq[String] = Seq(single)
-
-  implicit def liftToOption[T](t: T): Option[T] = Some(t)
 
   sealed abstract class MailType
 
@@ -27,7 +24,7 @@ object EmailHandler {
                   richMessage: Option[String] = None,
                   attachment: Option[(java.io.File)] = None)
 
-  object send {
+  object Send {
     def to(mail: Mail) {
       import org.apache.commons.mail._
 
@@ -50,10 +47,12 @@ object EmailHandler {
 
       commonsMail.setHostName(Settings.Mail.Smtp.Host)
       commonsMail.setSmtpPort(Settings.Mail.Smtp.Port)
-      commonsMail.setSslSmtpPort(Settings.Mail.Smtp.Port.toString)
-      commonsMail.setAuthenticator(new DefaultAuthenticator(
-        Settings.Mail.Smtp.Username,
-        Settings.Mail.Smtp.Password))
+      commonsMail.setSslSmtpPort(Settings.Mail.Smtp.SslPort.toString)
+      if (Settings.Mail.Smtp.Username.length > 0) {
+        commonsMail.setAuthenticator(new DefaultAuthenticator(
+          Settings.Mail.Smtp.Username,
+          Settings.Mail.Smtp.Password))
+      }
       commonsMail.setSSLOnConnect(Settings.Mail.Smtp.IsSSLEnabled)
       commonsMail.setSSLCheckServerIdentity(Settings.Mail.Smtp.IsSSLCheckServerIdentity)
       commonsMail.setStartTLSEnabled(Settings.Mail.Smtp.IsStartTLSEnabled)

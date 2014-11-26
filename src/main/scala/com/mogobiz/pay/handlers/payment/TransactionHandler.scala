@@ -187,7 +187,12 @@ class TransactionHandler {
       require(eol > 0, "No new line found in mustache file to distinguish subject from body")
       val subject = mailContent.substring(0, eol)
       val body = mailContent.substring(eol + 1)
-      //EmailHandler.send.to()
+
+      EmailHandler.Send.to(
+        Mail(
+          (transaction.vendor.get.email -> s"${transaction.vendor.get.firstName} ${transaction.vendor.get.lastName}"),
+          List(transaction.email.get), List(), List(), subject, body, None, None
+        ))
     } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
   }
 
@@ -301,7 +306,7 @@ class TransactionHandler {
     val authURL = submit.params.authURL
     val cvvURL = submit.params.cvvURL
     val sessionData = submit.sessionData
-    var cardStore = submit.params.ccStore.getOrElse(true)
+    var cardStore = submit.params.ccStore.getOrElse(false)
 
     // The first time a user come, mogopay is false & cardinfo is true.
     // This definitely set the mogopay status for the whole session.
@@ -344,22 +349,10 @@ class TransactionHandler {
     }
 
     selectedShippingPrice.map { selectedShippingPrice =>
-      val cart0: JValue = parse(transactionExtra) merge parse( s""""
-        {
-        "shipping" : ${
-        selectedShippingPrice.price
-      }
-        }
-        """)
+      val cart0: JValue = parse(transactionExtra) merge parse( s"""{"shipping" : ${selectedShippingPrice.price}}""")
 
-      val cart1 = cart0 merge parse( s"""
-        {
-        "finalPrice" : ${
-        (cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price
-      }
-        }
-      """)
-      transactionExtra = render(cart1).toString
+      val cart1 = cart0 merge parse( s"""{"finalPrice" : ${(cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price}}""")
+      transactionExtra = compact(render(cart1))
     }
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
@@ -428,20 +421,20 @@ class TransactionHandler {
           EsClient.update(Settings.Mogopay.EsIndex, cust2, false, false)
         }
     }
-//    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
-//      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
-//      // Mogopay has to determine what to do.
-//      // if user is authenticated, then route him to cvv
-//      // if user is not authenticated then route him to auth screen
-//      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
-//      if (sessionData.authenticated) {
-//        (null, cvvURL.get)
-//      }
-//      else {
-//        (null, authURL.get)
-//      }
-//
-//    }
+    //    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
+    //      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
+    //      // Mogopay has to determine what to do.
+    //      // if user is authenticated, then route him to cvv
+    //      // if user is not authenticated then route him to auth screen
+    //      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
+    //      if (sessionData.authenticated) {
+    //        (null, cvvURL.get)
+    //      }
+    //      else {
+    //        (null, authURL.get)
+    //      }
+    //
+    //    }
     if (sessionData.mogopay) {
       // this is a mogopay payment
       if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
@@ -463,25 +456,19 @@ class TransactionHandler {
           //Success((buildNewSubmit(submit, newSession), "startPayment"))
           ("mogopay", "start")
         }
-        else //if (submit.params.customerPassword.nonEmpty or sessionData.authenticated)
-        {
+        else {
           // User submitted a password we authenticate him
           // we redirect the user to authentication screen
           // but we need first to recreate the transaction request
           EsClient.index(Settings.Mogopay.EsIndex, transactionRequest, false)
-          //forward(controller: "mogopay", action: "authenticate", params: params + [xtoken: sessionData.csrfToken])
-          //Success((build{ewSubmit(submit, newSession), "authenticate"))
           ("mogopay", "authenticate")
         }
-//        else {
-//          // throw SomeParameterIsMissingException("CVV is missing")
-//          ("mogopay", "authenticate")
-//        }
       }
       else {
         throw NotACreditCardTransactionException(s"${transactionType}")
       }
     }
+
     else {
       val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
         transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
