@@ -561,7 +561,7 @@ class AccountHandler {
 
     val newCard = card.copy(
       holder = holder,
-      expiryDate = new Timestamp(new SimpleDateFormat("MM/yyyy").parse(expiryDate).getTime),
+      expiryDate = new Timestamp(new SimpleDateFormat("yyyy-MM").parse(expiryDate).getTime),
       cardType = CreditCardType.withName(ccType)
     )
 
@@ -582,7 +582,7 @@ class AccountHandler {
         (UtilHandler.hideCardNumber(number, "X"), SymmetricCrypt.encrypt(number, Settings.Mogopay.Secret, "AES"))
       }
 
-    val expiryTime = new Timestamp(new SimpleDateFormat("MM/yyyy").parse(expiryDate).getTime)
+    val expiryTime = new Timestamp(new SimpleDateFormat("yyyy-MM").parse(expiryDate).getTime)
 
     val newCard = CreditCard(uuid = java.util.UUID.randomUUID().toString,
       number = cryptedN,
