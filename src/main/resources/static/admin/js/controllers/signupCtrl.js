@@ -10,6 +10,13 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
 //        $scope.userUUID = $rootScope.userProfile.account.secret;
 //    }
 
+	var minBirthDate = new Date();
+	var maxBirthDate = new Date();
+	minBirthDate.setFullYear(new Date().getFullYear() - 100);
+	maxBirthDate.setFullYear(new Date().getFullYear() - 18);
+	$scope.minBirthDate = dateToDateValue(minBirthDate);
+	$scope.maxBirthDate = dateToDateValue(maxBirthDate);
+
     $scope.profileCivilityOptions = [{"value": "MR", "name": "Mr."}, {"value": "MRS", "name": "Mrs."}];
     $scope.profileCivilityModel = $scope.profileCivilityOptions[0];
     if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.civility.name == "MRS") {

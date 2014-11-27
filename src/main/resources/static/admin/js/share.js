@@ -75,9 +75,39 @@ function dateToString(date, withHours){
         dateString += "/"+date.getFullYear();
         if(withHours)
             dateString +=" "+date.getHours()+":"+date.getSeconds();
-
     }
     return dateString;
+}
+
+function dateToDateValue(date){
+	var dateValue = "";
+    if(date){
+		dateValue = date.getFullYear();
+        var month = ""+(parseInt(date.getMonth())+1);
+        if(month.length == 1)
+            dateValue += "-0" + month;
+        else
+            dateValue += "-" + month;
+        var day = ""+(parseInt(date.getDate()));
+        if(day.length == 1)
+            dateValue += "-0" + day;
+        else
+            dateValue += "-" + day;
+    }
+    return dateValue;
+}
+
+function dateToMonthValue(date){
+	var monthValue = "";
+    if(date){
+		monthValue = date.getFullYear();
+        var month = ""+(parseInt(date.getMonth())+1);
+        if(month.length == 1)
+            monthValue += "-0" + month;
+        else
+            monthValue += "-" + month;
+    }
+    return monthValue;
 }
 
 function showAlertBootStrapMsg(type, msg, wait){
