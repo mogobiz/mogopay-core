@@ -324,7 +324,7 @@ class TransactionHandler {
     val listShipping = sessionData.accountId.map {
       accountId =>
         shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
-    } getOrElse (Seq[ShippingPrice]())
+    } getOrElse Seq[ShippingPrice]()
 
     var selectedShippingPrice: Option[ShippingPrice] = None
     if (listShipping.length > 0) {

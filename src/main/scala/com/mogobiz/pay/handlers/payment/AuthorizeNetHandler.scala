@@ -298,31 +298,33 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
            |<script>alert("!!!"); document.getElementById("return-form").submit();</script>
          """.stripMargin
 
-      val relayURL = s"${Settings.Mogopay.EndPoint}authorize-net/relay"
+//      val relayURL = s"${Settings.Mogopay.EndPoint}authorize-net/relay"
+      val relayURL = "http://6e71402.ngrok.com/pay/authorizenet/relay"
 
       val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
       val x_fp_sequence = fingerprint.getSequence
       val x_fp_timestamp = fingerprint.getTimeStamp
       val x_fp_hash = fingerprint.getFingerprintHash
 
-      val form = s"""
-      <form name='authorizenet' id='authorizenet' action='https://test.authorize.net/gateway/transact.dll' method='post'>
-        <input type='hidden' name='x_login' value='$apiLoginID' />
-        <input type='hidden' name='x_fp_sequence' value='$x_fp_sequence' />
-        <input type='hidden' name='x_fp_timestamp' value='$x_fp_timestamp' />
-        <input type='hidden' name='x_fp_hash' value='$x_fp_hash' />
-        <input type='hidden' name='x_version' value='3.1' />
-        <input type='hidden' name='x_method' value='CC' />
-        <input type='hidden' name='x_type' value='AUTH_CAPTURE' />
-        <input type='text' name='x_amount' value='$amount' />
-        <input type='hidden' name='x_show_form' value='payment_form' />
-        <input type='hidden' name='x_test_request' value='FALSE' />
-        <input type='submit' name='submit_button' value='Submit' />
-        <input TYPE='hidden' name="x_relay_response" value="true" />
-        <input type='hidden" name="x_relay_url" value="$relayURL" />
-      </form>
-      <script>document.getElementById("authorizenet").submit();</script>
-       """.stripMargin
+      val form = {
+        <form name="authorizenet" id="authorizenet" action="https://test.authorize.net/gateway/transact.dll" method="post">
+          <input type="text" name="x_amount" value={amount} />
+          <input type="hidden" name="x_login" value={apiLoginID} />
+          <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString} />
+          <input type="hidden" name="x_fp_timestamp" value={x_fp_timestamp.toString} />
+          <input type="hidden" name="x_fp_hash" value={x_fp_hash} />
+          <input type="hidden" name="x_version" value="3.1"/>
+          <input type="hidden" name="x_method" value="CC"/>
+          <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
+          <input type="hidden" name="x_show_form" value="payment_form" />
+          <input type="hidden" name="x_test_request" value="false" />
+          <input TYPE="hidden" name="x_relay_response" value="true" />
+          <input type="hidden" name="x_relay_url" value={relayURL} />
+          <input type="hidden" name="foo" value="bar" />
+          <input type="submit" name="submit_button" value="Submit" />
+        </form>
+        <script>document.getElementById('authorizenet').submit();</script>
+      }
 
       val query = Map(
         "amount" -> amount,
@@ -339,7 +341,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
       EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
-      Left(form)
+      Left(form.mkString)
 
       /*
       val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
@@ -518,7 +520,21 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     }
   }
 
-  def relay() = "hello"
+  def relay(params: Map[String, String]) = {
+    val action = "http://6e71402.ngrok.com/pay/authorizenet/done"
+    val form = {
+      <form action={action} id="redirectForm" method="GET">
+        {params.foreach { case (name, value) =>
+          <input type="hidden" name={name} value={value} />
+        }}
+      </form>
+      <script>
+        document.getElementById('redirectForm').submit();
+      </script>
+    }
+    println(form.mkString)
+    form.mkString
+  }
 }
 
 object AuthorizeNetHandler {

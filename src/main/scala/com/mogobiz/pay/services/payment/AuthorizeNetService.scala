@@ -135,10 +135,12 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
   */
 
   lazy val relay = path("relay") {
-    get {
-      handleCall(authorizeNetHandler.relay(),
-        (_: Any) => complete(StatusCodes.OK)
-      )
+    post {
+      entity(as[FormData]) { formData =>
+        handleCall(authorizeNetHandler.relay(formData.fields.toMap),
+          (_: Any) => complete(StatusCodes.OK)
+        )
+      }
     }
   }
 }
