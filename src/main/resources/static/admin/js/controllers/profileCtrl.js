@@ -669,6 +669,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				showAlertBootStrapMsg("warning", "Invalid URL!");
 				return false;
 			}
+			/* START */
 			if(!$("#authorizeNetLogin")[0].checkValidity()){
 				$(".nav-tabs a[data-target='#authorize']").tab("show");
 				$("#authorizeNetLogin").focus();
@@ -680,6 +681,20 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				$("#authorizeNetTransactionKey").focus();
 				showAlertBootStrapMsg("warning", "AUTHORIZENET API Login ID and Transaction Key are related!");
 				return false;
+            /* END */
+			//if(scope.creditCardProviderModel != "" && scope.creditCardProviderModel.value == "AUTHORIZENET") {
+			//	if(!$("#authorizeNetLogin")[0].checkValidity()){
+			//		$(".nav-tabs a[data-target='#creditCard']").tab("show");
+			//		$("#authorizeNetLogin").focus();
+			//		showAlertBootStrapMsg("warning", "Authorize.Net's API Login ID and Transaction Key are related!");
+			//		return false;
+			//	}
+			//	else if(!$("#authorizeNetTransactionKey")[0].checkValidity()){
+			//		$(".nav-tabs a[data-target='#creditCard']").tab("show");
+			//		$("#authorizeNetTransactionKey").focus();
+			//		showAlertBootStrapMsg("warning", "Authorize.Net's API Login ID and Transaction Key are related!");
+			//		return false;
+			//	}
 			}
 			if(!$("#authPasswordRegex")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#auth']").tab("show");
