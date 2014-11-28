@@ -381,13 +381,13 @@
 					</div>
 				</div>
 			</div>
-			<div ng-show="creditCardProviderModel.value=='Authorize.Net'">
+			<div ng-show="creditCardProviderModel.value=='AUTHORIZENET'">
 				<div class="form-group">
 					<div style="padding:0px 3px;">
 						<label for="authorizeNetLogin">API Login ID</label>
 					</div>
 					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="text" class="form-control" id="authorizeNetLogin" placeholder="API Login ID" value="{{cbParam.authorize_net_api_login_id}}"/>
+						<input type="text" class="form-control" id="authorizeNetLogin" placeholder="API Login ID" value="{{cbParam.authorizeNetAPILoginID}}"/>
 					</div>
 				</div>
 				<div class="form-group">
@@ -395,7 +395,7 @@
 						<label for="authorizeNetTransactionKey">Transaction Key</label>
 					</div>
 					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="text" class="form-control" id="authorizeNetTransactionKey" placeholder="Transaction Key" value="{{cbParam.authorize_net_transaction_key}}"/>
+						<input type="text" class="form-control" id="authorizeNetTransactionKey" placeholder="Transaction Key" value="{{cbParam.authorizeNetTransactionKey}}"/>
 					</div>
 				</div>
 			</div>

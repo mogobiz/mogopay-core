@@ -1,5 +1,18 @@
 function ProfileCtrl($scope, $location, $rootScope, $route) {
 	$scope.cbParam = JSON.parse($rootScope.userProfile.account.paymentConfig.cbParam);
+	
+	$("#authorizeNetLogin").change(function(){
+		if($(this).val() != "")
+			$("#authorizeNetTransactionKey").attr("required", "required");
+		else
+			$("#authorizeNetTransactionKey").removeAttr("required");
+	});
+	$("#authorizeNetTransactionKey").change(function(){
+		if($(this).val() != "")
+			$("#authorizeNetLogin").attr("required", "required");
+		else
+			$("#authorizeNetLogin").removeAttr("required");
+	})
 
 	//Main Variables
 	var minBirthDate = new Date();
@@ -70,7 +83,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		{"value": "PAYBOX", "name": "PAYBOX"},
 		{"value": "SIPS", "name": "SIPS"},
 		{"value": "SYSTEMPAY", "name": "SYSTEMPAY"},
-		{"value": "Authorize.Net", "name": "Authorize.Net"}
+		{"value": "AUTHORIZENET", "name": "AUTHORIZENET"}
 	];
 	$scope.creditCardProviderModel = null;
 	// TODO
@@ -81,6 +94,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			case "PAYBOX":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[2];break;
 			case "SIPS":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[3];break;
 			case "SYSTEMPAY":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[4];break;
+			case "AUTHORIZENET":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[5];break;
 			default:break;
 		}
 	}
@@ -552,7 +566,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 					data += "&systempay_contract_number=" + $("#systempayContract").val();
 					data += "&systempay_certificate=" + $("#systempayCertificate").val();
 					break;
-				case "Authorize.Net":
+				case "AUTHORIZENET":
 					data += "&authorize_net_api_login_id=" + $("#authorizeNetLogin").val();
 					data += "&authorize_net_transaction_key=" + $("#authorizeNetTransactionKey").val();
 					break;
@@ -656,12 +670,19 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				showAlertBootStrapMsg("warning", "Invalid URL!");
 				return false;
 			}
-			if(scope.creditCardProviderModel != "" && scope.creditCardProviderModel.value == "Authorize.Net" && 
-				(($("#authorizeNetLogin").val() != "" && $("#authorizeNetTransactionKey").val() == "") ||
-				($("#authorizeNetLogin").val() == "" && $("#authorizeNetTransactionKey").val() != ""))) {
-				$(".nav-tabs a[data-target='#creditCard']").tab("show");
-				showAlertBootStrapMsg("warning", "Authorize.Net API Login ID and Transaction Key are related!");
-				return false;
+			if(scope.creditCardProviderModel != "" && scope.creditCardProviderModel.value == "AUTHORIZENET") {
+				if(!$("#authorizeNetLogin")[0].checkValidity()){
+					$(".nav-tabs a[data-target='#creditCard']").tab("show");
+					$("#authorizeNetLogin").focus();
+					showAlertBootStrapMsg("warning", "AUTHORIZENET API Login ID and Transaction Key are related!");
+					return false;
+				}
+				else if(!$("#authorizeNetTransactionKey")[0].checkValidity()){
+					$(".nav-tabs a[data-target='#creditCard']").tab("show");
+					$("#authorizeNetTransactionKey").focus();
+					showAlertBootStrapMsg("warning", "AUTHORIZENET API Login ID and Transaction Key are related!");
+					return false;
+				}
 			}
 			if(!$("#authPasswordRegex")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#auth']").tab("show");
