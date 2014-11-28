@@ -522,14 +522,31 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     }
   }
 
-  def relay(params: Map[String, String]) = {
-    val action = "http://6e71402.ngrok.com/pay/authorizenet/done"
+  def relay(session: SessionData, params: Map[String, String]) = {
+    val query = Map(
+      "amount" -> params("amount"),
+      "apiLoginID" -> apiLoginID,
+      "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
+      "currency" -> currency,
+      "cc_holder" -> paymentRequest.holder,
+      "cc_number" -> UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+      "cc_cvv" -> paymentRequest.cvv,
+      "cc_expirationDate" -> paymentRequest.expirationDate
+    )
+    val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
+      transaction = session.transactionUuid.getOrElse("???"), log = params.mkString(", "))
+    EsClient.index(Settings.Mogopay.EsIndex, log, false)
+
+    val action = "http://6e71402.ngrok.com/pay/authorizenet/finish"
     val form = {
-      <form action={action} id="redirectForm" method="GET">
-      </form>
+      <form action={action} id="redirectForm" method="GET"></form>
       <script>document.getElementById('redirectForm').submit();</script>
     }
     form.mkString
+  }
+
+  def finish(sessionData: SessionData) = {
+    finishPayment(sessionData, paymentResult)
   }
 
   def cancel(sessionData: SessionData) = {

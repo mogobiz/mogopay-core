@@ -26,6 +26,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     pathPrefix("authorizenet") {
       startPayment ~
       done ~
+      finish ~
 //      callbackPayment ~
 //      callback3DSecureCheck ~
 //      done3DSecureCheck ~
@@ -151,6 +152,19 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       session { session =>
         parameterMap { params =>
           onComplete((actor ? Cancel(session.sessionData)).mapTo[Try[String]]) { call =>
+            handleComplete(call, (_: Any) => complete(StatusCodes.OK -> call.get))
+          }
+        }
+      }
+    }
+  }
+
+  lazy val finish = path("finish") {
+    import Implicits._
+    get {
+      session { session =>
+        parameterMap { params =>
+          onComplete((actor ? Finish(session.sessionData)).mapTo[Try[String]]) { call =>
             handleComplete(call, (_: Any) => complete(StatusCodes.OK -> call.get))
           }
         }

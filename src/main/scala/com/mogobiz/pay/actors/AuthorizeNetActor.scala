@@ -20,6 +20,8 @@ object AuthorizeNetActor {
 
   case class Relay(params: Map[String, String])
 
+  case class Finish(sessionData: SessionData)
+
   case class Cancel(sessionData: SessionData)
 }
 
@@ -33,6 +35,7 @@ class AuthorizeNetActor extends Actor {
 //    case Done3DSecureCheck(sessionData, params) => sender ! Try(authorizeNetHandler.done3DSecureCheck(sessionData, params))
 //    case Callback3DSecureCheck(sessionData, params) => sender ! Try(authorizeNetHandler.callback3DSecureCheck(sessionData, params))
     case Relay(params) => sender ! Try(authorizeNetHandler.relay(params))
+    case Finish(sessionData) => sender ! Try(authorizeNetHandler.finish(sessionData))
     case Cancel(sessionData) => sender ! Try(authorizeNetHandler.cancel(sessionData))
   }
 }
