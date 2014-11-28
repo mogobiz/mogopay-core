@@ -10,10 +10,15 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 
     $rootScope.serverUrl = serverUrl;
 
-    if (($rootScope.userProfile == undefined || $rootScope.userProfile == null) && $location.$$path != "/home") {
-        $location.path("/home");
-        $scope.$apply();
-        $location.replace();
+    if (($rootScope.userProfile == undefined || $rootScope.userProfile == null)) {
+        if(indexPage == true && $location.$$path != "/home"){
+			$location.path("/home");
+			$location.replace();
+		}
+		if((merchantPage == true || customerPage == true) && $location.$$path != "/login"){
+			$location.path("/login");
+			$location.replace();
+		}
     }
 
     $rootScope.logout = function () {
@@ -26,7 +31,10 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         $rootScope.transactions = null;
         $rootScope.transactionLogs = null;
         $rootScope.createPage = null;
-        $location.path("/home");
+		if(indexPage == true)
+			$location.path("/home");
+		if(merchantPage == true || customerPage == true)
+			$location.path("/login");
         $scope.$apply();
         $location.replace();
 //        callServer("account/customer-token", "", function (response) {$rootScope.xtoken = response;}, function (response) {});
@@ -45,19 +53,6 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
     };
 
 //    callServer("account/customer-token", "", function (response) {$rootScope.xtoken = response;}, function (response) {});
-
-    var success = function (response) {
-        $rootScope.isMerchant = response.isMerchant;
-        $rootScope.userProfile = response;
-        $rootScope.createPage = false;
-        if ($location.$$path == "/home") {
-            $scope.loginGoToTransactions($scope, $location, $rootScope);
-        }
-    };
-
-    var failure = function (response) {};
-
-    callServer("account/profile-info", "", success, failure);
 }
 
 MainCtrl.$inject = ["ngI18nResourceBundle", "ngI18nConfig", "$scope", "$rootScope", "$location", "$route"];

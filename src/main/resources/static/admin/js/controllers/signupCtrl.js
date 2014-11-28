@@ -183,7 +183,10 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
         var success = function (response) {
             showAlertBootStrapMsg("success", "Sign up successful!");
 
-            location.path("/home");
+			if(indexPage == true)
+				$location.path("/home");
+			if(merchantPage == true || customerPage == true)
+				$location.path("/login");
             scope.$apply();
             location.replace();
         };

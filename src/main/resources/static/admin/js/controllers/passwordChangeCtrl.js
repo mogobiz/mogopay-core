@@ -13,7 +13,10 @@ function requestPass(rootScope ,scope , location ,email){
     var success = function(response) {
         showAlertBootStrapMsg("success", "A link to choose a new password has been sent to you.");
 
-        location.path( "/home" );
+        if(indexPage == true)
+			$location.path("/home");
+		if(merchantPage == true || customerPage == true)
+			$location.path("/login");
         scope.$apply();
         location.replace();
     }

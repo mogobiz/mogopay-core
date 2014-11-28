@@ -36,14 +36,13 @@
     <script type="text/javascript" src="../js/jquery/fileupload/jquery.fileupload-process.js"></script>
     <script type="text/javascript" src="../js/jquery/fileupload/jquery.fileupload-validate.js"></script>
 
-    <script type="text/javascript" src="../js/app.js"></script>
+    <script type="text/javascript" src="../js/appCustomer.js"></script>
     <script type="text/javascript" src="../js/share.js"></script>
     <script type="text/javascript" src="../js/submitPlugin.js"></script>
 
     <script type="text/javascript" src="../js/webshim/polyfiller.js"></script>
 
     <script type="text/javascript" src="../js/controllers/mainCtrl.js"></script>
-    <script type="text/javascript" src="../js/controllers/homeCtrl.js"></script>
     <script type="text/javascript" src="../js/controllers/loginCtrl.js"></script>
     <script type="text/javascript" src="../js/controllers/listTransactionsCtrl.js"></script>
     <script type="text/javascript" src="../js/controllers/transactionLogsCtrl.js"></script>
@@ -51,13 +50,13 @@
     <script type="text/javascript" src="../js/controllers/signupCtrl.js"></script>
     <script type="text/javascript" src="../js/controllers/passwordChangeCtrl.js"></script>
 	<script>
+		var indexPage = false;
 		var merchantPage = false;
-		var customerPage = false;
-		var indexPage = true;
+		var customerPage = true;
 	</script>
 </head>
 <body  ng-controller="MainCtrl" style="margin: 8px;">
 <div id="notification"></div>
-<div ng-view id="#mainContainer"></div>
+<div ng-view></div>
 </body>
 </html>

@@ -222,12 +222,12 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	}
 
 	function profileResendMailConfirmation(scope, location, rootScope, route) {
-		var dataToSend = "xtoken=" + rootScope.xtoken;
+		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
 		callServer("account/generateNewEmailCode", dataToSend, function (response) {}, function (response) {});
 	}
 
 	function profileResendPhoneValidation(scope, location, rootScope, route) {
-		var dataToSend = "xtoken=" + rootScope.xtoken;
+		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
 		callServer("account/generateNewPhoneCode", dataToSend, function (response) {}, function (response) {});
 	}
 
@@ -477,7 +477,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		var dataToSend = getProfileFormData(scope, location, rootScope, route);
 		var success = function (response) {
 			if (rootScope.createPage) {
-				location.path("/home");
+				if(indexPage == true)
+					$location.path("/home");
+				if(merchantPage == true || customerPage == true)
+					$location.path("/login");
 			} else {
 				location.path("/listTransactions");
 			}
