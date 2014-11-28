@@ -175,33 +175,6 @@ object Mogopay {
 
   class TokenValidityRef extends TypeReference[TokenValidity.type]
 
-  /*
-  public class SessionData implements Serializable {
-	public String email
-	public boolean isMerchant
-	public boolean merchantSession
-	public long accountId
-	public DemandePaiementVO paymentRequest
-	public String transactionUuid
-	public String transactionType
-	public PaymentConfig paymentConfig
-	public long amount
-	public long vendorId
-	public String errorURL
-	public String successURL
-	public String cardinfoURL
-	public String token
-	public String password
-	public long customerId
-	public String csrfToken
-	public String o3dSessionId
-	public boolean cardSave
-	public int pageNum = 0
-    public List<ShippingPrice> listShipping
-    public ShippingPrice selectShippingPrice
-}
-   */
-
   case class CreditCard(uuid: String,
                         number: String,
                         holder: String,
