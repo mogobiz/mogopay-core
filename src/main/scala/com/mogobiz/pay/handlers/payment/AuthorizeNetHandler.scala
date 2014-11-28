@@ -299,7 +299,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
          """.stripMargin
 
 //      val relayURL = s"${Settings.Mogopay.EndPoint}authorize-net/relay"
-      val relayURL = "http://6e71402.ngrok.com/pay/authorizenet/relay"
+      val relayURL = "http://6e71402.ngrok.com/6e71402.ngrok.com/pay/authorizenet/relay"
+      val cancelURL = "http://6e71402.ngrok.com/pay/authorizenet/cancel"
 
       val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
       val x_fp_sequence = fingerprint.getSequence
@@ -321,6 +322,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input TYPE="hidden" name="x_relay_response" value="true" />
           <input type="hidden" name="x_relay_url" value={relayURL} />
           <input type="hidden" name="foo" value="bar" />
+          <input type="hidden" name="x_cancel_url" value={cancelURL} />
           <input type="submit" name="submit_button" value="Submit" />
         </form>
         <script>document.getElementById('authorizenet').submit();</script>
@@ -524,16 +526,19 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val action = "http://6e71402.ngrok.com/pay/authorizenet/done"
     val form = {
       <form action={action} id="redirectForm" method="GET">
-        {params.foreach { case (name, value) =>
-          <input type="hidden" name={name} value={value} />
-        }}
       </form>
-      <script>
-        document.getElementById('redirectForm').submit();
-      </script>
+      <script>document.getElementById('redirectForm').submit();</script>
     }
-    println(form.mkString)
     form.mkString
+  }
+
+  def cancel(sessionData: SessionData) = {
+    val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, sessionData.transactionUuid.getOrElse("???")).orNull
+    val paymentResult = PaymentResult(
+      newUUID, null, -1L, "", null, null, "", "", null, "", "", PaymentStatus.FAILED,
+      transaction.errorCodeOrigin.getOrElse(""),
+      transaction.errorMessageOrigin, "", "", Some(""), "")
+    finishPayment(sessionData, paymentResult)
   }
 }
 

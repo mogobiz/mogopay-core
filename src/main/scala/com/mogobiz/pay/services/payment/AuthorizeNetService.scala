@@ -29,7 +29,8 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
 //      callbackPayment ~
 //      callback3DSecureCheck ~
 //      done3DSecureCheck ~
-      relay
+      relay ~
+      cancel
     }
   }
 
@@ -140,6 +141,19 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         handleCall(authorizeNetHandler.relay(formData.fields.toMap),
           (_: Any) => complete(StatusCodes.OK)
         )
+      }
+    }
+  }
+
+  lazy val cancel = path("cancel") {
+    import Implicits._
+    get {
+      session { session =>
+        parameterMap { params =>
+          onComplete((actor ? Cancel(session.sessionData)).mapTo[Try[String]]) { call =>
+            handleComplete(call, (_: Any) => complete(StatusCodes.OK -> call.get))
+          }
+        }
       }
     }
   }
