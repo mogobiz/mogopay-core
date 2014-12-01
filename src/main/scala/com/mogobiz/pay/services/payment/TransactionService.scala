@@ -13,6 +13,7 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.{TransactionRequest, BOTransaction, TransactionStatus}
+import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
 import com.mogobiz.pay.services.Util._
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
@@ -63,32 +64,32 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   }
 
   lazy val init = path("init") {
-    import Implicits._
-    get {
-      val params = parameters('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?)
-      params { (secret, amount, code, rate, extra) =>
-        onComplete((actor ? Init(secret, amount, code, rate, extra)).mapTo[Try[String]]) { call =>
-          handleComplete(call, (id: String) =>
-            complete(StatusCodes.OK -> Map('transaction_id -> id))
-          )
-        }
+    post {
+      formFields('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?).as(TransactionInit) {
+        params=>
+          import Implicits._
+          onComplete((actor ? Init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra)).mapTo[Try[String]]) { call =>
+            handleComplete(call, (id: String) =>
+              complete(StatusCodes.OK -> Map('transaction_id -> id))
+            )
+          }
       }
     }
   }
 
   lazy val listShipping = path("list-shipping") {
-    import Implicits._
     post {
-      session {
-        session =>
-          formFields('currency_code, 'transaction_extra) {
-            (currencyCode, transactionExtra) =>
+      formFields('currency_code, 'transaction_extra).as(ListShippingPriceParam) {
+        params =>
+          session {
+            session =>
+              import Implicits._
               session.sessionData.accountId.map(_.toString) match {
                 case None => complete {
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  onComplete((actor ? GetShippingPrices(currencyCode, transactionExtra, id)).mapTo[Try[Seq[ShippingPrice]]]) { call =>
+                  onComplete((actor ? GetShippingPrices(params.currency_code, params.transaction_extra, id)).mapTo[Try[Seq[ShippingPrice]]]) { call =>
                     handleComplete(call,
                       (shippinggPrices: Seq[ShippingPrice]) => {
                         session.sessionData.shippingPrices = Option(shippinggPrices.toList)
@@ -105,23 +106,23 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   }
 
   lazy val selectShipping = path("select-shipping") {
-    import Implicits._
     post {
-      session {
-        session =>
-          formFields('currency_code, 'transaction_extra, 'provider, 'service, 'rate_type) {
-            (currencyCode, transactionExtra, provider, service, rateType) =>
+      formFields('currency_code, 'transaction_extra, 'provider, 'service, 'rate_type).as(SelectShippingPriceParam) {
+        params =>
+          session {
+            session =>
+              import Implicits._
               session.sessionData.accountId.map(_.toString) match {
                 case None => complete {
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  val message = GetShippingPrices(currencyCode, transactionExtra, id)
+                  val message = GetShippingPrices(params.currency_code, params.transaction_extra, id)
 
-                  onComplete((actor ? GetShippingPrices(currencyCode, transactionExtra, id)).mapTo[Try[Seq[ShippingPrice]]]) { call =>
+                  onComplete((actor ? GetShippingPrices(params.currency_code, params.transaction_extra, id)).mapTo[Try[Seq[ShippingPrice]]]) { call =>
                     handleComplete(call,
                       (shippingPrices: Seq[ShippingPrice]) => {
-                        val message = GetShippingPrice(shippingPrices, provider, service, rateType)
+                        val message = GetShippingPrice(shippingPrices, params.provider, params.service, params.rate_type)
                         val shippingPrice : Try[Option[ShippingPrice]] = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
                         session.sessionData.selectShippingPrice = shippingPrice.get
                         setSession(session) {
