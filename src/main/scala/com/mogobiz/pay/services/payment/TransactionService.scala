@@ -78,10 +78,10 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
   lazy val listShipping = path("list-shipping") {
     import Implicits._
-    get {
+    post {
       session {
         session =>
-          parameters('currency_code, 'transaction_extra) {
+          formFields('currency_code, 'transaction_extra) {
             (currencyCode, transactionExtra) =>
               session.sessionData.accountId.map(_.toString) match {
                 case None => complete {
