@@ -106,11 +106,10 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
 
   lazy val selectShipping = path("select-shipping") {
     import Implicits._
-    get {
+    post {
       session {
         session =>
-          val params = parameters('currency_code, 'transaction_extra, 'provider, 'service, 'rate_type)
-          params {
+          formFields('currency_code, 'transaction_extra, 'provider, 'service, 'rate_type) {
             (currencyCode, transactionExtra, provider, service, rateType) =>
               session.sessionData.accountId.map(_.toString) match {
                 case None => complete {
