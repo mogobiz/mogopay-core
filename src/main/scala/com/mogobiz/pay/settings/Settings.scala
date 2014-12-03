@@ -30,7 +30,6 @@ object Settings {
   val AccountRecycleDuration = config.getInt("account.recycle.duration")
   val TransactionRequestDuration = config.getInt("transaction.request.duration")
   val TransactionDuration = config.getInt("transaction.duration")
-  val SelectForUpdate = config.getString("db.select.forupdate")
   val MaxQueryResults = config.getInt("maxQueryResults")
   val sharedCustomers = false
   val EmailTemplatesDir = "emailtemplates/"
