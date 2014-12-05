@@ -164,7 +164,7 @@ class TransactionHandler {
       )
       if (paymentResult.transactionDate != null) {
         val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-        boTransactionHandler.update(finalTrans, false)
+        boTransactionHandler.update(finalTrans, refresh = false)
         notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
@@ -389,7 +389,7 @@ class TransactionHandler {
     sessionData.transactionType = transactionType
     sessionData.merchantId = Some(vendor.uuid)
     sessionData.paymentConfig = vendor.paymentConfig
-    sessionData.email = submit.params.customerEmail
+    if (submit.params.customerEmail.isDefined) sessionData.email = submit.params.customerEmail
     sessionData.password = submit.params.customerPassword
 
     if (!sessionData.mogopay)

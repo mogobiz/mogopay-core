@@ -18,9 +18,9 @@ object AuthorizeNetActor {
 
 //  case class Callback3DSecureCheck(sessionData: SessionData, params: Map[String, String])
 
-  case class Relay(params: Map[String, String])
+  case class Relay(sessionData: SessionData, params: Map[String, String])
 
-  case class Finish(sessionData: SessionData)
+  case class Finish(sessionData: SessionData, params: Map[String, String])
 
   case class Cancel(sessionData: SessionData)
 }
@@ -31,11 +31,11 @@ class AuthorizeNetActor extends Actor {
   def receive: Receive = {
     case StartPayment(sessionData) => sender ! Try(authorizeNetHandler.startPayment(sessionData))
 //    case CallbackPayment(sessionData, params, uri) => sender ! Try(authorizeNetHandler.callbackPayment(sessionData, params, uri))
-    case Done(sessionData, params, uri) => sender ! Try(authorizeNetHandler.donePayment(sessionData, params, uri))
+    case Done(sessionData, params, uri) => sender ! ??? //Try(authorizeNetHandler.done(sessionData, params))
 //    case Done3DSecureCheck(sessionData, params) => sender ! Try(authorizeNetHandler.done3DSecureCheck(sessionData, params))
 //    case Callback3DSecureCheck(sessionData, params) => sender ! Try(authorizeNetHandler.callback3DSecureCheck(sessionData, params))
-    case Relay(params) => sender ! Try(authorizeNetHandler.relay(params))
-    case Finish(sessionData) => sender ! Try(authorizeNetHandler.finish(sessionData))
+    case Relay(sessionData, params) => sender ! Try(authorizeNetHandler.relay(sessionData, params))
+    case Finish(sessionData, params) => sender ! Try(authorizeNetHandler.finish(sessionData, params))
     case Cancel(sessionData) => sender ! Try(authorizeNetHandler.cancel(sessionData))
   }
 }
