@@ -294,10 +294,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   }
 
   def relay(sessionData: SessionData, params: Map[String, String]) = {
-    val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
-      transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params))
-    EsClient.index(Settings.Mogopay.EsIndex, log, false)
-
     val action = "http://763bf2d2.ngrok.com/pay/authorizenet/finish"
     val form = {
       <form action={action} id="redirectForm" method="GET">
@@ -314,6 +310,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   }
 
   def finish(sessionData: SessionData, params: Map[String, String]) = {
+    val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
+      transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params))
+    EsClient.index(Settings.Mogopay.EsIndex, log, false)
+
     val paymentConfig = sessionData.paymentConfig.get
     val cbParams = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
