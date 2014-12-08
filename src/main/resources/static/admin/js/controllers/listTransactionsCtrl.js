@@ -15,11 +15,11 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
             });
         };
         var dataToSend = "";//"xtoken=" + $rootScope.xtoken;
-        if ($("#listTransactionsEmail").val() != "")
+        if ($.trim($("#listTransactionsEmail").val()) != "")
             dataToSend += "&email=" + $("#listTransactionsEmail").val();
-        if ($("#listTransactionsUUID").val() != "")
+        if ($.trim($("#listTransactionsUUID").val()) != "")
             dataToSend += "&transaction_uuid=" + $("#listTransactionsUUID").val();
-        if ($("#listTransactionsAmount").val() != "")
+        if ($.trim($("#listTransactionsAmount").val()) != "")
             dataToSend += "&amount=" + $("#listTransactionsAmount").val();
         if ($("#listTransactionsStartDate").val() != "")
             dataToSend += "&start_date=" + $("#listTransactionsStartDate").val();
@@ -33,7 +33,6 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
     };
     $scope.transactionGetLogs =  function (id) {
         var success = function (response) {
-            console.log(response);
             for (var i = 0; i < response.length; i++) {
                 response[i].logTable = response[i].log.split("&");
             }
@@ -54,6 +53,7 @@ function refreshStatusPopover() {
         html : true,
         placement:"bottom",
         content: function () {
+			$(".popover").removeClass("in").remove();
             var parent =  $(this).parent();
             var element = $(".dialog", parent);
             return element.html();
@@ -69,6 +69,7 @@ function refreshCardPopover() {
         html : true,
         placement:"bottom",
         content: function () {
+			$(".popover").removeClass("in").remove();
             var parent =  $(this).parent();
             var element = $(".dialog", parent);
             return element.html();
