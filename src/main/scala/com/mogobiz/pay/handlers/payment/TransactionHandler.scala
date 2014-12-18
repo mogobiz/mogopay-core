@@ -556,8 +556,7 @@ class TransactionHandler {
         val cc_date = cal.getTime
         if (cc_date.compareTo(new Date()) < 0) {
           throw SomeParameterIsMissingException(MogopayConstant.CreditCardExpiryDateInvalid)
-        }
-        else {
+        } else {
           paymentRequest = paymentRequest.copy(
             cardType = cc_type,
             ccNumber = cc_num,
