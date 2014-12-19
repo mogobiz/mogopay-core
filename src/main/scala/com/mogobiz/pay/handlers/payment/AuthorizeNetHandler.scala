@@ -1,37 +1,24 @@
 package com.mogobiz.pay.handlers.payment
 
-import java.io.StringReader
-import java.net.URLDecoder
-import java.security.interfaces.RSAPublicKey
-import java.security.{Signature, NoSuchAlgorithmException, MessageDigest, Security}
-import java.text.SimpleDateFormat
 import java.util.Date
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import com.mogobiz.pay.handlers.UtilHandler
-import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import net.authorize.sim._
-import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.Environment
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidPaymentMethodException, InvalidContextException, InvalidSignatureException}
-import com.mogobiz.pay.model.Mogopay.TransactionStatus
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.openssl.PEMReader
-import org.json4s.jackson.JsonMethods._
+import com.mogobiz.pay.exceptions.Exceptions.InvalidPaymentMethodException
+import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
+import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
 import com.mogobiz.utils.GlobalUtil._
-import spray.http.{HttpResponse, Uri}
-import sun.misc.BASE64Decoder
+import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
+import net.authorize.sim._
+import org.json4s.jackson.JsonMethods._
+import spray.client.pipelining._
+import spray.http.{HttpResponse, Uri, _}
 
 import scala.concurrent.Future
-import spray.http._
-import spray.client.pipelining._
 import scala.concurrent.duration._
-
 import scala.util._
 
 class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
@@ -80,23 +67,23 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       val form = {
         <form name="authorizenet" id="authorizenet" action="https://test.authorize.net/gateway/transact.dll" method="post">
-          <input type="text" name="x_amount" value={amount} />
-          <input type="hidden" name="x_login" value={apiLoginID} />
-          <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString} />
-          <input type="hidden" name="x_fp_timestamp" value={x_fp_timestamp.toString} />
-          <input type="hidden" name="x_fp_hash" value={x_fp_hash} />
+          <input type="text" name="x_amount" value={amount}/>
+          <input type="hidden" name="x_login" value={apiLoginID}/>
+          <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString}/>
+          <input type="hidden" name="x_fp_timestamp" value={x_fp_timestamp.toString}/>
+          <input type="hidden" name="x_fp_hash" value={x_fp_hash}/>
           <input type="hidden" name="x_version" value="3.1"/>
           <input type="hidden" name="x_method" value="CC"/>
           <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
-          <input type="hidden" name="x_show_form" value="payment_form" />
-          <input type="hidden" name="x_test_request" value="false" />
-          <input TYPE="hidden" name="x_relay_response" value="true" />
-          <input type="hidden" name="x_relay_url" value={relayURL} />
-          <input type="hidden" name="x_cancel_url" value={cancelURL} />
-          <input type="submit" name="submit_button" value="Submit" />
-          <input type="hidden" name="vendor_uuid" value={vendorId} />
+          <input type="hidden" name="x_show_form" value="payment_form"/>
+          <input type="hidden" name="x_test_request" value="false"/>
+          <input TYPE="hidden" name="x_relay_response" value="true"/>
+          <input type="hidden" name="x_relay_url" value={relayURL}/>
+          <input type="hidden" name="x_cancel_url" value={cancelURL}/>
+          <input type="submit" name="submit_button" value="Submit"/>
+          <input type="hidden" name="vendor_uuid" value={vendorId}/>
         </form>
-        <script>document.getElementById('authorizenet').submit();</script>
+          <script>document.getElementById('authorizenet').submit();</script>
       }
 
       val query = Map(
@@ -105,7 +92,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
         "currency" -> currency,
         "cc_holder" -> paymentRequest.holder,
-        "cc_number" -> UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+        "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
         "cc_cvv" -> paymentRequest.cvv,
         "cc_expirationDate" -> paymentRequest.expirationDate
       )
@@ -119,52 +106,46 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       val relayResponseUrl = s"${Settings.Mogopay.EndPoint}authorizenet/relay"
       val action = "https://test.authorize.net/gateway/transact.dll"
 
-      val params = Map(
-        "apiLoginId" -> apiLoginID,
-        "transactionKey" -> transactionKey,
-        "x_card_num" -> sessionData,
-        "x_exp_date" -> "",
-        "x_amount" -> amount,
-        "x_invoice_num" -> System.currentTimeMillis.toString,
-        "x_relay_url" -> relayResponseUrl,
-        "x_login" -> apiLoginID,
-        "x_fp_sequence" -> fingerprint.getSequence.toString,
-        "x_fp_timestamp" -> fingerprint.getTimeStamp.toString,
-        "x_fp_hash" -> fingerprint.getFingerprintHash,
-        "x_version" -> "3.1",
-        "x_method" -> "CC",
-        "x_type" -> "AUTH_CAPTURE",
-        "x_amount" -> amount,
-        "x_test_request" -> "FALSE",
-        "notes" -> "extra hot please",
-        "buy_button" -> "BUY"
-      ).toList
+      val query = Map(
+        "amount" -> amount,
+        "apiLoginID" -> apiLoginID,
+        "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
+        "currency" -> currency,
+        "cc_holder" -> paymentRequest.holder,
+        "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
+        "cc_cvv" -> paymentRequest.cvv,
+        "cc_expirationDate" -> paymentRequest.expirationDate
+      )
 
       val form = {
         <form id="authorizenet" action="https://test.authorize.net/gateway/transact.dll" method="post">
           <label>CreditCardNumber</label>
-          <input type="text" class="text" name="x_card_num" size="15" />
+          <input type="text" class="text" name="x_card_num" size="15"/>
           <label>Exp.</label>
-          <input type="text" class="text" name="x_exp_date" size="4" />
+          <input type="text" class="text" name="x_exp_date" size="4"/>
           <label>Amount</label>
-          <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={amount} />
-          <input type="hidden" name="x_invoice_num" value={System.currentTimeMillis.toString} />
-          <input type="hidden" name="x_relay_url" value={relayResponseUrl} />
-          <input type="hidden" name="x_login" value={apiLoginID} />
-          <input type="hidden" name="x_fp_sequence" value={fingerprint.getSequence.toString} />
-          <input type="hidden" name="x_fp_timestamp" value={fingerprint.getTimeStamp.toString} />
-          <input type="hidden" name="x_fp_hash" value={fingerprint.getFingerprintHash} />
-          <input type="hidden" name="x_version" value="3.1" />
-          <input type="hidden" name="x_method" value="CC" />
-          <input type="hidden" name="x_type" value="AUTH_CAPTURE" />
-          <input type="hidden" name="x_amount" value={amount} />
-          <input type="hidden" name="x_test_request" value="FALSE" />
-          <input type="hidden" name="notes" value="extra hot please" />
-          <input type="hidden" name="vendor_uuid" value={vendorId} />
-          <input type="submit" name="buy_button" value="BUY" />
+          <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={amount}/>
+          <input type="hidden" name="x_invoice_num" value={System.currentTimeMillis.toString}/>
+          <input type="hidden" name="x_relay_url" value={relayResponseUrl}/>
+          <input type="hidden" name="x_login" value={apiLoginID}/>
+          <input type="hidden" name="x_fp_sequence" value={fingerprint.getSequence.toString}/>
+          <input type="hidden" name="x_fp_timestamp" value={fingerprint.getTimeStamp.toString}/>
+          <input type="hidden" name="x_fp_hash" value={fingerprint.getFingerprintHash}/>
+          <input type="hidden" name="x_version" value="3.1"/>
+          <input type="hidden" name="x_method" value="CC"/>
+          <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
+          <input type="hidden" name="x_amount" value={amount}/>
+          <input type="hidden" name="x_test_request" value="FALSE"/>
+          <input type="hidden" name="notes" value="extra hot please"/>
+          <input type="hidden" name="vendor_uuid" value={vendorId}/>
+          <input type="submit" name="buy_button" value="BUY"/>
         </form>
-        <script>document.getElementById("authorizenet").submit();</script>
+          <script>document.getElementById("authorizenet").submit();</script>
       }
+
+      val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
+        transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query))
+      EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
       Left(form.mkString)
     } else {
@@ -177,10 +158,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val form = {
       <form action={action} id="redirectForm" method="GET">
         {params.map { case (name, value) =>
-          <input type="hidden" name={name} value={value} />
-        }}
+          <input type="hidden" name={name} value={value}/>
+      }}
       </form>
-      <script>document.getElementById('redirectForm').submit();</script>
+        <script>document.getElementById('redirectForm').submit();</script>
     }.mkString.replaceAll("\"", "'")
 
     // TODO Sanitize the values
@@ -209,7 +190,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
       "currency" -> currency,
       "cc_holder" -> paymentRequest.holder,
-      "cc_number" -> UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+      "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
       "cc_cvv" -> paymentRequest.cvv,
       "cc_expirationDate" -> paymentRequest.expirationDate
     )
@@ -226,7 +207,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       orderDate = paymentRequest.orderDate,
       amount = paymentRequest.amount,
       ccNumber = hideStringExceptLastN("X" * 8 + params("x_account_number"), 4, "X"),
-      cardType = PayboxHandler.toCardType(params.getOrElse("CARTE", CreditCardType.CB.toString)),
+      cardType = AuthorizeNetHandler.toCardType(params.getOrElse("CARTE", CreditCardType.CB.toString)),
       expirationDate = paymentRequest.expirationDate,
       cvv = "",
       gatewayTransactionId = transaction.uuid,
@@ -279,16 +260,14 @@ object AuthorizeNetHandler {
   )
 
   def toCardType(xtype: String): CreditCardType = {
-    val typ = if (xtype == null) "CB" else xtype.toUpperCase()
-    if (typ == "CB") {
-      CreditCardType.CB
-    } else if (typ == "VISA") {
+    val `type` = if (xtype == null) "CB" else xtype.toUpperCase
+    if (`type` == "VISA") {
       CreditCardType.VISA
-    } else if (typ == "AMEX") {
+    } else if (`type` == "AMEX") {
       CreditCardType.AMEX
-    } else if (typ.indexOf("MASTERCARD") >= 0) {
+    } else if (`type`.indexOf("MASTERCARD") >= 0) {
       CreditCardType.MASTER_CARD
-    } else if (typ == "VISA_ELECTRON") {
+    } else if (`type` == "VISA_ELECTRON") {
       CreditCardType.VISA
     } else {
       CreditCardType.CB

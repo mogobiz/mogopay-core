@@ -84,7 +84,7 @@ class TransactionHandler {
         Option(paymentRequest.transactionDesc), Option(paymentRequest.gatewayData), None, Option(account), customer, Nil)
 
       if (paymentType == PaymentType.CREDIT_CARD &&
-        account.paymentConfig.map(_.paymentMethod) != Some(CBPaymentMethod.EXTERNAL)) {
+        account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
         val creditCard = BOCreditCard(
           number = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
           holder = None,
