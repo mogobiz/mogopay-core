@@ -55,8 +55,8 @@ class TransactionHandler {
           EsClient.index(Settings.Mogopay.EsIndex, txRequest, false)
           txReqUUID
         }
-      }).getOrElse(throw AccountDoesNotExistException(""))
-    }).getOrElse(throw CurrencyCodeNotFoundException(""))
+      }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
+    }).getOrElse(throw CurrencyCodeNotFoundException(s"$currencyCode not found"))
   }
 
   /*

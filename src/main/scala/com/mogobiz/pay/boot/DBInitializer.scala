@@ -131,7 +131,7 @@ object DBInitializer {
     createAccount("Merchant6", "TEST", "seller6@merchant.com", merchantTelephone6, merchantAccountAddress6, merchant, Some(paymentConfig4), None)
 
     val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.EXTERNAL)
-    createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com")
+    createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com", "seller7")
 
     val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_NO)
     createAccount("Merchant8", "TEST", "seller8@merchant.com", merchantTelephone8, merchantAccountAddress8, merchant, Some(paymentConfig6), None, AccountStatus.ACTIVE, "seller8@merchant.com", "seller8")

@@ -9,13 +9,12 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.pay.actors.TransactionActor._
 import com.mogobiz.pay.config.DefaultComplete
-import com.mogobiz.es.EsClient
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{TransactionRequest, BOTransaction, TransactionStatus}
+import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
 import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
 import com.mogobiz.pay.services.Util._
-import com.mogobiz.session.Session
+import com.mogobiz.session.{SessionESDirectives, Session}
 import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.pay.settings.Settings
 import spray.can.Http
@@ -50,7 +49,8 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
         listShipping ~
         selectShipping ~
         verify ~
-        submit
+        submit ~
+        submitWithSession
     }
   }
 
@@ -66,7 +66,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?).as(TransactionInit) {
-        params=>
+        params =>
           import Implicits._
           onComplete((actor ? Init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra)).mapTo[Try[String]]) { call =>
             handleComplete(call, (id: String) =>
@@ -123,7 +123,7 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                     handleComplete(call,
                       (shippingPrices: Seq[ShippingPrice]) => {
                         val message = GetShippingPrice(shippingPrices, params.provider, params.service, params.rate_type)
-                        val shippingPrice : Try[Option[ShippingPrice]] = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
+                        val shippingPrice: Try[Option[ShippingPrice]] = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
                         session.sessionData.selectShippingPrice = shippingPrice.get
                         setSession(session) {
                           complete {
@@ -198,63 +198,81 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
         submitParams =>
           session {
             session =>
-              import Implicits._
-              def isNewSession(): Boolean = {
-                val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
-                val incomingTrans = submitParams.transactionUUID
-                sessionTrans != incomingTrans
-              }
-
-              if (submitParams.merchantId != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__"))
-                complete {
-                  StatusCodes.Unauthorized -> "Invalid Merchant id"
-                }
-              else {
-                if (!session.sessionData.authenticated && isNewSession())
-                  session.clear()
-
-                onComplete((actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]) { call =>
-                  handleComplete(call,
-                    (t: (String, String)) => {
-                      val (serviceName, methodName) = t
-                      setSession(session) {
-                        val sessionId = session.id
-                        val pipeline: Future[SendReceive] =
-                          for (
-                            Http.HostConnectorInfo(connector, _) <-
-                            IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
-
-                          ) yield sendReceive(connector)
-                        println(s"request ->${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
-                        val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
-                        def cleanSession(session: Session) {
-                          val authenticated = session.sessionData.authenticated
-                          val customerId = session.sessionData.accountId
-                          session.clear()
-                          session.sessionData.authenticated = authenticated
-                          session.sessionData.accountId = customerId
-                        }
-                        val response = pipeline.flatMap(_(request))
-                        onComplete(response) {
-                          case Failure(t) =>
-                            t.printStackTrace()
-                            cleanSession(session)
-                            setSession(session) {
-                              complete(toHTTPResponse(t), t.toString)
-
-                            }
-                          case Success(response) =>
-                            println("success->" + response.entity.data.asString)
-                            complete {
-                              response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
-                            }
-                        }
-                      }
-                    }
-                  )
-                }
-              }
+              doSubmit(submitParams, session)
           }
+      }
+    }
+  }
+
+  lazy val submitWithSession = path("submit" / Segment) { sessionUuid =>
+    post {
+      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
+        'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
+        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
+        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
+        submitParams =>
+          val session = SessionESDirectives.load(sessionUuid).get
+          doSubmit(submitParams, session)
+      }
+    }
+  }
+
+  private def doSubmit(submitParams: SubmitParams, session: Session): Route = {
+    import Implicits._
+    def isNewSession(): Boolean = {
+      val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
+      val incomingTrans = submitParams.transactionUUID
+      sessionTrans != incomingTrans
+    }
+
+    if (submitParams.merchantId != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__")) {
+      complete {
+        StatusCodes.Unauthorized -> "Invalid Merchant id"
+      }
+    }
+    else {
+      if (!session.sessionData.authenticated && isNewSession()) {
+        session.clear()
+      }
+      onComplete((actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]) { call =>
+        handleComplete(call,
+          (t: (String, String)) => {
+            val (serviceName, methodName) = t
+            setSession(session) {
+              val sessionId = session.id
+              val pipeline: Future[SendReceive] =
+                for (
+                  Http.HostConnectorInfo(connector, _) <-
+                  IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
+
+                ) yield sendReceive(connector)
+              println(s"request ->${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
+              val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
+              def cleanSession(session: Session) {
+                val authenticated = session.sessionData.authenticated
+                val customerId = session.sessionData.accountId
+                session.clear()
+                session.sessionData.authenticated = authenticated
+                session.sessionData.accountId = customerId
+              }
+              val response = pipeline.flatMap(_(request))
+              onComplete(response) {
+                case Failure(t) =>
+                  t.printStackTrace()
+                  cleanSession(session)
+                  setSession(session) {
+                    complete(toHTTPResponse(t), t.toString)
+
+                  }
+                case Success(response) =>
+                  println("success->" + response.entity.data.asString)
+                  complete {
+                    response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
+                  }
+              }
+            }
+          }
+        )
       }
     }
   }
