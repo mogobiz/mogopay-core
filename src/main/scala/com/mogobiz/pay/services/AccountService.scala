@@ -733,6 +733,9 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
                 lastname, birthday, road, road2, city, zipCode, admin1, admin2, country,
                 isMerchant, merchantId: Option[String], company, website) =>
         val address = AccountAddress(
+          civility = Some(Civility.withName(civility)),
+          firstName = Some(firstname),
+          lastName = Some(lastname),
           road = road,
           road2 = road2,
           city = city,
