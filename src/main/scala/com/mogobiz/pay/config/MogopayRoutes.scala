@@ -49,7 +49,7 @@ trait MogopayRoutes extends Directives {
             }
           }
         } ~
-        pathPrefix("pay") {
+        pathPrefix(("api" / "pay") | "pay") {
           new AccountService(accountActor).route ~
             new AccountServiceJsonless(accountActor).route ~
             new BackofficeService(backofficeActor).route ~
