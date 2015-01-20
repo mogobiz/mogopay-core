@@ -19,13 +19,14 @@ import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.index.query.TermQueryBuilder
 import org.elasticsearch.transport.RemoteTransportException
 
+import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
 
 object DBInitializer {
   def apply(fillWithFixtures: Boolean = false) = {
     try {
-      EsClient.client.sync.execute(create index Settings.Mogopay.EsIndex)
+      EsClient.client.execute(create index Settings.Mogopay.EsIndex).await
       Mapping.set
       fillDB(fillWithFixtures)
     } catch {
