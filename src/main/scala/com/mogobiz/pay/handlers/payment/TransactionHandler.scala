@@ -35,7 +35,7 @@ class TransactionHandler {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" filter {
       termFilter("customer.uuid", uuid)
     }
-    EsClient.searchAll[BOTransaction](req) // todo
+    EsClient.searchAll[BOTransaction](req)
   }
 
   def init(secret: String, amount: Long, currencyCode: String,
@@ -52,7 +52,7 @@ class TransactionHandler {
           val txCurrency = TransactionCurrency(currencyCode, currency.getNumericCode, currencyRate, rate.currencyFractionDigits)
           val txRequest = TransactionRequest(txReqUUID, txSeqId, amount, extra, txCurrency, vendor.uuid)
 
-          EsClient.index(Settings.Mogopay.EsIndex, txRequest, false) // todo
+          transactionRequestHandler.save(txRequest, false)
           txReqUUID
         }
       }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
@@ -65,7 +65,7 @@ class TransactionHandler {
    */
   def startPayment(vendorId: String, transactionUUID: String, paymentRequest: PaymentRequest,
                    paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
-    accountHandler.load(vendorId).map { account =>
+    accountHandler.find(vendorId).map { account =>
       var transaction = BOTransaction(transactionUUID, transactionUUID, "", Option(new Date), paymentRequest.amount,
         paymentRequest.currency, TransactionStatus.INITIATED, new Date, None,
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
@@ -89,13 +89,13 @@ class TransactionHandler {
           orderDate = Option(paymentRequest.orderDate)
         )
       )
-      EsClient.index(Settings.Mogopay.EsIndex, transaction, false) // todo
+      boTransactionHandler.save(transaction, false)
       Success(transaction)
     }.getOrElse(Failure(new InvalidContextException("Vendor not foundu")))
   }
 
   def updateStatus(vendorId: String, transactionUUID: String, ipAddress: String, newStatus: TransactionStatus, comment: String): Unit = {
-    val maybeTx = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID) // todo
+    val maybeTx = boTransactionHandler.find(transactionUUID)
     maybeTx.map { transaction =>
       val modStatus: ModificationStatus = ModificationStatus(
         uuid = newUUID,
@@ -113,11 +113,12 @@ class TransactionHandler {
       )
 
       EsClient.update(Settings.Mogopay.EsIndex, newTx, true, false) // todo
+//      boTransactionHandler.save(newTx, false)
     }.getOrElse(throw TransactionNotFoundException(""))
   }
 
   def updateStatus3DS(vendorId: String, transactionUUID: String, status3DS: ResponseCode3DS, codeRetour: String) {
-    val maybeTx = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID) // todo
+    val maybeTx = boTransactionHandler.find(transactionUUID)
     maybeTx.map { transaction =>
       val modification = ModificationStatus(
         uuid = newUUID,
@@ -141,7 +142,7 @@ class TransactionHandler {
 
   def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
                     paymentResult: PaymentResult, returnCode: String): Unit = {
-    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID) // todo
+    val transaction = boTransactionHandler.find(transactionUUID)
     transaction.map { transaction: BOTransaction =>
       val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
       val newTx = transaction.copy(
@@ -158,7 +159,7 @@ class TransactionHandler {
         notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
-        EsClient.index(Settings.Mogopay.EsIndex, newTx, false) // todo
+        boTransactionHandler.save(newTx, false)
         notify(newTx.copy(extra = None), newTx.extra.getOrElse(""))
       }
       Success()
@@ -224,10 +225,7 @@ class TransactionHandler {
       case Some(a) => a
     }
 
-    val vendorUUID = if (account.roles.contains(RoleName.MERCHANT)) account.uuid else throw NotAVendorAccountException("secret=****")
-
-    val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).getOrElse(throw TransactionNotFoundException(s"$transactionUUID")) // todo
-
+    val transaction = boTransactionHandler.find(transactionUUID).getOrElse(throw TransactionNotFoundException(s"$transactionUUID"))
 
     val validatedTx = if (amount.map(transaction.amount == _).getOrElse(true)) transaction else throw UnexpectedAmountException(s"$amount")
 
@@ -250,7 +248,7 @@ class TransactionHandler {
 
   def shippingPrices(currencyCode: String, transactionExtra: String,
                      accountId: String): Seq[ShippingPrice] = {
-    val maybeCustomer = accountHandler.load(accountId)
+    val maybeCustomer = accountHandler.find(accountId)
 
     val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
 
@@ -319,11 +317,11 @@ class TransactionHandler {
         successURL = sessionData.successURL
         transactionType = sessionData.transactionType
         amount = sessionData.amount
-        EsClient.load[Account](Settings.Mogopay.EsIndex, sessionData.merchantId.get).orNull // todo
+        accountHandler.find(sessionData.merchantId.get).orNull
       } else {
-        EsClient.load[Account](Settings.Mogopay.EsIndex, submit.params.merchantId).orNull // todo
+        accountHandler.find(submit.params.merchantId).orNull
       }
-    val transactionRequest: TransactionRequest = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}")) // todo
+    val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
     if (transactionRequest.amount != amount.get) {
       throw UnexpectedAmountException(s"${amount.get}")
     }
@@ -356,9 +354,9 @@ class TransactionHandler {
     }
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
-    EsClient.delete[TransactionRequest](Settings.Mogopay.EsIndex, transactionRequest.uuid, false) // todo
+    transactionRequestHandler.delete(transactionRequest.uuid, false)
 
-    val transaction: Option[BOTransaction] = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID.get) // todo
+    val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
     if (transaction.isDefined)
       throw BOTransactionNotFoundException(s"${transactionUUID.get}")
 
@@ -408,7 +406,7 @@ class TransactionHandler {
       customerId =>
         // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
         if (submit.params.ccNum.nonEmpty && cardStore) {
-          val cust = EsClient.load[Account](Settings.Mogopay.EsIndex, customerId).orNull // todo
+          val customer = accountHandler.find(customerId).orNull
           // Mogopay avec une nouvele carte
           val ccNum = submit.params.ccNum.orNull
           val ccMonth = submit.params.ccMonth.orNull
@@ -416,8 +414,8 @@ class TransactionHandler {
           val ccType = toCardType(submit.params.ccType.orNull)
           val simpleDateFormat = new SimpleDateFormat("ddMMyy")
           val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
-          val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), cust.uuid)
-          val cust2 = cust.copy(creditCards = List(cc))
+          val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
+          val cust2 = customer.copy(creditCards = List(cc))
           EsClient.update(Settings.Mogopay.EsIndex, cust2, false, false) // todo
         }
     }
@@ -440,7 +438,7 @@ class TransactionHandler {
       if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
         // only credit card payments are supported through mogopay
         if (submit.params.customerCVV.nonEmpty) {
-          val customer = EsClient.load[Account](Settings.Mogopay.EsIndex, sessionData.accountId.get).orNull // todo
+          val customer = accountHandler.find(sessionData.accountId.get).orNull
           val card = customer.creditCards(0)
           val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.Secret, "AES")
           val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)
@@ -460,7 +458,7 @@ class TransactionHandler {
           // User submitted a password we authenticate him
           // we redirect the user to authentication screen
           // but we need first to recreate the transaction request
-          EsClient.index(Settings.Mogopay.EsIndex, transactionRequest, false) // todo
+          transactionRequestHandler.save(transactionRequest, false)
           ("mogopay", "authenticate")
         }
       }

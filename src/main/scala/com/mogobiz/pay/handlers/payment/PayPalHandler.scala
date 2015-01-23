@@ -60,7 +60,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
   private def getToken(vendorId: String, successURL: String, failureURL: String,
                        paymentConfig: PaymentConfig, amount: Long,
                        paymentRequest: PaymentRequest): Option[String] = {
-    accountHandler.load(vendorId) map { vendor =>
+    accountHandler.find(vendorId) map { vendor =>
       val parameters: Map[String, String] = paymentConfig.paypalParam
         .map(parse(_).extract[Map[String, String]])
         .getOrElse(Map())
@@ -172,7 +172,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                      infosPaiement: PaymentRequest, token: String, payerId: String): PaymentResult = {
-    accountHandler.load(vendorId).map {
+    accountHandler.find(vendorId).map {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
           .getOrElse(Map())

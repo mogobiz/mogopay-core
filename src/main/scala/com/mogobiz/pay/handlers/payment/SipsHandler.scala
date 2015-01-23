@@ -176,7 +176,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
-    val transaction: BOTransaction = boTransactionHandler.findByUUID(transactionUUID).orNull
+    val transaction: BOTransaction = boTransactionHandler.find(transactionUUID).orNull
     val amount = sessionData.amount
     val errorURL = sessionData.errorURL
     val successURL = sessionData.successURL
@@ -252,7 +252,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val vendor = accountHandler.find(vendorUuid).orNull
     val parametresProvider: Map[String, String] =
       parse(org.json4s.StringInput(vendor.paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).orNull
+    val transaction = boTransactionHandler.find(transactionUuid).orNull
     val botlog = BOTransactionLog(newUUID, "IN", out.toString, "SIPS", transaction.uuid)
     boTransactionLogHandler.save(botlog, false)
 
@@ -359,7 +359,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   private[payment] def order3D(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[immutable.Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
 
@@ -438,7 +438,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
     val merchantCountry: String = parametres("sipsMerchantCountry")

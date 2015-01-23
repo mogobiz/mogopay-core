@@ -74,7 +74,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   def donePayment(sessionData: SessionData, params: Map[String, String], uri: String): Uri = {
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val amount = sessionData.amount
     val paymentRequest = sessionData.paymentRequest.get
     val errorUrl = sessionData.errorURL
@@ -168,7 +168,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val vendorAndUuidArray = vendorAndUuid.split("--")
     val paramVendorId = vendorAndUuidArray(0)
     val paramTransactionUuid = vendorAndUuidArray(1)
-    val transaction = boTransactionHandler.findByUUID(paramTransactionUuid).get
+    val transaction = boTransactionHandler.find(paramTransactionUuid).get
     val id3d = params("ID3D")
     val transactionUuid = sessionData.transactionUuid.get
     val vendorId = sessionData.merchantId.get
@@ -224,7 +224,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val vendorAndUuidArray = vendorAndUuid.split("--")
     val vendorId = vendorAndUuidArray(0)
     val transactionUuid = vendorAndUuidArray(1)
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val id3d = params("ID3D")
 
     if (params("3DSTATUS") == "Y" && params("3DSIGNVAL") == "Y" && params("3DENROLLED") == "Y" && params("3DERROR") == "0") {
@@ -254,7 +254,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     val transaction =
       if (id3d != null)
-        boTransactionHandler.findByUUID(transactionUUID).get
+        boTransactionHandler.find(transactionUUID).get
       else
         transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
 

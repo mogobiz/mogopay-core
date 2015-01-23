@@ -153,7 +153,7 @@ class AccountActor extends Actor {
       sender ! Try(accountHandler.alreadyExistEmail(email, merchantId))
     }
 
-    case IsValidAccountId(id) => sender ! Try(accountHandler.load(id).nonEmpty)
+    case IsValidAccountId(id) => sender ! Try(accountHandler.find(id).nonEmpty)
 
     case GenerateLostPasswordToken(email, merchantSecret) =>
       sender ! Try(accountHandler.generateLostPasswordToken(email, merchantSecret))

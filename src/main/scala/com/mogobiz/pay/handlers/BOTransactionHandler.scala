@@ -5,7 +5,7 @@ import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.settings.Settings
 
 class BOTransactionHandler {
-  def findByUUID(uuid: String): Option[BOTransaction] = {
+  def find(uuid: String): Option[BOTransaction] = {
     EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, uuid) // todo
   }
 

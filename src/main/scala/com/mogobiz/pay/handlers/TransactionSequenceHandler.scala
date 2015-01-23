@@ -20,7 +20,7 @@ class TransactionSequenceHandler {
 
   // TODO Maybe we should check what the payment provider is
   def nextTransactionId(vendorId: String): Long = {
-    val maybeRes = EsClient.loadWithVersion[TransactionSequence](Settings.Mogopay.EsIndex, vendorId) // todo
+    val maybeRes = EsClient.loadWithVersion[TransactionSequence](Settings.Mogopay.EsIndex, vendorId)
     maybeRes map { case (seq, version) =>
       val newTxId =
         if (DateTimeComparator.getDateOnlyInstance.compare(new DateTime(seq.lastUpdated), new DateTime()) == 0) {
@@ -30,7 +30,7 @@ class TransactionSequenceHandler {
         }
 
       val tryUpdate = Try {
-        EsClient.update[TransactionSequence](Settings.Mogopay.EsIndex, seq.copy(transactionId = newTxId), version) // todo
+        EsClient.update[TransactionSequence](Settings.Mogopay.EsIndex, seq.copy(transactionId = newTxId), version)
         newTxId
       }
 
@@ -44,7 +44,7 @@ class TransactionSequenceHandler {
         new SimpleDateFormat("HHmmss").format(new Date()).toLong
       else
         1L
-      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq), false) // todo
+      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq), false)
       seq
     }
   }

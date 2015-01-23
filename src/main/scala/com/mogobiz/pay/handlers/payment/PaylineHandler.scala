@@ -196,7 +196,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
   def check3DSecure(sessionUuid: String, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest): ThreeDSResult = {
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val numeroContrat: String = parametres("paylineContract")
     var logdata: String = null
@@ -290,7 +290,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
   private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest, mogopay: Boolean): PaymentResult = {
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     var logdata: String = ""
     val formatDatePayline = new SimpleDateFormat("MMyy")
@@ -446,7 +446,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
   private def cancel(vendorUuid: Document, transactionUuid: String, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.CANCEL_REQUESTED, null)
 
@@ -491,7 +491,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
   def doWebPayment(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val payment: Payment = new Payment
     payment.setAmount("" + paymentRequest.amount)
@@ -632,7 +632,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
   def getWebPaymentDetails(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest, token: String): PaymentResult = {
     val vendor = accountHandler.find(vendorUuid).get
-    val transaction = boTransactionHandler.findByUUID(transactionUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val url: URL = classOf[WebPaymentAPI].getResource("/wsdl/WebPaymentAPI_v4.38.wsdl")
     val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, ServiceName)

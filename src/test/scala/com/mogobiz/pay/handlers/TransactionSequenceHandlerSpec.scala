@@ -26,7 +26,7 @@ class TransactionSequenceHandlerSpec extends Specification with BeforeExample {
       val vendorId = "789"
 
       val txReq = TransactionSequence(vendorId, 1)
-      EsClient.index(Settings.Mogopay.EsIndex, txReq, refresh = true) // todo
+      boTransactionHandler.save(txReq, true)
 
       val id = transactionSequenceHandler.nextTransactionId(vendorId)
       id must_== 2
