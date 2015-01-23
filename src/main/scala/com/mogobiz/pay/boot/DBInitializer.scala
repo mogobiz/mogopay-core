@@ -292,7 +292,7 @@ object DBInitializer {
     //      Some("Payment confirmed"),
     //      trans.uuid)
 
-    EsClient.index(Settings.Mogopay.EsIndex, trans, true)
+    boTransactionHandler.save(trans, refresh = true)
   }
 
   private def createCertification(merchant: Account) = {

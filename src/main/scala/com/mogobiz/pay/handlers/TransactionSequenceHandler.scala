@@ -11,7 +11,6 @@ import com.mogobiz.pay.settings.Settings
 import org.joda.time.{DateTime, DateTimeComparator}
 
 import scala.util._
-import com.mogobiz.es.{Settings => esSettings}
 
 class TransactionSequenceHandler {
   def findByVendorId(uuid: String): Option[TransactionSequence] = {
@@ -21,7 +20,7 @@ class TransactionSequenceHandler {
 
   // TODO Maybe we should check what the payment provider is
   def nextTransactionId(vendorId: String): Long = {
-    val maybeRes = EsClient.loadWithVersion[TransactionSequence](Settings.Mogopay.EsIndex, vendorId)
+    val maybeRes = EsClient.loadWithVersion[TransactionSequence](Settings.Mogopay.EsIndex, vendorId) // todo
     maybeRes map { case (seq, version) =>
       val newTxId =
         if (DateTimeComparator.getDateOnlyInstance.compare(new DateTime(seq.lastUpdated), new DateTime()) == 0) {
@@ -31,7 +30,7 @@ class TransactionSequenceHandler {
         }
 
       val tryUpdate = Try {
-        EsClient.update[TransactionSequence](Settings.Mogopay.EsIndex, seq.copy(transactionId = newTxId), version)
+        EsClient.update[TransactionSequence](Settings.Mogopay.EsIndex, seq.copy(transactionId = newTxId), version) // todo
         newTxId
       }
 
@@ -45,7 +44,7 @@ class TransactionSequenceHandler {
         new SimpleDateFormat("HHmmss").format(new Date()).toLong
       else
         1L
-      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq), false)
+      EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq), false) // todo
       seq
     }
   }
