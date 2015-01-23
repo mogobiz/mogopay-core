@@ -9,6 +9,8 @@ import java.util.{Calendar, Date, UUID}
 import com.atosorigin.services.cad.common.util.FileParamReader
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
+import com.mogobiz.json.JacksonConverter
+import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.actors.AccountActor._
 import com.mogobiz.pay.codes.MogopayConstant
@@ -28,6 +30,7 @@ import com.mogobiz.utils.SymmetricCrypt
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.Serialization.read
+import scalikejdbc.DB
 
 import scala.util._
 import scala.util.control.NonFatal
@@ -1001,6 +1004,9 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
+      DB localTx { implicit session =>
+        BOAccountDAO.create(UUID.fromString(account.uuid), JacksonConverter.serialize(account), account.email, account.company.getOrElse("_"))
+      }
       EsClient.index(Settings.Mogopay.EsIndex, account, true)
 
       (token, account)

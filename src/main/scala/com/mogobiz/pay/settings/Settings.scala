@@ -2,12 +2,11 @@ package com.mogobiz.pay.settings
 
 import java.io.File
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
+import scalikejdbc.config._
 
 object Settings {
   private val config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
-
-
 
   val Env = if (System.getenv.containsKey("PRODUCTION")) {
     Environment.PROD
@@ -164,6 +163,9 @@ object Settings {
     val BaseEndPoint = s"$Protocol://$Host:$Port"
     val EndPoint = s"${BaseEndPoint}/pay/"
   }
+
+  val NextVal = config getString s"$Env.db.default.nextval"
+  DBsWithEnv(Env.toString).setupAll()
 
   require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
