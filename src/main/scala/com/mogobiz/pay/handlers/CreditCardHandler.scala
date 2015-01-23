@@ -3,8 +3,6 @@ package com.mogobiz.pay.handlers
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistException}
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.settings.Settings
 
 class CreditCardHandler {
   def delete(accountId: String, cardId: String): Unit = {

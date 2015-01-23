@@ -136,11 +136,11 @@ class AccountHandler {
       else if (userAccount.status == AccountStatus.INACTIVE)
         throw InactiveAccountException(s"${userAccount.email}")
       else if (userAccount.password != new Sha256Hash(password).toString) {
-        EsClient.update(Settings.Mogopay.EsIndex, userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true) //todo
+        accountHandler.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true)
         throw InvalidPasswordErrorException(s"${userAccount.email}")
       } else {
         val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
-        EsClient.update(Settings.Mogopay.EsIndex, userAccountToIndex, false, true) // todo
+        accountHandler.update(userAccountToIndex, false, true)
         userAccountToIndex.copy(password = "")
       }
     }.getOrElse(throw AccountDoesNotExistException(""))
@@ -259,12 +259,16 @@ class AccountHandler {
   //    DAO.findBy("email" -> email, "owner" -> "null")
   //  }
   //
-  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email) match {
+  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email) match { // todo
     case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
     case None => {
       EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
       Success()
     }
+  }
+
+  def update(account: Account, upsert: Boolean, refresh: Boolean): Boolean = { //todo
+    EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert, refresh)
   }
 
   def getMerchant(merchantId: String): Option[Account] = {
@@ -316,7 +320,7 @@ class AccountHandler {
     val matching: Boolean = `match`(pattern, password)
 
     if (!matching) throw PasswordDoesNotMatchPatternException("")
-    EsClient.update(Settings.Mogopay.EsIndex, account.copy(password = new Sha256Hash(password).toHex), true, false) //todo
+    accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), true, false)
   }
 
   def updateLostPassword(password: String, token: String): Unit = {
@@ -329,7 +333,7 @@ class AccountHandler {
     }
     else {
       val account = this.findByEmail(email).getOrElse(throw InvalidEmailException(s"$email"))
-      EsClient.update(Settings.Mogopay.EsIndex, account.copy(password = new Sha256Hash(password).toHex), true, false) //todo
+      accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), true, false)
     }
   }
 
@@ -544,7 +548,7 @@ class AccountHandler {
   def generateNewSecret(accountId: String): Option[String] = find(accountId).map {
     acc =>
       val secret = UUID.randomUUID().toString
-      EsClient.update(Settings.Mogopay.EsIndex, acc.copy(secret = secret), true, false) //todo
+      accountHandler.update(acc.copy(secret = secret), true, false)
       secret
   }
 
@@ -633,7 +637,7 @@ class AccountHandler {
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
       val newAccount = account.copy(shippingAddresses = newAddresses)
-      EsClient.update(Settings.Mogopay.EsIndex, newAccount, true, false) // todo
+      accountHandler.update(newAccount, true, false)
     }
 
   def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
@@ -880,7 +884,7 @@ class AccountHandler {
             generateAndSendPincode3(newAccount.uuid)
           }
         }
-        EsClient.update(Settings.Mogopay.EsIndex, newAccount, true, false) // todo
+        accountHandler.update(newAccount, true, false)
     }
   }
 

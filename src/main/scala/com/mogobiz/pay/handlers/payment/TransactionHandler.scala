@@ -112,8 +112,7 @@ class TransactionHandler {
         modifications = transaction.modifications :+ modStatus
       )
 
-      EsClient.update(Settings.Mogopay.EsIndex, newTx, true, false) // todo
-//      boTransactionHandler.save(newTx, false)
+      boTransactionHandler.update(newTx, true, false)
     }.getOrElse(throw TransactionNotFoundException(""))
   }
 
@@ -136,7 +135,7 @@ class TransactionHandler {
         modifications = transaction.modifications :+ modification
       )
 
-      EsClient.update(Settings.Mogopay.EsIndex, newTx, true, false) // todo
+      boTransactionHandler.update(newTx, true, false)
     }.getOrElse(Failure(BOTransactionNotFoundException(s"$transactionUUID")))
   }
 
@@ -155,7 +154,7 @@ class TransactionHandler {
       )
       if (paymentResult.transactionDate != null) {
         val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-        EsClient.update(Settings.Mogopay.EsIndex, finalTrans, true, false) // todo
+        boTransactionHandler.update(finalTrans, true, false)
         notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
@@ -241,7 +240,7 @@ class TransactionHandler {
       throw TransactionAlreadyConfirmedException(MogopayConstant.TransactionAlreadyConfirmed)
     } else {
       val newTx = transaction.copy(merchantConfirmation = true)
-      EsClient.update(Settings.Mogopay.EsIndex, newTx, false, false) // todo
+      boTransactionHandler.update(newTx, false, false)
       newTx
     }
   }
@@ -416,7 +415,7 @@ class TransactionHandler {
           val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
           val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
           val cust2 = customer.copy(creditCards = List(cc))
-          EsClient.update(Settings.Mogopay.EsIndex, cust2, false, false) // todo
+          accountHandler.update(cust2, false, false)
         }
     }
     //    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
