@@ -9,7 +9,6 @@ import java.util.{Calendar, Date, UUID}
 import com.atosorigin.services.cad.common.util.FileParamReader
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
-import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.actors.AccountActor._
@@ -20,7 +19,6 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.Token.{Token, TokenType}
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.settings.Settings
-import com.mogobiz.es.{Settings => esSettings}
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
@@ -29,7 +27,6 @@ import com.mogobiz.utils.SymmetricCrypt
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.Serialization.read
-import scalikejdbc.{ConnectionPool, DB}
 
 import scala.util._
 import scala.util.control.NonFatal
@@ -259,15 +256,17 @@ class AccountHandler {
   //    DAO.findBy("email" -> email, "owner" -> "null")
   //  }
   //
-  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email) match { // todo
+  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email) match {
     case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
     case None => {
+      BOAccountDAO.upsert(account)
       EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
       Success()
     }
   }
 
-  def update(account: Account, upsert: Boolean, refresh: Boolean): Boolean = { //todo
+  def update(account: Account, upsert: Boolean, refresh: Boolean): Boolean = {
+    BOAccountDAO.update(account)
     EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert, refresh)
   }
 
@@ -1006,9 +1005,6 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
-      DB localTx { implicit session =>
-        BOAccountDAO.create(UUID.fromString(account.uuid), JacksonConverter.serialize(account), account.email, account.company.getOrElse("_"))
-      }
       accountHandler.save(account, true)
 
       (token, account)

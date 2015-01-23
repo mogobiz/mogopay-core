@@ -3,6 +3,8 @@ package com.mogobiz.pay.sql
 import java.sql.ResultSet
 import java.util.{Date, UUID}
 
+import com.mogobiz.json.JacksonConverter
+import com.mogobiz.pay.model.Mogopay.Account
 import scalikejdbc._
 
 object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
@@ -22,8 +24,9 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     rs.date(rn.dateCreated),
     rs.date(rn.lastUpdated))
 
-  def create(uuid: java.util.UUID, extra: String, email: String, company: String)(implicit session: DBSession): BOAccount = {
-    val newBoCart = new BOAccount(newId(), uuid, extra, email, company, new Date, new Date)
+  def create(account: Account)(implicit session: DBSession): BOAccount = {
+    val newBoCart = new BOAccount(newId(), UUID.fromString(account.uuid), JacksonConverter.serialize(account),
+      account.email, account.company.orNull, new Date, new Date)
 
     applyUpdate {
       insert.into(BOAccountDAO).namedValues(
@@ -38,6 +41,26 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     }
 
     newBoCart
+  }
+
+  def upsert(account: Account): Unit = {
+    DB localTx { implicit session =>
+      val updateResult = update(account)
+      if (updateResult == 0) create(account)
+    }
+  }
+
+  def update(account: Account): Int = {
+    DB localTx { implicit session =>
+      applyUpdate {
+        QueryDSL.update(BOAccountDAO).set(
+          BOAccountDAO.column.extra       -> JacksonConverter.serialize(account),
+          BOAccountDAO.column.email       -> account.email,
+          BOAccountDAO.column.company     -> account.company.orNull,
+          BOAccountDAO.column.lastUpdated -> new Date
+        ).where.eq(BOAccountDAO.column.uuid, account.uuid)
+      }
+    }
   }
 }
 

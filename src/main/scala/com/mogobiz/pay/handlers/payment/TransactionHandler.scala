@@ -112,7 +112,7 @@ class TransactionHandler {
         modifications = transaction.modifications :+ modStatus
       )
 
-      boTransactionHandler.update(newTx, true, false)
+      boTransactionHandler.update(newTx, false)
     }.getOrElse(throw TransactionNotFoundException(""))
   }
 
@@ -135,7 +135,7 @@ class TransactionHandler {
         modifications = transaction.modifications :+ modification
       )
 
-      boTransactionHandler.update(newTx, true, false)
+      boTransactionHandler.update(newTx, false)
     }.getOrElse(Failure(BOTransactionNotFoundException(s"$transactionUUID")))
   }
 
@@ -154,7 +154,7 @@ class TransactionHandler {
       )
       if (paymentResult.transactionDate != null) {
         val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-        boTransactionHandler.update(finalTrans, true, false)
+        boTransactionHandler.update(finalTrans, false)
         notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
@@ -240,7 +240,7 @@ class TransactionHandler {
       throw TransactionAlreadyConfirmedException(MogopayConstant.TransactionAlreadyConfirmed)
     } else {
       val newTx = transaction.copy(merchantConfirmation = true)
-      boTransactionHandler.update(newTx, false, false)
+      boTransactionHandler.update(newTx, false)
       newTx
     }
   }
