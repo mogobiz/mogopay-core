@@ -30,7 +30,7 @@ import com.mogobiz.utils.SymmetricCrypt
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.Serialization.read
-import scalikejdbc.DB
+import scalikejdbc.{ConnectionPool, DB}
 
 import scala.util._
 import scala.util.control.NonFatal

@@ -165,11 +165,18 @@ object Settings {
   }
 
   val NextVal = config getString s"$Env.db.default.nextval"
-  DBsWithEnv(Env.toString).setupAll()
+    MogobizDBsWithEnv(Env.toString).setupAll()
 
   require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
   require(Mogopay.EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
+}
+
+trait MogopayTypesafeConfig extends TypesafeConfig {
+  lazy val config: Config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
+}
+case class MogobizDBsWithEnv(envValue: String) extends DBs with TypesafeConfigReader with MogopayTypesafeConfig with EnvPrefix {
+  override val env = Option(envValue)
 }
 
 object Environment extends Enumeration {
