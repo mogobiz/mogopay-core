@@ -1,8 +1,7 @@
 package com.mogobiz.pay.handlers
 
-
-import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.settings.{Settings, Mapping}
 import org.specs2.mutable._
@@ -26,7 +25,7 @@ class TransactionSequenceHandlerSpec extends Specification with BeforeExample {
       val vendorId = "789"
 
       val txReq = TransactionSequence(vendorId, 1)
-      EsClient.index(Settings.Mogopay.EsIndex, txReq, refresh = true)
+      EsClient.index(Settings.Mogopay.EsIndex, txReq, true)
 
       val id = transactionSequenceHandler.nextTransactionId(vendorId)
       id must_== 2

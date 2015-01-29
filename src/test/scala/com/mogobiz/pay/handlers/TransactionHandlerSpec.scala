@@ -11,11 +11,10 @@ class TransactionHandlerSpec extends Specification with Before {
     Mapping.clear
     Mapping.set
 
-
     val acc = Account("xyz", "", None, None, "", None, None, None, None, None, null, 0, 0L, 0L, None, None, None, None, Nil, None, None, Nil, "", Nil, None)
     val tx = BOTransaction("123", null, null, None, 0L, null, null, null, null, null, false, null, null, null,
       null, null, null, null, Some(acc), null, null)
-    EsClient.index(Settings.Mogopay.EsIndex, tx, true)
+    boTransactionHandler.save(tx, true)
   }
 
   "searchByCustomer" should {

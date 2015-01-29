@@ -17,7 +17,6 @@ import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOffic
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeRequestParm
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeResponseParm
 import com.atosorigin.services.cad.apiserver.components.service.checkout.{SIPSCheckoutResponseParm, SIPSCheckoutRequestParm, SIPSCheckoutApi}
-import com.atosorigin.services.cad.apiserver.components.service.office.SIPSParm
 import com.atosorigin.services.cad.common.SIPSDataObject
 import com.mogobiz.pay.model.Mogopay.PaymentStatus
 import com.mogobiz.pay.model.Mogopay.PaymentStatus._
@@ -177,7 +176,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
-    val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
+    val transaction: BOTransaction = boTransactionHandler.find(transactionUUID).orNull
     val amount = sessionData.amount
     val errorURL = sessionData.errorURL
     val successURL = sessionData.successURL
@@ -247,15 +246,15 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     out.append("&score_profile = " + resp.getValue("score_profile"))
     out.append("&threed_ls_code = " + resp.getValue("threed_ls_code"))
     out.append("&threed_relegation_code = " + resp.getValue("threed_relegation_code"))
-    val orderId = resp.getValue("order_id");
-    //
+    val orderId = resp.getValue("order_id")
+
     val transactionUuid = orderId.substring(0, 8) + "-" + orderId.substring(8, 12) + "-" + orderId.substring(12, 16) + "-" + orderId.substring(16, 20) + "-" + orderId.substring(20, 32)
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorUuid).orNull
+    val vendor = accountHandler.find(vendorUuid).orNull
     val parametresProvider: Map[String, String] =
       parse(org.json4s.StringInput(vendor.paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
-    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid).orNull
+    val transaction = boTransactionHandler.find(transactionUuid).orNull
     val botlog = BOTransactionLog(newUUID, "IN", out.toString, "SIPS", transaction.uuid)
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
 
     val num = resp.getValue("card_number")
     val ccNum =
@@ -303,7 +302,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorUuid).get
+    val vendor = accountHandler.find(vendorUuid).get
 
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
@@ -343,10 +342,10 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     )
     sipsRequest.setValue("merchant_url_return", resultat.termUrlValue)
     val botlog = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = transactionUuid, log = serialize(sipsRequest))
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
     api.checkEnroll3d(sipsRequest, sipsResponse)
     val botlogIn = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "IN", transaction = transactionUuid, log = serialize(sipsResponse))
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
 
     val responseCode: String = sipsResponse.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)
     val reponseUrlAcs: String = sipsResponse.getValue(SIPSCheckoutResponseParm.O3D_OFFICE_URL_ACS)
@@ -359,8 +358,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def order3D(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorUuid).get
-    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid).get
+    val vendor = accountHandler.find(vendorUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[immutable.Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
 
@@ -378,10 +377,10 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     sipsRequest.setValue("o3d_session_id", sessionData.o3dSessionId.get)
 
     val botlog = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = transactionUuid, log = serialize(sipsRequest))
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
     api.authent3D(sipsRequest, sipsResponse)
     val botlogIn = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "IN", transaction = transactionUuid, log = serialize(sipsResponse))
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
 
     val responseCode: String = sipsResponse.getValue(SIPSCheckoutResponseParm.O3D_RESPONSE_CODE)
     var resultat: ThreeDSResult = new ThreeDSResult(
@@ -438,8 +437,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   private[payment] def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorUuid).get
-    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid).get
+    val vendor = accountHandler.find(vendorUuid).get
+    val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
     val merchantCountry: String = parametres("sipsMerchantCountry")
@@ -521,10 +520,10 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       sipsRequest.setValue("security_indicator", "09")
       sipsRequest.setValue("alternate_certificate", "")
       val botlog = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = transactionUuid, log = serialize(sipsRequest))
-      EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+      boTransactionLogHandler.save(botlog, false)
       api.asoAuthorTransaction(sipsRequest, sipsResponse)
       val botlogIn = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "IN", transaction = transactionUuid, log = serialize(sipsResponse))
-      EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+      boTransactionLogHandler.save(botlog, false)
 
 
       val diag_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE)
@@ -570,7 +569,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         expiryDate = paymentResult.expirationDate,
         cardType = paymentResult.cardType
       )
-      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)), false)
+      boTransactionHandler.save(transaction.copy(creditCard = Some(creditCard)), false)
 
       transactionHandler.finishPayment(vendorUuid, transactionUuid, computeTransactionStatus(paymentResult.status), paymentResult, paymentResult.errorCodeOrigin)
       paymentResult
@@ -606,7 +605,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   private[payment] def cancel(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorUuid).get
+    val vendor = accountHandler.find(vendorUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
@@ -626,10 +625,10 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     sipsRequest.setValue("currency_code", "" + infosPaiement.currency.numericCode)
 
     val botlog = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = transactionUuid, log = serialize(sipsRequest))
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
     api.asoCancelTransaction(sipsRequest, sipsResponse)
     val botlogIn = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "IN", transaction = transactionUuid, log = serialize(sipsResponse))
-    EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+    boTransactionLogHandler.save(botlog, false)
 
     val diag_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_RESPCODE)
     val diag_time: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME)

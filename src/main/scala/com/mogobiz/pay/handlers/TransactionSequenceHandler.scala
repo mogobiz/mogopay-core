@@ -11,7 +11,6 @@ import com.mogobiz.pay.settings.Settings
 import org.joda.time.{DateTime, DateTimeComparator}
 
 import scala.util._
-import com.mogobiz.es.{Settings => esSettings}
 
 class TransactionSequenceHandler {
   def findByVendorId(uuid: String): Option[TransactionSequence] = {

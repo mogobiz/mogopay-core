@@ -102,7 +102,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val vendorId = sessionData.merchantId.get
     val paymentRequest: PaymentRequest = sessionData.paymentRequest.get
 
-    val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
+    val transaction = boTransactionHandler.find(transactionUUID).orNull
 
     val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
@@ -130,16 +130,16 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val vendorAndUuid = params("vads_order_info").split("--")
     val vendorId = vendorAndUuid(0)
     val transactionUUID = vendorAndUuid(1)
-    val vendor = EsClient.load[Account](Settings.Mogopay.EsIndex, vendorId).orNull
+    val vendor = accountHandler.find(vendorId).orNull
     val parametresProvider: Map[String, String] =
       parse(org.json4s.StringInput(vendor.paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
     val ok: Boolean = SystempayUtilities.checkSignature(params("signature"),
       parametresProvider("systempayCertificate"), values.asJava)
     if (ok) {
-      val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
+      val transaction = boTransactionHandler.find(transactionUUID).orNull
 
       val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid)
-      EsClient.index(Settings.Mogopay.EsIndex, botlog, false)
+      boTransactionLogHandler.save(botlog, false)
       val vads_card_brand = try {
         CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString))
       }
@@ -181,7 +181,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         expiryDate = pr.expirationDate,
         cardType = pr.cardType
       )
-      EsClient.index(Settings.Mogopay.EsIndex, transaction.copy(creditCard = Some(creditCard)), false)
+      boTransactionHandler.save(transaction.copy(creditCard = Some(creditCard)), false)
       transactionHandler.finishPayment(vendorId,
         transactionUUID,
         if (params("vads_result") == "00")
@@ -232,7 +232,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         pares
       ).asJava)
 
-      val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
+      val transaction = boTransactionHandler.find(transactionUUID).orNull
       val secured: ThreeDSecure = SystempayUtilities.create3DSProxy(
         "/wsdl/SystemPay_3DSecure.wsdl",
         new TraceHandler(transaction, "SYSTEMPAY"))
@@ -474,7 +474,7 @@ class SystempayClient {
 
   def check3DSecure(sessionDataUuid: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
-    val transaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
+    val transaction = boTransactionHandler.find(transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException("")
 
     val parametres: Map[String, String] = parse(StringInput(paymentConfig.cbParam.getOrElse("{}"))).extract[Map[String, String]]
