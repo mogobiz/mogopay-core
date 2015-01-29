@@ -133,11 +133,11 @@ class AccountHandler {
       else if (userAccount.status == AccountStatus.INACTIVE)
         throw InactiveAccountException(s"${userAccount.email}")
       else if (userAccount.password != new Sha256Hash(password).toString) {
-        accountHandler.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), false, true)
+        accountHandler.update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1), true)
         throw InvalidPasswordErrorException(s"${userAccount.email}")
       } else {
         val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
-        accountHandler.update(userAccountToIndex, false, true)
+        accountHandler.update(userAccountToIndex, true)
         userAccountToIndex.copy(password = "")
       }
     }.getOrElse(throw AccountDoesNotExistException(""))
@@ -265,9 +265,9 @@ class AccountHandler {
     }
   }
 
-  def update(account: Account, upsert: Boolean, refresh: Boolean): Boolean = {
+  def update(account: Account, refresh: Boolean): Boolean = {
     BOAccountDAO.update(account)
-    EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert, refresh)
+    EsClient.update[Account](Settings.Mogopay.EsIndex, account, false, refresh)
   }
 
   def getMerchant(merchantId: String): Option[Account] = {
@@ -319,7 +319,7 @@ class AccountHandler {
     val matching: Boolean = `match`(pattern, password)
 
     if (!matching) throw PasswordDoesNotMatchPatternException("")
-    accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), true, false)
+    accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
   }
 
   def updateLostPassword(password: String, token: String): Unit = {
@@ -332,7 +332,7 @@ class AccountHandler {
     }
     else {
       val account = this.findByEmail(email).getOrElse(throw InvalidEmailException(s"$email"))
-      accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), true, false)
+      accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
     }
   }
 
@@ -400,7 +400,7 @@ class AccountHandler {
     val pinCode3 = new String(md.digest(), "UTF-8")
 
     val newTelephone = phoneNumber.copy(status = TelephoneStatus.WAITING_ENROLLMENT, pinCode3 = Some(pinCode3))
-    accountHandler.save(acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))), false)
+    accountHandler.update(acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))), false)
 
     def message = "Your 3 digits code is: " + plainTextPinCode
     smsHandler.sendSms(message, phoneNumber.phone)
@@ -547,7 +547,7 @@ class AccountHandler {
   def generateNewSecret(accountId: String): Option[String] = find(accountId).map {
     acc =>
       val secret = UUID.randomUUID().toString
-      accountHandler.update(acc.copy(secret = secret), true, false)
+      accountHandler.update(acc.copy(secret = secret), false)
       secret
   }
 
@@ -623,9 +623,10 @@ class AccountHandler {
             lastName = address.lastName,
             country = address.country,
             admin1 = address.admin1,
-            admin2 = address.admin2)
+            admin2 = address.admin2,
+            telephone = if (address.lphone.isDefined) addr.telephone.map(_.copy(lphone = address.lphone.get)) else addr.telephone)
         }
-        accountHandler.save(account.copy(address = Some(newAddress)), true)
+        accountHandler.update(account.copy(address = Some(newAddress)), true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
 
@@ -636,7 +637,7 @@ class AccountHandler {
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
       val newAccount = account.copy(shippingAddresses = newAddresses)
-      accountHandler.update(newAccount, true, false)
+      accountHandler.update(newAccount, false)
     }
 
   def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
@@ -883,7 +884,7 @@ class AccountHandler {
             generateAndSendPincode3(newAccount.uuid)
           }
         }
-        accountHandler.update(newAccount, true, false)
+        accountHandler.update(newAccount, false)
     }
   }
 

@@ -415,7 +415,7 @@ class TransactionHandler {
           val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
           val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
           val cust2 = customer.copy(creditCards = List(cc))
-          accountHandler.update(cust2, false, false)
+          accountHandler.update(cust2, false)
         }
     }
     //    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&

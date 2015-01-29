@@ -513,7 +513,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val assignBillingAddress = get {
     path("assign-billing-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code.?, 'extra.?, 'civility.?,
-        'firstname.?, 'lastname.?, 'country.?, 'admin1.?, 'admin2.?)
+        'firstname.?, 'lastname.?, 'country.?, 'admin1.?, 'admin2.?, 'lphone.?)
 
       params.as(AddressToAssignFromGetParams) {
         address =>
@@ -679,7 +679,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       }
     }
   }
-
 }
 
 class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
