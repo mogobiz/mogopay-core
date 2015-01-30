@@ -7,8 +7,9 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, UUID}
 
 import com.atosorigin.services.cad.common.util.FileParamReader
-import com.google.i18n.phonenumbers.PhoneNumberUtil
+import com.google.i18n.phonenumbers.{NumberParseException, PhoneNumberUtil}
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
+import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.actors.AccountActor._
@@ -35,8 +36,9 @@ import scala.util.parsing.json.JSON
 class LoginException(msg: String) extends Exception(msg)
 
 class AccountHandler {
-
   implicit val formats = new org.json4s.DefaultFormats {}
+
+  lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
 
   def findByEmail(email: String): Option[Account] = {
     val req = search in Settings.Mogopay.EsIndex  types "Account" limit 1 from 0 filter {
@@ -613,20 +615,24 @@ class AccountHandler {
       account =>
         val newAddress = account.address match {
           case None => address.getAddress
-          case Some(addr) => addr.copy(road = address.road,
-            road2 = address.road2,
-            city = address.city,
-            zipCode = address.zipCode,
-            extra = address.extra,
-            civility = address.civility.map(Civility.withName),
-            firstName = address.firstName,
-            lastName = address.lastName,
-            country = address.country,
-            admin1 = address.admin1,
-            admin2 = address.admin2,
-            telephone = if (address.lphone.isDefined) addr.telephone.map(_.copy(lphone = address.lphone.get)) else addr.telephone)
+          case Some(addr) => {
+            val telephone = buildTelephone(address.lphone, address.country, TelephoneStatus.WAITING_ENROLLMENT)
+
+            addr.copy(road = address.road,
+              road2 = address.road2,
+              city = address.city,
+              zipCode = Some(address.zipCode),
+              extra = address.extra,
+              civility = Some(Civility.withName(address.civility)),
+              firstName = Some(address.firstName),
+              lastName = Some(address.lastName),
+              country = Some(address.country),
+              admin1 = Some(address.admin1),
+              admin2 = Some(address.admin2),
+              telephone = Some(telephone))
+          }
         }
-        accountHandler.update(account.copy(address = Some(newAddress)), true)
+        accountHandler.update(account.copy(address = Some(newAddress)), refresh = true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
 
@@ -956,15 +962,7 @@ class AccountHandler {
           TelephoneStatus.ACTIVE
         }
 
-        val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
-        val phoneNumber = phoneUtil.parse(signup.lphone, country.code)
-
-        val tel = Telephone(
-          phone = phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL),
-          lphone = phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL),
-          isoCode = country.code,
-          pinCode3 = Some("000"),
-          status = phoneStatus)
+        val tel = buildTelephone(signup.lphone, country.code, phoneStatus)
 
         signup.address.copy(telephone = Some(tel))
       }
@@ -1009,6 +1007,21 @@ class AccountHandler {
       accountHandler.save(account, true)
 
       (token, account)
+    }
+  }
+
+  private def buildTelephone(number: String, countryCode: String, status: TelephoneStatus): Telephone = {
+    try {
+      val phoneNumber = phoneUtil.parse(number, countryCode)
+      Telephone(
+        phone = phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL),
+        lphone = phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL),
+        isoCode = countryCode,
+        pinCode3 = Some("000"),
+        status = status)
+    } catch {
+      case e: NumberParseException => throw InvalidPhoneNumberException(e.toString)
+      case e: Throwable => throw e
     }
   }
 }

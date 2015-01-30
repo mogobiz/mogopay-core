@@ -105,6 +105,8 @@ object Exceptions {
   // Paybox
   case class InvalidSignatureException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class InvalidPhoneNumberException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
+
   case class InvalidInputException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
   case class InvalidContextException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
   case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)

@@ -512,8 +512,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val assignBillingAddress = get {
     path("assign-billing-address") {
-      val params = parameters('road, 'city, 'road2.?, 'zip_code.?, 'extra.?, 'civility.?,
-        'firstname.?, 'lastname.?, 'country.?, 'admin1.?, 'admin2.?, 'lphone.?)
+      val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
+        'firstname, 'lastname, 'country, 'admin1, 'admin2, 'lphone)
 
       params.as(AddressToAssignFromGetParams) {
         address =>
@@ -573,7 +573,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                     call =>
                       handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
                   }
-
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")

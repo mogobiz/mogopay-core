@@ -74,15 +74,15 @@ object AccountActor {
   }
 
   case class AddressToAssignFromGetParams(road: String, city: String,
-                                          road2: Option[String], zipCode: Option[String],
-                                          extra: Option[String], civility: Option[String],
-                                          firstName: Option[String], lastName: Option[String],
-                                          country: Option[String], admin1: Option[String],
-                                          admin2: Option[String], lphone: Option[String]) {
+                                          road2: Option[String], zipCode: String,
+                                          extra: Option[String], civility: String,
+                                          firstName: String, lastName: String,
+                                          country: String, admin1: String,
+                                          admin2: String, lphone: String) {
     def getAddress = {
-      val c = civility.map(Civility.withName)
-      AccountAddress(road, road2, city, zipCode, extra, c, firstName,
-        lastName, None, country, admin1, admin2)
+      val c = Civility.withName(civility)
+      AccountAddress(road, road2, city, Some(zipCode), extra, Some(c), Some(firstName),
+        Some(lastName), None, Some(country), Some(admin1), Some(admin2))
     }
   }
 
