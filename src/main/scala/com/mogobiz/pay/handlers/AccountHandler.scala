@@ -1,6 +1,7 @@
 package com.mogobiz.pay.handlers
 
 import java.io.File
+import java.net.URLEncoder
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
@@ -9,6 +10,7 @@ import java.util.{Calendar, Date, UUID}
 import com.atosorigin.services.cad.common.util.FileParamReader
 import com.google.i18n.phonenumbers.{NumberParseException, PhoneNumberUtil}
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
+import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -118,7 +120,7 @@ class AccountHandler {
         search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
-            termFilter("owner", merchant.uuid)
+            termFilter("owner", merchant.email)
           )
         }
       } else {
@@ -133,6 +135,8 @@ class AccountHandler {
     EsClient.search[Account](userAccountRequest).map { userAccount =>
       if (userAccount.loginFailedCount > MogopayConstant.MaxAttempts)
         throw TooManyLoginAttemptsException(s"${userAccount.email}")
+      else if (userAccount.status == AccountStatus.WAITING_ENROLLMENT)
+        throw AccountNotConfirmedException(s"${userAccount.email}")
       else if (userAccount.status == AccountStatus.INACTIVE)
         throw InactiveAccountException(s"${userAccount.email}")
       else if (userAccount.password != new Sha256Hash(password).toString) {
@@ -481,26 +485,28 @@ class AccountHandler {
     */
 
     def confirmSignup(token: String): Boolean = {
-      if (!token.contains("-")) {
-        throw InvalidTokenException("Invalid token.")
-      } else {
-        val splitToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split("-")
-        val timestamp = splitToken(1).toLong
-        val accountId = splitToken(2)
+      val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
 
-        if (EmailType(Integer.parseInt(splitToken(0))) != EmailType.Signup) {
+      if (!unencryptedToken.contains("-"))
+        throw InvalidTokenException("Invalid token.")
+
+      // TODO: Move the parsing to another method
+      val splitToken = unencryptedToken.split("-")
+      val timestamp = splitToken(1).toLong
+      val accountId = splitToken(2).replace("!", "-")
+
+      if (EmailType(Integer.parseInt(splitToken(0))) != EmailType.Signup) {
+        false
+      } else {
+        val signupDate = new org.joda.time.DateTime(timestamp).getMillis
+        val currentDate = new org.joda.time.DateTime().getMillis
+        if (currentDate - signupDate > Settings.Mail.MaxAge) {
           false
         } else {
-          val signupDate = new org.joda.time.DateTime(timestamp).getMillis
-          val currentDate = new org.joda.time.DateTime().getMillis
-          if (currentDate - signupDate > Settings.Mail.MaxAge) {
-            false
-          } else {
-            find(accountId).map { acc =>
-              accountHandler.save(acc.copy(status = AccountStatus.ACTIVE), false)
-            }
-            true
+          find(accountId).map { acc =>
+            accountHandler.update(acc.copy(status = AccountStatus.ACTIVE), refresh = true)
           }
+          true
         }
       }
     }
@@ -787,7 +793,6 @@ class AccountHandler {
               scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(params.sipsMerchantParcomFileContent.get)
             }
           } else {
-            println("NO PARCOM")
             try {
               val oldSIPSMerchantParcomFileContent: Option[String] = (for {
                 pc <- account.paymentConfig
@@ -831,7 +836,6 @@ class AccountHandler {
             if (isJSP)
               certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
           } else {
-            println("NO CERTIF")
             try {
               val oldSIPSMerchantCertificateFileContent: Option[String] = (for {
                 pc <- account.paymentConfig
@@ -1050,10 +1054,27 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
-      accountHandler.save(account, true)
+      accountHandler.save(account, refresh = true)
+      // TODO: Don't send mail if signup fails
+      sendConfirmationEmail(account, signup.returnURL, token)
 
       (token, account)
     }
+  }
+
+  private def sendConfirmationEmail(account: Account, returnURL: String, token: String): Unit = {
+    val template = scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/template/signup-confirmation.mustache")).mkString
+    // TODO: Since mogobiz-launch's port is different than mogopay-core's, if mogopbiz-launch is used, the port is wrong
+    val url = Settings.Mogopay.EndPoint + "account/confirm-signup?" +
+      "token="       + URLEncoder.encode(token, "UTF-8") +
+      "&return_url=" + URLEncoder.encode(returnURL, "UTF-8")
+
+    EmailHandler.Send.to(
+      Mail(
+        from = ("contact@mogopay.com", "Mogopay"),
+        to = Seq(account.email),
+        subject = "Please confirm your account",
+        message = templateHandler.mustache(template, s"""{"url": "$url"}""")))
   }
 
   private def buildTelephone(number: String, countryCode: String, status: TelephoneStatus): Telephone = {
@@ -1093,7 +1114,7 @@ object Token {
 
   def generateToken(accountId: String, tokenType: TokenType): String = {
     val timestamp: Long = (new java.util.Date).getTime
-    val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
+    val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId.replace("-", "!")
     SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
   }
 }

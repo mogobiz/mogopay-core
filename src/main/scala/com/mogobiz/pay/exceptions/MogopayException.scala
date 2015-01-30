@@ -109,6 +109,8 @@ object Exceptions {
 
   case class InvalidDateFormatException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
+  case class AccountNotConfirmedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class InvalidInputException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
   case class InvalidContextException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
   case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)

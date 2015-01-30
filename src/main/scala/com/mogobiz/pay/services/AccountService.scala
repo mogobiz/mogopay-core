@@ -310,12 +310,12 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val confirmSignup = path("confirm-signup") {
     get {
-      parameters('token).as(ConfirmSignup) {
-        confirmSignup =>
+      parameters('token, 'return_url) { (token, returnURL) =>
+        val confirmSignup = ConfirmSignup(token)
           onComplete((actor ? confirmSignup).mapTo[Try[Boolean]]) { call =>
             handleComplete(call, (ok: Boolean) =>
               if (ok)
-                complete(StatusCodes.OK -> Map())
+                redirect(returnURL, StatusCodes.PermanentRedirect)
               else
                 complete(StatusCodes.Unauthorized ->
                   Map('type -> "Unauthorized", 'error -> "The token is either not for signup, or expired")))
@@ -727,11 +727,12 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       val fields = formFields('email, 'password, 'password2,
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
         'road, 'road2.?, 'extra.?, 'city, 'zip_code, 'admin1, 'admin2, 'country,
-        'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?)
+        'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?,
+        'return_url)
 
       fields { (email, password, password2, lphone, civility, firstname,
                 lastname, birthday, road, road2, extra, city, zipCode, admin1, admin2, country,
-                isMerchant, merchantId: Option[String], company, website) =>
+                isMerchant, merchantId: Option[String], company, website, returnURL) =>
         val address = AccountAddress(
           civility = Some(Civility.withName(civility)),
           firstName = Some(firstname),
@@ -759,7 +760,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
           isMerchant = isMerchant,
           vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault)),
           company = company,
-          website = website
+          website = website,
+          returnURL = returnURL
         )
 
         import Implicits._
