@@ -119,6 +119,10 @@ object AccountActor {
                            paymentMethod: String, cbProvider: String, cbParam: CBParams,
                            payPalParam: PayPalParam, kwixoParam: KwixoParam)
 
+  case class UpdateProfileLight(id: String, password: String, password2: String, company: String,
+                                website: String, lphone: String, civility: String,
+                                firstName: String, lastName: String, birthDate: String)
+
   sealed trait CBParams
 
   case class NoCBParams() extends CBParams
@@ -238,5 +242,7 @@ class AccountActor extends Actor {
       sender ! Try(accountHandler.enroll(accountId, lPhone, pinCode))
 
     case s: Signup => sender ! Try(accountHandler.signup(s))
+
+    case u: UpdateProfileLight => sender ! Try(accountHandler.updateProfileLight(u))
   }
 }

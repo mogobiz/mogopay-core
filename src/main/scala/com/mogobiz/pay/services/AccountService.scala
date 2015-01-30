@@ -5,6 +5,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.pay.actors.AccountActor._
 import com.mogobiz.pay.config.DefaultComplete
+import com.mogobiz.pay.exceptions.Exceptions.PasswordsDoNotMatchException
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
@@ -690,6 +691,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
     pathPrefix("account") {
       login ~
       updateProfile ~
+      updateProfileLight ~
       signup
     }
   }
@@ -871,6 +873,48 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
               }
             case _ => complete {
 
+              import Implicits._
+
+              StatusCodes.Unauthorized ->
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+            }
+          }
+      }
+    }
+  }
+
+  lazy val updateProfileLight = path("update-profile-light") {
+    post {
+      session {
+        session =>
+          session.sessionData.accountId match {
+            case Some(accountId: String) =>
+              val fields = formFields('password :: 'password2 :: 'company ::
+                'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday :: HNil)
+              fields.happly {
+                case password :: password2 :: company :: website :: lphone ::
+                  civility :: firstName :: lastName :: birthday :: HNil =>
+
+                  val profile = UpdateProfileLight(
+                    id = accountId,
+                    password = password,
+                    password2 = password2,
+                    company = company,
+                    website = website,
+                    lphone = lphone,
+                    civility = civility,
+                    firstName = firstName,
+                    lastName = lastName,
+                    birthDate = birthday
+                  )
+
+                  import Implicits._
+
+                  onComplete((actor ? profile).mapTo[Try[Unit]]) { call =>
+                    handleComplete(call, (_: Unit) => complete(StatusCodes.OK -> Map()))
+                  }
+              }
+            case _ => complete {
               import Implicits._
 
               StatusCodes.Unauthorized ->

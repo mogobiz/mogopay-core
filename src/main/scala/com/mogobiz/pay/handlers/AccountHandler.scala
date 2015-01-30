@@ -39,6 +39,7 @@ class AccountHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
 
   lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
+  lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
   def findByEmail(email: String): Option[Account] = {
     val req = search in Settings.Mogopay.EsIndex  types "Account" limit 1 from 0 filter {
@@ -762,11 +763,11 @@ class AccountHandler {
 
         lazy val civility = Civility.withName(profile.civility)
 
-        lazy val birthDate = Some(new SimpleDateFormat("yyyy-MM-dd").parse(profile.birthDate))
+        lazy val birthDate = Some(birthDayDateFormat.parse(profile.birthDate))
 
         lazy val password = profile.password.map {
           case (p1, p2) =>
-            if (p1 != p2) throw PasswordsDoNotMatchError("*****")
+            if (p1 != p2) throw PasswordsDoNotMatchException("*****")
             else new Sha256Hash(p1).toHex
         } getOrElse account.password
 
@@ -819,11 +820,11 @@ class AccountHandler {
             targetFile.delete()
             scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
               s"""
-             |D_LOGO!${Settings.Mogopay.EndPoint}${Settings.ImagesPath}sips/logo/!
-             |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!
-             |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
-             |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
-             |${if (isJSP) "F_CTYPE!jsp!" else ""}"
+                 |D_LOGO!${Settings.Mogopay.EndPoint}${Settings.ImagesPath}sips/logo/!
+                                                                             |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!
+                                                                                                                                     |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
+                                                                                                                                                                                          |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
+                                                                                                                                                                                                                                                     |${if (isJSP) "F_CTYPE!jsp!" else ""}"
            """.stripMargin.trim
             )
 
@@ -894,6 +895,46 @@ class AccountHandler {
     }
   }
 
+  def updateProfileLight(profile: UpdateProfileLight): Unit = {
+    val newPassword = if (profile.password != "") {
+      if (profile.password == profile.password2)
+        Some(new Sha256Hash(profile.password).toHex)
+      else
+        throw new PasswordsDoNotMatchException("")
+    } else {
+      None
+    }
+
+    find(profile.id) match {
+      case None => Failure(new AccountAddressDoesNotExistException(""))
+      case Some(account) =>
+        lazy val birthDate = try {
+          Some(birthDayDateFormat.parse(profile.birthDate))
+        } catch {
+          case e: java.text.ParseException => throw new InvalidDateFormatException("Correct format: " + birthDayDateFormat.toPattern)
+          case e: Throwable => throw e
+        }
+
+        val newAddress = account.address.map { address =>
+          address.copy(
+            telephone = Some(buildTelephone(profile.lphone, address.country.get, TelephoneStatus.WAITING_ENROLLMENT)))
+        }
+
+        val newAccount = account.copy(
+          password = newPassword.getOrElse(account.password),
+          company = Some(profile.company),
+          website = Some(profile.website),
+          civility = Some(Civility.withName(profile.civility)),
+          firstName = Some(profile.firstName),
+          lastName = Some(profile.lastName),
+          birthDate = birthDate,
+          address = newAddress
+        )
+
+        accountHandler.update(newAccount, refresh = false)
+    }
+  }
+
   def recycle() {
     val req = select in Settings.Mogopay.EsIndex -> "Account" filter {
       and(
@@ -939,14 +980,14 @@ class AccountHandler {
       if (EsClient.search[Account](req).isDefined)
         throw new AccountWithSameEmailAddressAlreadyExistsError("")
 
-      val birthdate = new SimpleDateFormat("yyyy-MM-dd").parse(signup.birthDate)
+      val birthdate = birthDayDateFormat.parse(signup.birthDate)
       val civility = Civility.withName(signup.civility)
 
       if (signup.password.isEmpty)
         throw NoPasswordProvidedError("****")
 
       if (signup.password != signup.password2)
-        throw PasswordsDoNotMatchError("****")
+        throw PasswordsDoNotMatchException("****")
 
       val password = new Sha256Hash(signup.password).toHex
 

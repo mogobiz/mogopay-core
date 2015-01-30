@@ -94,7 +94,7 @@ object Exceptions {
 
   case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PasswordsDoNotMatchError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class PasswordsDoNotMatchException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
   case class InvalidEmailException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
@@ -106,6 +106,8 @@ object Exceptions {
   case class InvalidSignatureException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class InvalidPhoneNumberException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
+
+  case class InvalidDateFormatException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
   case class InvalidInputException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
   case class InvalidContextException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
