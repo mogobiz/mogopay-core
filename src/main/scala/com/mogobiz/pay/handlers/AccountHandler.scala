@@ -942,7 +942,12 @@ class AccountHandler {
         rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.AccountRecycleDuration)
       )
     }
-    EsClient.searchAllRaw(req).getHits map (_.getId) foreach (EsClient.delete[Account](Settings.Mogopay.EsIndex, _, false))
+    val ids = (EsClient searchAllRaw req).getHits map (_ getId) foreach delete
+  }
+
+  def delete(id: String) = {
+    BOAccountDAO.delete(id)
+    EsClient.delete[Account](Settings.Mogopay.EsIndex, id, refresh = false)
   }
 
   def enroll(accountId: String, lPhone: String, pinCode: String): Try[Unit] = {

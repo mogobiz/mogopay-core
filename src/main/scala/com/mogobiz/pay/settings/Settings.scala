@@ -165,7 +165,7 @@ object Settings {
   }
 
   val NextVal = config getString s"$Env.db.default.nextval"
-    MogobizDBsWithEnv(Env.toString).setupAll()
+  MogobizDBsWithEnv(Env.toString).setupAll()
 
   require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
