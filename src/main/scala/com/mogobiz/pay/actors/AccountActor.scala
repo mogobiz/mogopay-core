@@ -107,7 +107,8 @@ object AccountActor {
   case class Signup(email: String, password: String, password2: String,
                     lphone: String, civility: String, firstName: String,
                     lastName: String, birthDate: String, address: AccountAddress,
-                    isMerchant: Boolean, vendor: Option[String], company: Option[String], website: Option[String])
+                    isMerchant: Boolean, vendor: Option[String], company: Option[String],
+                    website: Option[String], returnURL: String)
 
   case class UpdateProfile(id: String, password: Option[(String, String)],
                            company: String, website: String, lphone: String, civility: String,
