@@ -38,7 +38,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         secret ~
         isValidAccountId ~
         checkTokenValidity ~
-        confirmSignup ~
         bypassLogin ~
         updatePassword ~
         updateLostPassword ~
@@ -307,22 +306,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
   */
-
-  lazy val confirmSignup = path("confirm-signup") {
-    get {
-      parameters('token, 'return_url) { (token, returnURL) =>
-        val confirmSignup = ConfirmSignup(token)
-          onComplete((actor ? confirmSignup).mapTo[Try[Boolean]]) { call =>
-            handleComplete(call, (ok: Boolean) =>
-              if (ok)
-                redirect(returnURL, StatusCodes.PermanentRedirect)
-              else
-                complete(StatusCodes.Unauthorized ->
-                  Map('type -> "Unauthorized", 'error -> "The token is either not for signup, or expired")))
-          }
-      }
-    }
-  }
 
   lazy val bypassLogin = path("bypass-login") {
     get {
@@ -692,7 +675,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       login ~
       updateProfile ~
       updateProfileLight ~
-      signup
+      signup ~
+      confirmSignup
     }
   }
 
@@ -704,11 +688,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
           val login = Login(email, password, merchantId, isCustomer)
           onComplete((actor ? login).mapTo[Try[Account]]) { call =>
             handleComplete(call, (account: Account) => {
-              session.sessionData.email = Some(email)
-              session.sessionData.accountId = Some(account.uuid)
-              session.sessionData.merchantId = account.owner
-              session.sessionData.isMerchant = account.owner.isEmpty
-              session.sessionData.authenticated = true
+              authenticateSession(session, account)
               setSession(session) {
                 import Implicits._
                 complete(StatusCodes.OK, account)
@@ -720,6 +700,33 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
     }
   }
 
+  lazy val confirmSignup = path("confirm-signup") {
+    get {
+      parameters('token) { (token) =>
+        session { session =>
+          val confirmSignup = ConfirmSignup(token)
+          onComplete((actor ? confirmSignup).mapTo[Try[Account]]) { call =>
+            handleComplete(call, (account: Account) => {
+              authenticateSession(session, account)
+              setSession(session) {
+                import Implicits._
+                complete(StatusCodes.OK, account)
+              }
+            })
+          }
+        }
+      }
+    }
+  }
+
+  private def authenticateSession(session: Session, account: Account) = {
+    session.sessionData.email = Some(account.email)
+    session.sessionData.accountId = Some(account.uuid)
+    session.sessionData.merchantId = account.owner
+    session.sessionData.isMerchant = account.owner.isEmpty
+    session.sessionData.authenticated = true
+  }
+
   lazy val signup = path("signup") {
     post {
       type Token = String
@@ -728,11 +735,11 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
         'road, 'road2.?, 'extra.?, 'city, 'zip_code, 'admin1, 'admin2, 'country,
         'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?,
-        'return_url)
+        'validationUrl)
 
       fields { (email, password, password2, lphone, civility, firstname,
                 lastname, birthday, road, road2, extra, city, zipCode, admin1, admin2, country,
-                isMerchant, merchantId: Option[String], company, website, returnURL) =>
+                isMerchant, merchantId: Option[String], company, website, validationUrl) =>
         val address = AccountAddress(
           civility = Some(Civility.withName(civility)),
           firstName = Some(firstname),
@@ -761,7 +768,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
           vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault)),
           company = company,
           website = website,
-          returnURL = returnURL
+          validationUrl = validationUrl
         )
 
         import Implicits._

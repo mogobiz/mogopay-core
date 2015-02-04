@@ -120,7 +120,7 @@ class AccountHandler {
         search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
-            termFilter("owner", merchant.email)
+            termFilter("owner", merchant.uuid)
           )
         }
       } else {
@@ -484,7 +484,7 @@ class AccountHandler {
     }
     */
 
-    def confirmSignup(token: String): Boolean = {
+    def confirmSignup(token: String): Account = {
       val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
 
       if (!unencryptedToken.contains("-"))
@@ -496,17 +496,19 @@ class AccountHandler {
       val accountId = splitToken(2).replace("!", "-")
 
       if (EmailType(Integer.parseInt(splitToken(0))) != EmailType.Signup) {
-        false
+        throw new InvalidTokenException("")
       } else {
         val signupDate = new org.joda.time.DateTime(timestamp).getMillis
         val currentDate = new org.joda.time.DateTime().getMillis
         if (currentDate - signupDate > Settings.Mail.MaxAge) {
-          false
+          throw new TokenExpiredException("")
         } else {
-          find(accountId).map { acc =>
-            accountHandler.update(acc.copy(status = AccountStatus.ACTIVE), refresh = true)
+          val account = find(accountId).map {a => a.copy(status = AccountStatus.ACTIVE)};
+          if (account.isDefined) {
+            accountHandler.update(account.get, refresh = true)
+            account.get
           }
-          true
+          else throw new InvalidTokenException("")
         }
       }
     }
@@ -1020,8 +1022,9 @@ class AccountHandler {
       val addr = address(country)
       val accountId = newUUID
 
-      val accountStatus = if ((signup.isMerchant && Settings.AccountValidateMerchantEmail) ||
-        (!signup.isMerchant && Settings.AccountValidateCustomerEmail)) {
+      val needEmailValidation = (signup.isMerchant && Settings.AccountValidateMerchantEmail) ||
+        (!signup.isMerchant && Settings.AccountValidateCustomerEmail)
+      val accountStatus = if (needEmailValidation) {
         AccountStatus.WAITING_ENROLLMENT
       } else {
         AccountStatus.ACTIVE
@@ -1056,18 +1059,16 @@ class AccountHandler {
 
       accountHandler.save(account, refresh = true)
       // TODO: Don't send mail if signup fails
-      sendConfirmationEmail(account, signup.returnURL, token)
+      if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)
 
       (token, account)
     }
   }
 
-  private def sendConfirmationEmail(account: Account, returnURL: String, token: String): Unit = {
+  private def sendConfirmationEmail(account: Account, validationUrl: String, token: String): Unit = {
     val template = scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/template/signup-confirmation.mustache")).mkString
-    // TODO: Since mogobiz-launch's port is different than mogopay-core's, if mogopbiz-launch is used, the port is wrong
-    val url = Settings.Mogopay.EndPoint + "account/confirm-signup?" +
-      "token="       + URLEncoder.encode(token, "UTF-8") +
-      "&return_url=" + URLEncoder.encode(returnURL, "UTF-8")
+
+    val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 
     EmailHandler.Send.to(
       Mail(
