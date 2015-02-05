@@ -735,7 +735,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
         'road, 'road2.?, 'extra.?, 'city, 'zip_code, 'admin1, 'admin2, 'country,
         'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?,
-        'validationUrl)
+        'validation_url)
 
       fields { (email, password, password2, lphone, civility, firstname,
                 lastname, birthday, road, road2, extra, city, zipCode, admin1, admin2, country,
