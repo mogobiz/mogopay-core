@@ -11,6 +11,7 @@ import com.atosorigin.services.cad.common.util.FileParamReader
 import com.google.i18n.phonenumbers.{NumberParseException, PhoneNumberUtil}
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -113,9 +114,11 @@ class AccountHandler {
         if (!isMerchant) {
           throw InvalidMerchantAccountException("")
         }
+
         if (merchant.status == AccountStatus.INACTIVE) {
           throw InactiveMerchantException("")
         }
+
         search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
@@ -436,15 +439,11 @@ class AccountHandler {
   } getOrElse Failure(new AccountDoesNotExistException)
   */
 
+
   object Emailing {
 
     import com.mogobiz.utils._
 
-    object EmailType extends Enumeration {
-      type EmailType = Value
-      val Signup = Value(0)
-      val BypassLogin = Value(1)
-    }
 
     /*
     private def generateAndSaveEmailingToken(accountId: String, tokenType: EmailType): String = {
@@ -484,17 +483,9 @@ class AccountHandler {
     */
 
     def confirmSignup(token: String): Account = {
-      val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
+      val (emailType, timestamp, accountId) = Token.parseToken(token)
 
-      if (!unencryptedToken.contains("-"))
-        throw InvalidTokenException("Invalid token.")
-
-      // TODO: Move the parsing to another method
-      val splitToken = unencryptedToken.split("-")
-      val timestamp = splitToken(1).toLong
-      val accountId = splitToken(2).replace("!", "-")
-
-      if (EmailType(Integer.parseInt(splitToken(0))) != EmailType.Signup) {
+      if (emailType != EmailType.Signup) {
         throw new InvalidTokenException("")
       } else {
         val signupDate = new org.joda.time.DateTime(timestamp).getMillis
@@ -1060,9 +1051,8 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
-      accountHandler.save(account, refresh = true)
-      // TODO: Don't send mail if signup fails
-      if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)
+      val tryToSave = accountHandler.save(account, refresh = true)
+      tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token) }
 
       (token, account)
     }
@@ -1106,4 +1096,24 @@ object Token {
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId.replace("-", "!")
     SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
   }
+
+  def parseToken(token: String): (EmailType, Long, String) = {
+    val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
+
+    if (!unencryptedToken.contains("-"))
+      throw InvalidTokenException("Invalid token.")
+
+    val splitToken = unencryptedToken.split("-")
+    val emailType = EmailType(splitToken(0).toInt)
+    val timestamp = splitToken(1).toLong
+    val accountId = splitToken(2).replace("!", "-")
+
+    (emailType, timestamp, accountId)
+  }
+}
+
+object EmailType extends Enumeration {
+  type EmailType = Value
+  val Signup = Value(0)
+  val BypassLogin = Value(1)
 }
