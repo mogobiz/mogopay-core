@@ -40,7 +40,6 @@ class LoginException(msg: String) extends Exception(msg)
 class AccountHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
 
-  lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
   lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
   def findByEmail(email: String): Option[Account] = {
@@ -625,7 +624,7 @@ class AccountHandler {
         val newAddress = account.address match {
           case None => address.getAddress
           case Some(addr) => {
-            val telephone = buildTelephone(address.lphone, address.country, TelephoneStatus.WAITING_ENROLLMENT)
+            val telephone = telephoneHandler.buildTelephone(address.lphone, address.country, TelephoneStatus.WAITING_ENROLLMENT)
 
             addr.copy(road = address.road,
               road2 = address.road2,
@@ -652,7 +651,7 @@ class AccountHandler {
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
       val newAccount = account.copy(shippingAddresses = newAddresses)
-      accountHandler.update(newAccount, false)
+      accountHandler.update(newAccount, refresh = false)
     }
 
   def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
@@ -660,7 +659,7 @@ class AccountHandler {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
         val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
-        accountHandler.save(account.copy(shippingAddresses = newAddrs), true)
+        accountHandler.update(account.copy(shippingAddresses = newAddrs), true)
         shippAddr
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -669,20 +668,24 @@ class AccountHandler {
       account =>
         account.shippingAddresses.find(_.uuid == address.id) map {
           addr =>
+            val telephone: Option[Telephone] = address.lphone
+              .map(telephoneHandler.buildTelephone(_, addr.address.country.get, TelephoneStatus.WAITING_ENROLLMENT))
+              .orElse(addr.address.telephone)
             val newAddrs = account.shippingAddresses.filterNot(_ == addr) :+ addr.copy(
               address = addr.address.copy(
                 road = address.road,
                 road2 = address.road2,
                 city = address.city,
-                zipCode = address.zipCode,
-                extra = address.extra,
-                civility = address.civility.map(Civility.withName),
-                firstName = address.firstName,
-                lastName = address.lastName,
-                country = address.country,
-                admin1 = address.admin1,
-                admin2 = address.admin2))
-            accountHandler.save(account.copy(shippingAddresses = newAddrs), true)
+                zipCode = Option(address.zipCode),
+                extra = Option(address.extra),
+                civility = Option(Civility.withName(address.civility)),
+                firstName = Option(address.firstName),
+                lastName = Option(address.lastName),
+                country = Option(address.country),
+                admin1 = Option(address.admin1),
+                admin2 = Option(address.admin2),
+                telephone = telephone))
+            accountHandler.update(account.copy(shippingAddresses = newAddrs), refresh = true)
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -923,7 +926,7 @@ class AccountHandler {
 
         val newAddress = account.address.map { address =>
           address.copy(
-            telephone = Some(buildTelephone(profile.lphone, address.country.get, TelephoneStatus.WAITING_ENROLLMENT)))
+            telephone = Some(telephoneHandler.buildTelephone(profile.lphone, address.country.get, TelephoneStatus.WAITING_ENROLLMENT)))
         }
 
         val newAccount = account.copy(
@@ -1014,7 +1017,7 @@ class AccountHandler {
           TelephoneStatus.ACTIVE
         }
 
-        val tel = buildTelephone(signup.lphone, country.code, phoneStatus)
+        val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
 
         signup.address.copy(telephone = Some(tel))
       }
@@ -1076,21 +1079,6 @@ class AccountHandler {
         to = Seq(account.email),
         subject = "Please confirm your account",
         message = templateHandler.mustache(template, s"""{"url": "$url"}""")))
-  }
-
-  private def buildTelephone(number: String, countryCode: String, status: TelephoneStatus): Telephone = {
-    try {
-      val phoneNumber = phoneUtil.parse(number, countryCode)
-      Telephone(
-        phone = phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL),
-        lphone = phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL),
-        isoCode = countryCode,
-        pinCode3 = Some("000"),
-        status = status)
-    } catch {
-      case e: NumberParseException => throw InvalidPhoneNumberException(e.toString)
-      case e: Throwable => throw e
-    }
   }
 }
 

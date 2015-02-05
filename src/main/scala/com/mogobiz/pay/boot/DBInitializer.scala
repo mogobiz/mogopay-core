@@ -88,9 +88,9 @@ object DBInitializer {
 
     val paymentConfig1 = createPaymentConfig(CBPaymentProvider.PAYLINE,
       PAYPAL, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
-    var merchantAccountInfo = createAccount("Mogopay", "Merchant",
+    var merchantAccountInfo = createAccount("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "Merchant",
       "mogopay@merchant.com", merchantTelephone, merchantAccountAddress,
-      merchant, Some(paymentConfig1), None, uuid = "mogopay")
+      merchant, Some(paymentConfig1), None, uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
     val clientAccountInfo = createAccount("Client 1", "TEST", "client@merchant.com", clientTelephone, clientAccountAddress, customer, None, Some(merchantAccountInfo))
     val clientAccountInfo1 = createAccount("Client 2", "TEST 1", "client1@merchant.com", clientTelephone1, clientAccountAddress1, customer, None, Some(merchantAccountInfo))

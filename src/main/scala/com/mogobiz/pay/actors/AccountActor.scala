@@ -2,7 +2,7 @@ package com.mogobiz.pay.actors
 
 import akka.actor.Actor
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.model.Mogopay.{Civility, AccountAddress}
+import com.mogobiz.pay.model.Mogopay.{TelephoneStatus, Telephone, Civility, AccountAddress}
 import com.mogobiz.session.Session
 
 import scala.util.Try
@@ -56,20 +56,20 @@ object AccountActor {
 
   case class AddressToUpdateFromGetParams(id: String, road: String,
                                           city: String, road2: Option[String],
-                                          zipCode: Option[String], extra: Option[String],
-                                          civility: Option[String], firstName: Option[String],
-                                          lastName: Option[String], country: Option[String],
-                                          admin1: Option[String], admin2: Option[String])
+                                          zipCode: String, extra: String,
+                                          civility: String, firstName: String,
+                                          lastName: String, country: String,
+                                          admin1: String, admin2: String, lphone: Option[String])
 
   case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
-                                       zipCode: Option[String], extra: Option[String],
-                                       civility: Option[String], firstName: Option[String],
-                                       lastName: Option[String], country: Option[String],
-                                       admin1: Option[String], admin2: Option[String]) {
+                                       zipCode: String, extra: Option[String],
+                                       civility: String, firstName: String,
+                                       lastName: String, country: String,
+                                       admin1: String, admin2: String, lphone: Option[String]) {
     def getAddress = {
-      val c = civility.map(Civility.withName)
-      AccountAddress(road, road2, city, zipCode, extra, c, firstName,
-        lastName, None, country, admin1, admin2)
+      val telephone = lphone.map(telephoneHandler.buildTelephone(_, country, TelephoneStatus.WAITING_ENROLLMENT))
+      AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
+        Option(lastName), telephone, Option(country), Option(admin1), Option(admin2))
     }
   }
 
