@@ -122,7 +122,7 @@ class AccountHandler {
         search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
-            termFilter("owner", merchant.uuid)
+            termFilter("owner", merchant.email)
           )
         }
       } else {
