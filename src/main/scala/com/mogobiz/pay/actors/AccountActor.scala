@@ -59,17 +59,17 @@ object AccountActor {
                                           zipCode: String, extra: String,
                                           civility: String, firstName: String,
                                           lastName: String, country: String,
-                                          admin1: String, admin2: String, lphone: Option[String])
+                                          admin1: String, admin2: String, lphone: String)
 
   case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
                                        zipCode: String, extra: Option[String],
                                        civility: String, firstName: String,
                                        lastName: String, country: String,
-                                       admin1: String, admin2: String, lphone: Option[String]) {
+                                       admin1: String, admin2: String, lphone: String) {
     def getAddress = {
-      val telephone = lphone.map(telephoneHandler.buildTelephone(_, country, TelephoneStatus.WAITING_ENROLLMENT))
+      val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
       AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
-        Option(lastName), telephone, Option(country), Option(admin1), Option(admin2))
+        Option(lastName), Option(telephone), Option(country), Option(admin1), Option(admin2))
     }
   }
 

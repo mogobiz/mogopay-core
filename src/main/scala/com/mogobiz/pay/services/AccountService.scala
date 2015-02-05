@@ -545,7 +545,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val addShippingAddress = get {
     path("add-shipping-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'country, 'admin1, 'admin2, 'lphone.?)
+        'firstname, 'lastname, 'country, 'admin1, 'admin2, 'lphone)
 
       params.as(AddressToAddFromGetParams) {
         address =>
@@ -571,7 +571,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     path("update-shipping-address") {
       val params = parameters('address_id, 'road, 'city, 'road2.?,
         'zip_code, 'extra.?, 'civility, 'firstname, 'lastname, 'country,
-        'admin1, 'admin2, 'lphone.?)
+        'admin1, 'admin2, 'lphone)
 
       params.as(AddressToUpdateFromGetParams) {
         address =>

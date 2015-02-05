@@ -668,9 +668,9 @@ class AccountHandler {
       account =>
         account.shippingAddresses.find(_.uuid == address.id) map {
           addr =>
-            val telephone: Option[Telephone] = address.lphone
-              .map(telephoneHandler.buildTelephone(_, addr.address.country.get, TelephoneStatus.WAITING_ENROLLMENT))
-              .orElse(addr.address.telephone)
+            val telephone =  telephoneHandler.buildTelephone(address.lphone,
+              addr.address.country.get,
+              TelephoneStatus.WAITING_ENROLLMENT)
             val newAddrs = account.shippingAddresses.filterNot(_ == addr) :+ addr.copy(
               address = addr.address.copy(
                 road = address.road,
@@ -684,7 +684,7 @@ class AccountHandler {
                 country = Option(address.country),
                 admin1 = Option(address.admin1),
                 admin2 = Option(address.admin2),
-                telephone = telephone))
+                telephone = Option(telephone)))
             accountHandler.update(account.copy(shippingAddresses = newAddrs), refresh = true)
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
