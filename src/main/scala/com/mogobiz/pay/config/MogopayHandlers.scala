@@ -21,6 +21,7 @@ object  MogopayHandlers {
   val roleHandler = new RoleHandler
   val shippingAddressHandler = new ShippingAddressHandler
   val smsHandler: ClickatellSMSHandler = new ClickatellSMSHandler {}
+  val telephoneHandler = new TelephoneHandler
   val transactionHandler = new TransactionHandler
   val transactionRequestHandler = new TransactionRequestHandler
   val transactionSequenceHandler = new TransactionSequenceHandler

@@ -11,6 +11,7 @@ import com.atosorigin.services.cad.common.util.FileParamReader
 import com.google.i18n.phonenumbers.{NumberParseException, PhoneNumberUtil}
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -40,7 +41,6 @@ class LoginException(msg: String) extends Exception(msg)
 class AccountHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
 
-  lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
   lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
   def findByEmail(email: String): Option[Account] = {
@@ -114,13 +114,15 @@ class AccountHandler {
         if (!isMerchant) {
           throw InvalidMerchantAccountException("")
         }
+
         if (merchant.status == AccountStatus.INACTIVE) {
           throw InactiveMerchantException("")
         }
+
         search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
           and(
             termFilter("email", lowerCaseEmail),
-            termFilter("owner", merchant.uuid)
+            termFilter("owner", merchant.email)
           )
         }
       } else {
@@ -437,15 +439,11 @@ class AccountHandler {
   } getOrElse Failure(new AccountDoesNotExistException)
   */
 
+
   object Emailing {
 
     import com.mogobiz.utils._
 
-    object EmailType extends Enumeration {
-      type EmailType = Value
-      val Signup = Value(0)
-      val BypassLogin = Value(1)
-    }
 
     /*
     private def generateAndSaveEmailingToken(accountId: String, tokenType: EmailType): String = {
@@ -485,17 +483,9 @@ class AccountHandler {
     */
 
     def confirmSignup(token: String): Account = {
-      val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
+      val (emailType, timestamp, accountId) = Token.parseToken(token)
 
-      if (!unencryptedToken.contains("-"))
-        throw InvalidTokenException("Invalid token.")
-
-      // TODO: Move the parsing to another method
-      val splitToken = unencryptedToken.split("-")
-      val timestamp = splitToken(1).toLong
-      val accountId = splitToken(2).replace("!", "-")
-
-      if (EmailType(Integer.parseInt(splitToken(0))) != EmailType.Signup) {
+      if (emailType != EmailType.Signup) {
         throw new InvalidTokenException("")
       } else {
         val signupDate = new org.joda.time.DateTime(timestamp).getMillis
@@ -625,7 +615,7 @@ class AccountHandler {
         val newAddress = account.address match {
           case None => address.getAddress
           case Some(addr) => {
-            val telephone = buildTelephone(address.lphone, address.country, TelephoneStatus.WAITING_ENROLLMENT)
+            val telephone = telephoneHandler.buildTelephone(address.lphone, address.country, TelephoneStatus.WAITING_ENROLLMENT)
 
             addr.copy(road = address.road,
               road2 = address.road2,
@@ -652,7 +642,7 @@ class AccountHandler {
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
       val newAccount = account.copy(shippingAddresses = newAddresses)
-      accountHandler.update(newAccount, false)
+      accountHandler.update(newAccount, refresh = false)
     }
 
   def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
@@ -660,7 +650,7 @@ class AccountHandler {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
         val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
-        accountHandler.save(account.copy(shippingAddresses = newAddrs), true)
+        accountHandler.update(account.copy(shippingAddresses = newAddrs), true)
         shippAddr
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -669,20 +659,24 @@ class AccountHandler {
       account =>
         account.shippingAddresses.find(_.uuid == address.id) map {
           addr =>
+            val telephone =  telephoneHandler.buildTelephone(address.lphone,
+              addr.address.country.get,
+              TelephoneStatus.WAITING_ENROLLMENT)
             val newAddrs = account.shippingAddresses.filterNot(_ == addr) :+ addr.copy(
               address = addr.address.copy(
                 road = address.road,
                 road2 = address.road2,
                 city = address.city,
-                zipCode = address.zipCode,
-                extra = address.extra,
-                civility = address.civility.map(Civility.withName),
-                firstName = address.firstName,
-                lastName = address.lastName,
-                country = address.country,
-                admin1 = address.admin1,
-                admin2 = address.admin2))
-            accountHandler.save(account.copy(shippingAddresses = newAddrs), true)
+                zipCode = Option(address.zipCode),
+                extra = Option(address.extra),
+                civility = Option(Civility.withName(address.civility)),
+                firstName = Option(address.firstName),
+                lastName = Option(address.lastName),
+                country = Option(address.country),
+                admin1 = Option(address.admin1),
+                admin2 = Option(address.admin2),
+                telephone = Option(telephone)))
+            accountHandler.update(account.copy(shippingAddresses = newAddrs), refresh = true)
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
@@ -923,7 +917,7 @@ class AccountHandler {
 
         val newAddress = account.address.map { address =>
           address.copy(
-            telephone = Some(buildTelephone(profile.lphone, address.country.get, TelephoneStatus.WAITING_ENROLLMENT)))
+            telephone = Some(telephoneHandler.buildTelephone(profile.lphone, address.country.get, TelephoneStatus.WAITING_ENROLLMENT)))
         }
 
         val newAccount = account.copy(
@@ -1014,7 +1008,7 @@ class AccountHandler {
           TelephoneStatus.ACTIVE
         }
 
-        val tel = buildTelephone(signup.lphone, country.code, phoneStatus)
+        val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
 
         signup.address.copy(telephone = Some(tel))
       }
@@ -1057,9 +1051,8 @@ class AccountHandler {
       if (signup.isMerchant)
         transactionSequenceHandler.nextTransactionId(account.uuid)
 
-      accountHandler.save(account, refresh = true)
-      // TODO: Don't send mail if signup fails
-      if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)
+      val tryToSave = accountHandler.save(account, refresh = true)
+      tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token) }
 
       (token, account)
     }
@@ -1076,21 +1069,6 @@ class AccountHandler {
         to = Seq(account.email),
         subject = "Please confirm your account",
         message = templateHandler.mustache(template, s"""{"url": "$url"}""")))
-  }
-
-  private def buildTelephone(number: String, countryCode: String, status: TelephoneStatus): Telephone = {
-    try {
-      val phoneNumber = phoneUtil.parse(number, countryCode)
-      Telephone(
-        phone = phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL),
-        lphone = phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL),
-        isoCode = countryCode,
-        pinCode3 = Some("000"),
-        status = status)
-    } catch {
-      case e: NumberParseException => throw InvalidPhoneNumberException(e.toString)
-      case e: Throwable => throw e
-    }
   }
 }
 
@@ -1118,4 +1096,24 @@ object Token {
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId.replace("-", "!")
     SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
   }
+
+  def parseToken(token: String): (EmailType, Long, String) = {
+    val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
+
+    if (!unencryptedToken.contains("-"))
+      throw InvalidTokenException("Invalid token.")
+
+    val splitToken = unencryptedToken.split("-")
+    val emailType = EmailType(splitToken(0).toInt)
+    val timestamp = splitToken(1).toLong
+    val accountId = splitToken(2).replace("!", "-")
+
+    (emailType, timestamp, accountId)
+  }
+}
+
+object EmailType extends Enumeration {
+  type EmailType = Value
+  val Signup = Value(0)
+  val BypassLogin = Value(1)
 }

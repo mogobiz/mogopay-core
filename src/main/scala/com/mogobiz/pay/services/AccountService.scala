@@ -545,7 +545,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val addShippingAddress = get {
     path("add-shipping-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'country, 'admin1.?, 'admin2.?)
+        'firstname, 'lastname, 'country, 'admin1, 'admin2, 'lphone)
 
       params.as(AddressToAddFromGetParams) {
         address =>
@@ -569,9 +569,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val updateShippingAddress = get {
     path("update-shipping-address") {
-      val params = parameters('address_id.as[String], 'road.?, 'city.?, 'road2.?,
-        'zip_code.?, 'extra.?, 'civility.?, 'firstname.?, 'lastname.?, 'country.?,
-        'admin1.?, 'admin2.?)
+      val params = parameters('address_id, 'road, 'city, 'road2.?,
+        'zip_code, 'extra.?, 'civility, 'firstname, 'lastname, 'country,
+        'admin1, 'admin2, 'lphone)
 
       params.as(AddressToUpdateFromGetParams) {
         address =>
@@ -735,7 +735,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
         'lphone, 'civility, 'firstname, 'lastname, 'birthday,
         'road, 'road2.?, 'extra.?, 'city, 'zip_code, 'admin1, 'admin2, 'country,
         'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?,
-        'validationUrl)
+        'validation_url)
 
       fields { (email, password, password2, lphone, civility, firstname,
                 lastname, birthday, road, road2, extra, city, zipCode, admin1, admin2, country,
