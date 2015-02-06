@@ -90,7 +90,7 @@ object DBInitializer {
       PAYPAL, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
     var merchantAccountInfo = createAccount("Mogopay", "Merchant",
       "mogopay@merchant.com", merchantTelephone, merchantAccountAddress,
-      merchant, Some(paymentConfig1), None, uuid = "mogopay")
+      merchant, Some(paymentConfig1), None, secret = "mogopay", uuid = "92c60aa1-5d4c-4c6c-b8c9-c8098100bc3c")
 
     val clientAccountInfo = createAccount("Client 1", "TEST", "client@merchant.com", clientTelephone, clientAccountAddress, customer, None, Some(merchantAccountInfo))
     val clientAccountInfo1 = createAccount("Client 2", "TEST 1", "client1@merchant.com", clientTelephone1, clientAccountAddress1, customer, None, Some(merchantAccountInfo))
@@ -132,13 +132,13 @@ object DBInitializer {
     createAccount("Merchant6", "TEST", "seller6@merchant.com", merchantTelephone6, merchantAccountAddress6, merchant, Some(paymentConfig4), None)
 
     val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.EXTERNAL)
-    createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com", "seller7")
+    createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com", "d7b864c8-4567-4603-abd4-5f85e9ff56e6")
 
     val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_NO)
-    createAccount("Merchant8", "TEST", "seller8@merchant.com", merchantTelephone8, merchantAccountAddress8, merchant, Some(paymentConfig6), None, AccountStatus.ACTIVE, "seller8@merchant.com", "seller8")
+    createAccount("Merchant8", "TEST", "seller8@merchant.com", merchantTelephone8, merchantAccountAddress8, merchant, Some(paymentConfig6), None, AccountStatus.ACTIVE, "seller8@merchant.com", "78a2fa03-5498-4f07-b716-c9b9c2b64954")
 
     val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
-    createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "seller9")
+    createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "92795318-8760-4a5f-b71a-c7dcf4af2b79")
 
 //    val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
 //    EsClient.index(Settings.Mogopay.EsIndex, rateEUR, true)
