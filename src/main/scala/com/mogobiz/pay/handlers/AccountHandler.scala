@@ -698,20 +698,12 @@ class AccountHandler {
           case e: Throwable => throw e
         }
 
-        val newAddress = account.address.map { address =>
-          address.copy(
-            telephone = Some(telephoneHandler.buildTelephone(profile.lphone, address.country.get, TelephoneStatus.WAITING_ENROLLMENT)))
-        }
-
         val newAccount = account.copy(
           password = newPassword.getOrElse(account.password),
-          company = Some(profile.company),
-          website = Some(profile.website),
           civility = Some(Civility.withName(profile.civility)),
           firstName = Some(profile.firstName),
           lastName = Some(profile.lastName),
-          birthDate = birthDate,
-          address = newAddress
+          birthDate = birthDate
         )
 
         accountHandler.update(newAccount, refresh = false)

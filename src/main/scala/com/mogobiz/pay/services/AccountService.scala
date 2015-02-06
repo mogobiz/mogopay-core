@@ -862,19 +862,14 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              val fields = formFields('password :: 'password2 :: 'company ::
-                'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday :: HNil)
+              val fields = formFields('password :: 'password2 :: 'civility :: 'firstname :: 'lastname :: 'birthday :: HNil)
               fields.happly {
-                case password :: password2 :: company :: website :: lphone ::
-                  civility :: firstName :: lastName :: birthday :: HNil =>
+                case password :: password2 :: civility :: firstName :: lastName :: birthday :: HNil =>
 
                   val profile = UpdateProfileLight(
                     id = accountId,
                     password = password,
                     password2 = password2,
-                    company = company,
-                    website = website,
-                    lphone = lphone,
                     civility = civility,
                     firstName = firstName,
                     lastName = lastName,

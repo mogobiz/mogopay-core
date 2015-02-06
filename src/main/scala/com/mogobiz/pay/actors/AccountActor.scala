@@ -119,8 +119,7 @@ object AccountActor {
                            paymentMethod: String, cbProvider: String, cbParam: CBParams,
                            payPalParam: PayPalParam, kwixoParam: KwixoParam)
 
-  case class UpdateProfileLight(id: String, password: String, password2: String, company: String,
-                                website: String, lphone: String, civility: String,
+  case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
                                 firstName: String, lastName: String, birthDate: String)
 
   sealed trait CBParams
