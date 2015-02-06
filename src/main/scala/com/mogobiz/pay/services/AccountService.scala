@@ -5,7 +5,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.pay.actors.AccountActor._
 import com.mogobiz.pay.config.DefaultComplete
-import com.mogobiz.pay.exceptions.Exceptions.PasswordsDoNotMatchException
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
@@ -38,9 +37,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       secret ~
       isValidAccountId ~
       checkTokenValidity ~
-      bypassLogin ~
       updatePassword ~
-      updateLostPassword ~
       generateNewPhoneCode ~
       enroll ~
       generateNewSecret ~
@@ -58,7 +55,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       selectShippingAddress ~
       deleteShippingAddress ~
       deleteMerchantTestAccount ~
-      generateLostPasswordToken ~
       sendNewPassword
     }
   }
@@ -217,18 +213,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
 
-  lazy val updateLostPassword = path("update-lost-password") {
-    get {
-      parameters('password, 'token) { (password, token) =>
-        onComplete((actor ? UpdateLostPassword(password, token)).mapTo[Try[Unit]]) { call =>
-          handleComplete(call,
-            (_: Unit) => complete(StatusCodes.OK)
-          )
-        }
-      }
-    }
-  }
-
   lazy val generateNewPhoneCode = path("generate-new-phone-code") {
     get {
       session {
@@ -266,30 +250,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
                 }
-              }
-          }
-      }
-    }
-  }
-
-  lazy val bypassLogin = path("bypass-login") {
-    get {
-      session {
-        session =>
-          parameters('token) {
-            token =>
-              onComplete((actor ? BypassLogin(token, session)).mapTo[Try[Option[Session]]]) { call =>
-                handleComplete(call, (s: Option[Session]) =>
-                  if (s.isEmpty)
-                    complete(StatusCodes.Unauthorized ->
-                      Map('type -> "Unauthorized", 'error -> "The token is either not for password reset, or expired"))
-                  else
-                    setSession(s.get) {
-                      complete {
-                        StatusCodes.OK -> Map()
-                      }
-                    }
-                )
               }
           }
       }
@@ -577,16 +537,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
-      }
-    }
-  }
-
-  lazy val generateLostPasswordToken = get {
-    path("request-password-token") {
-      parameters('email, 'secret) { (email, secret) =>
-        onComplete((actor ? GenerateLostPasswordToken(email, secret)).mapTo[Try[String]]) { call =>
-          handleComplete(call, (res: String) => complete(StatusCodes.OK, Map('token -> res)))
-        }
       }
     }
   }

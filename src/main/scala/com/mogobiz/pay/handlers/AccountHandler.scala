@@ -165,22 +165,6 @@ class AccountHandler {
     this.findByEmail(email).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
-  def generateLostPasswordToken(email: String, merchantSecret: String): String = {
-    val findBySecretReq = search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
-      termFilter("secret", merchantSecret)
-    }
-    val merchantAccount = EsClient.search[Account](findBySecretReq)
-    merchantAccount map { merchantAccount =>
-      val req = buildFindAccountRequest(email, Some(merchantAccount.uuid))
-      val account = EsClient.search[Account](req)
-      account map { account =>
-        import org.joda.time.DateTime
-        val date = new DateTime().plusSeconds(Settings.Mail.MaxAge)
-        SymmetricCrypt.encrypt(s"$email;${date.toDate.getTime}", Settings.Mogopay.Secret, "AES")
-      } getOrElse (throw new AccountDoesNotExistException(s"$email"))
-    } getOrElse (throw new AccountDoesNotExistException("Invalid merchant secret"))
-  }
-
   def findBySecret(secret: String): Option[Account] = {
     val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("secret", secret)
     EsClient.search[Account](req)
@@ -251,20 +235,6 @@ class AccountHandler {
     accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
   }
 
-  def updateLostPassword(password: String, token: String): Unit = {
-    val clearText = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split(";")
-    val email = clearText(0)
-    val date = clearText(1).toLong
-    val now = new Date().getTime
-    if (now > date) {
-      throw TokenExpiredException(s"$now > $date")
-    }
-    else {
-      val account = this.findByEmail(email).getOrElse(throw InvalidEmailException(s"$email"))
-      accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
-    }
-  }
-
   def sendNewPassword(accountId: String, returnURL: String): Unit = find(accountId).map { account =>
     val newPassword: String = newUUID.split("-")(4)
     update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
@@ -325,22 +295,6 @@ class AccountHandler {
           account.get
         }
         else throw new InvalidTokenException("")
-      }
-    }
-  }
-
-  def bypassLogin(token: String, session: Session): Option[Session] = {
-    val (emailType, timestamp, accountId) = Token.parseToken(token)
-
-    if (emailType != EmailType.BypassLogin) {
-      None
-    } else {
-      val signupDate = new org.joda.time.DateTime(timestamp).getMillis
-      val currentDate = new org.joda.time.DateTime().getMillis
-      if (currentDate - signupDate > Settings.Mail.MaxAge) {
-        None
-      } else {
-        Some(session += "accountId" -> accountId)
       }
     }
   }

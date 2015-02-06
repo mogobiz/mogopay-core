@@ -18,15 +18,11 @@ object AccountActor {
   case class RequestPasswordChange(email: String, merchantId: String,
                                    passwordCB: String, isCustomer: Boolean)
 
-  case class GenerateLostPasswordToken(email: String, merchantSecret: String)
-
   case class CheckTokenValidity(token: String)
 
   case class SelectShippingAddress(accountId: String, addressId: String)
 
   case class UpdatePassword(password: String, vendorId: String, accountId: String)
-
-  case class UpdateLostPassword(password: String, token: String)
 
   case class Verify(email: String, merchantSecret: String, mogopayToken: String)
 
@@ -37,8 +33,6 @@ object AccountActor {
   case class SendSignupConfirmationEmail(accountId: String)
 
   case class ConfirmSignup(token: String)
-
-  case class BypassLogin(token: String, session: Session)
 
   case class GenerateNewSecret(accountId: String)
 
@@ -160,16 +154,10 @@ class AccountActor extends Actor {
 
     case IsValidAccountId(id) => sender ! Try(accountHandler.find(id).nonEmpty)
 
-    case GenerateLostPasswordToken(email, merchantSecret) =>
-      sender ! Try(accountHandler.generateLostPasswordToken(email, merchantSecret))
-
     case CheckTokenValidity(token) => sender ! Try(accountHandler.checkTokenValidity(token))
 
     case UpdatePassword(password, vendorId, accountId) =>
       sender ! Try(accountHandler.updatePassword(password, vendorId, accountId))
-
-    case UpdateLostPassword(password, token) =>
-      sender ! Try(accountHandler.updateLostPassword(password, token))
 
     case Login(email, password, merchantId, isCustomer) => {
       sender ! Try(accountHandler.login(email, password, merchantId, isCustomer))
@@ -180,9 +168,6 @@ class AccountActor extends Actor {
 
     case ConfirmSignup(token) =>
       sender ! Try(accountHandler.confirmSignup(token))
-
-    case BypassLogin(token, session) =>
-      sender ! Try(accountHandler.bypassLogin(token, session))
 
     case GenerateNewSecret(accountId) => sender ! Try(accountHandler.generateNewSecret(accountId))
 
