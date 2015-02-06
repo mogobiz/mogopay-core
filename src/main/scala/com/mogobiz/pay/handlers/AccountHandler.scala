@@ -978,84 +978,89 @@ class AccountHandler {
   }
 
   def signup(signup: Signup): (Token, Account) = {
-    if (!signup.isMerchant && signup.vendor.isEmpty) {
-      throw VendorNotProvidedError("Vendor cannot be null")
-    } else {
-      val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("email", signup.email)
-      if (EsClient.search[Account](req).isDefined)
-        throw new AccountWithSameEmailAddressAlreadyExistsError("")
+    val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("email", signup.email)
+    if (EsClient.search[Account](req).isDefined)
+      throw new AccountWithSameEmailAddressAlreadyExistsError("")
 
-      val birthdate = birthDayDateFormat.parse(signup.birthDate)
-      val civility = Civility.withName(signup.civility)
+    val birthdate = birthDayDateFormat.parse(signup.birthDate)
+    val civility = Civility.withName(signup.civility)
 
-      if (signup.password.isEmpty)
-        throw NoPasswordProvidedError("****")
+    if (signup.password.isEmpty)
+      throw NoPasswordProvidedError("****")
 
-      if (signup.password != signup.password2)
-        throw PasswordsDoNotMatchException("****")
+    if (signup.password != signup.password2)
+      throw PasswordsDoNotMatchException("****")
 
-      val password = new Sha256Hash(signup.password).toHex
+    val password = new Sha256Hash(signup.password).toHex
 
-      val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${signup.address.country}"))
+    val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${signup.address.country}"))
 
-      val country: Country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
+    val country: Country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
 
-      def address(country: Country): AccountAddress = {
-        val phoneStatus = if ((signup.isMerchant && Settings.AccountValidateMerchantPhone) ||
-          (!signup.isMerchant && Settings.AccountValidateCustomerPhone)) {
-          TelephoneStatus.WAITING_ENROLLMENT
-        } else {
-          TelephoneStatus.ACTIVE
-        }
-
-        val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
-
-        signup.address.copy(telephone = Some(tel))
-      }
-
-      val addr = address(country)
-      val accountId = newUUID
-
-      val needEmailValidation = (signup.isMerchant && Settings.AccountValidateMerchantEmail) ||
-        (!signup.isMerchant && Settings.AccountValidateCustomerEmail)
-      val accountStatus = if (needEmailValidation) {
-        AccountStatus.WAITING_ENROLLMENT
+    def address(country: Country): AccountAddress = {
+      val phoneStatus = if ((signup.isMerchant && Settings.AccountValidateMerchantPhone) ||
+        (!signup.isMerchant && Settings.AccountValidateCustomerPhone)) {
+        TelephoneStatus.WAITING_ENROLLMENT
       } else {
-        AccountStatus.ACTIVE
+        TelephoneStatus.ACTIVE
       }
 
-      val token = if (accountStatus == AccountStatus.ACTIVE) ""
-      else Token.generateToken(accountId, TokenType.Signup)
+      val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
 
-      val account = Account(
-        uuid = accountId,
-        email = signup.email,
-        password = password,
-        civility = Some(civility),
-        firstName = Some(signup.firstName),
-        lastName = Some(signup.lastName),
-        birthDate = Some(birthdate),
-        status = accountStatus,
-        secret = if (signup.isMerchant) newUUID else "",
-        owner = if (signup.isMerchant) None else signup.vendor,
-        address = Some(addr),
-        waitingPhoneSince = System.currentTimeMillis(),
-        waitingEmailSince = System.currentTimeMillis(),
-        country = Some(country),
-        roles = List(if (signup.isMerchant) RoleName.MERCHANT else RoleName.CUSTOMER),
-        company = signup.company,
-        website = signup.website,
-        emailingToken = Some(token)
-      )
-
-      if (signup.isMerchant)
-        transactionSequenceHandler.nextTransactionId(account.uuid)
-
-      val tryToSave = accountHandler.save(account, refresh = true)
-      tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token) }
-
-      (token, account)
+      signup.address.copy(telephone = Some(tel))
     }
+
+    val addr = address(country)
+    val accountId = newUUID
+
+    val needEmailValidation = (signup.isMerchant && Settings.AccountValidateMerchantEmail) ||
+      (!signup.isMerchant && Settings.AccountValidateCustomerEmail)
+    val accountStatus = if (needEmailValidation) {
+      AccountStatus.WAITING_ENROLLMENT
+    } else {
+      AccountStatus.ACTIVE
+    }
+
+    val token = if (accountStatus == AccountStatus.ACTIVE) ""
+    else Token.generateToken(accountId, TokenType.Signup)
+
+    val owner = if (signup.isMerchant) {
+      None
+    } else {
+      val account = accountHandler.findByEmail(Settings.AccountValidateMerchantDefault).getOrElse {
+        throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
+      }
+      Some(account.uuid)
+    }
+
+    val account = Account(
+      uuid = accountId,
+      email = signup.email,
+      password = password,
+      civility = Some(civility),
+      firstName = Some(signup.firstName),
+      lastName = Some(signup.lastName),
+      birthDate = Some(birthdate),
+      status = accountStatus,
+      secret = if (signup.isMerchant) newUUID else "",
+      owner = owner,
+      address = Some(addr),
+      waitingPhoneSince = System.currentTimeMillis(),
+      waitingEmailSince = System.currentTimeMillis(),
+      country = Some(country),
+      roles = List(if (signup.isMerchant) RoleName.MERCHANT else RoleName.CUSTOMER),
+      company = signup.company,
+      website = signup.website,
+      emailingToken = Some(token)
+    )
+
+    if (signup.isMerchant)
+      transactionSequenceHandler.nextTransactionId(account.uuid)
+
+    val tryToSave = accountHandler.save(account, refresh = true)
+    tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token) }
+
+    (token, account)
   }
 
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String): Unit = {

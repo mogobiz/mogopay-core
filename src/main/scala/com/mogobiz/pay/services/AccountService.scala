@@ -765,7 +765,7 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
           birthDate = birthday,
           address = address,
           isMerchant = isMerchant,
-          vendor = Some(merchantId.getOrElse(Settings.AccountValidateMerchantDefault)),
+          vendor = merchantId,
           company = company,
           website = website,
           validationUrl = validationUrl
