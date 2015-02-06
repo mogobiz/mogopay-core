@@ -141,6 +141,8 @@ object AccountActor {
                         sipsMerchantLogoPath: String) extends CBParams
 
   case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
+
+  case class SendNewPassword(accountId: String, returnURL: String)
 }
 
 class AccountActor extends Actor {
@@ -227,5 +229,7 @@ class AccountActor extends Actor {
     case s: Signup => sender ! Try(accountHandler.signup(s))
 
     case u: UpdateProfileLight => sender ! Try(accountHandler.updateProfileLight(u))
+
+    case SendNewPassword(accountId, returnURL) => sender ! Try(accountHandler.sendNewPassword(accountId, returnURL))
   }
 }

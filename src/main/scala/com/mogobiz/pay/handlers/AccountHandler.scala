@@ -165,7 +165,6 @@ class AccountHandler {
     this.findByEmail(email).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
-
   def generateLostPasswordToken(email: String, merchantSecret: String): String = {
     val findBySecretReq = search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
       termFilter("secret", merchantSecret)
@@ -263,6 +262,24 @@ class AccountHandler {
     else {
       val account = this.findByEmail(email).getOrElse(throw InvalidEmailException(s"$email"))
       accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
+    }
+  }
+
+  def sendNewPassword(accountId: String, returnURL: String): Unit = find(accountId).map { account =>
+    val newPassword: String = newUUID.split("-")(4)
+    update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
+    sendNewPasswordEmail(account, returnURL, newPassword)
+
+    def sendNewPasswordEmail(account: Account, returnURL: String, newPassword: String) = {
+      val template = scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/template/new-password.mustache")).mkString
+
+      val data = s"""{"url": "$returnURL", "newPassword": "$newPassword"}"""
+      EmailHandler.Send.to(
+        Mail(
+          from = ("contact@mogopay.com", "Mogopay"),
+          to = Seq(account.email),
+          subject = "Your new password",
+          message = templateHandler.mustache(template, data)))
     }
   }
 

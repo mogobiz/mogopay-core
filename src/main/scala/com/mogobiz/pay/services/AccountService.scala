@@ -58,7 +58,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       selectShippingAddress ~
       deleteShippingAddress ~
       deleteMerchantTestAccount ~
-      generateLostPasswordToken
+      generateLostPasswordToken ~
+      sendNewPassword
     }
   }
 
@@ -281,7 +282,7 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
                 handleComplete(call, (s: Option[Session]) =>
                   if (s.isEmpty)
                     complete(StatusCodes.Unauthorized ->
-                      Map('type -> "Unauthorized", 'error -> "The token is either not for signup, or expired"))
+                      Map('type -> "Unauthorized", 'error -> "The token is either not for password reset, or expired"))
                   else
                     setSession(s.get) {
                       complete {
@@ -585,6 +586,25 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       parameters('email, 'secret) { (email, secret) =>
         onComplete((actor ? GenerateLostPasswordToken(email, secret)).mapTo[Try[String]]) { call =>
           handleComplete(call, (res: String) => complete(StatusCodes.OK, Map('token -> res)))
+        }
+      }
+    }
+  }
+
+  lazy val sendNewPassword = get {
+    path("send-new-password") {
+      parameters('return_url) { returnURL =>
+        session { session =>
+          session.sessionData.accountId match {
+            case Some(accountId) =>
+              onComplete((actor ? SendNewPassword(accountId, returnURL)).mapTo[Try[Unit]]) { call =>
+                handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
+              }
+            case _ => complete {
+              StatusCodes.Unauthorized ->
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+            }
+          }
         }
       }
     }
