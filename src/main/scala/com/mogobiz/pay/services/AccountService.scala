@@ -31,37 +31,34 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   val route = {
     pathPrefix("account") {
       isPatternValid ~
-        customerToken ~
-        merchantToken ~
-        alreadyExistEmail ~
-        id ~
-        secret ~
-        isValidAccountId ~
-        checkTokenValidity ~
-        bypassLogin ~
-        updatePassword ~
-        updateLostPassword ~
-        generateNewPhoneCode ~
-        enroll ~
-        generateNewSecret ~
-        addCreditCard ~
-        deleteCreditCard ~
-        logout ~
-        getBillingAddress ~
-        getShippingAddresses ~
-        getShippingAddress ~
-        profileInfo ~
-        assignBillingAddress ~
-        addShippingAddress ~
-        updateShippingAddress ~
-        getActiveCountryState ~
-        selectShippingAddress ~
-        deleteShippingAddress ~
-        deleteMerchantTestAccount ~
-        generateLostPasswordToken
-
-      // generateNewEmailCode ~
-      // sendConfirmationEmail ~
+      customerToken ~
+      merchantToken ~
+      alreadyExistEmail ~
+      id ~
+      secret ~
+      isValidAccountId ~
+      checkTokenValidity ~
+      bypassLogin ~
+      updatePassword ~
+      updateLostPassword ~
+      generateNewPhoneCode ~
+      enroll ~
+      generateNewSecret ~
+      addCreditCard ~
+      deleteCreditCard ~
+      logout ~
+      getBillingAddress ~
+      getShippingAddresses ~
+      getShippingAddress ~
+      profileInfo ~
+      assignBillingAddress ~
+      addShippingAddress ~
+      updateShippingAddress ~
+      getActiveCountryState ~
+      selectShippingAddress ~
+      deleteShippingAddress ~
+      deleteMerchantTestAccount ~
+      generateLostPasswordToken
     }
   }
 
@@ -231,18 +228,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
     }
   }
 
-  /*
-  lazy val verify = path("verify") {
-    get {
-      parameters('email, 'merchantSecret, 'mogopayToken).as(Verify) { verify =>
-        complete {
-          (account ? verify).mapTo[String]
-        }
-      }
-    }
-  }
-  */
-
   lazy val generateNewPhoneCode = path("generate-new-phone-code") {
     get {
       session {
@@ -285,27 +270,6 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
       }
     }
   }
-
-  /*
-  lazy val generateNewEmailCode = path("generateNewEmailCode") {
-    get {
-      withSession(accountId => {
-        complete {
-          (account ? GenerateNewEmailCode(accountId)).mapTo[String]
-        }
-      })
-    }
-  }
-  */
-
-  /*
-        complete {
-          (account ? SendSignupConfirmationEmail(accountId)).mapTo[String]
-        }
-      })
-    }
-  }
-  */
 
   lazy val bypassLogin = path("bypass-login") {
     get {

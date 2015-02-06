@@ -83,11 +83,6 @@ class AccountHandler {
     res.getHits.totalHits() == 1
   }
 
-  //
-  //  def verifAccountId(id: String): Boolean = {
-  //    EsClient.load[Account](id).isDefined
-  //  }
-
   def login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean): Account = {
     val lowerCaseEmail = email.toLowerCase
     val userAccountRequest =
@@ -152,52 +147,6 @@ class AccountHandler {
     }.getOrElse(throw AccountDoesNotExistException(""))
   }
 
-  //  def requestPasswordChange(email:String, merchantId:Option[String], isCustomer:Boolean) : Boolean = {
-  //    val res = buildFindAccountRequest(email, merchantId, isCustomer)
-  //    val account = EsClient.search[Account](res)
-  //    account map { account =>
-  //
-  //    }
-  //  }
-
-  //
-  //  boolean requestPasswordChange(String email, Long vendorId, String changePasswordURL, boolean isCustomer) {
-  //    if (!shared && isCustomer && vendorId == null)  {
-  //      throw new IllegalArgumentException("invalid request")
-  //    }
-  //    if (email) {
-  //      List<Account> accounts = Account.withCriteria {
-  //        eq("email", email)
-  //        if (isCustomer) {
-  //          owner { eq ("id", vendorId) }
-  //        }
-  //        else {
-  //          isNull("owner")
-  //        }
-  //      }
-  //      if (accounts?.size() > 0) {
-  //        Account account = accounts.get(0)
-  //        emailConfirmationService.maxAge = Holders.config.emailConfirmation.maxAge
-  //        emailConfirmationService.sendConfirmation(
-  //          id:account.id.toString() +","+(changePasswordURL ? changePasswordURL : ""),
-  //        model:[email:email, merchantId:vendorId, accountId: account.id, changePasswordURL:changePasswordURL, callbackPrefix:isCustomer ? account.owner.paymentConfig.callbackPrefix : Holders.config.grails.serverURL],
-  //        view:'/mailtemplates/change_password',
-  //        to:email,
-  //        event:'lost',
-  //        subject:"Update MOGOPAY password request !")
-  //        return true
-  //      }
-  //      else {
-  //        // email does not exists redirect user to login page
-  //        return false
-  //      }
-  //    }
-  //    else {
-  //      return false
-  //    }
-  //  }
-  //
-
   /**
    * For debugging purposes. Works only for merchant.com - so no risk :)
    * @return
@@ -233,45 +182,17 @@ class AccountHandler {
     } getOrElse (throw new AccountDoesNotExistException("Invalid merchant secret"))
   }
 
-  //
-  //
-  //  def listCustomers(merchantId: String, pageNumber: Int): Array[Account] = {
-  //    val req = search in esSettings.DB.INDEX types "Account" filter {
-  //      termFilter("owner", merchantId)
-  //    }
-  //
-  //    val res = EsClient().execute(req)
-  //    res.getHits.getHits.map { hit =>
-  //      JacksonConverter.deserialize[Account](hit.source().toString)
-  //    }
-  //  }
-  //
-  //  def findByNames(firstName: String, lastName: String): Future[Option[Account]] =
-  //    DAO.findBy("firstName" -> firstName, "lastName" -> lastName)
-
   def findBySecret(secret: String): Option[Account] = {
     val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("secret", secret)
     EsClient.search[Account](req)
   }
 
-  //
-  //  def findWithoutOwner(id: Long): Future[Option[Account]] =
-  //    DAO.findBy("uuid" -> id, "owner" -> "null")
-  //
-  //  def findByEmail(email: String): Future[Option[Account]] =
-  //    DAO.findBy("email" -> email)
-  //
-  //  def findByEmailAndOwnerIsNull(email: String): Future[Option[Account]] = {
-  //    DAO.findBy("email" -> email, "owner" -> "null")
-  //  }
-  //
   def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email) match {
     case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
-    case None => {
+    case None =>
       BOAccountDAO.upsert(account)
       EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
       Success()
-    }
   }
 
   def update(account: Account, refresh: Boolean): Boolean = {
@@ -345,52 +266,7 @@ class AccountHandler {
     }
   }
 
-  /*
-  def verify(userEmail: String, merchantSecret: String,
-             mogopayToken: String): Try[Either[String, String]] = {
-    val time = System.currentTimeMillis()
-
-    val account: Try[Account] = findBySecret(merchantSecret) match {
-      case None    => Failure(new AccountDoesNotExistException)
-      case Some(x) => Success(x)
-    }
-
-    val merchant: Try[Unit] = account match {
-      case Failure(t)                  => Failure(t)
-      case Success(m) if isMerchant(m) => Success(())
-      case _                           => Failure(new NotAVendorAccountException)
-    }
-
-    merchant match {
-      case Failure(t) => Failure(t)
-      case Success(_) =>
-        val decodedData = RSA.decrypt(mogopayToken, Settings.RSA.privateKey)
-
-        val parts = decodedData.split(";")
-        val (email, errorCode) = (parts(0), parts(3))
-
-        if (errorCode == MogopayConstant.Success) {
-          val startTime: Long = parts(1).toLong
-          if (time - startTime > 60000) {
-            Success(Left(MogopayConstant.VerifyTimeout))
-          } else if (email != userEmail) {
-            Success(Left(MogopayConstant.VerifyInvalidEmail))
-          } else {
-            Success(Right(MogopayConstant.Success))
-          }
-        } else {
-          Success(Left(errorCode))
-        }
-    }
-  }
-  */
-
   def isMerchant(account: Account) = account.roles.contains(RoleName.MERCHANT)
-
-  //  def isMerchant(uuid: String): Try[Boolean] =
-  //    find(uuid).map { acc =>
-  //      Success(acc.roles.contains(RoleName.MERCHANT))
-  //    }.getOrElse(Failure(new AccountDoesNotExistException))
 
   /**
    * Generates, saves and sends a pin code
@@ -415,132 +291,39 @@ class AccountHandler {
     smsHandler.sendSms(message, phoneNumber.phone)
   }
 
-  /*
-  def generateNewEmailCode(uuid: String): Try[Unit] = accountHandler.find(uuid) map { account =>
-    def buildMessage(uri: String): String = {
-      val path: String = Settings.EmailTemplatesDir
-      val content = getClass.getClassLoader.getResource(path + "confirm_merchant")
-      scala.io.Source.fromFile(new File(content.toURI)).getLines()
-        .mkString
-        .replace("${uri}", uri)
-    }
+  def confirmSignup(token: String): Account = {
+    val (emailType, timestamp, accountId) = Token.parseToken(token)
 
-    import com.mogobiz.pay.handlers.EmailHandler._
-
-    val uri = ???
-    send a new Mail(
-      from = (Settings.EmailSenderAddress, Settings.EmailSenderName),
-      to = account.email,
-      subject = "Please confirm your MOGOPAY merchant account",
-      message = buildMessage(uri)
-    )
-
-    Success(())
-  } getOrElse Failure(new AccountDoesNotExistException)
-  */
-
-
-  object Emailing {
-
-    import com.mogobiz.utils._
-
-
-    /*
-    private def generateAndSaveEmailingToken(accountId: String, tokenType: EmailType): String = {
-      val timestamp: Long = (new java.util.Date).getTime
-      val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
-      val token = RSA.encrypt(clearToken, publicKey)
-      find(accountId).map {
-        _.map { acc =>
-          //          DAO.update(acc.copy(emailingToken = Some(token)))
-        }
-      }
-      token
-    }
-    */
-
-    /*
-    def sendSignupConfirmationEmail(accountId: String) = {
-      def buildEmailBody(uri: String): String = {
-        val path: String = Settings.EmailTemplatesDir
-        val content = getClass.getClassLoader.getResource(path + "confirm_merchant")
-        scala.io.Source.fromFile(new File(content.toURI)).getLines()
-          .mkString
-          .replace("${uri}", uri)
-      }
-
-      val token = generateAndSaveEmailingToken(accountId, Signup)
-      accountHandler.find(accountId) match {
-        case None => Failure(new AccountDoesNotExistException)
-        case Some(account) => Success(send a new Mail(
-          from = (Settings.EmailSenderAddress, Settings.EmailSenderName),
-          to = account.email,
-          subject = "Mogopay signup confirmation",
-          message = buildEmailBody(Settings.applicationUIURL + "confirmSignup?token=" + token)
-        ))
-      }
-    }
-    */
-
-    def confirmSignup(token: String): Account = {
-      val (emailType, timestamp, accountId) = Token.parseToken(token)
-
-      if (emailType != EmailType.Signup) {
-        throw new InvalidTokenException("")
+    if (emailType != EmailType.Signup) {
+      throw new InvalidTokenException("")
+    } else {
+      val signupDate = new org.joda.time.DateTime(timestamp).getMillis
+      val currentDate = new org.joda.time.DateTime().getMillis
+      if (currentDate - signupDate > Settings.Mail.MaxAge) {
+        throw new TokenExpiredException("")
       } else {
-        val signupDate = new org.joda.time.DateTime(timestamp).getMillis
-        val currentDate = new org.joda.time.DateTime().getMillis
-        if (currentDate - signupDate > Settings.Mail.MaxAge) {
-          throw new TokenExpiredException("")
-        } else {
-          val account = find(accountId).map {a => a.copy(status = AccountStatus.ACTIVE)};
-          if (account.isDefined) {
-            accountHandler.update(account.get, refresh = true)
-            account.get
-          }
-          else throw new InvalidTokenException("")
+        val account = find(accountId).map {a => a.copy(status = AccountStatus.ACTIVE)};
+        if (account.isDefined) {
+          accountHandler.update(account.get, refresh = true)
+          account.get
         }
+        else throw new InvalidTokenException("")
       }
     }
+  }
 
-    /*
-    def sendLoginBypassEmail(accountId: String) = {
-      def buildEmailBody(url: String) = {
-        val path: String = Settings.EmailTemplatesDir
-        val content = getClass.getClassLoader.getResource(path + "passwordchange")
-        scala.io.Source.fromFile(new File(content.toURI)).getLines()
-          .mkString
-          .replace("${uri}", url)
-      }
+  def bypassLogin(token: String, session: Session): Option[Session] = {
+    val (emailType, timestamp, accountId) = Token.parseToken(token)
 
-      val token = generateAndSaveEmailingToken(accountId, BypassLogin)
-      accountHandler.find(accountId) match {
-        case None => Failure(new AccountDoesNotExistException)
-        case Some(account) => Success(send a new Mail(
-          from = (Settings.EmailSenderAddress, Settings.EmailSenderName),
-          to = account.email,
-          subject = "Mogopay signup confirmation",
-          message = buildEmailBody(Settings.applicationUIURL + "bypassLogin?token=" + token)
-        ))
-      }
-    }
-    */
-
-    def bypassLogin(token: String, session: Session): Option[Session] = {
-      val splitToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split("-")
-      val timestamp = splitToken(1).toLong
-      val accountId = splitToken(2).toLong
-
-      if (EmailType(Integer.parseInt(splitToken(0))) != EmailType.BypassLogin) {
+    if (emailType != EmailType.BypassLogin) {
+      None
+    } else {
+      val signupDate = new org.joda.time.DateTime(timestamp).getMillis
+      val currentDate = new org.joda.time.DateTime().getMillis
+      if (currentDate - signupDate > Settings.Mail.MaxAge) {
         None
       } else {
-        val signupDate = new org.joda.time.DateTime(timestamp).getMillis
-        val currentDate = new org.joda.time.DateTime().getMillis
-        if (currentDate - signupDate > Settings.Mail.MaxAge) {
-          None
-        } else {
-          Some(session += "accountId" -> accountId)
-        }
+        Some(session += "accountId" -> accountId)
       }
     }
   }

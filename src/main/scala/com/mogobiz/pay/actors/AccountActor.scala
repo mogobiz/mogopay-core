@@ -34,7 +34,6 @@ object AccountActor {
 
   case class GenerateAndSendPincode3(accountId: String)
 
-  //  case class GenerateNewEmailCode(accountId: String)
   case class SendSignupConfirmationEmail(accountId: String)
 
   case class ConfirmSignup(token: String)
@@ -171,11 +170,6 @@ class AccountActor extends Actor {
     case UpdateLostPassword(password, token) =>
       sender ! Try(accountHandler.updateLostPassword(password, token))
 
-    /*
-    case Verify(email, merchantSecret, mogopayToken) =>
-      sender ! accountHandler.verify(email, merchantSecret, mogopayToken)
-    */
-
     case Login(email, password, merchantId, isCustomer) => {
       sender ! Try(accountHandler.login(email, password, merchantId, isCustomer))
     }
@@ -183,22 +177,11 @@ class AccountActor extends Actor {
     case GenerateAndSendPincode3(accountId) =>
       sender ! Try(accountHandler.generateAndSendPincode3(accountId))
 
-    /*
-    case GenerateNewEmailCode(accountId) =>
-      sender ! accountHandler.generateNewEmailCode(accountId)
-    */
-
-    /*
-    case SendSignupConfirmationEmail(accountId) => {
-      sender ! accountHandler.Emailing.sendSignupConfirmationEmail(accountId)
-    }
-    */
-
     case ConfirmSignup(token) =>
-      sender ! Try(accountHandler.Emailing.confirmSignup(token))
+      sender ! Try(accountHandler.confirmSignup(token))
 
     case BypassLogin(token, session) =>
-      sender ! Try(accountHandler.Emailing.bypassLogin(token, session))
+      sender ! Try(accountHandler.bypassLogin(token, session))
 
     case GenerateNewSecret(accountId) => sender ! Try(accountHandler.generateNewSecret(accountId))
 
