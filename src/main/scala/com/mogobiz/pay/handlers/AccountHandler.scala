@@ -197,7 +197,7 @@ class AccountHandler {
 
   def update(account: Account, refresh: Boolean): Boolean = {
     BOAccountDAO.update(account)
-    EsClient.update[Account](Settings.Mogopay.EsIndex, account, false, refresh)
+    EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert = false, refresh = refresh)
   }
 
   def getMerchant(merchantId: String): Option[Account] = {
@@ -874,7 +874,7 @@ object Token {
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
     val token = SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
     accountHandler.find(accountId).map { account =>
-      accountHandler.update(account.copy(emailingToken = Some(token)))
+      accountHandler.update(account.copy(emailingToken = Some(token)), refresh = true)
       token
     }
   }
