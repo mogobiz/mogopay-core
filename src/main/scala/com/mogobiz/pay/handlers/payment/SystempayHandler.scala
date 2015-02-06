@@ -181,7 +181,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         expiryDate = pr.expirationDate,
         cardType = pr.cardType
       )
-      boTransactionHandler.save(transaction.copy(creditCard = Some(creditCard)), false)
+      boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
       transactionHandler.finishPayment(vendorId,
         transactionUUID,
         if (params("vads_result") == "00")

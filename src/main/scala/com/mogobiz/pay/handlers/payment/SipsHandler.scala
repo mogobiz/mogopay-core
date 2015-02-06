@@ -569,7 +569,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         expiryDate = paymentResult.expirationDate,
         cardType = paymentResult.cardType
       )
-      boTransactionHandler.save(transaction.copy(creditCard = Some(creditCard)), false)
+      boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), refresh = false)
 
       transactionHandler.finishPayment(vendorUuid, transactionUuid, computeTransactionStatus(paymentResult.status), paymentResult, paymentResult.errorCodeOrigin)
       paymentResult

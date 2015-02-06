@@ -354,7 +354,7 @@ class AccountHandler {
     )
 
     val newCards = account.creditCards.filter(_.uuid != ccId) :+ newCard
-    accountHandler.save(account.copy(creditCards = newCards), true)
+    accountHandler.update(account.copy(creditCards = newCards), true)
 
     newCard
   }
@@ -380,7 +380,7 @@ class AccountHandler {
       account = accountId,
       hiddenNumber = hiddenN)
     val newCards = account.creditCards :+ newCard
-    accountHandler.save(account.copy(creditCards = newCards), true)
+    accountHandler.update(account.copy(creditCards = newCards), true)
     newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X"))
   }
 
@@ -482,7 +482,7 @@ class AccountHandler {
         val newAddrs = account.shippingAddresses.map {
           addr => addr.copy(active = addr.uuid == addrId)
         }
-        accountHandler.save(account.copy(shippingAddresses = newAddrs), true)
+        accountHandler.update(account.copy(shippingAddresses = newAddrs), true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def profileInfo(accountId: String): Map[Symbol, Any] = find(accountId).map {
@@ -741,7 +741,7 @@ class AccountHandler {
           val newTel = user.address.get.telephone.get.copy(lphone = lPhone)
           val newAddr = user.address.get.copy(telephone = Some(newTel))
           val newUser = user.copy(address = Some(newAddr))
-          accountHandler.save(newUser, true)
+          accountHandler.update(newUser, refresh = true)
           Success(())
         } else {
           find(accountId).map {
@@ -750,7 +750,7 @@ class AccountHandler {
               if (account.address.map(_.telephone.map(_.pinCode3)).flatten == Some(encryptedCode) &&
                 account.address.map(_.telephone.map(_.status)).flatten == Some(TelephoneStatus.WAITING_ENROLLMENT)) {
                 val newTel = Telephone("", lPhone, "", None, TelephoneStatus.ACTIVE)
-                accountHandler.save(account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))), true)
+                accountHandler.update(account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))), refresh = true)
                 Success(())
               } else {
                 Failure(new MogopayError(MogopayConstant.InvalidPhonePincode3))
@@ -874,7 +874,7 @@ object Token {
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
     val token = SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
     accountHandler.find(accountId).map { account =>
-      accountHandler.save(account.copy(emailingToken = Some(token)))
+      accountHandler.update(account.copy(emailingToken = Some(token)))
       token
     }
   }

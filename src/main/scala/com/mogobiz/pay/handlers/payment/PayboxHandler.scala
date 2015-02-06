@@ -127,7 +127,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           expiryDate = paymentResult.expirationDate,
           cardType = paymentResult.cardType
         )
-        boTransactionHandler.save(transaction.copy(creditCard = Some(creditCard)), false)
+        boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
         transactionHandler.finishPayment(vendorId, transactionUuid, if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, codeReponse)
         finishPayment(sessionData, paymentResult)
@@ -233,7 +233,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       transaction.paymentData.copy(status3DS = Some(ResponseCode3DS.REFUSED))
     }
 
-    boTransactionHandler.save(transaction, false)
+    boTransactionHandler.update(transaction, refresh = false)
   }
 
   implicit val system = ActorSystem()

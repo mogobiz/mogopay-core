@@ -9,7 +9,7 @@ class CreditCardHandler {
     accountHandler.find(accountId).map { account: Account =>
       account.creditCards.find(_.uuid == cardId).map { card =>
         val newCards = account.creditCards.diff(Seq(card))
-        accountHandler.save(account.copy(creditCards = newCards), false)
+        accountHandler.update(account.copy(creditCards = newCards), false)
       } getOrElse {
         throw CreditCardDoesNotExistException("")
       }

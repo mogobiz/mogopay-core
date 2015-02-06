@@ -89,7 +89,7 @@ class TransactionHandler {
           orderDate = Option(paymentRequest.orderDate)
         )
       )
-      boTransactionHandler.save(transaction, false)
+      boTransactionHandler.save(transaction, refresh = false)
       Success(transaction)
     }.getOrElse(Failure(new InvalidContextException("Vendor not foundu")))
   }
@@ -158,7 +158,7 @@ class TransactionHandler {
         notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
-        boTransactionHandler.save(newTx, false)
+        boTransactionHandler.update(newTx, false)
         notify(newTx.copy(extra = None), newTx.extra.getOrElse(""))
       }
       Success()
