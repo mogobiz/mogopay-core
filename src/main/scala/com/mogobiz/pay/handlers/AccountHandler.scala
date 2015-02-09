@@ -5,17 +5,13 @@ import java.net.URLEncoder
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
-import java.util.{Calendar, Date, UUID}
+import java.util.{Calendar, UUID}
 
 import com.atosorigin.services.cad.common.util.FileParamReader
-import com.google.i18n.phonenumbers.{NumberParseException, PhoneNumberUtil}
-import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.EmailType.EmailType
-import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.actors.AccountActor._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
@@ -26,7 +22,6 @@ import com.mogobiz.pay.settings.Settings
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.session.Session
 import com.mogobiz.utils.SymmetricCrypt
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.json4s.jackson.Serialization.write
@@ -38,13 +33,139 @@ import scala.util.parsing.json.JSON
 
 class LoginException(msg: String) extends Exception(msg)
 
+case class DoesAccountExistByEmail(email: String, merchantId: Option[String])
+
+case class IsPatternValid(pattern: String)
+
+case class RequestPasswordChange(email: String, merchantId: String,
+                                 passwordCB: String, isCustomer: Boolean)
+
+
+case class SelectShippingAddress(accountId: String, addressId: String)
+
+case class UpdatePassword(password: String, vendorId: String, accountId: String)
+
+case class Verify(email: String, merchantSecret: String, mogopayToken: String)
+
+case class Login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean)
+
+case class GenerateAndSendPincode3(accountId: String)
+
+case class SendSignupConfirmationEmail(accountId: String)
+
+case class ConfirmSignup(token: String)
+
+case class GenerateNewSecret(accountId: String)
+
+case class AddCreditCard(accountId: String, ccId: Option[String], holder: String,
+                         number: Option[String], expiry: String, ccType: String)
+
+case class DeleteCreditCard(accountId: String, cardId: String)
+
+case class GetBillingAddress(accountId: String)
+
+case class GetShippingAddresses(accountId: String)
+
+case class GetShippingAddress(accountId: String)
+
+case class AddressToUpdateFromGetParams(id: String, road: String,
+                                        city: String, road2: Option[String],
+                                        zipCode: String, extra: String,
+                                        civility: String, firstName: String,
+                                        lastName: String, country: String,
+                                        admin1: String, admin2: String, lphone: String)
+
+case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
+                                     zipCode: String, extra: Option[String],
+                                     civility: String, firstName: String,
+                                     lastName: String, country: String,
+                                     admin1: String, admin2: String, lphone: String) {
+  def getAddress = {
+    val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
+    AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
+      Option(lastName), Option(telephone), Option(country), Option(admin1), Option(admin2))
+  }
+}
+
+case class AddressToAssignFromGetParams(road: String, city: String,
+                                        road2: Option[String], zipCode: String,
+                                        extra: Option[String], civility: String,
+                                        firstName: String, lastName: String,
+                                        country: String, admin1: String,
+                                        admin2: String, lphone: String) {
+  def getAddress = {
+    val c = Civility.withName(civility)
+    AccountAddress(road, road2, city, Some(zipCode), extra, Some(c), Some(firstName),
+      Some(lastName), None, Some(country), Some(admin1), Some(admin2))
+  }
+}
+
+case class AssignBillingAddress(accountId: String, address: AddressToAssignFromGetParams)
+
+case class AddShippingAddress(accountId: String, address: AddressToAddFromGetParams)
+
+case class DeleteShippingAddress(accountId: String, addressId: String)
+
+case class UpdateShippingAddress(accountId: String, address: AddressToUpdateFromGetParams)
+
+case class GetActiveCountryState(accountId: String)
+
+case class ProfileInfo(accountId: String)
+
+case class MerchantComId(seller: String)
+
+case class MerchantComSecret(seller: String)
+
+case class Enroll(accountId: String, lPhone: String, pinCode: String)
+
+case class Signup(email: String, password: String, password2: String,
+                  lphone: String, civility: String, firstName: String,
+                  lastName: String, birthDate: String, address: AccountAddress,
+                  isMerchant: Boolean, vendor: Option[String], company: Option[String],
+                  website: Option[String], validationUrl: String)
+
+case class UpdateProfile(id: String, password: Option[(String, String)],
+                         company: String, website: String, lphone: String, civility: String,
+                         firstName: String, lastName: String, birthDate: String,
+                         billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
+                         emailField: String, passwordField: String,
+                         passwordSubject: Option[String], passwordContent: Option[String],
+                         passwordPattern: Option[String], callbackPrefix: Option[String],
+                         paymentMethod: String, cbProvider: String, cbParam: CBParams,
+                         payPalParam: PayPalParam, kwixoParam: KwixoParam)
+
+case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
+                              firstName: String, lastName: String, birthDate: String)
+
+sealed trait CBParams
+
+case class NoCBParams() extends CBParams
+
+case class PayPalParam(paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String]) extends CBParams
+
+case class KwixoParam(kwixoParams: Option[String]) extends CBParams
+
+case class PaylineParams(paylineAccount: String, paylineKey: String, paylineContract: String,
+                         paylineCustomPaymentPageCode: String, paylineCustomPaymentTemplateURL: String) extends CBParams
+
+case class PayboxParams(payboxSite: String, payboxKey: String, payboxRank: String, payboxMerchantId: String) extends CBParams
+
+case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
+                      sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
+                      sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
+                      sipsMerchantLogoPath: String) extends CBParams
+
+case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
+
+case class SendNewPassword(accountId: String, returnURL: String)
+
 class AccountHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
 
   lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
   def findByEmail(email: String): Option[Account] = {
-    val req = search in Settings.Mogopay.EsIndex  types "Account" limit 1 from 0 filter {
+    val req = search in Settings.Mogopay.EsIndex types "Account" limit 1 from 0 filter {
       termFilter("email", email)
     }
     EsClient.search[Account](req)
@@ -61,7 +182,7 @@ class AccountHandler {
 
   private def buildFindAccountRequest(email: String, merchantId: Option[String]): SearchDefinition = {
     if (!Settings.sharedCustomers && merchantId.nonEmpty) {
-      search in Settings.Mogopay.EsIndex  -> "Account" limit 1 from 0 filter {
+      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
         and(
           termFilter("email", email),
           termFilter("owner", merchantId.get)
@@ -289,7 +410,7 @@ class AccountHandler {
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
         throw new TokenExpiredException("")
       } else {
-        val account = find(accountId).map {a => a.copy(status = AccountStatus.ACTIVE)};
+        val account = find(accountId).map { a => a.copy(status = AccountStatus.ACTIVE)};
         if (account.isDefined) {
           accountHandler.update(account.get, refresh = true)
           account.get
@@ -413,7 +534,7 @@ class AccountHandler {
       account =>
         account.shippingAddresses.find(_.uuid == address.id) map {
           addr =>
-            val telephone =  telephoneHandler.buildTelephone(address.lphone,
+            val telephone = telephoneHandler.buildTelephone(address.lphone,
               addr.address.country.get,
               TelephoneStatus.WAITING_ENROLLMENT)
             val newAddrs = account.shippingAddresses.filterNot(_ == addr) :+ addr.copy(
@@ -696,7 +817,7 @@ class AccountHandler {
     EsClient.delete[Account](Settings.Mogopay.EsIndex, id, refresh = false)
   }
 
-  def enroll(accountId: String, lPhone: String, pinCode: String): Try[Unit] = {
+  def enroll(accountId: String, lPhone: String, pinCode: String): Unit = {
     find(accountId).map {
       user =>
         if (user.address.map(_.telephone.map(_.lphone)).flatten.nonEmpty &&
@@ -705,7 +826,6 @@ class AccountHandler {
           val newAddr = user.address.get.copy(telephone = Some(newTel))
           val newUser = user.copy(address = Some(newAddr))
           accountHandler.update(newUser, refresh = true)
-          Success(())
         } else {
           find(accountId).map {
             account =>
@@ -714,13 +834,12 @@ class AccountHandler {
                 account.address.map(_.telephone.map(_.status)).flatten == Some(TelephoneStatus.WAITING_ENROLLMENT)) {
                 val newTel = Telephone("", lPhone, "", None, TelephoneStatus.ACTIVE)
                 accountHandler.update(account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))), refresh = true)
-                Success(())
               } else {
-                Failure(new MogopayError(MogopayConstant.InvalidPhonePincode3))
+                throw new MogopayError(MogopayConstant.InvalidPhonePincode3)
               }
-          }.getOrElse(Failure(new AccountDoesNotExistException("")))
+          }.getOrElse(throw new AccountDoesNotExistException(""))
         }
-    } getOrElse Failure(new AccountDoesNotExistException(""))
+    } getOrElse(throw new AccountDoesNotExistException(""))
   }
 
   def signup(signup: Signup): (Token, Account) = {
@@ -804,7 +923,7 @@ class AccountHandler {
       transactionSequenceHandler.nextTransactionId(account.uuid)
 
     val tryToSave = accountHandler.save(account, refresh = true)
-    tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token) }
+    tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)}
 
     (token, account)
   }

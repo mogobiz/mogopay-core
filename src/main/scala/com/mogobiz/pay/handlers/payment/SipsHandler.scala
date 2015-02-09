@@ -138,9 +138,9 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  def callbackPayment(params: Map[String, String], vendorUuid: Document): Uri = {
+  def callbackPayment(params: Map[String, String], vendorUuid: Document): PaymentResult = {
     handleResponse(vendorUuid, params("DATA"))
-    Uri(Settings.Mogopay.EndPoint)
+    //Uri(Settings.Mogopay.EndPoint)
   }
 
   def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Uri = {

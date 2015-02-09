@@ -22,7 +22,7 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 trait MogopayRoutes extends Directives {
-  this: MogopayActors with MogobizSystem =>
+  this: MogobizSystem =>
 
   private implicit val _ = system.dispatcher
 
@@ -50,26 +50,26 @@ trait MogopayRoutes extends Directives {
           }
         } ~
         pathPrefix(("api" / "pay") | "pay") {
-          new AccountService(accountActor).route ~
-            new AccountServiceJsonless(accountActor).route ~
-            new BackofficeService(backofficeActor).route ~
-            new CountryService(countryActor).route ~
-            new RateService(rateActor).route ~
-            new TransactionService(transactionActor).route ~
+          new AccountService().route ~
+            new AccountServiceJsonless().route ~
+            new BackofficeService().route ~
+            new CountryService().route ~
+            new RateService().route ~
+            new TransactionService().route ~
             new SampleService().route ~
             new TwitterService().route ~
             new LinkedInService().route ~
             new GoogleService().route ~
             new FacebookService().route ~
             new GithubService().route ~
-            new SystempayService(systempayActor).route ~
-            new PayPalService(payPalActor).route ~
-            new PayboxService(payboxActor).route ~
-            new PaylineService(paylineActor).route ~
-            new MogopayService(mogopayActor).route ~
-            new SipsService(sipsActor).route ~
-            new UserService(userActor).route ~
-            new PdfService(pdfActor).route
+            new SystempayService().route ~
+            new PayPalService().route ~
+            new PayboxService().route ~
+            new PaylineService().route ~
+            new MogopayService().route ~
+            new SipsService().route ~
+            new UserService().route ~
+            new PdfService().route
         }
     }
 
@@ -78,6 +78,17 @@ trait MogopayRoutes extends Directives {
 
 trait DefaultComplete {
   this: Directives =>
+  def handleCall[T](call: => T, handler: T => Route): Route = {
+    import Implicits._
+    Try(call) match {
+      case Success(res) => handler(res)
+      case Failure(t: MogopayException) =>
+        t.printStackTrace();
+        complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+      case Failure(t: UnknownHostException) => t.printStackTrace(); complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+      case Failure(t) => complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+    }
+  }
   def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
     import Implicits._
     call match {

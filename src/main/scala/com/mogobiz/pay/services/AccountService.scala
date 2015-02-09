@@ -1,11 +1,8 @@
 package com.mogobiz.pay.services
 
-import akka.actor.ActorRef
-import akka.pattern.ask
-import akka.util.Timeout
-import com.mogobiz.pay.actors.AccountActor._
 import com.mogobiz.pay.config.DefaultComplete
-import com.mogobiz.pay.handlers.UtilHandler
+import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
@@ -17,54 +14,48 @@ import spray.http.MediaTypes._
 import spray.http._
 import spray.routing.Directives
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.util.Try
 
-class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+
+class AccountService extends Directives with DefaultComplete {
 
   import Implicits._
-
-  implicit val timeout = Timeout(10.seconds)
 
   val route = {
     pathPrefix("account") {
       isPatternValid ~
-      customerToken ~
-      merchantToken ~
-      alreadyExistEmail ~
-      id ~
-      secret ~
-      isValidAccountId ~
-      checkTokenValidity ~
-      updatePassword ~
-      generateNewPhoneCode ~
-      enroll ~
-      generateNewSecret ~
-      addCreditCard ~
-      deleteCreditCard ~
-      logout ~
-      getBillingAddress ~
-      getShippingAddresses ~
-      getShippingAddress ~
-      profileInfo ~
-      assignBillingAddress ~
-      addShippingAddress ~
-      updateShippingAddress ~
-      getActiveCountryState ~
-      selectShippingAddress ~
-      deleteShippingAddress ~
-      deleteMerchantTestAccount ~
-      sendNewPassword
+        customerToken ~
+        merchantToken ~
+        alreadyExistEmail ~
+        id ~
+        secret ~
+        isValidAccountId ~
+        checkTokenValidity ~
+        updatePassword ~
+        generateNewPhoneCode ~
+        enroll ~
+        generateNewSecret ~
+        addCreditCard ~
+        deleteCreditCard ~
+        logout ~
+        getBillingAddress ~
+        getShippingAddresses ~
+        getShippingAddress ~
+        profileInfo ~
+        assignBillingAddress ~
+        addShippingAddress ~
+        updateShippingAddress ~
+        getActiveCountryState ~
+        selectShippingAddress ~
+        deleteShippingAddress ~
+        deleteMerchantTestAccount ~
+        sendNewPassword
     }
   }
 
   lazy val isPatternValid = path("is-pattern-valid" / Segment) { pattern =>
     get {
-      onComplete((actor ? IsPatternValid(pattern)).mapTo[Try[Boolean]]) { call =>
-        handleComplete(call, (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString)))
-        )
-      }
+      handleCall(accountHandler.isPatternValid(pattern),
+        (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString))))
     }
   }
 
@@ -106,11 +97,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
           if (isCustomer && merchantId.isEmpty) {
             complete(StatusCodes.BadRequest -> Map('type -> "BadRequest", 'error -> "Merchant ID not specified."))
           } else {
-            val message = DoesAccountExistByEmail(email, merchantId)
-            onComplete((actor ? DoesAccountExistByEmail(email, merchantId)).mapTo[Try[Boolean]]) { call =>
-              handleComplete(call, (exist: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), exist.toString)))
-              )
-            }
+            handleCall(accountHandler.alreadyExistEmail(email, merchantId),
+              (exist: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), exist.toString))))
           }
         }
       }
@@ -121,15 +109,13 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val id = path("id") {
     get {
       parameters('seller) { seller =>
-        onComplete((actor ? MerchantComId(seller)).mapTo[Try[Option[String]]]) { call =>
-          handleComplete(call,
-            (res: Option[String]) =>
-              if (res.isEmpty)
-                complete(StatusCodes.NotFound)
-              else
-                complete(StatusCodes.OK -> Map("result" -> res.get))
-          )
-        }
+        handleCall(accountHandler.findByEmail(seller + "@merchant.com").map(_.uuid),
+          (res: Option[String]) =>
+            if (res.isEmpty)
+              complete(StatusCodes.NotFound)
+            else
+              complete(StatusCodes.OK -> Map("result" -> res.get))
+        )
       }
     }
   }
@@ -137,15 +123,13 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val secret = path("secret") {
     get {
       parameters('seller) { seller =>
-        onComplete((actor ? MerchantComSecret(seller)).mapTo[Try[Option[String]]]) { call =>
-          handleComplete(call,
-            (res: Option[String]) =>
-              if (res.isEmpty)
-                complete(StatusCodes.NotFound)
-              else
-                complete(StatusCodes.OK -> Map("result" -> res.get))
-          )
-        }
+        handleCall(accountHandler.findByEmail(seller + "@merchant.com").map(_.secret),
+          (res: Option[String]) =>
+            if (res.isEmpty)
+              complete(StatusCodes.NotFound)
+            else
+              complete(StatusCodes.OK -> Map("result" -> res.get))
+        )
       }
     }
   }
@@ -154,35 +138,31 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val checkTokenValidity = get {
     path("check-token-validity") {
       type UserInfo = Option[Map[Symbol, Option[String]]]
-      parameters('token).as(CheckTokenValidity) { token =>
-        onComplete((actor ? token).mapTo[Try[(TokenValidity, UserInfo)]]) { call =>
-          handleComplete(call,
-            (res: (TokenValidity, UserInfo)) =>
-              complete(res._1 match {
-                case TokenValidity.VALID => StatusCodes.OK -> res._2
-                case TokenValidity.INVALID => StatusCodes.NotFound -> Map('type -> "NotFound", 'error -> "Invalid token.")
-                case TokenValidity.EXPIRED => StatusCodes.Unauthorized -> Map('type -> "Unauthorized", 'error -> "Expired token.")
-              })
-          )
-        }
+      parameters('token) { token =>
+        handleCall(accountHandler.checkTokenValidity(token),
+          (res: (TokenValidity, UserInfo)) =>
+            complete(res._1 match {
+              case TokenValidity.VALID => StatusCodes.OK -> res._2
+              case TokenValidity.INVALID => StatusCodes.NotFound -> Map('type -> "NotFound", 'error -> "Invalid token.")
+              case TokenValidity.EXPIRED => StatusCodes.Unauthorized -> Map('type -> "Unauthorized", 'error -> "Expired token.")
+            })
+        )
       }
     }
   }
 
   lazy val isValidAccountId = path("is-valid-account-id") {
     get {
-      parameters('id).as(IsValidAccountId) { isValidAccountId =>
-        onComplete((actor ? isValidAccountId).mapTo[Try[Boolean]]) { call =>
-          handleComplete(call,
-            (res: Boolean) =>
-              complete(
-                res match {
-                  case true => StatusCodes.OK -> Map('result -> true)
-                  case false => StatusCodes.NotFound -> Map('result -> false)
-                }
-              )
-          )
-        }
+      parameters('id) { id =>
+        handleCall(accountHandler.find(id).nonEmpty,
+          (res: Boolean) =>
+            complete(
+              res match {
+                case true => StatusCodes.OK -> Map('result -> true)
+                case false => StatusCodes.NotFound -> Map('result -> false)
+              }
+            )
+        )
       }
     }
   }
@@ -195,11 +175,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             case Some(accountId: String) =>
               session.sessionData.merchantId match {
                 case Some(vendorId: String) =>
-                  onComplete((actor ? UpdatePassword(password, vendorId, accountId)).mapTo[Try[Unit]]) { call =>
-                    handleComplete(call,
-                      (_: Unit) => complete(StatusCodes.OK)
-                    )
-                  }
+                  handleCall(accountHandler.updatePassword(password, vendorId, accountId),
+                    (_: Unit) => complete(StatusCodes.OK))
                 case _ => complete {
                   complete(StatusCodes.BadRequest)
                 }
@@ -219,12 +196,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? GenerateAndSendPincode3(accountId)).mapTo[Try[Unit]]) { call =>
-                handleComplete(call,
-                  (_: Unit) => complete(StatusCodes.OK)
-                )
-              }
-
+              handleCall(accountHandler.generateAndSendPincode3(accountId),
+                (_: Unit) => complete(StatusCodes.OK)
+              )
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -241,11 +215,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
           session {
             session =>
               session.sessionData.accountId match {
-                case Some(id: String) => onComplete((actor ? Enroll(id, lPhone, pinCode)).mapTo[Try[Unit]]) { call =>
-                  handleComplete(call,
-                    (_: Unit) => complete(StatusCodes.OK)
-                  )
-                }
+                case Some(id: String) =>
+                  handleCall(accountHandler.enroll(id, lPhone, pinCode),
+                    (_: Unit) => complete(StatusCodes.OK))
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -262,15 +234,13 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? GenerateNewSecret(accountId)).mapTo[Try[Option[String]]]) { call =>
-                handleComplete(call,
-                  (uuid: Option[String]) =>
-                    complete(uuid match {
-                      case None => StatusCodes.NotFound -> Map()
-                      case Some(uuid) => StatusCodes.OK -> Map('uuid -> uuid)
-                    })
-                )
-              }
+              handleCall(accountHandler.generateNewSecret(accountId),
+                (uuid: Option[String]) =>
+                  complete(uuid match {
+                    case None => StatusCodes.NotFound -> Map()
+                    case Some(uuid) => StatusCodes.OK -> Map('uuid -> uuid)
+                  })
+              )
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -288,9 +258,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? AddCreditCard(accountId, ccId, holder, number, expiryDate, ccType)).mapTo[Try[CreditCard]]) {
-                    call => handleComplete(call, (creditCard: CreditCard) => complete(StatusCodes.OK -> creditCard))
-                  }
+                  handleCall(accountHandler.addCreditCard(accountId, ccId, holder, number, expiryDate, ccType),
+                    (creditCard: CreditCard) => complete(StatusCodes.OK -> creditCard))
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -309,10 +278,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? DeleteCreditCard(accountId, ccId)).mapTo[Try[Unit]]) {
-                    call =>
-                      handleComplete(call, (_: Unit) => complete(StatusCodes.OK -> Map()))
-                  }
+                  handleCall(creditCardHandler.delete(accountId, ccId),
+                    (_: Unit) => complete(StatusCodes.OK -> Map()))
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -341,14 +308,12 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? GetBillingAddress(accountId)).mapTo[Try[Option[AccountAddress]]]) {
-                call =>
-                  handleComplete(call, (addr: Option[AccountAddress]) =>
-                    addr match {
-                      case Some(addr) => complete(StatusCodes.OK -> addr)
-                      case None => complete(StatusCodes.NotFound)
-                    })
-              }
+              handleCall(accountHandler.getBillingAddress(accountId),
+                (addr: Option[AccountAddress]) =>
+                  addr match {
+                    case Some(addr) => complete(StatusCodes.OK -> addr)
+                    case None => complete(StatusCodes.NotFound)
+                  })
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -364,10 +329,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? GetShippingAddresses(accountId)).mapTo[Try[Seq[AccountAddress]]]) {
-                call =>
-                  handleComplete(call, (addr: Seq[AccountAddress]) => complete(StatusCodes.OK -> addr))
-              }
+              handleCall(accountHandler.getShippingAddresses(accountId),
+                (addr: Seq[ShippingAddress]) => complete(StatusCodes.OK -> addr))
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -383,14 +346,12 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? GetShippingAddresses(accountId)).mapTo[Try[Option[AccountAddress]]]) {
-                call =>
-                  handleComplete(call, (addr: Option[AccountAddress]) =>
-                    addr match {
-                      case Some(addr) => complete(StatusCodes.OK -> addr)
-                      case None => complete(StatusCodes.NotFound)
-                    })
-              }
+              handleCall(accountHandler.getShippingAddress(accountId),
+                (addr: Option[ShippingAddress]) =>
+                  addr match {
+                    case Some(addr) => complete(StatusCodes.OK -> addr)
+                    case None => complete(StatusCodes.NotFound)
+                  })
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -406,10 +367,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? ProfileInfo(accountId)).mapTo[Try[Map[Symbol, Any]]]) {
-                call =>
-                  handleComplete(call, (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
-              }
+              handleCall(accountHandler.profileInfo(accountId),
+                (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -430,11 +389,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? AssignBillingAddress(accountId, address)).mapTo[Try[Unit]]) {
-                    call =>
-                      handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-
-                  }
+                  handleCall(accountHandler.assignBillingAddress(accountId, address),
+                    (_: Unit) => complete(StatusCodes.OK))
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -453,10 +409,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? DeleteShippingAddress(accountId, addressId)).mapTo[Try[Unit]]) {
-                    call =>
-                      handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-                  }
+                  handleCall(accountHandler.deleteShippingAddress(accountId, addressId),
+                    (_: Unit) => complete(StatusCodes.OK))
+
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -478,10 +433,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? AddShippingAddress(accountId, address)).mapTo[Try[Unit]]) {
-                    call =>
-                      handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-                  }
+                  handleCall(accountHandler.addShippingAddress(accountId, address),
+                    (_: Unit) => complete(StatusCodes.OK))
+
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -504,10 +458,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? UpdateShippingAddress(accountId, address)).mapTo[Try[Unit]]) {
-                    call =>
-                      handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-                  }
+                  handleCall(accountHandler.updateShippingAddress(accountId, address),
+                    (_: Unit) => complete(StatusCodes.OK))
                 case _ => complete {
                   StatusCodes.Unauthorized ->
                     Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -524,14 +476,12 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              onComplete((actor ? GetActiveCountryState(accountId)).mapTo[Try[Option[Map[Symbol, Option[String]]]]]) {
-                call =>
-                  handleComplete(call, (res: Option[Map[Symbol, Option[String]]]) =>
-                    res match {
-                      case Some(res) => complete(StatusCodes.OK -> res)
-                      case None => complete(StatusCodes.NotFound)
-                    })
-              }
+              handleCall(accountHandler.getActiveCountryState(accountId),
+                (res: Option[Map[Symbol, Option[String]]]) =>
+                  res match {
+                    case Some(res) => complete(StatusCodes.OK -> res)
+                    case None => complete(StatusCodes.NotFound)
+                  })
             case _ => complete {
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
@@ -543,19 +493,20 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
 
   lazy val sendNewPassword = get {
     path("send-new-password") {
-      parameters('return_url) { returnURL =>
-        session { session =>
-          session.sessionData.accountId match {
-            case Some(accountId) =>
-              onComplete((actor ? SendNewPassword(accountId, returnURL)).mapTo[Try[Unit]]) { call =>
-                handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
+      parameters('return_url) {
+        returnURL =>
+          session {
+            session =>
+              session.sessionData.accountId match {
+                case Some(accountId) =>
+                  handleCall(accountHandler.sendNewPassword(accountId, returnURL),
+                    (_: Unit) => complete(StatusCodes.OK))
+                case _ => complete {
+                  StatusCodes.Unauthorized ->
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                }
               }
-            case _ => complete {
-              StatusCodes.Unauthorized ->
-                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
-            }
           }
-        }
       }
     }
   }
@@ -568,10 +519,8 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
             session =>
               session.sessionData.accountId match {
                 case Some(accountId: String) =>
-                  onComplete((actor ? SelectShippingAddress(accountId, addressId)).mapTo[Try[Unit]]) {
-                    call =>
-                      handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-                  }
+                  handleCall(accountHandler.selectShippingAddress(accountId, addressId),
+                    (_: Unit) => complete(StatusCodes.OK))
 
                 case _ => complete {
                   StatusCodes.Unauthorized ->
@@ -586,7 +535,9 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   lazy val deleteMerchantTestAccount = path("delete-test-account") {
     get {
       complete {
+
         import com.sksamuel.elastic4s.ElasticDsl._
+
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
           .from(Settings.Mogopay.EsIndex -> "Account")
           .where(regexQuery("email", "newuser"))
@@ -598,19 +549,17 @@ class AccountService(actor: ActorRef)(implicit executionContext: ExecutionContex
   }
 }
 
-class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+class AccountServiceJsonless extends Directives with DefaultComplete {
 
   import Implicits.MogopaySession
-
-  implicit val timeout = Timeout(10.seconds)
 
   val route = {
     pathPrefix("account") {
       login ~
-      updateProfile ~
-      updateProfileLight ~
-      signup ~
-      confirmSignup
+        updateProfile ~
+        updateProfileLight ~
+        signup ~
+        confirmSignup
     }
   }
 
@@ -620,15 +569,14 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
       fields { (email, password, merchantId, isCustomer) =>
         session { session =>
           val login = Login(email, password, merchantId, isCustomer)
-          onComplete((actor ? login).mapTo[Try[Account]]) { call =>
-            handleComplete(call, (account: Account) => {
+          handleCall(accountHandler.login(email, password, merchantId, isCustomer),
+            (account: Account) => {
               authenticateSession(session, account)
               setSession(session) {
                 import Implicits._
                 complete(StatusCodes.OK, account)
               }
             })
-          }
         }
       }
     }
@@ -638,16 +586,14 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
     get {
       parameters('token) { (token) =>
         session { session =>
-          val confirmSignup = ConfirmSignup(token)
-          onComplete((actor ? confirmSignup).mapTo[Try[Account]]) { call =>
-            handleComplete(call, (account: Account) => {
+          handleCall(accountHandler.confirmSignup(token),
+            (account: Account) => {
               authenticateSession(session, account)
               setSession(session) {
                 import Implicits._
                 complete(StatusCodes.OK, account)
               }
             })
-          }
         }
       }
     }
@@ -706,9 +652,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
         )
 
         import Implicits._
-        onComplete((actor ? signup).mapTo[Try[(Token, Account)]]) { call =>
-          handleComplete(call, (p: (Token, Account)) => complete(StatusCodes.OK -> Map('token -> p._1, 'account -> p._2)))
-        }
+        handleCall(accountHandler.signup(signup),
+          (p: (Token, Account)) => complete(StatusCodes.OK -> Map('token -> p._1, 'account -> p._2)))
       }
     }
   }
@@ -810,14 +755,11 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
 
                   import Implicits._
 
-                  onComplete((actor ? profile).mapTo[Try[Unit]]) { call =>
-                    handleComplete(call, (_: Unit) => complete(StatusCodes.OK -> Map()))
-                  }
+                  handleCall(accountHandler.updateProfile(profile),
+                    (_: Unit) => complete(StatusCodes.OK -> Map()))
               }
             case _ => complete {
-
               import Implicits._
-
               StatusCodes.Unauthorized ->
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
@@ -848,9 +790,8 @@ class AccountServiceJsonless(actor: ActorRef)(implicit executionContext: Executi
 
                   import Implicits._
 
-                  onComplete((actor ? profile).mapTo[Try[Unit]]) { call =>
-                    handleComplete(call, (_: Unit) => complete(StatusCodes.OK -> Map()))
-                  }
+                  handleCall(accountHandler.updateProfileLight(profile),
+                    (_: Unit) => complete(StatusCodes.OK -> Map()))
               }
             case _ => complete {
               import Implicits._

@@ -6,7 +6,6 @@ import java.util.{Calendar, Currency, Date}
 
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.actors.TransactionActor.Submit
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.settings.Settings
@@ -28,7 +27,34 @@ import org.json4s.jackson.JsonMethods._
 import scala.collection._
 import scala.util._
 import Implicits._
-import com.mogobiz.es.{Settings => esSettings}
+
+case class Submit(sessionData: SessionData, params: SubmitParams, actionName: Option[String], csrfToken: Option[String])
+
+case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Option[String], authURL: Option[String],
+                        cvvURL: Option[String],transactionUUID: String, amount: Long, merchantId: String,
+                        transactionType: String, customerCVV: Option[String], ccNum: Option[String],
+                        customerEmail: Option[String], customerPassword: Option[String],
+                        transactionDescription: Option[String],
+                        ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean]) {
+  def toMap = Map(
+    "_successURL" -> "_successURL",
+    "_errorURL" -> "_errorURL",
+    "cardinfoURL" -> "cardinfoURL",
+    "cvvURL" -> "cvvURL",
+    "_transactionUUID" -> "_transactionUUID",
+    "_amount" -> "_amount",
+    "merchantId" -> "merchantId",
+    "_transactionType" -> "_transactionType",
+    "customerCVV" -> "customerCVV",
+    "ccNum" -> "ccNum",
+    "customerEmail" -> "customerEmail",
+    "customerPassword" -> "customerPassword",
+    "transactionDescription" -> "transactionDescription",
+    "ccMonth" -> "ccMonth",
+    "ccYear" -> "ccYear",
+    "ccType" -> "ccType"
+  )
+}
 
 class TransactionHandler {
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {

@@ -1,8 +1,8 @@
 package com.mogobiz.pay.services.payment
 
 import akka.actor.ActorRef
-import com.mogobiz.pay.actors.PayboxActor.{CallbackPayment, Done3DSecureCheck, _}
 import com.mogobiz.pay.config.DefaultComplete
+import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
@@ -10,17 +10,9 @@ import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
 import spray.routing._
 
-import scala.concurrent.ExecutionContext
 import scala.util._
 
-class PayboxService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
-
-  import akka.pattern.ask
-  import akka.util.Timeout
-
-import scala.concurrent.duration._
-
-  implicit val timeout = Timeout(40.seconds)
+class PayboxService extends Directives with DefaultComplete {
 
   val route = {
     pathPrefix("paybox") {
@@ -37,21 +29,18 @@ import scala.concurrent.duration._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        println("start:" + xtoken)
-        onComplete((actor ? StartPayment(session.sessionData)).mapTo[Try[Either[String, Uri]]]) { call =>
-          handleComplete(call,
-            (data: Either[String, Uri]) =>
-              setSession(session) {
-                data match {
-                  case Left(content) =>
-                    complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                  case Right(url) =>
-                    println(url)
-                    redirect(url, StatusCodes.TemporaryRedirect)
-                }
+        handleCall(payboxHandler.startPayment(session.sessionData),
+          (data: Either[String, Uri]) =>
+            setSession(session) {
+              data match {
+                case Left(content) =>
+                  complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+                case Right(url) =>
+                  println(url)
+                  redirect(url, StatusCodes.TemporaryRedirect)
               }
-          )
-        }
+            }
+        )
       }
     }
   }
@@ -65,14 +54,12 @@ import scala.concurrent.duration._
       session { session =>
         parameterMap { params =>
           queryString { uri =>
-            onComplete((actor ? Done(session.sessionData, params, uri)).mapTo[Try[Uri]]) { call =>
-              handleComplete(call,
-                (data: Uri) =>
-                  setSession(session) {
-                    redirect(data, StatusCodes.TemporaryRedirect)
-                  }
-              )
-            }
+            handleCall(payboxHandler.donePayment(session.sessionData, params, uri),
+              (data: Uri) =>
+                setSession(session) {
+                  redirect(data, StatusCodes.TemporaryRedirect)
+                }
+            )
           }
         }
       }
@@ -88,9 +75,8 @@ import scala.concurrent.duration._
         parameterMap { params =>
           queryString { uri =>
             val session = SessionESDirectives.load(xtoken).get
-            onComplete((actor ? CallbackPayment(session.sessionData, params, uri)).mapTo[Try[Unit]]) { call =>
-              handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-            }
+            handleCall(payboxHandler.callbackPayment(session.sessionData, params, uri),
+              (_: Unit) => complete(StatusCodes.OK))
           }
         }
       }
@@ -105,14 +91,12 @@ import scala.concurrent.duration._
 
               import Implicits._
 
-              onComplete((actor ? Done3DSecureCheck(session.sessionData, formData.fields.toMap)).mapTo[Try[Uri]]) { call =>
-                handleComplete(call,
-                  (data: Uri) =>
-                    setSession(session) {
-                      redirect(data, StatusCodes.TemporaryRedirect)
-                    }
-                )
-              }
+              handleCall(payboxHandler.done3DSecureCheck(session.sessionData, formData.fields.toMap),
+                (data: Uri) =>
+                  setSession(session) {
+                    redirect(data, StatusCodes.TemporaryRedirect)
+                  }
+              )
           }
       }
     }
@@ -127,9 +111,8 @@ import scala.concurrent.duration._
         parameterMap {
           params =>
             val session = SessionESDirectives.load(xtoken).get
-            onComplete((actor ? Callback3DSecureCheck(session.sessionData, params)).mapTo[Try[Unit]]) { call =>
-              handleComplete(call, (_: Unit) => complete(StatusCodes.OK))
-            }
+            handleCall(payboxHandler.callback3DSecureCheck(session.sessionData, params),
+              (_: Unit) => complete(StatusCodes.OK))
         }
       }
   }

@@ -7,8 +7,9 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.actors.TransactionActor._
 import com.mogobiz.pay.config.DefaultComplete
+import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
@@ -27,7 +28,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
-class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
   implicit val timeout = Timeout(40 seconds)
 
   //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
@@ -57,9 +58,8 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
   lazy val searchByCustomer = path("customer" / JavaUUID) { uuid =>
     import Implicits._
     get {
-      complete {
-        (actor ? SearchByCustomer(uuid.toString)).mapTo[Seq[BOTransaction]]
-      }
+      handleCall(transactionHandler.searchByCustomer(uuid.toString),
+        (res: Seq[BOTransaction]) => complete(res))
     }
   }
 
@@ -68,11 +68,9 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
       formFields('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?).as(TransactionInit) {
         params =>
           import Implicits._
-          onComplete((actor ? Init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra)).mapTo[Try[String]]) { call =>
-            handleComplete(call, (id: String) =>
-              complete(StatusCodes.OK -> Map('transaction_id -> id))
-            )
-          }
+          handleCall(transactionHandler.init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra),
+            (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+          )
       }
     }
   }
@@ -89,16 +87,14 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  onComplete((actor ? GetShippingPrices(params.currency_code, params.transaction_extra, id)).mapTo[Try[Seq[ShippingPrice]]]) { call =>
-                    handleComplete(call,
-                      (shippinggPrices: Seq[ShippingPrice]) => {
-                        session.sessionData.shippingPrices = Option(shippinggPrices.toList)
-                        setSession(session) {
-                          complete(StatusCodes.OK -> shippinggPrices)
-                        }
+                  handleCall(transactionHandler.shippingPrices(params.currency_code, params.transaction_extra, id),
+                    (shippinggPrices: Seq[ShippingPrice]) => {
+                      session.sessionData.shippingPrices = Option(shippinggPrices.toList)
+                      setSession(session) {
+                        complete(StatusCodes.OK -> shippinggPrices)
                       }
-                    )
-                  }
+                    }
+                  )
               }
           }
       }
@@ -117,22 +113,17 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  val message = GetShippingPrices(params.currency_code, params.transaction_extra, id)
-
-                  onComplete((actor ? GetShippingPrices(params.currency_code, params.transaction_extra, id)).mapTo[Try[Seq[ShippingPrice]]]) { call =>
-                    handleComplete(call,
-                      (shippingPrices: Seq[ShippingPrice]) => {
-                        val message = GetShippingPrice(shippingPrices, params.provider, params.service, params.rate_type)
-                        val shippingPrice: Try[Option[ShippingPrice]] = Await.result((actor ? message).mapTo[Try[Option[ShippingPrice]]], Duration.Inf)
-                        session.sessionData.selectShippingPrice = shippingPrice.get
-                        setSession(session) {
-                          complete {
-                            StatusCodes.OK -> shippingPrice.get
-                          }
+                  handleCall(transactionHandler.shippingPrices(params.currency_code, params.transaction_extra, id),
+                    (shippingPrices: Seq[ShippingPrice]) => {
+                      val shippingPrice = transactionHandler.shippingPrice(shippingPrices, params.provider, params.service, params.rate_type)
+                      session.sessionData.selectShippingPrice = shippingPrice
+                      setSession(session) {
+                        complete {
+                          StatusCodes.OK -> shippingPrice.get
                         }
                       }
-                    )
-                  }
+                    }
+                  )
               }
           }
       }
@@ -145,26 +136,24 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
       val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
       params {
         (secret, amount, transactionUUID) =>
-          onComplete((actor ? Verify(secret, amount, transactionUUID)).mapTo[Try[BOTransaction]]) { call =>
-            handleComplete(call,
-              (transaction: BOTransaction) => {
-                complete(
-                  StatusCodes.OK ->
-                    Map(
-                      'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
-                      'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
-                      'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
-                      'transaction_email -> Option(transaction.email).getOrElse(""),
-                      'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
-                      'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
-                      'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
-                      'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
-                      'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
-                      'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8")
-                    ))
-              }
-            )
-          }
+          handleCall(transactionHandler.verify(secret, amount, transactionUUID),
+            (transaction: BOTransaction) => {
+              complete(
+                StatusCodes.OK ->
+                  Map(
+                    'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
+                    'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
+                    'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
+                    'transaction_email -> Option(transaction.email).getOrElse(""),
+                    'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
+                    'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
+                    'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
+                    'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
+                    'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
+                    'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8")
+                  ))
+            }
+          )
       }
     }
   }
@@ -234,46 +223,43 @@ class TransactionService(actor: ActorRef)(implicit executionContext: ExecutionCo
       if (!session.sessionData.authenticated && isNewSession()) {
         session.clear()
       }
-      onComplete((actor ? Submit(session.sessionData, submitParams, None, None)).mapTo[Try[(String, String)]]) { call =>
-        handleComplete(call,
-          (t: (String, String)) => {
-            val (serviceName, methodName) = t
-            setSession(session) {
-              val sessionId = session.id
-              val pipeline: Future[SendReceive] =
-                for (
-                  Http.HostConnectorInfo(connector, _) <-
-                  IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
+      handleCall(transactionHandler.submit(Submit(session.sessionData, submitParams, None, None)),
+        (t: (String, String)) => {
+          val (serviceName, methodName) = t
+          setSession(session) {
+            val sessionId = session.id
+            val pipeline: Future[SendReceive] =
+              for (
+                Http.HostConnectorInfo(connector, _) <-
+                IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
 
-                ) yield sendReceive(connector)
-              println(s"request ->${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
-              val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
-              def cleanSession(session: Session) {
-                val authenticated = session.sessionData.authenticated
-                val customerId = session.sessionData.accountId
-                session.clear()
-                session.sessionData.authenticated = authenticated
-                session.sessionData.accountId = customerId
-              }
-              val response = pipeline.flatMap(_(request))
-              onComplete(response) {
-                case Failure(t) =>
-                  t.printStackTrace()
-                  cleanSession(session)
-                  setSession(session) {
-                    complete(toHTTPResponse(t), t.toString)
+              ) yield sendReceive(connector)
+            val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
+            def cleanSession(session: Session) {
+              val authenticated = session.sessionData.authenticated
+              val customerId = session.sessionData.accountId
+              session.clear()
+              session.sessionData.authenticated = authenticated
+              session.sessionData.accountId = customerId
+            }
+            val response = pipeline.flatMap(_(request))
+            onComplete(response) {
+              case Failure(t) =>
+                t.printStackTrace()
+                cleanSession(session)
+                setSession(session) {
+                  complete(toHTTPResponse(t), t.toString)
 
-                  }
-                case Success(response) =>
-                  println("success->" + response.entity.data.asString)
-                  complete {
-                    response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
-                  }
-              }
+                }
+              case Success(response) =>
+                println("success->" + response.entity.data.asString)
+                complete {
+                  response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
+                }
             }
           }
-        )
-      }
+        }
+      )
     }
   }
 }
