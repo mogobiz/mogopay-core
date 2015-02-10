@@ -892,10 +892,12 @@ class AccountHandler {
     val owner = if (signup.isMerchant) {
       None
     } else {
-      val account = accountHandler.findByEmail(Settings.AccountValidateMerchantDefault).getOrElse {
-        throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
-      }
-      Some(account.uuid)
+      Some(signup.vendor.getOrElse({
+        val account = accountHandler.findByEmail(Settings.AccountValidateMerchantDefault).getOrElse {
+          throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
+        }
+        account.uuid
+      }))
     }
 
     val account = Account(

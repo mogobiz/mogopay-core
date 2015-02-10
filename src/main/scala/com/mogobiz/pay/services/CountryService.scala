@@ -64,7 +64,7 @@ class CountryService extends Directives with DefaultComplete {
 
   lazy val admins2 = path("admins2" / Segment) { admin1 =>
     get {
-      handleCall(countryAdminHandler.admins1(admin1),
+      handleCall(countryAdminHandler.admins2(admin1),
         (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
     }
   }
