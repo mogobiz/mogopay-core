@@ -8,11 +8,7 @@ import scalikejdbc.config._
 object Settings {
   private val config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
 
-  val Env = if (System.getenv.containsKey("PRODUCTION")) {
-    Environment.PROD
-  } else {
-    Environment.DEV
-  }
+  val Env = Environment.withName(if (config hasPath "dialect") config getString "dialect" else "DEV")
 
   val ResourcesPath = config.getString("resources.path")
   val TemplatesPath = config.getString("templates.path")
@@ -165,7 +161,7 @@ object Settings {
   }
 
   val NextVal = config getString s"$Env.db.default.nextval"
-  MogobizDBsWithEnv(Env.toString).setupAll()
+  MogopayDBsWithEnv(Env.toString).setupAll()
 
   require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
@@ -175,7 +171,7 @@ object Settings {
 trait MogopayTypesafeConfig extends TypesafeConfig {
   lazy val config: Config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
 }
-case class MogobizDBsWithEnv(envValue: String) extends DBs with TypesafeConfigReader with MogopayTypesafeConfig with EnvPrefix {
+case class MogopayDBsWithEnv(envValue: String) extends DBs with TypesafeConfigReader with MogopayTypesafeConfig with EnvPrefix {
   override val env = Option(envValue)
 }
 

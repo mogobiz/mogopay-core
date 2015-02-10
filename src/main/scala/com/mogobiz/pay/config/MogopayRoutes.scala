@@ -85,8 +85,12 @@ trait DefaultComplete {
       case Failure(t: MogopayException) =>
         t.printStackTrace();
         complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-      case Failure(t: UnknownHostException) => t.printStackTrace(); complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-      case Failure(t) => complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+      case Failure(t: UnknownHostException) =>
+        t.printStackTrace();
+        complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+      case Failure(t) =>
+        t.printStackTrace();
+        complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
     }
   }
   def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
@@ -96,8 +100,12 @@ trait DefaultComplete {
       case Success(res) =>
         res match {
           case Success(id) => handler(id)
-          case Failure(t: MogopayException) => t.printStackTrace(); complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-          case Failure(t: UnknownHostException) => t.printStackTrace(); complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+          case Failure(t: MogopayException) =>
+            t.printStackTrace();
+            complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+          case Failure(t: UnknownHostException) =>
+            t.printStackTrace()
+            ; complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
           case Failure(t) => t.printStackTrace(); complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
         }
     }
