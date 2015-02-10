@@ -17,8 +17,10 @@ class RateService extends Directives with DefaultComplete {
 
   lazy val list = path("list") {
     get {
-      handleCall(rateHandler.list,
-        (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
+      dynamic {
+        handleCall(rateHandler.list,
+          (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
+      }
     }
   }
 

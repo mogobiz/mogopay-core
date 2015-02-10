@@ -1,6 +1,5 @@
 package com.mogobiz.pay.services
 
-import akka.actor.ActorRef
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.implicits.Implicits
@@ -26,15 +25,19 @@ class CountryService extends Directives with DefaultComplete {
 
   lazy val countriesForShipping = path("countries-for-shipping") {
     get {
-      handleCall(countryHandler.findCountriesForShipping(),
-        (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
+      dynamic {
+        handleCall(countryHandler.findCountriesForShipping(),
+          (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
+      }
     }
   }
 
   lazy val countriesForBilling = get {
     path("countries-for-billing") {
-      handleCall(countryHandler.findCountriesForBilling(),
-        (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
+      dynamic {
+        handleCall(countryHandler.findCountriesForBilling(),
+          (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
+      }
     }
   }
 
@@ -54,11 +57,11 @@ class CountryService extends Directives with DefaultComplete {
 
   lazy val cities = path("cities") {
     get {
-      val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin2_code.?, 'name.?)
-      params { (c, a1, a2, name) =>
-        handleCall(countryAdminHandler.cities(c, a1, a2, name),
-          (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-      }
+        val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin2_code.?, 'name.?)
+        params { (c, a1, a2, name) =>
+          handleCall(countryAdminHandler.cities(c, a1, a2, name),
+            (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+        }
     }
   }
 
