@@ -4,6 +4,7 @@ import java.io.File
 import java.net.UnknownHostException
 
 import akka.actor.{Actor, ActorLogging, Props}
+import com.gettyimages.spray.swagger.SwaggerHttpService
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
 import com.mogobiz.pay.exceptions.Exceptions.MogopayException
@@ -12,6 +13,7 @@ import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.pay.settings.Settings
 import com.mogobiz.system.MogobizSystem
+import com.wordnik.swagger.model.ApiInfo
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, StatusCode, _}
 import spray.routing.{Directives, _}
@@ -34,20 +36,20 @@ trait MogopayRoutes extends Directives {
     logRequestResponse(showRequest _) {
       pathPrefix("static" / "admin") {
         pathEndOrSingleSlash {
-          compressResponse() {
-            redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
-          }
+          //compressResponse() {
+          redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
+          //}
         }
       } ~
         pathPrefix("static") {
-          compressResponse() {
-            if (Settings.IsResourcesLocal) {
-              getFromResourceDirectory("static")
-            }
-            else {
-              getFromBrowseableDirectory(Settings.ResourcesPath)
-            }
+          //compressResponse() {
+          if (Settings.IsResourcesLocal) {
+            getFromResourceDirectory("static")
           }
+          else {
+            getFromBrowseableDirectory(Settings.ResourcesPath)
+          }
+          //}
         } ~
         pathPrefix(("api" / "pay") | "pay") {
           new AccountService().route ~
@@ -74,6 +76,7 @@ trait MogopayRoutes extends Directives {
     }
 
   def routesServices = system.actorOf(Props(new RoutedHttpService(routes)))
+
 }
 
 trait DefaultComplete {
@@ -93,6 +96,7 @@ trait DefaultComplete {
         complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
     }
   }
+
   def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
     import Implicits._
     call match {
@@ -104,8 +108,8 @@ trait DefaultComplete {
             t.printStackTrace();
             complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
           case Failure(t: UnknownHostException) =>
-            t.printStackTrace()
-            ; complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+            t.printStackTrace();
+            complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
           case Failure(t) => t.printStackTrace(); complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
         }
     }
