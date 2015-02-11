@@ -9,7 +9,7 @@ import com.mogobiz.pay.model.Mogopay.AccountAddress
 import com.mogobiz.pay.model.Mogopay.Telephone
 import com.mogobiz.pay.model.Mogopay.AccountStatus
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.{ObjectWriter, ObjectMapper}
 import spray.httpx.unmarshalling.{FromStringDeserializer, MalformedContent}
 
 import scala.util.control.NonFatal
@@ -442,7 +442,7 @@ object Mogopay {
 
 
 object TestApp extends App {
-  lazy val mapperSingleton = new ObjectMapper().registerModule(DefaultScalaModule)
+  lazy val mapperSingleton: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
   val account = Account(
     java.util.UUID.randomUUID().toString,
     "me@you.com",
@@ -485,7 +485,7 @@ object TestApp extends App {
     java.util.UUID.randomUUID().toString,
     Nil)
 
-  val json = mapperSingleton.writerWithDefaultPrettyPrinter().writeValueAsString(account)
+  val json = mapperSingleton.writerWithDefaultPrettyPrinter().asInstanceOf[ObjectWriter].writeValueAsString(account)
   println(json)
   val acc = mapperSingleton.readValue(json, classOf[Account])
   println(acc)
