@@ -26,7 +26,21 @@ import scala.util.parsing.json.JSONObject
 object DBInitializer {
   def apply(fillWithFixtures: Boolean = false) = {
     try {
+      //EsClient.client.execute(delete index Settings.Mogopay.EsIndex).await
       EsClient.client.execute(create index Settings.Mogopay.EsIndex).await
+      if (Settings.DerbySequence.length > 0) {
+        import scalikejdbc._
+        DB autoCommit { implicit session =>
+          try {
+            SQL(Settings.DerbySequence).execute.apply()
+          }
+          catch {
+            case NonFatal(e) =>
+              // Ignore if sequence exists
+              //e.printStackTrace()
+          }
+        }
+      }
       Mapping.set
       fillDB(fillWithFixtures)
     } catch {
@@ -140,10 +154,10 @@ object DBInitializer {
     val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
     createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "92795318-8760-4a5f-b71a-c7dcf4af2b79")
 
-//    val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
-//    EsClient.index(Settings.Mogopay.EsIndex, rateEUR, true)
-//    val rateGBP = new Rate(newUUID, "GBP", Calendar.getInstance.getTime, 0.00829348, 2)
-//    EsClient.index(Settings.Mogopay.EsIndex, rateGBP, true)
+    //    val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
+    //    EsClient.index(Settings.Mogopay.EsIndex, rateEUR, true)
+    //    val rateGBP = new Rate(newUUID, "GBP", Calendar.getInstance.getTime, 0.00829348, 2)
+    //    EsClient.index(Settings.Mogopay.EsIndex, rateGBP, true)
   }
 
   private def createAddress(road: String, city: String, zip: String, country: String) = {
@@ -463,11 +477,11 @@ __FIN__*/
     targetFile.delete()
     val targetContent =
       s"""D_LOGO!${Settings.ImagesPath + "sips/logo/"}!
-        |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
-        |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!
-        |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
-        |F_CTYPE!jsp!
-        |""".stripMargin
+          |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
+          |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!
+          |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
+          |F_CTYPE!jsp!
+          |""".stripMargin
     scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(targetContent)
   }
 

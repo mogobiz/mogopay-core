@@ -158,14 +158,16 @@ object Settings {
     val Port = config getInt "mogopay.port"
     val BaseEndPoint = s"$Protocol://$Host:$Port"
     val EndPoint = s"${BaseEndPoint}/pay/"
+
+    require(Secret.nonEmpty, "mogopay.secret must be non-empty")
+    require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
   }
 
   val NextVal = config getString s"$Env.db.default.nextval"
+  val DerbySequence = config getString s"$Env.db.default.sequence"
   MogopayDBsWithEnv(Env.toString).setupAll()
 
-  require(Mogopay.Secret.nonEmpty, "mogopay.secret must be non-empty")
   require(ImagesPath.endsWith("/"), "applicationUIURL must end with a '/'.")
-  require(Mogopay.EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
 }
 
 trait MogopayTypesafeConfig extends TypesafeConfig {
