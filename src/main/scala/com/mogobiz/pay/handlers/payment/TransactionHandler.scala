@@ -1,8 +1,8 @@
 package com.mogobiz.pay.handlers.payment
 
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.{Calendar, Currency, Date}
+import java.text.{SimpleDateFormat, DateFormat, NumberFormat}
+import java.util.{Locale, Calendar, Currency, Date}
 
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -22,6 +22,9 @@ import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.{SymmetricCrypt, RSA, GlobalUtil}
 import com.mogobiz.utils.GlobalUtil._
+import org.apache.commons.lang.LocaleUtils
+import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
+import org.json4s.JsonAST.{JObject, JField}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import scala.collection._
@@ -197,17 +200,7 @@ class TransactionHandler {
     val json = jtransaction merge jcart
     val jsonString = compact(render(json))
     transaction.vendor.map { vendor =>
-      val templateFile = new File(new File(Settings.TemplatesPath, vendor.company.get), "mail-order.mustache")
-      val template = if (templateFile.exists()) {
-        val source = scala.io.Source.fromFile(templateFile)
-        val lines = source.mkString
-        source.close()
-        lines
-      }
-      else {
-        scala.io.Source.fromInputStream(classOf[TransactionHandler].getResourceAsStream("/template/mail-order.mustache")).mkString
-      }
-
+      val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order.mustache")
       val mailContent = templateHandler.mustache(template, jsonString)
       val eol = mailContent.indexOf('\n')
       require(eol > 0, "No new line found in mustache file to distinguish subject from body")
@@ -517,6 +510,19 @@ class TransactionHandler {
     }.flatten
   }
 
+  def download(accountId: String, transactionUuid: String, pageFormat: String, langCountry: String) : File = {
+    val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
+    optTransaction match {
+      case Some(transaction) => {
+        val jsonString = BOTransactionJsonTransform.transform(transaction, langCountry)
+        val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill.mustache")
+        val html = templateHandler.mustache(template, jsonString)
+        pdfHandler.convertToPdf(pageFormat, html);
+      }
+      case None => throw new BOTransactionNotFoundException(transactionUuid)
+    }
+  }
+
   private def initPaymentRequest(vendor: Account, transactionType: Option[String], mogopay: Boolean,
                                  transactionSequence: Long, transactionExtra: String,
                                  transactionCurrency: TransactionCurrency, sessionData: SessionData,
@@ -591,3 +597,87 @@ class TransactionHandler {
     )
   }
 }
+
+object BOTransactionJsonTransform {
+
+  def transform(transaction: BOTransaction, langCountry: String) = {
+    val json = Extraction.decompose(transaction)
+    transformJValue(json, langCountry)
+  }
+
+  def transformJValue(jsonTransaction: JValue, langCountry: String) = {
+    val locale = LocaleUtils.toLocale(langCountry)
+    compact(render(jsonTransaction.transform(transformBOTransaction(locale))))
+  }
+
+  private def transformBOTransaction(locale: Locale) : PartialFunction[JValue, JValue] = {
+    case obj : JObject => {
+      (obj \ "transactionUUID",
+      obj \ "transactionDate",
+      obj \ "amount",
+      obj \ "currency" \ "code",
+      obj \ "currency" \ "fractionDigits",
+      obj \ "status" \ "name",
+      obj \ "paymentData" \ "paymentType" \ "name",
+      obj \ "email",
+      obj \ "extra") match {
+        case (JString(transactionUuid),
+          JString(transactionDate),
+          JInt(amount),
+          JString(currencyCode),
+          JInt(fractionDigits),
+          JString(status),
+          JString(paymentType),
+          JString(email),
+          JString(extra)) => {
+            JObject(
+              JField("transactionUuid", JString(transactionUuid)),
+              JField("transactionDate", JString(formatDateTime(locale, transactionDate))),
+              JField("amount", JString(formatPrice(locale, amount, currencyCode, fractionDigits))),
+              JField("status", JString(status)),
+              JField("paymentType", JString(paymentType)),
+              JField("email", JString(email)) ,
+              JField("cart", parse(extra).transformField(transformExtra(locale, currencyCode, fractionDigits)))
+            )
+        }
+        case _ => obj
+      }
+    }
+  }
+
+  private def transformExtra(locale: Locale, currencyCode: String, fractionDigits: BigInt) : PartialFunction[JField, JField] = {
+    case JField("price", JInt(price)) => JField("price", JString(formatPrice(locale, price, currencyCode, fractionDigits)))
+    case JField("endPrice", JInt(endPrice)) => JField("endPrice", JString(formatPrice(locale, endPrice, currencyCode, fractionDigits)))
+    case JField("reduction", JInt(reduction)) => JField("reduction", JString(formatPrice(locale, reduction, currencyCode, fractionDigits)))
+    case JField("shipping", JInt(shipping)) => JField("shipping", JString(formatPrice(locale, shipping, currencyCode, fractionDigits)))
+    case JField("finalPrice", JInt(finalPrice)) => JField("finalPrice", JString(formatPrice(locale, finalPrice, currencyCode, fractionDigits)))
+    case JField("salePrice", JInt(salePrice)) => JField("salePrice", JString(formatPrice(locale, salePrice, currencyCode, fractionDigits)))
+    case JField("saleEndPrice", JInt(saleEndPrice)) => JField("saleEndPrice", JString(formatPrice(locale, saleEndPrice, currencyCode, fractionDigits)))
+    case JField("totalPrice", JInt(totalPrice)) => JField("totalPrice", JString(formatPrice(locale, totalPrice, currencyCode, fractionDigits)))
+    case JField("totalEndPrice", JInt(totalEndPrice)) => JField("totalEndPrice", JString(formatPrice(locale, totalEndPrice, currencyCode, fractionDigits)))
+    case JField("saleTotalPrice", JInt(saleTotalPrice)) => JField("saleTotalPrice", JString(formatPrice(locale, saleTotalPrice, currencyCode, fractionDigits)))
+    case JField("saleTotalEndPrice", JInt(saleTotalEndPrice)) => JField("saleTotalEndPrice", JString(formatPrice(locale, saleTotalEndPrice, currencyCode, fractionDigits)))
+    case JField("startDate", JString(startDate)) => JField("startDate", JString(formatDate(locale, startDate)))
+    case JField("endDate", JString(endDate)) => JField("endDate", JString(formatDate(locale, endDate)))
+    case JField("birthdate", JString(birthdate)) => JField("birthdate", JString(formatDate(locale, birthdate)))
+  }
+
+  private def formatDate(locale: Locale, value: String) = {
+    val date = ISODateTimeFormat.dateTimeNoMillis().parseDateTime(value)
+    val formatter = DateFormat.getDateInstance(DateFormat.DEFAULT, locale);
+    formatter.format(date.toDate)
+  }
+
+  private def formatDateTime(locale: Locale, value: String) = {
+    val date = ISODateTimeFormat.dateTimeNoMillis().parseDateTime(value)
+    val formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, locale);
+    formatter.format(date.toDate)
+  }
+
+  private def formatPrice(locale: Locale, amount: BigInt, currencyCode: String, fractionDigits: BigInt) = {
+    val numberFormat = NumberFormat.getCurrencyInstance(locale)
+    numberFormat.setCurrency(Currency.getInstance(currencyCode))
+    numberFormat.format(amount.toLong / Math.pow(10, fractionDigits.toLong))
+  }
+}
+

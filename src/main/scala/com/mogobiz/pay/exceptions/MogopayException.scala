@@ -6,6 +6,8 @@ object Exceptions {
 
   abstract class MogopayException(val code: StatusCode, message: String) extends Exception(message)
 
+  case class UnauthorizedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class CreditCardDoesNotBelongToUserException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class InvalidCardNumberException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)

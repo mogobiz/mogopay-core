@@ -82,35 +82,34 @@ trait MogopayRoutes extends Directives {
 trait DefaultComplete {
   this: Directives =>
   def handleCall[T](call: => T, handler: T => Route): Route = {
-    import Implicits._
     Try(call) match {
       case Success(res) => handler(res)
-      case Failure(t: MogopayException) =>
-        t.printStackTrace();
-        complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-      case Failure(t: UnknownHostException) =>
-        t.printStackTrace();
-        complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-      case Failure(t) =>
+      case Failure(t) => completeException(t)
+    }
+  }
+
+  def completeException(t: Throwable) : Route = {
+    import Implicits._
+    t match {
+      case (ex: MogopayException) =>
+        ex.printStackTrace();
+        complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.toString))
+      case (ex: UnknownHostException) =>
+        ex.printStackTrace();
+        complete(StatusCodes.NotFound -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.toString))
+      case (_) =>
         t.printStackTrace();
         complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
     }
   }
 
   def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
-    import Implicits._
     call match {
-      case Failure(t) => t.printStackTrace(); complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+      case Failure(t) => completeException(t)
       case Success(res) =>
         res match {
           case Success(id) => handler(id)
-          case Failure(t: MogopayException) =>
-            t.printStackTrace();
-            complete(t.code -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-          case Failure(t: UnknownHostException) =>
-            t.printStackTrace();
-            complete(StatusCodes.NotFound -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
-          case Failure(t) => t.printStackTrace(); complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+          case Failure(t) => completeException(t)
         }
     }
   }

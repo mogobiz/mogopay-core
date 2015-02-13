@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import com.atosorigin.services.cad.common.util.FileParamReader
+import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.sql.BOAccountDAO
@@ -362,7 +363,8 @@ class AccountHandler {
     sendNewPasswordEmail(account, returnURL, newPassword)
 
     def sendNewPasswordEmail(account: Account, returnURL: String, newPassword: String) = {
-      val template = scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/template/new-password.mustache")).mkString
+      val vendor = if (account.owner.isDefined) find(account.owner.get) else None
+      val template = templateHandler.loadTemplateByVendor(vendor, "new-password.mustache")
 
       val data = s"""{"url": "$returnURL", "newPassword": "$newPassword"}"""
       EmailHandler.Send.to(
@@ -555,15 +557,15 @@ class AccountHandler {
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  type ActiveCountryState = Map[Symbol, Option[String]]
+  type ActiveCountryStateShipping = Map[Symbol, Option[String]]
 
-  def getActiveCountryState(accountId: String): Option[ActiveCountryState] = {
+  def getActiveCountryStateShipping(accountId: String): Option[ActiveCountryStateShipping] = {
     find(accountId).map {
       account =>
         val addr = account.shippingAddresses.find(_.active).map(_.address).orElse(account.address)
         addr.map {
           addr =>
-            Map('countryCode -> addr.country, 'stateCode -> addr.admin1)
+            Map('countryCode -> addr.country, 'stateCode -> addr.admin1, 'shippingAddress -> Some(JacksonConverter.serialize(addr)))
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
@@ -931,7 +933,8 @@ class AccountHandler {
   }
 
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String): Unit = {
-    val template = scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/template/signup-confirmation.mustache")).mkString
+    val vendor = if (account.owner.isDefined) find(account.owner.get) else None
+    val template = templateHandler.loadTemplateByVendor(vendor, "signup-confirmation.mustache")
 
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 

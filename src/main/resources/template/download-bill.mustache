@@ -1,0 +1,43 @@
+<html>
+<head>
+    <title>Votre facture</title>
+</head>
+<body>
+<h1>Votre facture n&deg; {{transactionUuid}} du {{transactionDate}}</h1>
+
+{{#cart}}
+    <ul>
+        {{#cartItemVOs}}
+            <li style="margin-bottom: 20px">
+                <h2 style="display: inline; line-height:30px">{{productName}} -&gt; {{skuName}}</h2>
+                <span style="float: right; line-height:30px">{{endPrice}} x {{quantity}} = {{totalEndPrice}}</span>
+                <ul>
+                    {{#registeredCartItemVOs}}
+                        <li>{{email}}
+                            {{firstname}}
+                            {{lastname}}
+                            {{phone}}
+                            {{birthdate}}
+                        </li>
+                    {{/registeredCartItemVOs}}
+                </ul>
+            </li>
+        {{/cartItemVOs}}
+    </ul>
+    <br/>
+    <h4 style="text-align:right;">
+        <p>
+            Reduction : {{reduction}}
+        </p>
+        <p>
+            Shipping : {{shipping}}
+        </p>
+    </h4>
+    <h3 style="text-align:right;">
+        <p>
+            Total : {{finalPrice}}
+        </p>
+    </h3>
+{{/cart}}
+</body>
+</html>

@@ -1,5 +1,6 @@
 package com.mogobiz.pay.services.payment
 
+import java.io.File
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 
@@ -9,6 +10,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.exceptions.Exceptions.UnauthorizedException
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
@@ -51,7 +53,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         selectShipping ~
         verify ~
         submit ~
-        submitWithSession
+        submitWithSession ~
+        download
     }
   }
 
@@ -202,6 +205,23 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get
           doSubmit(submitParams, session)
+      }
+    }
+  }
+
+  lazy val download = path("download" / Segment) { transactionUuid =>
+    get {
+      parameters('page ? "A4", 'langCountry) { (pageFormat, langCountry) =>
+        session { session =>
+          import Implicits._
+          session.sessionData.accountId match {
+            case Some(accountId: String) =>
+              handleCall(transactionHandler.download(accountId, transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
+                getFromFile(pdfFile)
+              })
+            case _ => completeException(new UnauthorizedException("Not logged in"))
+          }
+        }
       }
     }
   }
