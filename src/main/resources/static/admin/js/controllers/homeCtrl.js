@@ -12,7 +12,6 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
                 // callServer("account/customer-token", "", success, function (response) {});
             },
             function (response) {});
-
     }
     $scope.merchantLogin =  function () {
         callServer("account/merchant-token", "",
