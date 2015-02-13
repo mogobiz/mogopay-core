@@ -6,7 +6,7 @@ import com.mogobiz.pay.model.Mogopay._
 
 class CreditCardHandler {
   def delete(accountId: String, cardId: String): Unit = {
-    accountHandler.find(accountId).map { account: Account =>
+    accountHandler.load(accountId).map { account: Account =>
       account.creditCards.find(_.uuid == cardId).map { card =>
         val newCards = account.creditCards.diff(Seq(card))
         accountHandler.update(account.copy(creditCards = newCards), false)
@@ -17,6 +17,6 @@ class CreditCardHandler {
   }
 
   def findByAccount(accountId: String): Seq[CreditCard] = {
-    accountHandler.find(accountId).map(_.creditCards).getOrElse(List())
+    accountHandler.load(accountId).map(_.creditCards).getOrElse(List())
   }
 }

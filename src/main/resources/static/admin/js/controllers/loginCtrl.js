@@ -131,6 +131,5 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			});
 		};
 	}
-
 	callServer("account/profile-info", "", success, failure);
 }

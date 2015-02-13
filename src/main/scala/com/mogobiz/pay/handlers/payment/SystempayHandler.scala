@@ -130,7 +130,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val vendorAndUuid = params("vads_order_info").split("--")
     val vendorId = vendorAndUuid(0)
     val transactionUUID = vendorAndUuid(1)
-    val vendor = accountHandler.find(vendorId).orNull
+    val vendor = accountHandler.load(vendorId).orNull
     val parametresProvider: Map[String, String] =
       parse(org.json4s.StringInput(vendor.paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
     val ok: Boolean = SystempayUtilities.checkSignature(params("signature"),

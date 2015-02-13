@@ -94,7 +94,7 @@ class TransactionHandler {
    */
   def startPayment(vendorId: String, transactionUUID: String, paymentRequest: PaymentRequest,
                    paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
-    accountHandler.find(vendorId).map { account =>
+    accountHandler.load(vendorId).map { account =>
       var transaction = BOTransaction(transactionUUID, transactionUUID, "", Option(new Date), paymentRequest.amount,
         paymentRequest.currency, TransactionStatus.INITIATED, new Date, None,
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
@@ -266,7 +266,7 @@ class TransactionHandler {
 
   def shippingPrices(currencyCode: String, transactionExtra: String,
                      accountId: String): Seq[ShippingPrice] = {
-    val maybeCustomer = accountHandler.find(accountId)
+    val maybeCustomer = accountHandler.load(accountId)
 
     val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
 
@@ -335,9 +335,9 @@ class TransactionHandler {
         successURL = sessionData.successURL
         transactionType = sessionData.transactionType
         amount = sessionData.amount
-        accountHandler.find(sessionData.merchantId.get).orNull
+        accountHandler.load(sessionData.merchantId.get).orNull
       } else {
-        accountHandler.find(submit.params.merchantId).orNull
+        accountHandler.load(submit.params.merchantId).orNull
       }
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
     if (transactionRequest.amount != amount.get) {
@@ -424,7 +424,7 @@ class TransactionHandler {
       customerId =>
         // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
         if (submit.params.ccNum.nonEmpty && cardStore) {
-          val customer = accountHandler.find(customerId).orNull
+          val customer = accountHandler.load(customerId).orNull
           // Mogopay avec une nouvele carte
           val ccNum = submit.params.ccNum.orNull
           val ccMonth = submit.params.ccMonth.orNull
@@ -456,7 +456,7 @@ class TransactionHandler {
       if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
         // only credit card payments are supported through mogopay
         if (submit.params.customerCVV.nonEmpty) {
-          val customer = accountHandler.find(sessionData.accountId.get).orNull
+          val customer = accountHandler.load(sessionData.accountId.get).orNull
           val card = customer.creditCards(0)
           val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.Secret, "AES")
           val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)

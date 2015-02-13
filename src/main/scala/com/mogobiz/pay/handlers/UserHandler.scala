@@ -26,10 +26,10 @@ class UserHandler {
 
   def register(successURL: String, errorURL: String, merchantId: String,
                email: String, password: String): Map[String, String] = {
-    val vendor = accountHandler.find(merchantId).getOrElse(throw AccountDoesNotExistException(""))
+    val vendor = accountHandler.load(merchantId).getOrElse(throw AccountDoesNotExistException(""))
     if (!vendor.roles.contains(RoleName.MERCHANT)) throw NotAVendorAccountException("")
 
-    if (accountHandler.findByEmail(email).nonEmpty) {
+    if (accountHandler.findByEmail(email, Some(merchantId)).nonEmpty) {
       throw AccountAlreadyExistsException("")
     } else {
       val data1: Map[String, String] = Map(

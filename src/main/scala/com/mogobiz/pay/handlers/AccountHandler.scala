@@ -165,10 +165,8 @@ class AccountHandler {
 
   lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
-  def findByEmail(email: String): Option[Account] = {
-    val req = search in Settings.Mogopay.EsIndex types "Account" limit 1 from 0 filter {
-      termFilter("email", email)
-    }
+  def findByEmail(email: String, merchantId: Option[String]): Option[Account] = {
+    val req = buildFindAccountRequest(email, merchantId)
     EsClient.search[Account](req)
   }
 
@@ -275,7 +273,7 @@ class AccountHandler {
    */
   def id(seller: String): String = {
     val email = seller + "@merchant.com"
-    this.findByEmail(email).map(_.uuid).getOrElse(throw InvalidEmailException(s"$email"))
+    this.findByEmail(email, None).map(_.uuid).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
   /**
@@ -284,7 +282,7 @@ class AccountHandler {
    */
   def secret(seller: String): String = {
     val email = seller + "@merchant.com"
-    this.findByEmail(email).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
+    this.findByEmail(email, None).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
   def findBySecret(secret: String): Option[Account] = {
@@ -292,7 +290,7 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email) match {
+  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email, account.owner) match {
     case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
     case None =>
       BOAccountDAO.upsert(account)
@@ -306,7 +304,7 @@ class AccountHandler {
   }
 
   def getMerchant(merchantId: String): Option[Account] = {
-    val merchant = accountHandler.find(merchantId)
+    val merchant = accountHandler.load(merchantId)
     merchant flatMap { merchant =>
       if (merchant.owner.isEmpty) Some(merchant) else None
     }
@@ -316,14 +314,12 @@ class AccountHandler {
 
   def checkTokenValidity(token: String): (TokenValidity, UserInfo) = {
     import org.joda.time._
+    val (emailType, timestamp, accountId, _) = Token.parseToken(token)
 
-    val uncryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES").split(";")
-    val (email, date) = (uncryptedToken(0), DateTime.parse(uncryptedToken(1)))
-
-    val account = findByEmail(email)
+    val account = load(accountId)
     val result: (TokenValidity, UserInfo) = if (account == None) {
       (TokenValidity.INVALID, None)
-    } else if (Seconds.secondsBetween(DateTime.now, date).getSeconds < 0) {
+    } else if (DateTime.now.getMillis - timestamp > Settings.Mail.MaxAge) {
       (TokenValidity.EXPIRED, None)
     } else {
       (TokenValidity.VALID, Some(Map(
@@ -333,8 +329,6 @@ class AccountHandler {
         'lastName -> account.get.lastName
       )))
     }
-
-    Settings.RSA.privateKey.close()
     result
   }
 
@@ -347,7 +341,7 @@ class AccountHandler {
       }
     }
 
-    val account = accountHandler.find(accountId).getOrElse(throw AccountDoesNotExistException(""))
+    val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistException(""))
     val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException(s"$vendorId"))
     val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException(""))
     val pattern = paymentConfig.passwordPattern.getOrElse(throw PasswordPatternNotFoundException(""))
@@ -357,7 +351,7 @@ class AccountHandler {
     accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
   }
 
-  def sendNewPassword(accountId: String, returnURL: String): Unit = find(accountId).map { account =>
+  def sendNewPassword(accountId: String, returnURL: String): Unit = load(accountId).map { account =>
     val newPassword: String = newUUID.split("-")(4)
     update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
     sendNewPasswordEmail(account, returnURL, newPassword)
@@ -382,7 +376,7 @@ class AccountHandler {
    * Generates, saves and sends a pin code
    */
   def generateAndSendPincode3(uuid: String): Unit = {
-    val acc = accountHandler.find(uuid) getOrElse (throw AccountDoesNotExistException(""))
+    val acc = accountHandler.load(uuid) getOrElse (throw AccountDoesNotExistException(""))
     val phoneNumber: Telephone =
       (for {
         addr <- acc.address
@@ -402,7 +396,7 @@ class AccountHandler {
   }
 
   def confirmSignup(token: String): Account = {
-    val (emailType, timestamp, accountId) = Token.parseToken(token)
+    val (emailType, timestamp, accountId, _) = Token.parseToken(token)
 
     if (emailType != EmailType.Signup) {
       throw new InvalidTokenException("")
@@ -412,7 +406,7 @@ class AccountHandler {
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
         throw new TokenExpiredException("")
       } else {
-        val account = find(accountId).map { a => a.copy(status = AccountStatus.ACTIVE)};
+        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE)};
         if (account.isDefined) {
           accountHandler.update(account.get, refresh = true)
           account.get
@@ -422,7 +416,7 @@ class AccountHandler {
     }
   }
 
-  def generateNewSecret(accountId: String): Option[String] = find(accountId).map {
+  def generateNewSecret(accountId: String): Option[String] = load(accountId).map {
     acc =>
       val secret = UUID.randomUUID().toString
       accountHandler.update(acc.copy(secret = secret), false)
@@ -437,7 +431,7 @@ class AccountHandler {
 
   private def updateCard(accountId: String, ccId: String, holder: String,
                          expiryDate: String, ccType: String): CreditCard = {
-    val account = accountHandler.find(accountId) getOrElse (throw AccountDoesNotExistException(""))
+    val account = accountHandler.load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
 
@@ -455,7 +449,7 @@ class AccountHandler {
 
   private def createCard(accountId: String, holder: String, number: String,
                          expiryDate: String, ccType: String): CreditCard = {
-    val account = find(accountId) getOrElse (throw AccountDoesNotExistException(""))
+    val account = load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val (hiddenN, cryptedN) =
       if (!UtilHandler.checkLuhn(number)) {
@@ -478,16 +472,16 @@ class AccountHandler {
     newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X"))
   }
 
-  def getBillingAddress(accountId: String): Option[AccountAddress] = find(accountId).flatMap(_.address)
+  def getBillingAddress(accountId: String): Option[AccountAddress] = load(accountId).flatMap(_.address)
 
   def getShippingAddresses(accountId: String): Seq[ShippingAddress] =
-    find(accountId) map (_.shippingAddresses) getOrElse Nil
+    load(accountId) map (_.shippingAddresses) getOrElse Nil
 
   def getShippingAddress(accountId: String): Option[ShippingAddress] =
     getShippingAddresses(accountId: String) find (_.active)
 
   def assignBillingAddress(accountId: String, address: AddressToAssignFromGetParams): Unit = {
-    find(accountId).map {
+    load(accountId).map {
       account =>
         val newAddress = account.address match {
           case None => address.getAddress
@@ -514,7 +508,7 @@ class AccountHandler {
 
   def deleteShippingAddress(accountId: String, addressId: String): Unit =
     for {
-      account <- find(accountId)
+      account <- load(accountId)
       address <- account.shippingAddresses.find(_.uuid == addressId)
     } yield {
       val newAddresses = account.shippingAddresses diff List(address)
@@ -523,7 +517,7 @@ class AccountHandler {
     }
 
   def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
-    find(accountId).map {
+    load(accountId).map {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
         val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
@@ -532,7 +526,7 @@ class AccountHandler {
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def updateShippingAddress(accountId: String, address: AddressToUpdateFromGetParams): Unit =
-    find(accountId).map {
+    load(accountId).map {
       account =>
         account.shippingAddresses.find(_.uuid == address.id) map {
           addr =>
@@ -560,7 +554,7 @@ class AccountHandler {
   type ActiveCountryStateShipping = Map[Symbol, Option[String]]
 
   def getActiveCountryStateShipping(accountId: String): Option[ActiveCountryStateShipping] = {
-    find(accountId).map {
+    load(accountId).map {
       account =>
         val addr = account.shippingAddresses.find(_.active).map(_.address).orElse(account.address)
         addr.map {
@@ -571,7 +565,7 @@ class AccountHandler {
   }
 
   def selectShippingAddress(accountId: String, addrId: String): Unit =
-    find(accountId).map {
+    load(accountId).map {
       account =>
         val newAddrs = account.shippingAddresses.map {
           addr => addr.copy(active = addr.uuid == addrId)
@@ -579,7 +573,8 @@ class AccountHandler {
         accountHandler.update(account.copy(shippingAddresses = newAddrs), true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  def profileInfo(accountId: String): Map[Symbol, Any] = find(accountId).map {
+
+  def profileInfo(accountId: String): Map[Symbol, Any] = load(accountId).map {
     account =>
       val cards = creditCardHandler.findByAccount(accountId)
       val countries = countryHandler.findCountriesForBilling()
@@ -618,11 +613,11 @@ class AccountHandler {
         'isMerchant -> account.owner.isEmpty)
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  def find(uuid: String) = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
+  def load(uuid: String) = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
 
   def updateProfile(profile: UpdateProfile): Unit = {
     if (!profile.isMerchant && profile.vendor.isEmpty) Failure(new VendorNotProvidedError(""))
-    else find(profile.id) match {
+    else load(profile.id) match {
       case None => Failure(new AccountAddressDoesNotExistException(""))
       case Some(account) =>
         lazy val address = account.address.map {
@@ -698,11 +693,25 @@ class AccountHandler {
             targetFile.delete()
             scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
               s"""
-                 |D_LOGO!${Settings.Mogopay.EndPoint}${Settings.ImagesPath}sips/logo/!
-                                                                             |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parmcom.defaut!
-                                                                                                                                     |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
-                                                                                                                                                                                          |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
-                                                                                                                                                                                                                                                     |${if (isJSP) "F_CTYPE!jsp!" else ""}"
+                 |D_LOGO!${
+                Settings.Mogopay.EndPoint
+              }${
+                Settings.ImagesPath
+              }sips/logo/!
+                 |F_DEFAULT!${
+                Settings.Sips.CertifDir
+              }${
+                File.separator
+              }parmcom.defaut!
+                 |F_PARAM!${
+                new File(dir, "parcom").getAbsolutePath
+              }!
+                 |F_CERTIFICATE!${
+                new File(dir, "certif").getAbsolutePath
+              }!
+                 |${
+                if (isJSP) "F_CTYPE!jsp!" else ""
+              }"
            """.stripMargin.trim
             )
 
@@ -782,7 +791,7 @@ class AccountHandler {
       None
     }
 
-    find(profile.id) match {
+    load(profile.id) match {
       case None => Failure(new AccountAddressDoesNotExistException(""))
       case Some(account) =>
         lazy val birthDate = try {
@@ -811,7 +820,7 @@ class AccountHandler {
         rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.AccountRecycleDuration)
       )
     }
-    val ids = (EsClient searchAllRaw req).getHits map (_ getId) foreach delete
+    val ids = (EsClient searchAllRaw req).getHits map (_.getId) foreach delete
   }
 
   def delete(id: String) = {
@@ -820,7 +829,7 @@ class AccountHandler {
   }
 
   def enroll(accountId: String, lPhone: String, pinCode: String): Unit = {
-    find(accountId).map {
+    load(accountId).map {
       user =>
         if (user.address.map(_.telephone.map(_.lphone)).flatten.nonEmpty &&
           user.address.map(_.telephone.map(_.lphone)).flatten != Some(lPhone)) {
@@ -829,7 +838,7 @@ class AccountHandler {
           val newUser = user.copy(address = Some(newAddr))
           accountHandler.update(newUser, refresh = true)
         } else {
-          find(accountId).map {
+          load(accountId).map {
             account =>
               val encryptedCode = new Sha256Hash(pinCode).toHex
               if (account.address.map(_.telephone.map(_.pinCode3)).flatten == Some(encryptedCode) &&
@@ -841,13 +850,23 @@ class AccountHandler {
               }
           }.getOrElse(throw new AccountDoesNotExistException(""))
         }
-    } getOrElse(throw new AccountDoesNotExistException(""))
+    } getOrElse (throw new AccountDoesNotExistException(""))
   }
 
   def signup(signup: Signup): (Token, Account) = {
-    val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("email", signup.email)
-    if (EsClient.search[Account](req).isDefined)
+    val owner = if (signup.isMerchant) {
+      None
+    } else {
+      Some(signup.vendor.getOrElse({
+        val account = accountHandler.findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
+          throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
+        }
+        account.uuid
+      }))
+    }
+    if (alreadyExistEmail(signup.email, owner)) {
       throw new AccountWithSameEmailAddressAlreadyExistsError("")
+    }
 
     val birthdate = birthDayDateFormat.parse(signup.birthDate)
     val civility = Civility.withName(signup.civility)
@@ -860,7 +879,9 @@ class AccountHandler {
 
     val password = new Sha256Hash(signup.password).toHex
 
-    val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${signup.address.country}"))
+    val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${
+      signup.address.country
+    }"))
 
     val country: Country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
 
@@ -889,18 +910,7 @@ class AccountHandler {
     }
 
     val token = if (accountStatus == AccountStatus.ACTIVE) ""
-    else Token.generateToken(accountId, TokenType.Signup)
-
-    val owner = if (signup.isMerchant) {
-      None
-    } else {
-      Some(signup.vendor.getOrElse({
-        val account = accountHandler.findByEmail(Settings.AccountValidateMerchantDefault).getOrElse {
-          throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
-        }
-        account.uuid
-      }))
-    }
+    else Token.generateToken(accountId, owner, TokenType.Signup)
 
     val account = Account(
       uuid = accountId,
@@ -927,7 +937,9 @@ class AccountHandler {
       transactionSequenceHandler.nextTransactionId(account.uuid)
 
     val tryToSave = accountHandler.save(account, refresh = true)
-    tryToSave.map { _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)}
+    tryToSave.map {
+      _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)
+    }
 
     (token, account)
   }
@@ -960,19 +972,21 @@ object Token {
     val timestamp: Long = (new java.util.Date).getTime
     val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
     val token = SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
-    accountHandler.find(accountId).map { account =>
+    accountHandler.load(accountId).map { account =>
       accountHandler.update(account.copy(emailingToken = Some(token)), refresh = true)
       token
     }
   }
 
-  def generateToken(accountId: String, tokenType: TokenType): String = {
+  val NoOwner = "********"
+
+  def generateToken(accountId: String, owner: Option[String], tokenType: TokenType): String = {
     val timestamp: Long = (new java.util.Date).getTime
-    val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId.replace("-", "!")
+    val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId.replace("-", "!") + "-" + owner.getOrElse(NoOwner)
     SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
   }
 
-  def parseToken(token: String): (EmailType, Long, String) = {
+  def parseToken(token: String): (EmailType, Long, String, Option[String]) = {
     val unencryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
 
     if (!unencryptedToken.contains("-"))
@@ -982,8 +996,9 @@ object Token {
     val emailType = EmailType(splitToken(0).toInt)
     val timestamp = splitToken(1).toLong
     val accountId = splitToken(2).replace("!", "-")
+    val owner = if (splitToken(3).equals(NoOwner)) None else Some(splitToken(3))
 
-    (emailType, timestamp, accountId)
+    (emailType, timestamp, accountId, owner)
   }
 }
 

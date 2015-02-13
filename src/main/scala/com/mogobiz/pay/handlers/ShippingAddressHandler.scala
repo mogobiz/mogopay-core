@@ -13,7 +13,7 @@ class ShippingAddressHandler {
   private def flatten[T](o: Option[Seq[T]]): Seq[T] = o.map(c => c).getOrElse(Nil)
 
   def findByAccount(accountId: String): Seq[ShippingAddress] = {
-    flatten(accountHandler.find(accountId).map(_.shippingAddresses)) //.find(_.active)
+    flatten(accountHandler.load(accountId).map(_.shippingAddresses)) //.find(_.active)
   }
 
   //  def updateActiveValue(id: Long, active: Boolean) = dbTransaction {

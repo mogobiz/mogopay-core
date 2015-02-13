@@ -249,7 +249,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val orderId = resp.getValue("order_id")
 
     val transactionUuid = orderId.substring(0, 8) + "-" + orderId.substring(8, 12) + "-" + orderId.substring(12, 16) + "-" + orderId.substring(16, 20) + "-" + orderId.substring(20, 32)
-    val vendor = accountHandler.find(vendorUuid).orNull
+    val vendor = accountHandler.load(vendorUuid).orNull
     val parametresProvider: Map[String, String] =
       parse(org.json4s.StringInput(vendor.paymentConfig.map(_.cbParam).flatten.getOrElse("{}"))).extract[Map[String, String]]
     val transaction = boTransactionHandler.find(transactionUuid).orNull
@@ -302,7 +302,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
-    val vendor = accountHandler.find(vendorUuid).get
+    val vendor = accountHandler.load(vendorUuid).get
 
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
@@ -358,7 +358,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def order3D(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
-    val vendor = accountHandler.find(vendorUuid).get
+    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[immutable.Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
@@ -437,7 +437,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   private[payment] def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
-    val vendor = accountHandler.find(vendorUuid).get
+    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
@@ -605,7 +605,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   private[payment] def cancel(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
-    val vendor = accountHandler.find(vendorUuid).get
+    val vendor = accountHandler.load(vendorUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
