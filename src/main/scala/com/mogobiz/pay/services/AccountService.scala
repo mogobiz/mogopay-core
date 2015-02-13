@@ -39,7 +39,6 @@ class AccountService extends Directives with DefaultComplete {
         getBillingAddress ~
         getShippingAddresses ~
         getShippingAddress ~
-        emailInfo ~
         profileInfo ~
         assignBillingAddress ~
         addShippingAddress ~
@@ -369,25 +368,6 @@ class AccountService extends Directives with DefaultComplete {
             session.sessionData.accountId match {
               case Some(accountId: String) =>
                 handleCall(accountHandler.profileInfo(accountId),
-                  (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
-              case _ => complete {
-                StatusCodes.Unauthorized ->
-                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
-              }
-            }
-        }
-      }
-    }
-  }
-
-  lazy val emailInfo = path("email-info") {
-    parameter('email) { email =>
-      get {
-        session {
-          session =>
-            session.sessionData.accountId match {
-              case Some(accountId: String) if session.sessionData.isMerchant =>
-                handleCall(accountHandler.emailInfo(email, session.sessionData.accountId),
                   (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
               case _ => complete {
                 StatusCodes.Unauthorized ->

@@ -37,11 +37,13 @@ class BackofficeHandler {
   def listTransactions(sessionData: SessionData, email: Option[String],
                        startDate: Option[String], startTime: Option[String],
                        endDate: Option[String], endTime: Option[String],
-                       amount: Option[Int], transactionUUID: Option[String]): Seq[BOTransaction] = {
+                       amount: Option[Int], transactionUUID: Option[String],
+                       transactionStatus: Option[String], deliveryStatus: Option[String]
+                        ): Seq[BOTransaction] = {
     def parseDateAndTime(date: Option[String], time: Option[String]) = date.map { d =>
       val date = new SimpleDateFormat("yyyy-MM-dd").parse(d)
       time match {
-        case None    => date
+        case None => date
         case Some(t) =>
           date.setHours(t.split(':')(0).toInt)
           date.setMinutes(t.split(':')(1).toInt)
@@ -63,7 +65,9 @@ class BackofficeHandler {
 
     val filters = accountFilter ++
       transactionUUID.map(uuid => termFilter("transactionUUID", uuid)) ++
-      amount.map(x => termFilter("amount", x))
+      amount.map(x => termFilter("amount", x)) ++
+      transactionStatus.map(x => termFilter("status", x)) ++
+      deliveryStatus.map(x => termFilter("delivery.status", x))
 
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" filter {
       and(filters: _*)

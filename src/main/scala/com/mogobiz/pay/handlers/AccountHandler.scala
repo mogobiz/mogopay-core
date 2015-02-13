@@ -571,16 +571,6 @@ class AccountHandler {
         accountHandler.update(account.copy(shippingAddresses = newAddrs), true)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  //  val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("email", signup.email)
-  //  if (EsClient.search[Account](req).isDefined)
-  //    throw new AccountWithSameEmailAddressAlreadyExistsError("")
-
-
-  def emailInfo(email: String, merchantId: Option[String]): Map[Symbol, Any] = {
-    this.findByEmail(email, merchantId).map { account =>
-      profileInfo(account.uuid)
-    } getOrElse (throw AccountDoesNotExistException(s"$email"))
-  }
 
   def profileInfo(accountId: String): Map[Symbol, Any] = load(accountId).map {
     account =>
