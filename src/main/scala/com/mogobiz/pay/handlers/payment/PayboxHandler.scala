@@ -258,7 +258,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       else
         transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
 
-    val vendor = accountHandler.find(vendorId).get
+    val vendor = accountHandler.load(vendorId).get
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context

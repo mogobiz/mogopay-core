@@ -15,7 +15,6 @@ import spray.http._
 import spray.routing.Directives
 
 
-
 class AccountService extends Directives with DefaultComplete {
 
   import Implicits._
@@ -40,6 +39,7 @@ class AccountService extends Directives with DefaultComplete {
         getBillingAddress ~
         getShippingAddresses ~
         getShippingAddress ~
+        emailInfo ~
         profileInfo ~
         assignBillingAddress ~
         addShippingAddress ~
@@ -109,7 +109,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val id = path("id") {
     get {
       parameters('seller) { seller =>
-        handleCall(accountHandler.findByEmail(seller + "@merchant.com").map(_.uuid),
+        handleCall(accountHandler.findByEmail(seller + "@merchant.com", None).map(_.uuid),
           (res: Option[String]) =>
             if (res.isEmpty)
               complete(StatusCodes.NotFound)
@@ -123,7 +123,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val secret = path("secret") {
     get {
       parameters('seller) { seller =>
-        handleCall(accountHandler.findByEmail(seller + "@merchant.com").map(_.secret),
+        handleCall(accountHandler.findByEmail(seller + "@merchant.com", None).map(_.secret),
           (res: Option[String]) =>
             if (res.isEmpty)
               complete(StatusCodes.NotFound)
@@ -154,7 +154,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val isValidAccountId = path("is-valid-account-id") {
     get {
       parameters('id) { id =>
-        handleCall(accountHandler.find(id).nonEmpty,
+        handleCall(accountHandler.load(id).nonEmpty,
           (res: Boolean) =>
             complete(
               res match {
@@ -362,18 +362,39 @@ class AccountService extends Directives with DefaultComplete {
   }
 
   lazy val profileInfo = path("profile-info") {
-    get {
-      session {
-        session =>
-          session.sessionData.accountId match {
-            case Some(accountId: String) =>
-              handleCall(accountHandler.profileInfo(accountId),
-                (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
-            case _ => complete {
-              StatusCodes.Unauthorized ->
-                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+    parameter('email.?) { email =>
+      get {
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) =>
+                handleCall(accountHandler.profileInfo(accountId),
+                  (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
             }
-          }
+        }
+      }
+    }
+  }
+
+  lazy val emailInfo = path("email-info") {
+    parameter('email) { email =>
+      get {
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) if session.sessionData.isMerchant =>
+                handleCall(accountHandler.emailInfo(email, session.sessionData.accountId),
+                  (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
+            }
+        }
       }
     }
   }

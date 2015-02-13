@@ -47,15 +47,17 @@ class BackofficeService extends Directives with DefaultComplete {
           val params = parameters('email ?,
             'start_date.as[String] ?, 'start_time.as[String] ?,
             'end_date.as[String] ?, 'end_time.as[String] ?,
-            'amount.as[Int] ?, 'transaction_uuid ?)
+            'amount.as[Int] ?, 'transaction_uuid ?, 'transaction_status.?, 'delivery_status.?)
           params {
-            (email, startDate, startTime, endDate, endTime, amount, transaction) =>
+            (email, startDate, startTime, endDate, endTime, amount, transaction, transactionStatus, deliveryStatus) =>
               handleCall(backofficeHandler.listTransactions(session.sessionData,
                 email.filter(_.trim.nonEmpty),
                 startDate, startTime,
                 endDate, endTime,
                 amount,
-                transaction.filter(_.trim.nonEmpty)),
+                transaction.filter(_.trim.nonEmpty),
+                transactionStatus.filter(_.trim.nonEmpty),
+                deliveryStatus.filter(_.trim.nonEmpty)),
                 (trans: Seq[BOTransaction]) => complete(StatusCodes.OK -> trans))
           }
       }
