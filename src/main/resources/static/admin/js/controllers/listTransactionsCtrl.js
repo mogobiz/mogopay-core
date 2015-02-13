@@ -21,6 +21,10 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
             dataToSend += "&transaction_uuid=" + $("#listTransactionsUUID").val();
         if ($.trim($("#listTransactionsAmount").val()) != "")
             dataToSend += "&amount=" + $("#listTransactionsAmount").val();
+        if ($.trim($("#listTransactionsStatus").val()) != "")
+            dataToSend += "&status=" + $("#listTransactionsStatus").val();
+        if ($.trim($("#listTransactionsDelivery").val()) != "")
+            dataToSend += "&delivery=" + $("#listTransactionsDelivery").val();
         if ($("#listTransactionsStartDate").val() != "")
             dataToSend += "&start_date=" + $("#listTransactionsStartDate").val();
         if ($("#listTransactionsStartTime").val() != "")
