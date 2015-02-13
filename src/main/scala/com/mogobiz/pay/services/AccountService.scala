@@ -44,7 +44,7 @@ class AccountService extends Directives with DefaultComplete {
         assignBillingAddress ~
         addShippingAddress ~
         updateShippingAddress ~
-        getActiveCountryState ~
+        getActiveCountryStateShipping ~
         selectShippingAddress ~
         deleteShippingAddress ~
         deleteMerchantTestAccount ~
@@ -470,13 +470,13 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val getActiveCountryState = get {
-    path("active-country-state") {
+  lazy val getActiveCountryStateShipping = get {
+    path("active-country-state-shipping") {
       session {
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              handleCall(accountHandler.getActiveCountryState(accountId),
+              handleCall(accountHandler.getActiveCountryStateShipping(accountId),
                 (res: Option[Map[Symbol, Option[String]]]) =>
                   res match {
                     case Some(res) => complete(StatusCodes.OK -> res)
