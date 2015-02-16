@@ -26,6 +26,7 @@ object  MogopayHandlers {
   val transactionRequestHandler = new TransactionRequestHandler
   val transactionSequenceHandler = new TransactionSequenceHandler
 
+  val noShippingHandler = new NoShippingHandler
   val kialaShippingHandler = new KialaShippingHandler
   val systempayHandler = new SystempayHandler("systempay")
   val sipsHandler = new SipsHandler("sips")
