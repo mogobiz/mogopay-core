@@ -10,10 +10,10 @@ import scalikejdbc._
 object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
   override val tableName = "b_o_account"
 
-//  implicit val uuidTypeBinder: TypeBinder[UUID] = new TypeBinder[UUID] {
-//    def apply(rs: ResultSet, label: String): UUID = UUID.fromString(rs.getString(label))
-//    def apply(rs: ResultSet, index: Int): UUID = UUID.fromString(rs.getString(index))
-//  }
+  //  implicit val uuidTypeBinder: TypeBinder[UUID] = new TypeBinder[UUID] {
+  //    def apply(rs: ResultSet, label: String): UUID = UUID.fromString(rs.getString(label))
+  //    def apply(rs: ResultSet, index: Int): UUID = UUID.fromString(rs.getString(index))
+  //  }
 
   def apply(rn: ResultName[BOAccount])(rs: WrappedResultSet): BOAccount = BOAccount(
     rs.get(rn.id),
@@ -25,18 +25,18 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     rs.date(rn.lastUpdated))
 
   def create(account: Account)(implicit session: DBSession): Unit = {
-    val newBoCart = new BOAccount(newId(), UUID.fromString(account.uuid), JacksonConverter.serialize(account),
+    val newBoAccount = new BOAccount(newId(), UUID.fromString(account.uuid), JacksonConverter.serialize(account),
       account.email, account.company.orNull, new Date, new Date)
 
     applyUpdate {
       insert.into(BOAccountDAO).namedValues(
-        BOAccountDAO.column.id          -> newBoCart.id,
-        BOAccountDAO.column.uuid        -> newBoCart.uuid.toString,
-        BOAccountDAO.column.extra       -> newBoCart.extra,
-        BOAccountDAO.column.email       -> newBoCart.email,
-        BOAccountDAO.column.company     -> newBoCart.company,
-        BOAccountDAO.column.dateCreated -> new java.sql.Timestamp(newBoCart.dateCreated.getTime()),
-        BOAccountDAO.column.lastUpdated -> new java.sql.Timestamp(newBoCart.lastUpdated.getTime())
+        BOAccountDAO.column.id -> newBoAccount.id,
+        BOAccountDAO.column.uuid -> newBoAccount.uuid.toString,
+        BOAccountDAO.column.extra -> newBoAccount.extra,
+        BOAccountDAO.column.email -> newBoAccount.email,
+        BOAccountDAO.column.company -> newBoAccount.company,
+        BOAccountDAO.column.dateCreated -> new java.sql.Timestamp(newBoAccount.dateCreated.getTime()),
+        BOAccountDAO.column.lastUpdated -> new java.sql.Timestamp(newBoAccount.lastUpdated.getTime())
       )
     }
   }
@@ -52,9 +52,9 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     DB localTx { implicit session =>
       applyUpdate {
         QueryDSL.update(BOAccountDAO).set(
-          BOAccountDAO.column.extra       -> JacksonConverter.serialize(account),
-          BOAccountDAO.column.email       -> account.email,
-          BOAccountDAO.column.company     -> account.company.orNull,
+          BOAccountDAO.column.extra -> JacksonConverter.serialize(account),
+          BOAccountDAO.column.email -> account.email,
+          BOAccountDAO.column.company -> account.company.orNull,
           BOAccountDAO.column.lastUpdated -> new Date
         ).where.eq(BOAccountDAO.column.uuid, account.uuid)
       }
