@@ -502,7 +502,7 @@ class TransactionHandler {
   }
 
   def computePrice(address: ShippingAddress, currencyCode: String, cart: JValue): Seq[ShippingPrice] = {
-    val servicesList: Seq[ShippingService] = Seq(kialaShippingHandler)
+    val servicesList: Seq[ShippingService] = Seq(noShippingHandler, kialaShippingHandler)
 
     servicesList.map {
       service =>

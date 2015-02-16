@@ -1,8 +1,7 @@
 package com.mogobiz.pay.handlers.shipping
 
-import com.mogobiz.pay.model.Mogopay.{Rate, ShippingAddress}
+import com.mogobiz.pay.model.Mogopay.ShippingAddress
 import org.json4s.JValue
-import org.json4s.JsonAST._
 import com.mogobiz.pay.config.MogopayHandlers._
 
 class KialaShippingHandler extends ShippingService {
@@ -13,12 +12,7 @@ class KialaShippingHandler extends ShippingService {
                               cart: JValue): Seq[ShippingPrice] = {
 
 
-    val shippingContent : List[(Boolean, BigInt)] = for {
-      JObject(shipping) <- cart \ "cartItemVOs" \ "shipping"
-      JField("free", JBool(free))  <- shipping
-      JField("amount", JInt(amount))  <- shipping
-    } yield (free, amount)
-
+    val shippingContent : List[(Boolean, BigInt)] = extractChippingContent(cart)
 
     def calculatePrice(list: List[(Boolean, BigInt)]) : Long = {
       if (list == Nil) 0
@@ -31,9 +25,6 @@ class KialaShippingHandler extends ShippingService {
     }
 
     if (shippingContent == Nil) Seq()
-    else {
-      var rate : Option[Rate] = rateHandler.findByCurrencyCode(currencyCode)
-      Seq(ShippingPrice("KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2))
-    }
+    else Seq(createShippingPrice("KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), currencyCode))
   }
 }
