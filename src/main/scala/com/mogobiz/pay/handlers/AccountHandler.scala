@@ -357,7 +357,7 @@ class AccountHandler {
     sendNewPasswordEmail(account, returnURL, newPassword)
 
     def sendNewPasswordEmail(account: Account, returnURL: String, newPassword: String) = {
-      val vendor = if (account.owner.isDefined) find(account.owner.get) else None
+      val vendor = if (account.owner.isDefined) load(account.owner.get) else None
       val template = templateHandler.loadTemplateByVendor(vendor, "new-password.mustache")
 
       val data = s"""{"url": "$returnURL", "newPassword": "$newPassword"}"""
@@ -945,7 +945,7 @@ class AccountHandler {
   }
 
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String): Unit = {
-    val vendor = if (account.owner.isDefined) find(account.owner.get) else None
+    val vendor = if (account.owner.isDefined) load(account.owner.get) else None
     val template = templateHandler.loadTemplateByVendor(vendor, "signup-confirmation.mustache")
 
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
