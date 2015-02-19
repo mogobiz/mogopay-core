@@ -201,12 +201,7 @@ class TransactionHandler {
     val jsonString = compact(render(json))
     transaction.vendor.map { vendor =>
       val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order.mustache")
-      val mailContent = templateHandler.mustache(template, jsonString)
-      val eol = mailContent.indexOf('\n')
-      require(eol > 0, "No new line found in mustache file to distinguish subject from body")
-      val subject = mailContent.substring(0, eol)
-      val body = mailContent.substring(eol + 1)
-
+      val (subject, body) = templateHandler.mustache(template, jsonString)
       EmailHandler.Send.to(
         Mail(
           (transaction.vendor.get.email -> s"${transaction.vendor.get.firstName} ${transaction.vendor.get.lastName}"),
@@ -516,8 +511,8 @@ class TransactionHandler {
       case Some(transaction) => {
         val jsonString = BOTransactionJsonTransform.transform(transaction, langCountry)
         val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill.mustache")
-        val html = templateHandler.mustache(template, jsonString)
-        pdfHandler.convertToPdf(pageFormat, html);
+        val (subject, body) = templateHandler.mustache(template, jsonString)
+        pdfHandler.convertToPdf(pageFormat, body);
       }
       case None => throw new BOTransactionNotFoundException(transactionUuid)
     }

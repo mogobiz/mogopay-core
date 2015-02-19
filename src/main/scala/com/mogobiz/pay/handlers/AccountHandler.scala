@@ -360,13 +360,14 @@ class AccountHandler {
       val vendor = if (account.owner.isDefined) load(account.owner.get) else None
       val template = templateHandler.loadTemplateByVendor(vendor, "new-password.mustache")
 
-      val data = s"""{"url": "$returnURL", "newPassword": "$newPassword"}"""
+      val data = s"""{"newPassword": "$newPassword"}"""
+      val (subject, body) = templateHandler.mustache(template, data)
       EmailHandler.Send.to(
         Mail(
           from = ("contact@mogopay.com", "Mogopay"),
           to = Seq(account.email),
-          subject = "Your new password",
-          message = templateHandler.mustache(template, data)))
+          subject = subject,
+          message = body))
     }
   }
 
@@ -950,12 +951,13 @@ class AccountHandler {
 
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 
+    val (subject, body) = templateHandler.mustache(template, s"""{"url": "$url"}""")
     EmailHandler.Send.to(
       Mail(
         from = ("contact@mogopay.com", "Mogopay"),
         to = Seq(account.email),
-        subject = "Please confirm your account",
-        message = templateHandler.mustache(template, s"""{"url": "$url"}""")))
+        subject = subject,
+        message = body))
   }
 }
 
