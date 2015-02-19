@@ -2,24 +2,24 @@ package com.mogobiz.pay.boot
 
 import java.io.File
 import java.sql.Timestamp
-import java.util.{Calendar, Currency, Date, Random}
+import java.util.{Currency, UUID, Date}
 
 import com.mogobiz.es.{EsClient, Settings => esSettings}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
+import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
+import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
-import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
-import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.settings.{Mapping, Settings}
-import com.mogobiz.utils.GlobalUtil._
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.index.query.TermQueryBuilder
 import org.elasticsearch.transport.RemoteTransportException
 
-import scala.concurrent.duration.Duration
+import scala.util.Random
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
 
@@ -56,121 +56,122 @@ object DBInitializer {
     val SIPS = Map("sipsMerchantId" -> "011223344553333", "sipsMerchantCountry" -> "fr")
     val SIPS_2 = Map("sipsMerchantId" -> "011223344551112", "sipsMerchantCountry" -> "fr")
     val PAYBOX_EXTERNAL = Map("payboxSite" -> "1999888", "payboxKey" -> "110647233", "payboxRank" -> "32", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
-
     val PAYBOX_2DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "85", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
-
     val PAYBOX_3DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "109518543", "payboxContract" -> "PAYBOX_DIRECT")
-
     val SYS_PAY = Map("systempayShopId" -> "34889127", "systempayContractNumber" -> "5028717", "systempayCertificate" -> "7736291283331938")
 
-    val customer = RoleName.CUSTOMER
-    val merchant = RoleName.MERCHANT
+    // Création des comptes marchands
+    val paypalPaylineExternal = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
+    val merchantAccount = createMerchantAccount("ebc23bd9-3abc-4684-849d-e4e15c1a0f82", "mogopay@merchant.com", "Mogopay", "Merchant", paypalPaylineExternal)
 
-    val clientTelephone = Telephone("33672308706", "0672308706", "FR", None, TelephoneStatus.ACTIVE)
-    val clientTelephone1 = Telephone("33685711396", "0685711396", "FR", None, TelephoneStatus.ACTIVE)
-    val clientTelephoneInactive = Telephone("33698765432", "0698765432", "FR", None, TelephoneStatus.ACTIVE)
-    val clientTelephoneWaitingEnroll = Telephone("33623456789", "0623456789", "FR", None, TelephoneStatus.WAITING_ENROLLMENT)
-    val merchantTelephone = Telephone("33644104178", "0644104178", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone2 = Telephone("33644104179", "0644104179", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone3 = Telephone("33644104119", "0644104119", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone4 = Telephone("33644104129", "0644104129", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone5 = Telephone("33644104139", "0644104139", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone6 = Telephone("33644104149", "0644104149", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone7 = Telephone("33644104159", "0644104159", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone8 = Telephone("33644104169", "0644104169", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone9 = Telephone("33644104179", "0644104179", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone10 = Telephone("33690104179", "0690104179", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone11 = Telephone("33691104179", "0691104179", "FR", None, TelephoneStatus.ACTIVE)
-    val merchantTelephone12 = Telephone("33611104179", "0611104179", "FR", None, TelephoneStatus.ACTIVE)
+    val paypalSips2DSConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS, CBPaymentMethod.THREEDS_NO)
+    val merchantAccount2 = createMerchantAccount("c3a4548f-1edf-4a1f-8a9a-4f0b374720cd", "seller2@merchant.com", "Merchant2", "TEST", paypalSips2DSConfig)
+    createCertification(merchantAccount2)
 
-    val clientAccountAddress: AccountAddress = createAddress("Rue victor HUGO", "Paris", "75005", "France")
-    val clientAccountAddress1 = createAddress("road 1", "city 1", "zip 1", "country 1")
-    val clientInactifAddress = createAddress("road 2", "city 2", "zip 2", "France")
-    val clientWaitingEnrollAddress = createAddress("road 3", "city 3", "zip 3", "France")
-    val merchantAccountAddress = createAddress("4 Place de la Defense", "Puteaux", "92400", "France")
-    val merchantAccountAddress2 = createAddress("Rue Saint Michel2", "Paris", "75007", "France")
-    val merchantAccountAddress3 = createAddress("Rue Saint Michel3", "Paris", "75007", "France")
-    val merchantAccountAddress4 = createAddress("Rue Saint Michel4", "Paris", "75007", "France")
-    val merchantAccountAddress5 = createAddress("Rue Saint Michel5", "Paris", "75007", "France")
-    val merchantAccountAddress6 = createAddress("Rue Saint Michel6", "Paris", "75007", "France")
-    val merchantAccountAddress7 = createAddress("Rue Saint Michel7", "Paris", "75007", "France")
-    val merchantAccountAddress8 = createAddress("Rue Saint Michel8", "Paris", "75007", "France")
-    val merchantAccountAddress9 = createAddress("Rue Saint Michel9", "Paris", "75007", "France")
-    val merchantAccountAddress10 = createAddress("Rue Saint Michel10", "Paris", "75007", "France")
-    val merchantAccountAddress11 = createAddress("Rue Saint Michel11", "Paris", "75007", "France")
-    val merchantAccountAddress12 = createAddress("Rue Saint Michel12", "Paris", "75007", "France")
+    val paypalPayboxExternalConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
+    val merchantAccount3 = createMerchantAccount("d389ae7-5136-42ef-a6d6-f2f02cee075d", "seller3@merchant.com", "Merchant3", "TEST", paypalPayboxExternalConfig)
 
-    val paymentConfig1 = createPaymentConfig(CBPaymentProvider.PAYLINE,
-      PAYPAL, PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
-    var merchantAccountInfo = createAccount("Mogopay", "Merchant",
-      "mogopay@merchant.com", merchantTelephone, merchantAccountAddress,
-      merchant, Some(paymentConfig1), None, secret = "mogopay", uuid = "92c60aa1-5d4c-4c6c-b8c9-c8098100bc3c")
+    val paypalPaybox2DSConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_2DS, CBPaymentMethod.THREEDS_NO)
+    val merchantAccount4 = createMerchantAccount("17727558-970e-40f3-9fa1-89319995891c", "seller4@merchant.com", "Merchant4", "TEST", paypalPaybox2DSConfig)
 
-    val clientAccountInfo = createAccount("Client 1", "TEST", "client@merchant.com", clientTelephone, clientAccountAddress, customer, None, Some(merchantAccountInfo))
-    val clientAccountInfo1 = createAccount("Client 2", "TEST 1", "client1@merchant.com", clientTelephone1, clientAccountAddress1, customer, None, Some(merchantAccountInfo))
-    val clientInactifAccountInfo = createAccount("Client 3", "Inactif", "inactif@merchant.com", clientTelephoneInactive, clientInactifAddress, customer, None, Some(merchantAccountInfo), AccountStatus.INACTIVE)
-    val clientWaitingEnrollAccountInfo = createAccount("Client", "waiting", "waiting@merchant.com", clientTelephoneWaitingEnroll, clientWaitingEnrollAddress, customer, None, Some(merchantAccountInfo))
+    val paypalPayline2DSConfig = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.THREEDS_NO)
+    val merchantAccount5 = createMerchantAccount("5873f47c-afb4-4cb7-bc76-16ca88c389e7", "seller5@merchant.com", "Merchant5", "TEST", paypalPayline2DSConfig)
 
-    createBOTransaction(merchantAccountInfo, Some("1"))
-    createBOTransaction(merchantAccountInfo, Some("2"))
-    createBOTransaction(merchantAccountInfo, None, Some(clientAccountInfo1))
-    createBOTransaction(merchantAccountInfo, None, Some(clientAccountInfo1))
-    createBOTransaction(merchantAccountInfo)
-    createBOTransaction(merchantAccountInfo)
+    val paypalPayline3DSConfig = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
+    val merchantAccount6 = createMerchantAccount("30958ef7-fad3-4f29-988e-df51376974cd", "seller6@merchant.com", "Merchant6", "TEST", paypalPayline3DSConfig)
 
-    val sipsPaymentConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS, CBPaymentMethod.THREEDS_NO)
-    val merchantAccountInfo2 = createAccount("Merchant2", "TEST", "seller2@merchant.com", merchantTelephone2, merchantAccountAddress2, merchant, Some(sipsPaymentConfig), None)
-    createCertification(merchantAccountInfo2)
+    val paypalSystemPayExternalConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.EXTERNAL)
+    val merchantAccount7 = createMerchantAccount("d7b864c8-4567-4603-abd4-5f85e9ff56e6", "seller7@merchant.com", "Merchant7", "TEST", paypalSystemPayExternalConfig)
 
-    val sipsPaymentConfig12 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS, CBPaymentMethod.THREEDS_REQUIRED)
-    val merchantAccountInfo12 = createAccount("Merchant12", "TEST", "seller12@merchant.com", merchantTelephone12, merchantAccountAddress12, merchant, Some(sipsPaymentConfig12), None)
-    createCertification(merchantAccountInfo12)
+    val paypalSystemPay2DSConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_NO)
+    val merchantAccount8 = createMerchantAccount("78a2fa03-5498-4f07-b716-c9b9c2b64954", "seller8@merchant.com", "Merchant8", "TEST", paypalSystemPay2DSConfig)
 
-    val paymentConfig2 = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS_2, CBPaymentMethod.EXTERNAL)
-    merchantAccountInfo = createAccount("Merchant10", "TEST", "seller10@merchant.com", merchantTelephone10, merchantAccountAddress10, merchant, Some(paymentConfig2), None)
-    createParcom(merchantAccountInfo)
+    val paypalSystemPay3DSConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
+    val merchantAccount9 = createMerchantAccount("92795318-8760-4a5f-b71a-c7dcf4af2b79", "seller9@merchant.com", "Merchant9", "TEST", paypalSystemPay3DSConfig)
 
-    var payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
-    createAccount("Merchant3", "TEST", "seller3@merchant.com", merchantTelephone3, merchantAccountAddress3, merchant, Some(payboxPaymentConfig), None)
+    val paypalSipsExternalConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS_2, CBPaymentMethod.EXTERNAL)
+    val merchantAccount10 = createMerchantAccount("f56269e3-7d22-4dcf-9812-ff74a7d7d2c7", "seller10@merchant.com", "Merchant10", "TEST", paypalSipsExternalConfig)
+    createParcom(merchantAccount10)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_2DS, CBPaymentMethod.THREEDS_NO)
-    createAccount("Merchant4", "TEST", "seller4@merchant.com", merchantTelephone4, merchantAccountAddress4, merchant, Some(payboxPaymentConfig), None)
+    val paypalPaybox3DSConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_3DS, CBPaymentMethod.THREEDS_REQUIRED)
+    val merchantAccount11 = createMerchantAccount("e7542826-f6cc-46bd-8f61-550b7fea9ca7", "seller11@merchant.com", "Merchant11", "TEST", paypalPaybox3DSConfig)
 
-    payboxPaymentConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, PAYBOX_3DS, CBPaymentMethod.THREEDS_REQUIRED)
-    createAccount("Merchant11", "TEST", "seller11@merchant.com", merchantTelephone11, merchantAccountAddress11, merchant, Some(payboxPaymentConfig), None)
+    val paypalSips3DSPaymentConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, SIPS, CBPaymentMethod.THREEDS_REQUIRED)
+    val merchantAccount12 = createMerchantAccount("7264a70e-9960-4492-b466-4377a1fc2025", "seller12@merchant.com", "Merchant12", "TEST", paypalSips3DSPaymentConfig)
+    createCertification(merchantAccount12)
 
-    val paymentConfig3 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.THREEDS_NO)
-    createAccount("Merchant5", "TEST", "seller5@merchant.com", merchantTelephone5, merchantAccountAddress5, merchant, Some(paymentConfig3), None)
+    // Création des comptes clients
+    val client1Account = createClientAccount("8a53ef3e-34e8-4569-8f68-ac0dfc548a0f", "client@merchant.com", "Client 1", "TEST", merchantAccount7, true)
+    createClientAccount("7f441fa3-d382-4838-8255-9fc238cdb958", "client1@merchant.com", "Client 2", "TEST 1", merchantAccount7, true)
+    createClientAccount("fd80c7e4-c91d-492a-8b48-214b809105d8", "inactif@merchant.com", "Client 3", "Inactif", merchantAccount7, true, AccountStatus.INACTIVE)
+    createClientAccount("15995735-56ca-4d19-806b-a6bc7fedc162", "waiting@merchant.com", "Client", "waiting", merchantAccount7, true, AccountStatus.ACTIVE, TelephoneStatus.WAITING_ENROLLMENT)
+    createClientAccount("a8858dd5-e14f-4aa0-9504-3d56bab5229d", "existing.account@test.com", "Existing", "Account", merchantAccount7, true)
 
-    val paymentConfig4 = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
-    createAccount("Merchant6", "TEST", "seller6@merchant.com", merchantTelephone6, merchantAccountAddress6, merchant, Some(paymentConfig4), None)
-
-    val paymentConfig5 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.EXTERNAL)
-    createAccount("Merchant7", "TEST", "seller7@merchant.com", merchantTelephone7, merchantAccountAddress7, merchant, Some(paymentConfig5), None, AccountStatus.ACTIVE, "seller7@merchant.com", "d7b864c8-4567-4603-abd4-5f85e9ff56e6")
-
-    val paymentConfig6 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_NO)
-    createAccount("Merchant8", "TEST", "seller8@merchant.com", merchantTelephone8, merchantAccountAddress8, merchant, Some(paymentConfig6), None, AccountStatus.ACTIVE, "seller8@merchant.com", "78a2fa03-5498-4f07-b716-c9b9c2b64954")
-
-    val paymentConfig7 = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, SYS_PAY, CBPaymentMethod.THREEDS_REQUIRED)
-    createAccount("Merchant9", "TEST", "seller9@merchant.com", merchantTelephone9, merchantAccountAddress9, merchant, Some(paymentConfig7), None, AccountStatus.ACTIVE, "seller9@merchant.com", "92795318-8760-4a5f-b71a-c7dcf4af2b79")
-
-    //    val rateEUR = Rate(newUUID, "EUR", Calendar.getInstance.getTime, 0.01, 2)
-    //    EsClient.index(Settings.Mogopay.EsIndex, rateEUR, true)
-    //    val rateGBP = new Rate(newUUID, "GBP", Calendar.getInstance.getTime, 0.00829348, 2)
-    //    EsClient.index(Settings.Mogopay.EsIndex, rateGBP, true)
+    createTransaction("2bd49675-bec8-4fd2-bce0-6c83094ce8e8", 10400, client1Account, merchantAccount7, "{\"boCartUuid\":\"e2e3cc44-6c2f-4736-976b-c54a798bd8f0\",\"cartItemVOs\":[{\"registeredCartItemVOs\":[],\"formatedPrice\":\"100,00 €\",\"skuName\":\"type1\",\"productId\":32715,\"formatedTotalPrice\":\"100,00 €\",\"id\":\"acf84259-8a9c-483c-af08-2cfcb22d61d3\",\"calendarType\":\"NO_DATE\",\"shipping\":{\"amount\":0,\"id\":0,\"free\":false,\"height\":0,\"weight\":0,\"weightUnit\":null,\"width\":0,\"linearUnit\":null,\"depth\":0},\"formatedEndPrice\":\"100,00 €\",\"price\":10000,\"formatedTotalEndPrice\":\"100,00 €\",\"xtype\":\"PRODUCT\",\"saleTotalPrice\":10000,\"skuId\":34591,\"endPrice\":10000,\"quantity\":1,\"salePrice\":10000,\"productName\":\"Mens Electric Blue Gym T-Shirt\",\"totalEndPrice\":10000,\"totalPrice\":10000}],\"count\":1,\"formatedPrice\":\"100,00 €\",\"transactionUuid\":\"\",\"finalPrice\":10400,\"coupons\":[],\"formatedEndPrice\":\"100,00 €\",\"price\":10000,\"endPrice\":10000,\"formatedFinalPrice\":\"100,00 €\",\"reduction\":0,\"formatedReduction\":\"0,00 €\",\"shipping\":400}")
+    createTransaction("9aeaadde-c36f-4aac-8d2b-5f506b0cf536", 1194, client1Account, merchantAccount7, "{\"boCartUuid\":\"50eca8f7-3679-4477-9fc7-e3811d0d838c\",\"cartItemVOs\":[{\"registeredCartItemVOs\":[],\"formatedPrice\":\"9,99 €\",\"saleTotalEndPrice\":1194,\"skuName\":\"S\",\"productId\":32568,\"formatedTotalPrice\":\"9,99 €\",\"id\":\"8e7e90d1-d2f1-4067-bae2-8cc2015b0876\",\"calendarType\":\"NO_DATE\",\"shipping\":{\"amount\":0,\"id\":0,\"free\":false,\"height\":0,\"weight\":0,\"weightUnit\":null,\"width\":0,\"linearUnit\":null,\"depth\":0},\"formatedEndPrice\":\"11,94 €\",\"price\":999,\"saleEndPrice\":1194,\"tax\":19.6,\"formatedTotalEndPrice\":\"11,94 €\",\"saleTotalPrice\":999,\"xtype\":\"PRODUCT\",\"skuId\":214560,\"endPrice\":1194,\"salePrice\":999,\"quantity\":1,\"productName\":\"Electric Blue Womens Football Shirt\",\"totalEndPrice\":1194,\"totalPrice\":999}],\"count\":1,\"formatedPrice\":\"9,99 €\",\"transactionUuid\":\"\",\"finalPrice\":1594,\"coupons\":[],\"formatedEndPrice\":\"11,94 €\",\"price\":999,\"endPrice\":1194,\"formatedFinalPrice\":\"11,94 €\",\"reduction\":0,\"formatedReduction\":\"0,00 €\",\"shipping\":400}")
   }
 
-  private def createAddress(road: String, city: String, zip: String, country: String) = {
-    val tel = Some(Telephone("+33123456789", "0123456789", "", None, TelephoneStatus.ACTIVE))
-    AccountAddress(road, None, city, Some(zip), None, None, None, None, tel, Some(country), None, None)
-    //    AccountAddress(road, None, city, Some(zip), None, None, None, None, None, Some(country), None, None)
+  private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig : PaymentConfig) : Account = {
+    val account = Account(uuid = uuid,
+                          email = email,
+                          company = Some("acmesport"),
+                          password = new Sha256Hash("1234").toString,
+                          civility = Some(Civility.MR),
+                          firstName = Some(firstname),
+                          lastName = Some(lastname),
+                          address = Some(createAddress(firstname, lastname)),
+                          status = AccountStatus.ACTIVE,
+                          paymentConfig = Some(paymentConfig),
+                          roles = List(RoleName.MERCHANT),
+                          secret = uuid)
+    accountHandler.save(account)
+    account
   }
 
-  type M = Map[String, String]
+  private def createClientAccount(uuid: String, email: String, firstname: String, lastname: String, owner: Account, withShippingAddress: Boolean, status: AccountStatus = AccountStatus.ACTIVE, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE) : Account = {
+    val account = Account(uuid = uuid,
+      email = email,
+      password = new Sha256Hash("1234").toString,
+      civility = Some(Civility.MR),
+      firstName = Some(firstname),
+      lastName = Some(lastname),
+      birthDate = Some(new Date(2000, 0, 1)),
+      address = Some(createAddress(firstname, lastname, telephoneStatus)),
+      status = status,
+      roles = List(RoleName.CUSTOMER),
+      owner = Some(owner.uuid),
+      shippingAddresses = if (withShippingAddress) List(createShippingAddress(firstname, lastname, true), createShippingAddress(firstname, lastname, false)) else List(),
+      secret = uuid)
+    accountHandler.save(account)
+    account
+  }
+
+  private def createAddress(firstname: String, lastname: String, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE) : AccountAddress = {
+    val phone = Telephone("+33123456789", "0123456789", "FR", Some("000"), telephoneStatus)
+    AccountAddress(civility = Some(Civility.MR),
+      firstName = Some(firstname),
+      lastName = Some(lastname),
+      telephone = Some(phone),
+      road = "road",
+      road2 = Some("road2"),
+      extra = Some("extra"),
+      city = "Paris",
+      zipCode = Some("75000"),
+      country = Some("FR"),
+      admin1 = Some("FR.A8"),
+      admin2 = Some("FR.A8.75"))
+  }
+
+  private def createShippingAddress(firstname: String, lastname: String, active: Boolean) : ShippingAddress = {
+    val prefixe = if (active) "Active " else ""
+    ShippingAddress(uuid = UUID.randomUUID().toString,
+                    active = active,
+                    address = createAddress(prefixe + firstname, prefixe + lastname))
+  }
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
-                                  paypalConfig: M,
-                                  cbConfig: M,
+                                  paypalConfig: Map[String, String],
+                                  cbConfig: Map[String, String],
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
                                   passwordPattern: Option[String] = Some("")) = {
@@ -184,129 +185,50 @@ object DBInitializer {
       None, None, None, passwordPattern)
   }
 
-  private def createAccount(firstName: String, lastName: String, email: String,
-                            telephone: Telephone,
-                            accountAddress: AccountAddress, role: RoleName,
-                            paymentConfig: Option[PaymentConfig],
-                            owner: Option[Account],
-                            status: AccountStatus = AccountStatus.ACTIVE,
-                            secret: String = newUUID,
-                            uuid: String = newUUID): Account = {
-    val account = Account(uuid,
-      email,
-      Some("COMPA"),
-      Some("http://www.merchant.com"),
-      new Sha256Hash("1234").toString,
-      Some(Civility.MRS),
-      Some(firstName),
-      Some(lastName),
-      Some(new Timestamp(0)),
-      Some(accountAddress),
-      status,
-      0,
-      0L,
-      0L,
-      None,
-      None,
-      paymentConfig,
-      countryHandler.findByCode("FR"),
-      List(role),
-      owner.map(_.uuid),
-      None,
-      List(ShippingAddress("addr1", active = false, null)),
-      secret,
-      Nil)
-    accountHandler.save(account)
-    account
-  }
-
-  private def now(): Timestamp = new Timestamp(new java.util.Date().getTime)
-
-  var i = 0
-
-  private def createBOTransaction(vendor: Account,
-                                  transactionUuid: Option[String] = None,
-                                  customer: Option[Account] = None) = {
-    val creditCard = BOCreditCard("1234XXXXXXXXXXX9087",
-      Some("CLIENT SYMPA"), new Timestamp(new java.util.Date().getTime),
-      CreditCardType.CB)
-    val currency = TransactionCurrency("EUR", Currency.getInstance("EUR").getNumericCode, 0.001, 2)
-
-    val rn: Random = new Random()
-
-    val boPaymentData = BOPaymentData(PaymentType.CREDIT_CARD,
-      CBPaymentProvider.SIPS,
-      Some(rn.nextInt().toString),
-      Some(now()),
+  private def createTransaction(transactionUuid: String, amount: Long, customer: Account, vendor: Account, extra: String) = {
+    val transactionDate = randomDate();
+    val currency = TransactionCurrency("EUR", Currency.getInstance("EUR").getNumericCode, 0.01, 2)
+    val creditCard = BOCreditCard("1234XXXXXXXXXXX9087", None, new Date(), CreditCardType.CB)
+    val paymentData = BOPaymentData(PaymentType.CREDIT_CARD,
+      CBPaymentProvider.SYSTEMPAY,
+      Some(new Random().nextInt().toString),
+      Some(transactionDate),
       Some(ResponseCode3DS.APPROVED),
       Some("56745"),
       Some("56745"))
 
-    val trans = BOTransaction(
-      newUUID,
-      transactionUUID = transactionUuid.getOrElse(newUUID),
-      authorizationId = Math.abs(rn.nextLong).toString,
-      transactionDate = Option(new Date((2014 - 1900) - i, 1, 1)),
-      amount = (i + 1) * 100,
+    val transaction = BOTransaction(
+      uuid = UUID.randomUUID().toString,
+      transactionUUID = transactionUuid,
+      authorizationId = Math.abs(new Random().nextLong()).toString,
+      transactionDate = Option(transactionDate),
+      amount = amount,
       currency = currency,
       status = TransactionStatus.PAYMENT_CONFIRMED,
-      creationDate = now(),
-      endDate = Some(now()),
-      paymentData = boPaymentData,
+      creationDate = transactionDate,
+      endDate = Some(transactionDate),
+      paymentData = paymentData,
       merchantConfirmation = true,
-      email = Some(s"client${i += 1; i}@merchant.com"),
+      email = Some(customer.email),
       errorCodeOrigin = Some("000"),
-      errorMessageOrigin = Some("OK IMPEC"),
-      extra = Some( """{"price": 100, "count": 1}"""),
+      errorMessageOrigin = Some("OK"),
+      extra = Some(extra),
       description = None,
       creditCard = Some(creditCard),
       vendor = Some(vendor),
-      customer = customer,
+      customer = Some(customer),
       modifications = Nil
     )
+    boTransactionHandler.save(transaction, refresh = true)
 
-    val tlog1 = BOTransactionLog(newUUID,
-      "OUT",
-      "m",
-      "SIPS",
-      trans.uuid)
-    boTransactionLogHandler.save(tlog1)
+    boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "OUT", "m", "SYSTEMPAY", transaction.uuid))
+    boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "IN", "o", "SYSTEMPAY", transaction.uuid))
+  }
 
-    val tlog2 = BOTransactionLog(newUUID,
-      "IN",
-      "o",
-      "SIPS",
-      trans.uuid)
-    boTransactionLogHandler.save(tlog2)
-
-    val modificationStatus1 = ModificationStatus(newUUID,
-      now(),
-      Some("127.0.0.1"),
-      None,
-      Some(TransactionStatus.PAYMENT_REQUESTED),
-      Some("Payment requested"))
-    //      Some("Payment requested"),
-    //      trans.uuid)
-
-    val modificationStatus2 = ModificationStatus(newUUID,
-      now(),
-      Some("127.0.0.1"),
-      None,
-      Some(TransactionStatus.THREEDS_TESTED),
-      Some("3DS check"))
-    //      Some("3DS check"),
-    //      trans.uuid)
-
-    val modificationStatus3 = ModificationStatus(newUUID,
-      now(),
-      Some("127.0.0.1"),
-      None,
-      Some(TransactionStatus.PAYMENT_CONFIRMED),
-      Some("Payment confirmed"))
-    //      Some("Payment confirmed"),
-    //      trans.uuid)
-
-    boTransactionHandler.save(trans, refresh = true)
+  private def randomDate() : Date = {
+    val current = System.currentTimeMillis()
+    val diff = new Random().nextInt(30) * 24 * 60 * 60 * 1000
+    new Date(current - diff)
   }
 
   private def createCertification(merchant: Account) = {

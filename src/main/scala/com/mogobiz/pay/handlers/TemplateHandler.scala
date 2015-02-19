@@ -13,16 +13,22 @@ class TemplateHandler {
   }
 
   def loadTemplateByVendor(vendor: Option[Account], templateName: String) : String = {
-    val templateFile = if (vendor.isDefined) Some(new File(new File(Settings.TemplatesPath, vendor.get.company.get), templateName)) else None
-    if (templateFile.isDefined && templateFile.get.exists()) {
-      val source = scala.io.Source.fromFile(templateFile.get)
-      val lines = source.mkString
-      source.close()
-      lines
-    }
-    else {
-      scala.io.Source.fromInputStream(classOf[TemplateHandler].getResourceAsStream("/template/" + templateName)).mkString
-    }
+
+    def defaultTemplate() = scala.io.Source.fromInputStream(classOf[TemplateHandler].getResourceAsStream("/template/" + templateName)).mkString
+
+    vendor.map { v =>
+      v.company.map {
+        c => new File(new File(Settings.TemplatesPath, c), templateName)
+      } getOrElse (new File(new File(Settings.TemplatesPath), templateName))
+    } map { templateFile =>
+      if (templateFile.exists()) {
+        val source = scala.io.Source.fromFile(templateFile)
+        val lines = source.mkString
+        source.close()
+        lines
+      }
+      else defaultTemplate()
+    } getOrElse(defaultTemplate())
   }
 
 }
