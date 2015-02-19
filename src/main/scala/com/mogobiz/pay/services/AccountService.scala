@@ -10,10 +10,11 @@ import com.mogobiz.pay.model.Mogopay.TokenValidity._
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.pay.settings.Settings
+import shapeless.HNil
 import spray.http.MediaTypes._
 import spray.http._
 import spray.routing.Directives
-
+import shapeless._
 
 class AccountService extends Directives with DefaultComplete {
 
@@ -494,13 +495,13 @@ class AccountService extends Directives with DefaultComplete {
 
   lazy val sendNewPassword = get {
     path("send-new-password") {
-      parameters('return_url) {
-        returnURL =>
+      parameters('from_name, 'from_email) {
+        (fromName: String, fromEmail: String) =>
           session {
             session =>
               session.sessionData.accountId match {
                 case Some(accountId) =>
-                  handleCall(accountHandler.sendNewPassword(accountId, returnURL),
+                  handleCall(accountHandler.sendNewPassword(accountId, fromName, fromEmail),
                     (_: Unit) => complete(StatusCodes.OK))
                 case _ => complete {
                   StatusCodes.Unauthorized ->
@@ -612,15 +613,16 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     post {
       type Token = String
 
-      val fields = formFields('email, 'password, 'password2,
-        'lphone, 'civility, 'firstname, 'lastname, 'birthday,
-        'road, 'road2.?, 'extra.?, 'city, 'zip_code, 'admin1, 'admin2, 'country,
-        'is_merchant.as[Boolean], 'merchant_id ?, 'company ?, 'website ?,
-        'validation_url)
+      val fields = formFields('email :: 'password :: 'password2 ::
+        'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
+        'road :: ('road2 ?) :: ('extra ?) :: 'city :: 'zip_code :: 'admin1 :: 'admin2 :: 'country ::
+        'is_merchant.as[Boolean] :: ('merchant_id ?) :: ('company ?) :: ('website ?) ::
+        'validation_url :: 'from_name :: 'from_email :: HNil)
 
-      fields { (email, password, password2, lphone, civility, firstname,
-                lastname, birthday, road, road2, extra, city, zipCode, admin1, admin2, country,
-                isMerchant, merchantId: Option[String], company, website, validationUrl) =>
+      fields.happly {
+        case email :: password :: password2 :: lphone :: civility :: firstname ::
+            lastname :: birthday :: road :: road2 :: extra :: city :: zipCode :: admin1 :: admin2 :: country ::
+            isMerchant :: merchantId :: company :: website :: validationUrl :: fromName :: fromEmail :: HNil =>
         val address = AccountAddress(
           civility = Some(Civility.withName(civility)),
           firstName = Some(firstname),
@@ -649,7 +651,9 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
           vendor = merchantId,
           company = company,
           website = website,
-          validationUrl = validationUrl
+          validationUrl = validationUrl,
+          fromName = fromName,
+          fromEmail = fromEmail
         )
 
         import Implicits._
@@ -658,8 +662,6 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
       }
     }
   }
-
-  import shapeless._
 
   lazy val updateProfile = path("update-profile") {
     post {

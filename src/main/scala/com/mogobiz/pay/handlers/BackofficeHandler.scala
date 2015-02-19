@@ -31,9 +31,6 @@ class BackofficeHandler {
     EsClient.searchAll[BOTransactionLog](req)
   }
 
-  /**
-   * @param term Either a Left(merchantId) if the user's a vendor or Right(email) if the user's a customer
-   */
   def listTransactions(sessionData: SessionData, email: Option[String],
                        startDate: Option[String], startTime: Option[String],
                        endDate: Option[String], endTime: Option[String],
