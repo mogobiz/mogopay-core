@@ -123,7 +123,7 @@ case class Signup(email: String, password: String, password2: String,
                   lphone: String, civility: String, firstName: String,
                   lastName: String, birthDate: String, address: AccountAddress,
                   isMerchant: Boolean, vendor: Option[String], company: Option[String],
-                  website: Option[String], validationUrl: String)
+                  website: Option[String], validationUrl: String, fromName: String, fromEmail: String)
 
 case class UpdateProfile(id: String, password: Option[(String, String)],
                          company: String, website: String, lphone: String, civility: String,
@@ -158,7 +158,7 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
 
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
-case class SendNewPassword(accountId: String, returnURL: String)
+case class SendNewPassword(accountId: String, fromName: String, fromEmail: String)
 
 class AccountHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
@@ -351,12 +351,12 @@ class AccountHandler {
     accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
   }
 
-  def sendNewPassword(accountId: String, returnURL: String): Unit = load(accountId).map { account =>
+  def sendNewPassword(accountId: String, fromName: String, fromEmail: String): Unit = load(accountId).map { account =>
     val newPassword: String = newUUID.split("-")(4)
     update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
-    sendNewPasswordEmail(account, returnURL, newPassword)
+    sendNewPasswordEmail(account, newPassword, fromName, fromEmail)
 
-    def sendNewPasswordEmail(account: Account, returnURL: String, newPassword: String) = {
+    def sendNewPasswordEmail(account: Account, newPassword: String, fromName: String, fromEmail: String) = {
       val vendor = if (account.owner.isDefined) load(account.owner.get) else None
       val template = templateHandler.loadTemplateByVendor(vendor, "new-password.mustache")
 
@@ -364,7 +364,7 @@ class AccountHandler {
       val (subject, body) = templateHandler.mustache(template, data)
       EmailHandler.Send.to(
         Mail(
-          from = ("contact@mogopay.com", "Mogopay"),
+          from = (fromEmail, fromName),
           to = Seq(account.email),
           subject = subject,
           message = body))
@@ -938,14 +938,15 @@ class AccountHandler {
       transactionSequenceHandler.nextTransactionId(account.uuid)
 
     val tryToSave = accountHandler.save(account, refresh = true)
-    tryToSave.map {
-      _ => if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token)
+    tryToSave.map { _ =>
+      if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token, signup.fromName, signup.fromEmail)
     }
 
     (token, account)
   }
 
-  private def sendConfirmationEmail(account: Account, validationUrl: String, token: String): Unit = {
+  private def sendConfirmationEmail(account: Account, validationUrl: String, token: String,
+                                    fromName: String, fromEmail: String): Unit = {
     val vendor = if (account.owner.isDefined) load(account.owner.get) else None
     val template = templateHandler.loadTemplateByVendor(vendor, "signup-confirmation.mustache")
 
@@ -954,7 +955,7 @@ class AccountHandler {
     val (subject, body) = templateHandler.mustache(template, s"""{"url": "$url"}""")
     EmailHandler.Send.to(
       Mail(
-        from = ("contact@mogopay.com", "Mogopay"),
+        from = (fromEmail, fromName),
         to = Seq(account.email),
         subject = subject,
         message = body))
