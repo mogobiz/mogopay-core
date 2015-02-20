@@ -241,7 +241,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       if (!session.sessionData.authenticated && isNewSession()) {
         session.clear()
       }
-      handleCall(transactionHandler.submit(Submit(session.sessionData, submitParams, None, None)),
+      handleCall(
+        transactionHandler.submit(Submit(session.sessionData, submitParams, None, None)),
         (t: (String, String)) => {
           val (serviceName, methodName) = t
           setSession(session) {

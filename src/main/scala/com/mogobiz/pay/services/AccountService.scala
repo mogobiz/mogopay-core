@@ -760,6 +760,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                       paypalPassword = paypalPassword,
                       paypalSignature = paypalSignature
                     ),
+                    applePayParam = ApplePayParam(???), // TODO
                     kwixoParam = KwixoParam(kwixoParams),
                     cbParam = cbParam
                   )
