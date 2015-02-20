@@ -64,6 +64,7 @@ trait MogopayRoutes extends Directives {
             new GithubService().route ~
             new SystempayService().route ~
             new PayPalService().route ~
+            new ApplePayService().route ~
             new PayboxService().route ~
             new PaylineService().route ~
             new MogopayService().route ~

@@ -263,3 +263,4 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
       throw AccountDoesNotExistException("")
     }
   }
+}
