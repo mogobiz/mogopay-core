@@ -8,6 +8,11 @@
         "type": "date",
         "format": "dateOptionalTime"
       },
+      "transactionDate": {
+        "type": "date",
+        "format": "dateOptionalTime",
+        "index": "not_analyzed"
+      },
       "creditCard": {
         "properties": {
           "cardType": {
