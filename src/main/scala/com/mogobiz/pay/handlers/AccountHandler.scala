@@ -101,6 +101,8 @@ case class AddressToAssignFromGetParams(road: String, city: String,
   }
 }
 
+case class SendNewPasswordParams(merchantId: String, email: String, fromEmail: String, fromName: String)
+
 case class AssignBillingAddress(accountId: String, address: AddressToAssignFromGetParams)
 
 case class AddShippingAddress(accountId: String, address: AddressToAddFromGetParams)
@@ -351,10 +353,12 @@ class AccountHandler {
     accountHandler.update(account.copy(password = new Sha256Hash(password).toHex), false)
   }
 
-  def sendNewPassword(accountId: String, fromName: String, fromEmail: String): Unit = load(accountId).map { account =>
+  def sendNewPassword(req: SendNewPasswordParams): Unit = {
+    val account = findByEmail(req.email, Some(req.merchantId)).getOrElse(throw new UnauthorizedException(""))
+
     val newPassword: String = newUUID.split("-")(4)
     update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
-    sendNewPasswordEmail(account, newPassword, fromName, fromEmail)
+    sendNewPasswordEmail(account, newPassword, req.fromName, req.fromEmail)
 
     def sendNewPasswordEmail(account: Account, newPassword: String, fromName: String, fromEmail: String) = {
       val vendor = if (account.owner.isDefined) load(account.owner.get) else None

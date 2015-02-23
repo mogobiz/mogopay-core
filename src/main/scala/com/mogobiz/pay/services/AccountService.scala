@@ -493,22 +493,11 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val sendNewPassword = get {
+  lazy val sendNewPassword = post {
     path("send-new-password") {
-      parameters('from_name, 'from_email) {
-        (fromName: String, fromEmail: String) =>
-          session {
-            session =>
-              session.sessionData.accountId match {
-                case Some(accountId) =>
-                  handleCall(accountHandler.sendNewPassword(accountId, fromName, fromEmail),
-                    (_: Unit) => complete(StatusCodes.OK))
-                case _ => complete {
-                  StatusCodes.Unauthorized ->
-                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
-                }
-              }
-          }
+      entity(as[SendNewPasswordParams]) {params =>
+        handleCall(accountHandler.sendNewPassword(params),
+          (_: Unit) => complete(StatusCodes.OK))
       }
     }
   }
