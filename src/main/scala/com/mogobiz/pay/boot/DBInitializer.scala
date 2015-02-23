@@ -2,7 +2,7 @@ package com.mogobiz.pay.boot
 
 import java.io.File
 import java.sql.Timestamp
-import java.util.{Currency, UUID, Date}
+import java.util.{Calendar, Currency, UUID, Date}
 
 import com.mogobiz.es.{EsClient, Settings => esSettings}
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -130,13 +130,15 @@ object DBInitializer {
   }
 
   private def createClientAccount(uuid: String, email: String, firstname: String, lastname: String, owner: Account, withShippingAddress: Boolean, status: AccountStatus = AccountStatus.ACTIVE, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE) : Account = {
+    val birthDate = Calendar.getInstance()
+    birthDate.set(2000, 0, 1)
     val account = Account(uuid = uuid,
       email = email,
       password = new Sha256Hash("1234").toString,
       civility = Some(Civility.MR),
       firstName = Some(firstname),
       lastName = Some(lastname),
-      birthDate = Some(new Date(2000, 0, 1)),
+      birthDate = Some(birthDate.getTime),
       address = Some(createAddress(firstname, lastname, telephoneStatus)),
       status = status,
       roles = List(RoleName.CUSTOMER),
