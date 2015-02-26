@@ -167,6 +167,14 @@ class AccountHandler {
 
   lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
+  private def getBirthDayDate(value: String) = {
+    val c: Calendar = Calendar.getInstance
+    c.setTime(birthDayDateFormat.parse(value))
+    c.set(Calendar.ZONE_OFFSET, 0)
+    c.set(Calendar.DST_OFFSET, 0)
+    c.getTime
+  }
+
   def findByEmail(email: String, merchantId: Option[String]): Option[Account] = {
     val req = buildFindAccountRequest(email, merchantId)
     EsClient.search[Account](req)
@@ -642,7 +650,7 @@ class AccountHandler {
 
         lazy val civility = Civility.withName(profile.civility)
 
-        lazy val birthDate = Some(birthDayDateFormat.parse(profile.birthDate))
+        lazy val birthDate = Some(getBirthDayDate(profile.birthDate))
 
         lazy val password = profile.password.map {
           case (p1, p2) =>
@@ -800,7 +808,7 @@ class AccountHandler {
       case None => Failure(new AccountAddressDoesNotExistException(""))
       case Some(account) =>
         lazy val birthDate = try {
-          Some(birthDayDateFormat.parse(profile.birthDate))
+          Some(getBirthDayDate(profile.birthDate))
         } catch {
           case e: java.text.ParseException => throw new InvalidDateFormatException("Correct format: " + birthDayDateFormat.toPattern)
           case e: Throwable => throw e
@@ -873,7 +881,7 @@ class AccountHandler {
       throw new AccountWithSameEmailAddressAlreadyExistsError("")
     }
 
-    val birthdate = birthDayDateFormat.parse(signup.birthDate)
+    val birthdate = getBirthDayDate(signup.birthDate)
     val civility = Civility.withName(signup.civility)
 
     if (signup.password.isEmpty)
