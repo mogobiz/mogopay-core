@@ -3,6 +3,10 @@ function TransactionLogsCtrl($scope, $location, $rootScope, $route) {
         $location.path("/listTransactions");
         $location.replace();
     };
+	$scope.goToListCustomers = function () {
+        $location.path("/listCustomers");
+        $location.replace();
+    };
     $scope.goToProfile = function () {
         var success = function (response) {
             $rootScope.userProfile = response;

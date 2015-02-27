@@ -1,7 +1,9 @@
 //var serverUrl = "http://mogopay.ebiznext.com/mogopay/";
 var serverUrl = "/pay/";
+var storeUrl = "/store/";
 var clientUrl = "/mogopay-client/";
 var appUrl    = "/mogopay-admin/";
+var storeCode = "acmesport"; // TO BE RESET
 
 function callClient(action, dataToSend, success, error){
     $.ajax({
@@ -56,6 +58,18 @@ function callServerJson(action, dataToSend, success, error){
         async : true,
         success : afterCallingSuccess,
         error: afterCallingError
+    });
+}
+
+function callStoreServer(action, dataToSend, success, error, type){
+    $.ajax({
+        url :  storeUrl + storeCode + "/" + action,
+        type : type,
+        data : dataToSend,
+        cache : false,
+        async : true,
+        success : success,
+        error: error
     });
 }
 

@@ -1,4 +1,3 @@
-<a id="topOfPage"></a>
 <header ng-include src="'partials/header.html'"></header>
 <div>
     <div class="panel panel-default">
@@ -11,14 +10,6 @@
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
                         <input type="email" class="form-control" id="listTransactionsEmail" autofocus/>
-                    </div>
-                </div>
-                <div class="form-group" style="padding:0px 3px;">
-                    <div style="padding:0px 3px;">
-                        <label for="listTransactionsUUID">Transaction UUID</label>
-                    </div>
-                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-                        <input type="text" class="form-control" id="listTransactionsUUID"/>
                     </div>
                 </div>
                 <div class="form-group" style="padding:0px 3px;">
@@ -79,75 +70,50 @@
     </div>
     <div class="table-responsive" ng-show="transactions.length > 0">
         <table class="table table-bordered table-striped">
-            <thead>
-            <tr>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Status / 3DSecure</th>
-                <th>Payment Type</th>
-                <th>Authorization</th>
-                <th>UUID</th>
-                <th>Response Code</th>
-            </tr>
-            </thead>
-            <tr ng-repeat="transaction in transactions">
-                <td>{{transaction.transactionDate}}</td>
-                <td>{{transaction.email}}</td>
-                <td>{{transaction.amount}}</td>
-                <td>
-                    <a href="javascript:void(0)" ng-if="transaction.modifications.length > 0" rel="popoverStatus">{{transaction.status.name}} / {{transaction.status3DS.name}}</a>
-                    <div class="dialog" style="display:none;" ng-if="transaction.modifications.length > 0" ng-init="refreshStatusPopover()">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                <tr>
-                                    <th >Modification Date</th>
-                                    <th>Client IP</th>
-                                    <th >Previous status</th>
-                                    <th >New status</th>
-                                    <th >Comment</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr ng-repeat="modification in transaction.modifications">
-                                    <td>{{modification.xdate | date:'dd/MM/yyyy'}}</td>
-                                    <td>{{modification.ipAddr}}</td>
-                                    <td>{{modification.oldStatus.name}}</td>
-                                    <td>{{modification.newStatus.name}}</td>
-                                    <td>{{modification.comment}}</td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <span ng-if="transaction.modifications.length == 0">{{transaction.status.name}} / {{transaction.paymentData.status3DS.name}}</span>
-                </td>
-                <td>
-                    <a href="javascript:void(0)" rel="popoverCard">{{transaction.paymentData.paymentType.name}}</a>
-                    <div ng-if="transaction.creditCard != null" class="dialog" style="display:none" ng-init="refreshCardPopover()">
-                        <div class="row">
-                            <label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >Card Number:</label>
-                            <label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.number}}</label>
-                        </div>
-                        <div class="row">
-                            <label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Holder:</label>
-                            <label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.holder}}</label>
-                        </div>
-                        <div class="row">
-                            <label class="col-xs-5 col-sm-5 col-md-5 col-lg-5"> Expiration Date:</label>
-                            <label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
-                        </div>
-                        <div class="row">
-                            <label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Card Type:</label>
-                            <label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.cardType.name}}</label>
-                        </div>
-                    </div>
-                </td>
-                <td>{{transaction.authorizationId}}</td>
-                <td><a href="javascript:void(0)" ng-click="transactionGetLogs(transaction.uuid)">{{transaction.transactionUUID}}</a></td>
-                <td>{{transaction.errorCodeOrigin}}</td>
-            </tr>
+			<thead>
+				<tr>
+					<th>Id</th>
+					<th>Name</th>
+					<th>Email</th>
+					<th>Date</th>
+					<th>Price</th>
+					<th>Card</th>
+					<th>Transaction Status</th>
+					<th>Delivery Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="transaction in transactions">
+					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.uuid}}</a></td>
+					<td>{{transaction.customer.firstName}}</td>
+					<td>{{transaction.customer.email}}</td>
+					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>
+					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate}}</td>
+					<td>
+						<a href="javascript:void(0)" rel="popoverCard">{{transaction.creditCard.number}}</a>
+						<div ng-if="transaction.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
+							<div class="row">
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >Card Number:</label>
+								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.number}}</label>
+							</div>
+							<div class="row">
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Holder:</label>
+								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.holder}}</label>
+							</div>
+							<div class="row">
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5"> Expiration Date:</label>
+								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
+							</div>
+							<div class="row">
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Card Type:</label>
+								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.cardType}}</label>
+							</div>
+						</div>
+					</td>
+					<td>{{transaction.status}}</td>
+					<td>{{transaction.deliveryStatus[0]}}</td>
+				</tr>
+			</tbody>
         </table>
     </div>
 </div>

@@ -161,6 +161,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		$location.path("/listTransactions");
 		$location.replace();
 	};
+	$scope.goToListCustomers = function () {
+        $location.path("/listCustomers");
+        $location.replace();
+    };
 
 	setTimeout(function () {
 		$("#profileCity").autocomplete({
