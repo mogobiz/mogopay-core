@@ -31,7 +31,7 @@ class CountryImportHandler {
 
     EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map { lastUpdated =>
       if (lastUpdated <= countriesFile.lastModified) {
-        EsClient.client.client
+        EsClient().client
           .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
           .setQuery(new TermQueryBuilder("_type", "Country"))
           .execute
@@ -240,10 +240,10 @@ class CountryImportHandler {
 
 object CountryImportMain extends App {
   println("Start...\n")
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
+  EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Country")).execute.actionGet
+  EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "CountryAdmin")).execute.actionGet
+  EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
+  EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
 
   countryImportHandler.importCountries(Settings.Import.CountriesFile, Settings.Import.CurrenciesFile)
   countryImportHandler.importAdmins1(Settings.Import.Admins1File)

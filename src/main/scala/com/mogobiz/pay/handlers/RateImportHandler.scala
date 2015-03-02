@@ -20,7 +20,7 @@ class RateImportHandler {
 
     EsClient.search[Rate](req) map (_.lastUpdated.getTime) orElse Some(ratesFile.lastModified) map { lastUpdated =>
       if (lastUpdated <= ratesFile.lastModified) {
-        EsClient.client.client
+        EsClient().client
           .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
           .setQuery(new TermQueryBuilder("_type", "Rate"))
           .execute
@@ -48,6 +48,6 @@ class RateImportHandler {
 
 object RateImportMain extends App {
   println("Start...\n")
-  EsClient.client.client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Rate")).execute.actionGet
+  EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Rate")).execute.actionGet
   rateImportHandler.importRates(Settings.Import.RatesFile)
 }

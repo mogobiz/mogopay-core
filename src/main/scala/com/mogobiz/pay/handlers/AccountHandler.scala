@@ -24,6 +24,7 @@ import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.SymmetricCrypt
+import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.Serialization.read
@@ -209,7 +210,7 @@ class AccountHandler {
 
   def alreadyExistEmail(email: String, merchantId: Option[String]): Boolean = {
     val req = buildFindAccountRequest(email, merchantId)
-    val res = EsClient().execute(req)
+    val res = EsClient().execute(req).await
     res.getHits.totalHits() == 1
   }
 

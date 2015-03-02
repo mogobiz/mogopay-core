@@ -532,7 +532,7 @@ class AccountService extends Directives with DefaultComplete {
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
           .from(Settings.Mogopay.EsIndex -> "Account")
           .where(regexQuery("email", "newuser"))
-        com.mogobiz.es.EsClient().execute(req)
+        com.mogobiz.es.EsClient().execute(req).await
 
         StatusCodes.OK -> Map()
       }
