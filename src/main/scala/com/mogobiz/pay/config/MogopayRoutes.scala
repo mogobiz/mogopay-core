@@ -92,13 +92,13 @@ trait DefaultComplete {
     import Implicits._
     t match {
       case (ex: MogopayException) =>
-        ex.printStackTrace();
+        ex.printStackTrace()
         complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.toString))
       case (ex: UnknownHostException) =>
-        ex.printStackTrace();
+        ex.printStackTrace()
         complete(StatusCodes.NotFound -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.toString))
       case (_) =>
-        t.printStackTrace();
+        t.printStackTrace()
         complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
     }
   }
