@@ -18,11 +18,11 @@ import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOffic
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeResponseParm
 import com.atosorigin.services.cad.apiserver.components.service.checkout.{SIPSCheckoutResponseParm, SIPSCheckoutRequestParm, SIPSCheckoutApi}
 import com.atosorigin.services.cad.common.SIPSDataObject
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.PaymentStatus
 import com.mogobiz.pay.model.Mogopay.PaymentStatus._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayError}
 import com.mogobiz.pay.handlers.payment.{BankErrorCodes, ThreeDSResult, PaymentHandler}

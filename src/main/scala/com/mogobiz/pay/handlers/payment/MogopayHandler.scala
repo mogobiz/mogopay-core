@@ -2,16 +2,15 @@ package com.mogobiz.pay.handlers.payment
 
 import java.text.SimpleDateFormat
 
+import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
 import com.mogobiz.pay.model.Mogopay.{Account, AccountStatus, SessionData}
 import org.apache.shiro.crypto.hash.Sha256Hash
 import spray.http.Uri
 import scala.util.Left
-import com.mogobiz.es.{Settings => esSettings}
 
 class MogopayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
@@ -25,7 +24,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
       }
 
 
-    val req = select in Settings.Mogopay.EsIndex -> "Account" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter {
       and(
         termFilter("status", AccountStatus.ACTIVE),
         termFilter("email", sessionData.email.get),

@@ -11,8 +11,8 @@ import com.experian.payline.ws.obj.{Authentication3DSecure, Authorization, Card,
 import com.experian.payline.ws.wrapper.WebPayment
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.{NotAvailablePaymentGatewayException, InvalidContextException, MogopayError}
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType

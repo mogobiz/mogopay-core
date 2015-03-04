@@ -1,9 +1,9 @@
 package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.BOTransactionNotFoundException
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.pay.sql.BOTransactionDAO
 
 class BOTransactionHandler {

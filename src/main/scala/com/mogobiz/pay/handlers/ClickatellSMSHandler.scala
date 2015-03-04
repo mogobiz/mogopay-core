@@ -2,7 +2,8 @@ package com.mogobiz.pay.handlers
 
 import java.net.{URLConnection, URL, URLEncoder}
 import java.io.{InputStreamReader, BufferedReader}
-import com.mogobiz.pay.settings.Settings
+
+import com.mogobiz.pay.config.Settings
 
 trait ClickatellSMSHandler {
   val sender = Settings.Clickatell.sender

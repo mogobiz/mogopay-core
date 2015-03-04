@@ -2,8 +2,8 @@ package com.mogobiz.pay.handlers
 
 import java.util.Calendar
 
+import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl.{delete => del, _}
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay.TransactionRequest
 

@@ -1,6 +1,6 @@
 package com.mogobiz.pay.sql
 
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.config.Settings
 import scalikejdbc._
 
 trait BOService {

@@ -13,12 +13,10 @@ import com.lyra.vads.ws.stub.{CreatePaiementInfo, Standard, StandardWS, Transact
 import com.lyra.vads.ws3ds.stub.{PaResInfo, ThreeDSecure, VeResPAReqInfo}
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.settings.{Settings, Environment}
-import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{DefaultFormats, StringInput}
