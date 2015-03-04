@@ -1,5 +1,6 @@
 function ProfileCtrl($scope, $location, $rootScope, $route) {
-	$scope.cbParam = JSON.parse($rootScope.userProfile.account.paymentConfig.cbParam);
+	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.cbParam)
+		$scope.cbParam = JSON.parse($rootScope.userProfile.account.paymentConfig.cbParam);
 	
 	$("#authorizeNetLogin").change(function(){
 		if($(this).val() != "")
