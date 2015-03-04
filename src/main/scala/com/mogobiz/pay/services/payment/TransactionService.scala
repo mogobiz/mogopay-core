@@ -10,13 +10,12 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.exceptions.Exceptions.UnauthorizedException
+import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
 import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
-import com.mogobiz.pay.services.Util._
 import com.mogobiz.session.{SessionESDirectives, Session}
 import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.pay.settings.Settings
@@ -268,6 +267,10 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 t.printStackTrace()
                 cleanSession(session)
                 setSession(session) {
+                  def toHTTPResponse(t: Throwable): StatusCode = t match {
+                    case e: MogopayException => e.code
+                    case _ => StatusCodes.InternalServerError
+                  }
                   complete(toHTTPResponse(t), t.toString)
 
                 }

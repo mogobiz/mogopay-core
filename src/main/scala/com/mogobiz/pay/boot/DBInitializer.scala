@@ -26,7 +26,7 @@ import scala.util.parsing.json.JSONObject
 object DBInitializer {
   def apply(fillWithFixtures: Boolean = false) = {
     try {
-      //EsClient.client.execute(delete index Settings.Mogopay.EsIndex).await
+      //EsClient().execute(delete index Settings.Mogopay.EsIndex).await
       EsClient().execute(create index Settings.Mogopay.EsIndex).await
       if (Settings.DerbySequence.length > 0) {
         import scalikejdbc._
