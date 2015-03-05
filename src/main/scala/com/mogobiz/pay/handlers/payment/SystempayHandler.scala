@@ -50,7 +50,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     } else {
       transactionHandler.startPayment(
-        vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SYSTEMPAY)
+        vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SYSTEMPAY)
 
       var threeDSResult: ThreeDSResult = null
 

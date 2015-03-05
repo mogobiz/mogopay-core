@@ -92,15 +92,16 @@ class TransactionHandler {
 			transaction.cbProvider = CBPaymentProvider.NONE;
 
    */
-  def startPayment(vendorId: String, transactionUUID: String, paymentRequest: PaymentRequest,
+  def startPayment(vendorId: String, accountId: Option[String], transactionUUID: String, paymentRequest: PaymentRequest,
                    paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
     accountHandler.load(vendorId).map { account =>
+      val customer = accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
       var transaction = BOTransaction(transactionUUID, transactionUUID, "", Option(new Date), paymentRequest.amount,
         paymentRequest.currency, TransactionStatus.INITIATED, new Date, None,
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
         false,
         Option(paymentRequest.transactionEmail), None, None, Option(paymentRequest.transactionExtra),
-        Option(paymentRequest.transactionDesc), None, Option(account), None, Nil)
+        Option(paymentRequest.transactionDesc), None, Option(account), customer, Nil)
 
       if (paymentType == PaymentType.CREDIT_CARD &&
         account.paymentConfig.map(_.paymentMethod) != Some(CBPaymentMethod.EXTERNAL)) {
@@ -120,7 +121,7 @@ class TransactionHandler {
       )
       boTransactionHandler.save(transaction, refresh = false)
       Success(transaction)
-    }.getOrElse(Failure(new InvalidContextException("Vendor not foundu")))
+    }.getOrElse(Failure(new InvalidContextException("Vendor not found")))
   }
 
   def updateStatus(vendorId: String, transactionUUID: String, ipAddress: String, newStatus: TransactionStatus, comment: String): Unit = {

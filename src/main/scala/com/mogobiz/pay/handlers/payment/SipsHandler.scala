@@ -92,7 +92,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     }
     else {
-      transactionHandler.startPayment(vendorUuid, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
+      transactionHandler.startPayment(vendorUuid, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
       if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest)
         if (resultat.data != null)

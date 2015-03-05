@@ -96,7 +96,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     } else {
       transactionHandler.startPayment(
-        vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYLINE)
+        vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYLINE)
 
       var threeDSResult: ThreeDSResult = null
 

@@ -256,7 +256,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       if (id3d != null)
         boTransactionHandler.find(transactionUUID).get
       else
-        transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
+        transactionHandler.startPayment(vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
 
     val vendor = accountHandler.load(vendorId).get
 

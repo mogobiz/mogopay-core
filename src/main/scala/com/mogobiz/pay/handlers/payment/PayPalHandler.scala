@@ -130,7 +130,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           if (paymentConfig == null) {
             throw MogopayError(MogopayConstant.InvalidPaypalConfig)
           } else {
-            transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
+            transactionHandler.startPayment(vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
             val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId)
             finishPayment(sessionData, paymentResult)
           }
