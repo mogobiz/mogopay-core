@@ -1,9 +1,11 @@
-//var serverUrl = "http://mogopay.ebiznext.com/mogopay/";
 var serverUrl = "/pay/";
 var storeUrl = "/store/";
 var clientUrl = "/mogopay-client/";
 var appUrl    = "/mogopay-admin/";
+var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
 var storeCode = "acmesport"; // TO BE RESET
+var senderFromName = "MOGOBIZ"; // TO BE RESET
+var senderFromMail = "mogobiz@gmail.com"; // TO BE RESET
 
 function callClient(action, dataToSend, success, error){
     $.ajax({
@@ -137,4 +139,22 @@ function showAlertBootStrapMsg(type, msg, wait){
 var isEmail_re = /^\s*[\w\-\+_]+(\.[\w\-\+_]+)*\@[\w\-\+_]+\.[\w\-\+_]+(\.[\w\-\+_]+)*\s*$/;
 function isEmail (s) {
     return String(s).search (isEmail_re) != -1;
+}
+
+function getHTTPParameter(nomParam){
+	var chaineParam = document.location.search;
+	if (chaineParam != null && chaineParam.length > 0)
+	{
+		chaineParam = chaineParam.substring(1);
+		var tableauNomValeur = chaineParam.split("&");
+		for (var i = 0; i < tableauNomValeur.length; i++)
+		{
+			var nomValeur = tableauNomValeur[i].split("=");
+			if (nomValeur[0] == nomParam)
+			{
+				return decodeURI(nomValeur[1]);
+			}
+		}
+	}
+	return "";
 }

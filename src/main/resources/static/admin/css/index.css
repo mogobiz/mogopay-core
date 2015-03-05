@@ -90,3 +90,8 @@ select:required:valid {
 .details .history .panel-body .table{
 	margin-bottom: 0px;
 }
+
+ul.ui-autocomplete.ui-menu{
+	max-height: 300px;
+	overflow-y: auto;
+}

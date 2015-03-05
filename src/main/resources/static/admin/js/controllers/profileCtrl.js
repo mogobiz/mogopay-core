@@ -510,15 +510,8 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	}
 
 	function getProfileFormData(scope, location, rootScope, route) {
-		var data = "";//"xtoken=" + rootScope.xtoken;
-		/*
-		 if(!rootScope.createPage) {
-		 data += "&user.id=" + rootScope.userProfile.account.uuid;
-		 }
-		 */
-//    data += "&user.type=" + ((rootScope.isMerchant) ? "MERCHANT" : "CUSTOMER");
+		var data = "";
 
-//    data += "&user.email=" + $("#profileEmail").val();
 		if(rootScope.createPage) {
 			data += "&password=" + $("#profilePassword").val();
 			data += "&password2=" + $("#profileConfirmPassword").val();
@@ -527,6 +520,9 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&company=" + $("#profileCompanyName").val();
 			data += "&website=" + $("#profileWebsite").val();
 		}
+		else{ // TO BE DELETED
+			data += "&company=CustomerCompany"; // TO BE DELETED
+		} // TO BE DELETED
 		data += "&lphone=" + $("#profilePhoneNumber").val();
 		data += "&civility=" + scope.profileCivilityModel.value;
 		data += "&firstname=" + $("#profileFirstName").val();

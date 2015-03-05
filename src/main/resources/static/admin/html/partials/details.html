@@ -1,6 +1,6 @@
 <header ng-include src="'partials/header.html'"></header>
 <div class="details">
-	<div class="panel panel-default">
+	<div ng-if="selectedCustomer != null" class="panel panel-default">
 		<div class="panel-heading"><h3 class="panel-title">Customer Details</h3></div>
 		<div class="panel-body">
 			<form role="form" class="form-horizontal">
@@ -39,7 +39,7 @@
 			</form>
 		</div>
 	</div>
-	<div class="history panel panel-default">
+	<div ng-if="selectedCustomer != null" class="history panel panel-default">
 		<div class="panel-heading"><h3 class="panel-title">History</h3></div>
 		<div class="panel-body">
 			<div class="table-responsive" ng-show="detailsHistory.length > 0">
@@ -125,7 +125,6 @@
 							<th>Basic Price</th>
 							<th>End Price</th>
 							<th>Quantity</th>
-							<th>Hidden</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -147,7 +146,6 @@
 							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.quantity}}</td>
-							<td>{{item.hidden}}</td>
 						</tr>
 					</tbody>
 				</table>

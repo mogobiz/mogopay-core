@@ -19,12 +19,21 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			$location.path("/login");
 			$location.replace();
 		}
+		if(validationPage == true){
+			$scope.validationInProgress = true;
+			$scope.validationSuccess = false;
+			$scope.validationError = false;
+
+			$scope.token = "";
+			if(getHTTPParameter("token")){
+				$scope.token = getHTTPParameter("token");
+			}
+			validationConfirmSignUp($scope, $location, $rootScope, $route);
+		}
     }
 
     $rootScope.logout = function () {
-//        callServer("account/logout", "token=" + $rootScope.xtoken + "", function (response) {}, function (response) {});
         callServer("account/logout", "", function (response) {}, function (response) {});
-        // var success = function () {
         $rootScope.xtoken = null;
         $rootScope.isMerchant = null;
         $rootScope.userProfile = null;
@@ -37,8 +46,6 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			$location.path("/login");
         $scope.$apply();
         $location.replace();
-//        callServer("account/customer-token", "", function (response) {$rootScope.xtoken = response;}, function (response) {});
-        // }
     };
 
     $rootScope.isPageActive = function (route) {
@@ -51,8 +58,35 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         scope.$apply();
         location.replace();
     };
-
-//    callServer("account/customer-token", "", function (response) {$rootScope.xtoken = response;}, function (response) {});
 }
 
 MainCtrl.$inject = ["ngI18nResourceBundle", "ngI18nConfig", "$scope", "$rootScope", "$location", "$route"];
+
+function validationConfirmSignUp(scope, location, rootScope, route){
+	var dataToSend = "token=" + scope.token;
+	var success = function(response){
+		scope.validationInProgress = false;
+		scope.validationSuccess = true;
+		scope.validationError = false;
+		scope.$apply();
+		validationGetUserProfile(scope, location, rootScope, route);
+	}
+	var error = function(response){
+		scope.validationInProgress = false;
+		scope.validationSuccess = false;
+		scope.validationError = true;
+		scope.$apply();
+	}
+	callServer("account/confirm-signup", dataToSend, success, error);
+}
+
+function validationGetUserProfile(scope, location, rootScope, route){
+	var success = function(response){
+		if(response.isMerchant)
+			window.location.href = deployUrl + "merchant.html";
+		else
+			window.location.href = deployUrl + "customer.html";
+	}
+	var error = function(response){}
+	callServer("account/profile-info", "", success, error);
+}

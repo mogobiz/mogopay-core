@@ -16,7 +16,10 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
         };
         callServer("account/profile-info", "", success, function (response) {});
     };
-	detailsGetCustomerHistory($scope, $location, $rootScope, $route);
+	$rootScope.detailsHistory = null;
+	if($rootScope.selectedCustomer != null){
+		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
+	}
 	if($rootScope.selectedOrder != null){
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
 	}
