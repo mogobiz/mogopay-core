@@ -11,7 +11,6 @@ import com.mogobiz.pay.exceptions.Exceptions.MogopayException
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.system.MogobizSystem
 import com.wordnik.swagger.model.ApiInfo
 import spray.http.StatusCodes._

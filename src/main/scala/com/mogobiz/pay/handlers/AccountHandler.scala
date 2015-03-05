@@ -9,6 +9,7 @@ import java.util.{Calendar, UUID}
 
 import com.atosorigin.services.cad.common.util.FileParamReader
 import com.mogobiz.json.JacksonConverter
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.sql.BOAccountDAO
@@ -19,7 +20,6 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.Token.{Token, TokenType}
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
@@ -192,14 +192,14 @@ class AccountHandler {
 
   private def buildFindAccountRequest(email: String, merchantId: Option[String]): SearchDefinition = {
     if (!Settings.sharedCustomers && merchantId.nonEmpty) {
-      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
+      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
         and(
           termFilter("email", email),
           termFilter("owner", merchantId.get)
         )
       }
     } else {
-      search in Settings.Mogopay.EsIndex types "Account" filter {
+      search in Settings.Mogopay.EsIndex types "Account" postFilter {
         and(
           termFilter("email", email),
           missingFilter("owner") existence true includeNull true
@@ -219,14 +219,14 @@ class AccountHandler {
     val userAccountRequest =
       if (isCustomer) {
         val merchantReq = if (merchantId.isDefined) {
-          search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
+          search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
             and(
               termFilter("uuid", merchantId.get),
               missingFilter("owner") existence true includeNull true
             )
           }
         } else {
-          search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
+          search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
             and(
               termFilter("email", Settings.AccountValidateMerchantDefault),
               missingFilter("owner") existence true includeNull true
@@ -245,14 +245,14 @@ class AccountHandler {
           throw InactiveMerchantException("")
         }
 
-        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
+        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
           and(
             termFilter("email", lowerCaseEmail),
             termFilter("owner", merchant.uuid)
           )
         }
       } else {
-        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 filter {
+        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
           and(
             termFilter("email", lowerCaseEmail),
             missingFilter("owner") existence true includeNull true
@@ -297,7 +297,7 @@ class AccountHandler {
   }
 
   def findBySecret(secret: String): Option[Account] = {
-    val req = search in Settings.Mogopay.EsIndex -> "Account" filter termFilter("secret", secret)
+    val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter termFilter("secret", secret)
     EsClient.search[Account](req)
   }
 
@@ -828,7 +828,7 @@ class AccountHandler {
   }
 
   def recycle() {
-    val req = select in Settings.Mogopay.EsIndex -> "Account" filter {
+    val req = select in Settings.Mogopay.EsIndex -> "Account" postFilter {
       and(
         termFilter("status", AccountStatus.WAITING_ENROLLMENT),
         rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.AccountRecycleDuration)

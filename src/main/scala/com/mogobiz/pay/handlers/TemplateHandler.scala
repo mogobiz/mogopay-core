@@ -3,8 +3,8 @@ package com.mogobiz.pay.handlers
 import java.io.{File, InputStreamReader}
 import javax.script.{ScriptEngineFactory, Invocable, ScriptEngine, ScriptEngineManager}
 
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.Account
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.template.Mustache
 
 class TemplateHandler {

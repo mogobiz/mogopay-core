@@ -1,6 +1,6 @@
 package com.mogobiz.pay.codes
 
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.config.Settings
 
 
 object MogopayConstant {

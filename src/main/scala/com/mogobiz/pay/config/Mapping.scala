@@ -1,5 +1,4 @@
-package com.mogobiz.pay.settings
-
+package com.mogobiz.pay.config
 
 import com.mogobiz.es.EsClient
 import com.sksamuel.elastic4s.ElasticDsl._

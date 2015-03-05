@@ -2,7 +2,7 @@ package com.mogobiz.pay.jobs
 
 import akka.actor.{Actor, ActorSystem, Props}
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.config.Settings
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 

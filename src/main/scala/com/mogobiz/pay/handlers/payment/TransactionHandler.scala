@@ -4,11 +4,11 @@ import java.io.File
 import java.text.{SimpleDateFormat, DateFormat, NumberFormat}
 import java.util.{Locale, Calendar, Currency, Date}
 
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.{EmailHandler, UtilHandler}
@@ -61,7 +61,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
 
 class TransactionHandler {
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       termFilter("customer.uuid", uuid)
     }
     EsClient.searchAll[BOTransaction](req)

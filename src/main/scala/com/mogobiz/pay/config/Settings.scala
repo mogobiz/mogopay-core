@@ -1,4 +1,4 @@
-package com.mogobiz.pay.settings
+package com.mogobiz.pay.config
 
 import java.io.File
 

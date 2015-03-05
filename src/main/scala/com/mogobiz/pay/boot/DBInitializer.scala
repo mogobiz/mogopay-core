@@ -1,22 +1,20 @@
 package com.mogobiz.pay.boot
 
 import java.io.File
-import java.sql.Timestamp
-import java.util.{Calendar, Currency, UUID, Date}
+import java.util.{Calendar, Currency, Date, UUID}
 
-import com.mogobiz.es.{EsClient, Settings => esSettings}
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
-import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
+import com.mogobiz.pay.config.{Mapping, Settings}
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
-import com.mogobiz.pay.settings.{Mapping, Settings}
+import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
+import com.mogobiz.pay.model.Mogopay._
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
-import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.index.query.TermQueryBuilder
+import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.transport.RemoteTransportException
 
 import scala.util.Random

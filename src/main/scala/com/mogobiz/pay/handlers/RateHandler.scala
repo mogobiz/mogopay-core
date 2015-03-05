@@ -2,10 +2,9 @@ package com.mogobiz.pay.handlers
 
 import java.text.NumberFormat
 import java.util.{Currency, Locale}
-import com.mogobiz.es.{Settings => esSettings}
+import com.mogobiz.pay.config.Settings
 
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.settings.Settings
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay.Rate
 
@@ -27,7 +26,7 @@ class RateHandler {
     import java.util.Calendar
     import org.elasticsearch.search.sort.SortOrder._
 
-    val req = search in Settings.Mogopay.EsIndex -> "Rate" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "Rate" postFilter {
       termFilter("currencyCode", currency)
     } query {
       range("activationDate") from 0 to Calendar.getInstance.getTime.getTime

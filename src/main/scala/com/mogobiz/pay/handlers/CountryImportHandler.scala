@@ -1,18 +1,18 @@
 package com.mogobiz.pay.handlers
 
 import java.io.File
+import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.settings.Settings
 import org.elasticsearch.index.query.TermQueryBuilder
 
 import scala.util.control.NonFatal
 
 class CountryImportHandler {
   private def findCountryAdmin(code: String, level: Int): Option[CountryAdmin] = {
-    val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" filter {
+    val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter {
       and(
         termFilter("code", code),
         termFilter("level", level)
@@ -203,7 +203,7 @@ class CountryImportHandler {
             }
           } else {
             val cityFullCode = s"$countryCode.$a1code.$a2code.$cityCode"
-            val findCityReq = search in Settings.Mogopay.EsIndex -> "CountryAdmin" filter {
+            val findCityReq = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter {
               and(
                 termFilter("code" -> cityFullCode),
                 termFilter("level" -> 3)
@@ -213,7 +213,7 @@ class CountryImportHandler {
 
             if (city.isEmpty) {
               val admin2Code = s"$countryCode.$a1code.$a2code"
-              val findAdmin2Req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" filter {
+              val findAdmin2Req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter {
                 and(
                   termFilter("code" -> admin2Code),
                   termFilter("level" -> 2)

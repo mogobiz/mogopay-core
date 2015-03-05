@@ -8,7 +8,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.config.DefaultComplete
+import com.mogobiz.pay.config.{Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
@@ -18,7 +18,6 @@ import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
 import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
 import com.mogobiz.session.{SessionESDirectives, Session}
 import com.mogobiz.session.SessionESDirectives._
-import com.mogobiz.pay.settings.Settings
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._

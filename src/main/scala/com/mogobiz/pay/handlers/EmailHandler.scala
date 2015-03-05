@@ -1,6 +1,6 @@
 package com.mogobiz.pay.handlers
 
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.config.Settings
 
 /**
  * From https://gist.github.com/mariussoutier/3436111

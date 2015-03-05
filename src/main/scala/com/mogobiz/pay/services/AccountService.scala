@@ -1,6 +1,6 @@
 package com.mogobiz.pay.services
 
-import com.mogobiz.pay.config.DefaultComplete
+import com.mogobiz.pay.config.{Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
@@ -9,7 +9,6 @@ import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 import com.mogobiz.pay.model.Mogopay.TokenValidity._
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
-import com.mogobiz.pay.settings.Settings
 import shapeless.HNil
 import spray.http.MediaTypes._
 import spray.http._
