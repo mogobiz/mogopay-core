@@ -58,6 +58,16 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         scope.$apply();
         location.replace();
     };
+	
+	$rootScope.getAllStores = function (scope, rootScope) {
+        var success = function (response) {
+			scope.$apply(function () {
+				rootScope.allStores = response;
+				rootScope.selectedStore = response[0];
+			});
+		};
+		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
+    };
 }
 
 MainCtrl.$inject = ["ngI18nResourceBundle", "ngI18nConfig", "$scope", "$rootScope", "$location", "$route"];

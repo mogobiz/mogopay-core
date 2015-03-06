@@ -3,7 +3,6 @@ var storeUrl = "/store/";
 var clientUrl = "/mogopay-client/";
 var appUrl    = "/mogopay-admin/";
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
-var storeCode = "acmesport"; // TO BE RESET
 var senderFromName = "MOGOBIZ"; // TO BE RESET
 var senderFromMail = "mogobiz@gmail.com"; // TO BE RESET
 
@@ -63,7 +62,7 @@ function callServerJson(action, dataToSend, success, error){
     });
 }
 
-function callStoreServer(action, dataToSend, success, error, type){
+function callStoreServer(action, dataToSend, success, error, storeCode, type){
     $.ajax({
         url :  storeUrl + storeCode + "/" + action,
         type : type,

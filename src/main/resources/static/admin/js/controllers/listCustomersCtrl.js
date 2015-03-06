@@ -12,8 +12,11 @@ function ListCustomersCtrl($scope, $location, $rootScope, $route){
         };
         callServer("account/profile-info", "", success, function (response) {});
     };
+	$rootScope.selectedStore = $rootScope.allStores[0];
+	$scope.customersSelectedStore = $rootScope.selectedStore;
 	$scope.listCustomersSearch =  function () {listCustomersSearch($scope, $location, $rootScope, $route)};
 	$scope.gotToCustomerDetails =  function (index) {gotToCustomerDetails($scope, $location, $rootScope, $route, index)};
+	$scope.customersChangeStore =  function () {customersChangeStore($scope, $location, $rootScope, $route)};
 }
 
 function listCustomersSearch(scope, location, rootScope, route){
@@ -34,7 +37,7 @@ function listCustomersSearch(scope, location, rootScope, route){
 		dataToSend += "lastName=" + $("#listCustomersLastName").val();
 	}
 
-	callStoreServer("backoffice/listCustomers", dataToSend, success, function (response) {}, "GET");
+	callStoreServer("backoffice/listCustomers", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET");
 }
 
 function gotToCustomerDetails(scope, location, rootScope, route, index){
@@ -42,4 +45,8 @@ function gotToCustomerDetails(scope, location, rootScope, route, index){
 	rootScope.selectedOrder = null;
 	location.path("/details");
 	location.replace();
+}
+
+function customersChangeStore(scope, location, rootScope, route){
+	rootScope.selectedStore = scope.customersSelectedStore;
 }

@@ -27,6 +27,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 
         var success = function (response) {
             $rootScope.createPage = false;
+			$scope.getAllStores($scope, $rootScope);
             $scope.loginGoToTransactions($scope, $location, $rootScope);
         };
 
@@ -59,6 +60,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			$rootScope.isMerchant = response.isMerchant;
 			$rootScope.userProfile = response;
 			$rootScope.createPage = false;
+			$scope.getAllStores($scope, $rootScope);
 			$scope.loginGoToTransactions($scope, $location, $rootScope);
 		};
 
@@ -84,6 +86,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				$rootScope.isMerchant = response.isMerchant;
 				$rootScope.userProfile = response;
 				$rootScope.createPage = false;
+				$scope.getAllStores($scope, $rootScope);
 				$scope.loginGoToTransactions($scope, $location, $rootScope);
 			}
 		};
@@ -117,6 +120,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				$rootScope.isMerchant = response.isMerchant;
 				$rootScope.userProfile = response;
 				$rootScope.createPage = false;
+				$scope.getAllStores($scope, $rootScope);
 				$scope.loginGoToTransactions($scope, $location, $rootScope);
 			}
 		};

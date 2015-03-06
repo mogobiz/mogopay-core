@@ -1,4 +1,5 @@
 function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
+	$scope.transactionsSelectedStore = $rootScope.selectedStore;
 	$scope.goToProfile = function () {
 		var success = function (response) {
 			$rootScope.userProfile = response;
@@ -15,6 +16,7 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 	$scope.refreshCardPopover = function () {refreshCardPopover();};
 	$scope.listTransactionsSearch =  function () {listTransactionsSearch($scope, $location, $rootScope, $route)};
 	$scope.gotToOrderDetails = function (index) {gotToOrderDetails($scope, $location, $rootScope, $route, index);};
+	$scope.transactionsChangeStore = function () {transactionsChangeStore($scope, $location, $rootScope, $route);};
 }
 
 function listTransactionsSearch (scope, location, rootScope, route) {
@@ -82,7 +84,7 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		dataToSend += "endDate=" + encodeURIComponent(endDate);
 	}
 
-	callStoreServer("backoffice/listOrders", dataToSend, success, function (response) {}, "GET");
+	callStoreServer("backoffice/listOrders", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET");
 }
 
 function zerosAutoComplete(number, length){
@@ -114,4 +116,8 @@ function refreshCardPopover() {
 	$( window ).resize(function () {
 		$("[rel=popoverCard]").popover("hide");
 	});
+}
+
+function transactionsChangeStore(scope, location, rootScope, route){
+	rootScope.selectedStore = scope.transactionsSelectedStore;
 }

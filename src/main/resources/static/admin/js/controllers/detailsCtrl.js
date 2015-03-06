@@ -34,7 +34,7 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 			rootScope.detailsHistory = response.list;
 		});
 	};
-	callStoreServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, function (response) {});
+	callStoreServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, function (response) {}, rootScope.selectedStore, "GET");
 }
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
@@ -48,7 +48,7 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			scope.cartDetails = response;
 		});
 	};
-	callStoreServer("backoffice/cartDetails/" + rootScope.selectedOrder.uuid, "", success, function (response) {});
+	callStoreServer("backoffice/cartDetails/" + rootScope.selectedOrder.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
 }
 
 function refreshCardPopover() {
