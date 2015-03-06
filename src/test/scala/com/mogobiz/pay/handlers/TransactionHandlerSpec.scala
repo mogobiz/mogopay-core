@@ -4,7 +4,7 @@ import com.mogobiz.pay.config.{Settings, Mapping}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay.{Account, BOTransaction}
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.config.Settings
 import org.specs2.mutable._
 
 class TransactionHandlerSpec extends Specification with Before {

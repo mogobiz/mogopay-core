@@ -16,6 +16,7 @@ import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.es._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.Token.{Token, TokenType}
@@ -26,6 +27,8 @@ import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.SymmetricCrypt
 import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
+import org.elasticsearch.search.SearchHit
+import org.json4s.JsonAST.{JValue, JString}
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.Serialization.read
 
@@ -956,6 +959,26 @@ class AccountHandler {
     }
 
     (token, account)
+  }
+
+  def listCompagnies(accountUuid: Option[String]) : List[String] = {
+    val account = accountUuid.map {uuid =>
+      load(uuid).map { account =>
+        account
+      }.getOrElse(throw new UnauthorizedException("user not logged"))
+    }.getOrElse(throw new UnauthorizedException("user not logged"))
+
+    if (account.isCustomer) {
+      val req = search in Settings.Mogopay.EsIndex types "BOTransaction" sourceInclude "vendor.company" postFilter termFilter("customer.uuid", account.uuid)
+      (EsClient.searchAllRaw(req) hits() map { hit: SearchHit =>
+        val json: JValue = hit
+        val JString(company) = json \ "vendor" \ "company"
+        company
+      }).toList.distinct
+    }
+    else {
+      account.company.map{company => List(company)}.getOrElse(Nil)
+    }
   }
 
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String,

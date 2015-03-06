@@ -47,7 +47,8 @@ class AccountService extends Directives with DefaultComplete {
         selectShippingAddress ~
         deleteShippingAddress ~
         deleteMerchantTestAccount ~
-        sendNewPassword
+        sendNewPassword ~
+        listCompagnies
     }
   }
 
@@ -488,6 +489,15 @@ class AccountService extends Directives with DefaultComplete {
                 Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
             }
           }
+      }
+    }
+  }
+
+  lazy val listCompagnies = path("list-compagnies") {
+    get {
+      session { session =>
+        handleCall(accountHandler.listCompagnies(session.sessionData.accountId),
+            (res: List[String]) => complete(StatusCodes.OK -> res))
       }
     }
   }

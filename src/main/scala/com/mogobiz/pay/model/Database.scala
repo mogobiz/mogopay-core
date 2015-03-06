@@ -278,7 +278,20 @@ object Mogopay {
                      creditCards: List[CreditCard] = Nil,
                      walletId: Option[String] = None,
                      var dateCreated: Date = Calendar.getInstance().getTime,
-                     var lastUpdated: Date = Calendar.getInstance().getTime)
+                     var lastUpdated: Date = Calendar.getInstance().getTime) {
+
+    lazy val isCustomer : Boolean = {
+      hasRoleName(RoleName.CUSTOMER)
+    }
+
+    lazy val isMerchant : Boolean = {
+      hasRoleName(RoleName.MERCHANT)
+    }
+
+    private def hasRoleName(roleName: RoleName) : Boolean = {
+      roles.find{r: RoleName => roleName == r}.map{r: RoleName => true}.getOrElse(false)
+    }
+  }
 
   case class ShippingAddress(uuid: String,
                              active: Boolean = false,
