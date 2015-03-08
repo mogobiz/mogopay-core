@@ -26,7 +26,7 @@ import scala.reflect.runtime.universe._
 
   def allRoutes = super.routes ~
     get {
-      pathPrefix("") {
+      pathPrefix("api-docs") {
         pathEndOrSingleSlash {
           getFromResource("swagger-ui/index.html")
         }

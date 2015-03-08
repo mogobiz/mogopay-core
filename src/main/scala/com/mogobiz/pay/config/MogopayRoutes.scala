@@ -57,7 +57,6 @@ trait MogopayRoutes extends Directives {
             new CountryService().route ~
             new RateService().route ~
             new TransactionService().route ~
-            new SampleService().route ~
             new TwitterService().route ~
             new LinkedInService().route ~
             new GoogleService().route ~
