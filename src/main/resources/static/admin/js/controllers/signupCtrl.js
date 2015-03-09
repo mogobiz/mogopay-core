@@ -173,16 +173,24 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
 			showAlertBootStrapMsg("success", "Sign up successful!");
 
 			if(response.token == ""){
-				if(indexPage == true)
-					$location.path("/home");
-				if(merchantPage == true || customerPage == true)
-					$location.path("/login");
+				var success = function (response) {
+					$rootScope.createPage = false;
+					$scope.getAllStores($scope, $rootScope);
+					$scope.loginGoToTransactions($scope, $location, $rootScope);
+				};
+
+				var data = "";
+				data += "email=" + $("#profileEmail").val();
+				data += "&password=" + $("#profilePassword").val();
+				data += "&is_customer=" + !rootScope.isMerchant;
+
+				postOnServer("account/login", data, success, function (response) {});
 			}
 			else{
-				$location.path("/validation");
+				location.path("/validation");
+				scope.$apply();
+				location.replace();
 			}
-			scope.$apply();
-			location.replace();
 		};
 		var failure = function (response) {
 			if (response.status == 401) {

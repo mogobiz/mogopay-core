@@ -52,18 +52,18 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         return route === $location.path();
     };
 
-    $rootScope.loginGoToTransactions = function (scope, location, rootScope) {
-        rootScope.transactions = null;
-        location.path("/listTransactions");
-        scope.$apply();
-        location.replace();
+    $rootScope.loginGoToTransactions = function () {
+        $rootScope.transactions = null;
+        $location.path("/listTransactions");
+        $scope.$apply();
+        $location.replace();
     };
 	
-	$rootScope.getAllStores = function (scope, rootScope) {
+	$rootScope.getAllStores = function () {
         var success = function (response) {
-			scope.$apply(function () {
-				rootScope.allStores = response;
-				rootScope.selectedStore = response[0];
+			$scope.$apply(function () {
+				$rootScope.allStores = response;
+				$rootScope.selectedStore = response[0];
 			});
 		};
 		callServer("account/list-compagnies", "", success, function (response) {}, "GET");

@@ -39,8 +39,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         var dataToSend = "";
         dataToSend += "&email=" + $("#user_email").val();
         dataToSend += "&password=" + $("#user_password").val();
-        if ($("#merchant_id").val() != undefined && $("#merchant_id").val() != "")
-            dataToSend += "&merchant_id=" + $("#merchant_id").val();
         dataToSend += "&is_customer=" + !$rootScope.isMerchant;
 
         postOnServer("account/login", dataToSend, success, error);

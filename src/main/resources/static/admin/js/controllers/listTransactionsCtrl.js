@@ -1,4 +1,5 @@
 function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
+	$rootScope.selectedStore = $rootScope.allStores[0];
 	$scope.transactionsSelectedStore = $rootScope.selectedStore;
 	$scope.goToProfile = function () {
 		var success = function (response) {
