@@ -1,10 +1,10 @@
 package com.mogobiz.pay.sql
 
-import java.sql.ResultSet
 import java.util.{Date, UUID}
 
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model
+import Sql.BOTransaction
 import scalikejdbc._
 
 object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
