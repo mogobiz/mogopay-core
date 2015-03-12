@@ -19,21 +19,21 @@
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="detailsCustomerBirthdate">Birth Date</label>
-						<input type="email" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.birthDate | date:'dd/MM/yyyy'}}"/>
+						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.birthDate | date:'dd/MM/yyyy'}}"/>
 					</div>
 				</div>
 				<div class="form-group" style="margin-bottom: 0px;">
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="detailsCustomerPhone">Phone</label>
-						<input type="email" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.telephone.phone}}"/>
+						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.telephone.phone}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="detailsCustomerPhone">Country</label>
-						<input type="email" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.country}}"/>
+						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.country}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="detailsCustomerPhone">Address</label>
-						<input type="email" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.city}}, {{selectedCustomer.address.zipCode}}, {{selectedCustomer.address.road}}"/>
+						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.city}}, {{selectedCustomer.address.zipCode}}, {{selectedCustomer.address.road}}"/>
 					</div>
 				</div>
 			</form>
@@ -42,7 +42,7 @@
 	<div ng-if="selectedCustomer != null" class="history panel panel-default">
 		<div class="panel-heading"><h3 class="panel-title">History</h3></div>
 		<div class="panel-body">
-			<div class="table-responsive" ng-show="detailsHistory.length > 0">
+			<div class="table-responsive" ng-show="historyDetails.length > 0">
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
@@ -57,38 +57,38 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr ng-repeat="detail in detailsHistory">
+						<tr ng-repeat="record in historyDetails">
 							<td>
-								<a ng-if="selectedOrder.uuid != detail.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{detail.uuid}}</a>
-								<span ng-if="selectedOrder.uuid == detail.uuid">{{detail.uuid}}</span>
+								<a ng-if="selectedOrder.uuid != record.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{record.uuid}}</a>
+								<span ng-if="selectedOrder.uuid == record.uuid">{{record.uuid}}</span>
 							</td>
-							<td>{{detail.customer.firstName}}</td>
-							<td>{{detail.customer.email}}</td>
-							<td>{{detail.transactionDate | date:'dd/MM/yyyy'}}</td>
-							<td>{{detail.currency.code}} {{detail.amount * detail.currency.rate}}</td>
+							<td>{{record.customer.firstName}}</td>
+							<td>{{record.customer.email}}</td>
+							<td>{{record.transactionDate | date:'dd/MM/yyyy'}}</td>
+							<td>{{record.currency.code}} {{record.amount * record.currency.rate}}</td>
 							<td>
-								<a href="javascript:void(0)" rel="popoverCard">{{detail.creditCard.number}}</a>
-								<div ng-if="detail.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
+								<a href="javascript:void(0)" rel="popoverCard">{{record.creditCard.number}}</a>
+								<div ng-if="record.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
 									<div class="row">
 										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >Card Number:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{detail.creditCard.number}}</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.number}}</label>
 									</div>
 									<div class="row">
 										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Holder:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{detail.creditCard.holder}}</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.holder}}</label>
 									</div>
 									<div class="row">
 										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5"> Expiration Date:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{detail.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
 									</div>
 									<div class="row">
 										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Card Type:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{detail.creditCard.cardType}}</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.cardType}}</label>
 									</div>
 								</div>
 							</td>
-							<td>{{detail.status}}</td>
-							<td>{{detail.deliveryStatus[0]}}</td>
+							<td>{{record.status}}</td>
+							<td>{{record.deliveryStatus[0]}}</td>
 						</tr>
 					</tbody>
 				</table>
@@ -121,24 +121,24 @@
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
+							<th style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
 							<th>Name</th>
 							<th>Basic Price</th>
 							<th>End Price</th>
 							<th>Quantity</th>
+							<th>Returned Item(s)</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr ng-repeat="item in cartDetails.cartItems">
+							<td><input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/></td>
 							<td>
 								<div ng-if="item.bOProducts.length == 1">
 									{{item.bOProducts[0].product.name}}/({{item.sku.sku}})
 								</div>
 								<div ng-if="item.bOProducts.length > 1">
-									<a href="javascript:void(0)" rel="popoverProduts">{{item.bOProducts[0].product.name}}/({{item.sku.sku}})</a>
+									<a href="javascript:void(0)" rel="popoverProduts">{{item.bOProducts[0].product.name}} / ({{item.sku.sku}})</a>
 									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
-										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">{{product.product.name}}</div>
-										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">{{product.product.name}}</div>
-										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">{{product.product.name}}</div>
 										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">{{product.product.name}}</div>
 									</div>
 								</div>
@@ -146,6 +146,44 @@
 							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.quantity}}</td>
+							<td>
+								<a href="javascript:void(0)" ng-if="item.BOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">Yes</a>
+								<span ng-if="item.BOReturnedItems.length == 0">No</span>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div class="panel panel-default" ng-if="isMerchant && returnDetails != null">
+		<div class="panel-heading"><h3 class="panel-title">Return Details</h3></div>
+		<div class="panel-body">
+			<div class="form-group" style="margin-bottom: 0px;">
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+					<label for="returnDetailsName">Name</label>
+					<input type="text" class="form-control" id="returnDetailsName" autofocus readonly value="{{returnDetails.name}}"/>
+				</div>
+			</div>
+			<div class="clearfix"></div>
+			<div class="table-responsive" ng-show="returnDetails.returnedItems.length > 0">
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr>
+							<th>Quantity</th>
+							<th>Motivation</th>
+							<th>Refunded</th>
+							<th>Total Refunded</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in returnDetails.returnedItems">
+							<td>{{item.quantity}}</td>
+							<td>{{item.BOReturn.motivation}}</td>
+							<td>{{item.refunded}}</td>
+							<td>{{item.totalRefunded}}</td>
+							<td>{{item.status}}</td>
 						</tr>
 					</tbody>
 				</table>

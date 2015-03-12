@@ -68,6 +68,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		};
 		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
     };
+	$scope.navigateBack = function(){navigateBack($scope, $rootScope, $location, $route);};
 }
 
 MainCtrl.$inject = ["ngI18nResourceBundle", "ngI18nConfig", "$scope", "$rootScope", "$location", "$route"];
@@ -99,4 +100,15 @@ function validationGetUserProfile(scope, location, rootScope, route){
 	}
 	var error = function(response){}
 	callServer("account/profile-info", "", success, error);
+}
+
+function navigateBack(scope, rootScope, location, route){
+	if(scope.urlHistory.length == "1") {
+		return;
+	}
+	scope.urlHistory.pop();
+	location.path(scope.urlHistory[scope.urlHistory.length - 1]);
+	if (scope.$root.$$phase != "$apply" && scope.$root.$$phase != "$digest") {
+		scope.$apply();
+	}
 }

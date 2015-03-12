@@ -78,7 +78,7 @@ select:required:valid {
     background-repeat: no-repeat;
 }
 
-.details .form-control[readonly]{
+.details .form-control[readonly], .return .form-control[readonly]{
 	background-color: #FFFFFF;
 	cursor: default;
 }
