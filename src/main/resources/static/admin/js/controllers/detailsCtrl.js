@@ -132,7 +132,7 @@ function detailsSelectReturn(scope, location, rootScope, route, index){
 		name: scope.cartDetails.cartItems[index].bOProducts[0].product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
 		returnedItems: scope.cartDetails.cartItems[index].BOReturnedItems
 	}
-	if(!rootScope.isMerchant){
+	if(rootScope.isMerchant){
 		location.path("/return");
         location.replace();
 	}
