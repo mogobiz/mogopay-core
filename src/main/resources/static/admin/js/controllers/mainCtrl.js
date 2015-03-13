@@ -9,6 +9,26 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
     $rootScope.location = $location.absUrl().split('#')[0];
 
     $rootScope.serverUrl = serverUrl;
+	
+	
+	$rootScope.returnItemStatusOptions = [{
+		value: "NOT_AVAILABLE",
+		label: "Not Available"
+	},{
+		value: "BACK_TO_STOCK",
+		label: "Back To Stock"
+	},{
+		value: "DISCARDED",
+		label: "Discarded"
+	}];
+
+	$rootScope.returnStatusValues = {
+		"RETURN_SUBMITTED": "Return Submitted",
+		"RETURN_TO_BE_RECEIVED": "Return To Be Received",
+		"RETURN_RECEIVED": "Return Received",
+		"RETURN_REFUSED": "Return Refused",
+		"RETURN_ACCEPTED": "Return Accepted"
+	};
 
     if (($rootScope.userProfile == undefined || $rootScope.userProfile == null)) {
         if(indexPage == true && $location.$$path != "/home"){

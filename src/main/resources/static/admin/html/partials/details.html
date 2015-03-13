@@ -121,7 +121,7 @@
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
-							<th style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
+							<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
 							<th>Name</th>
 							<th>Basic Price</th>
 							<th>End Price</th>
@@ -131,7 +131,9 @@
 					</thead>
 					<tbody>
 						<tr ng-repeat="item in cartDetails.cartItems">
-							<td><input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/></td>
+							<td  ng-if="!isMerchant">
+								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
+							</td>
 							<td>
 								<div ng-if="item.bOProducts.length == 1">
 									{{item.bOProducts[0].product.name}}/({{item.sku.sku}})
@@ -153,9 +155,13 @@
 						</tr>
 					</tbody>
 				</table>
+				<div ng-if="!isMerchant">
+					<button class="btn btn-default pull-right" ng-click="returnSelectedItems()">Return selected items</button>
 			</div>
 		</div>
 	</div>
+
+<!-- Customer Block -->
 	<div class="panel panel-default" ng-if="!isMerchant && returnDetails != null">
 		<div class="panel-heading"><h3 class="panel-title">Return Details</h3></div>
 		<div class="panel-body">
@@ -171,7 +177,7 @@
 					<thead>
 						<tr>
 							<th>Quantity</th>
-							<th>Motivation</th>
+							<!-- <th>Motivation</th> -->
 							<th>Refunded</th>
 							<th>Total Refunded</th>
 							<th>Status</th>
@@ -180,14 +186,21 @@
 					<tbody>
 						<tr ng-repeat="item in returnDetails.returnedItems">
 							<td>{{item.quantity}}</td>
-							<td>{{item.BOReturn.motivation}}</td>
+							<!-- <td>{{item.BOReturn[0].motivation}}</td> -->
 							<td>{{item.refunded}}</td>
 							<td>{{item.totalRefunded}}</td>
-							<td>{{item.status}}</td>
+							<td ng-if="item.BOReturn.length == 1">{{returnStatusValues[item.BOReturn[0].status]}}</td>
+							<td ng-if="item.BOReturn.length > 1">
+								<a href="javascript:void(0)" rel="popoverBoRetun">{{returnStatusValues[item.BOReturn[0].status]}}</a>
+								<div class="dialog" style="display:none;" ng-init="refreshBoRetunPopover()">
+									<div ng-repeat="return in item.BOReturn" style="padding: 5px;">{{returnStatusValues[return.status]}}: {{return.motivation}}</div>
+								</div>
+							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
 		</div>
 	</div>
+<!-- End Of Customer Block -->
 </div>

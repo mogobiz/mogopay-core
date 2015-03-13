@@ -18,10 +18,10 @@
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse">
+        <div class="collapse navbar-collapse" style="padding:0px;">
             <ul class="nav navbar-nav">
-                <li ng-if="isPageActive('/transactionLogs')">
-                    <a href="javascript:void(0);" ng-click="goToListTrasactions()"><span class="glyphicon glyphicon-chevron-left"></span></a>
+                <li ng-if="isPageActive('/return')">
+                    <a href="javascript:void(0);" ng-click="goToDetails()"><span class="glyphicon glyphicon-chevron-left"></span></a>
                 </li>
 				<li ng-class="{active:isPageActive('/profile')}">
                     <a href="javascript:void(0);" ng-click="goToProfile()">Profile</a>

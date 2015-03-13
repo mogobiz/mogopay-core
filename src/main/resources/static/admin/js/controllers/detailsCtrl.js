@@ -18,6 +18,7 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
     };
 	$scope.historyDetails = null;
 	$rootScope.returnDetails = null;
+	$rootScope.itemsToBeReturned = [];
 	if($rootScope.selectedCustomer != null){
 		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
 	}
@@ -25,12 +26,14 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
+	$scope.detailsRefundCheckAll = function () {detailsRefundCheckAll($scope, $location, $rootScope, $route);};
+	$scope.detailsRefundCheckOne = function () {detailsRefundCheckOne($scope, $location, $rootScope, $route);};
+	$scope.returnSelectedItems = function () {returnSelectedItems($scope, $location, $rootScope, $route);};
+	$scope.detailsSelectReturn = function (index) {detailsSelectReturn($scope, $location, $rootScope, $route, index);};
 	$scope.refreshCardPopover = function () {refreshCardPopover();};
 	$scope.refreshProductsPopover = function () {refreshProductsPopover();};
 	$scope.refreshReturnPopover = function () {refreshReturnPopover();};
-	$scope.detailsRefundCheckAll = function () {detailsRefundCheckAll($scope, $location, $rootScope, $route);};
-	$scope.detailsRefundCheckOne = function () {detailsRefundCheckOne($scope, $location, $rootScope, $route);};
-	$scope.detailsSelectReturn = function (index) {detailsSelectReturn($scope, $location, $rootScope, $route, index);};
+	$scope.refreshBoRetunPopover = function () {refreshBoRetunPopover();};
 }
 
 function detailsGetCustomerHistory(scope, location, rootScope, route){
@@ -61,6 +64,46 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 		});
 	};
 	callStoreServer("backoffice/cartDetails/" + rootScope.selectedOrder.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
+}
+
+function detailsRefundCheckAll(scope, location, rootScope, route){
+	$("input[name='detailsRefundOne']:not([disabled])").prop("checked", $("input[name='detailsRefundAll']").is(":checked"));
+}
+
+function detailsRefundCheckOne(scope, location, rootScope, route){
+	var allchecked = true;
+	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
+	for(var i = 0; i < checkBoxes.length; i++){
+		if(!$(checkBoxes[i]).is(":checked")){
+			allchecked = false;
+			break;
+		}
+	}
+	$("input[name='detailsRefundAll']").prop("checked", allchecked);
+}
+
+function detailsSelectReturn(scope, location, rootScope, route, index){
+	rootScope.itemsToBeReturned = [];
+	rootScope.returnDetails = {
+		name: scope.cartDetails.cartItems[index].bOProducts[0].product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
+		returnedItems: scope.cartDetails.cartItems[index].BOReturnedItems
+	}
+	if(rootScope.isMerchant){
+		location.path("/return");
+        location.replace();
+	}
+}
+
+function returnSelectedItems(scope, location, rootScope, route){
+	rootScope.itemsToBeReturned = [];
+	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
+	for(var i = 0; i < checkBoxes.length; i++){
+		if($(checkBoxes[i]).is(":checked")){
+			rootScope.itemsToBeReturned[rootScope.itemsToBeReturned.length] = scope.cartDetails.cartItems[$(checkBoxes[i]).attr("index")];
+		}
+	}
+	location.path("/return");
+	location.replace();
 }
 
 function refreshCardPopover() {
@@ -111,29 +154,18 @@ function refreshReturnPopover() {
 	});
 }
 
-function detailsRefundCheckAll(scope, location, rootScope, route){
-	$("input[name='detailsRefundOne']:not([disabled])").prop("checked", $("input[name='detailsRefundAll']").is(":checked"));
-}
-
-function detailsRefundCheckOne(scope, location, rootScope, route){
-	var allchecked = true;
-	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
-	for(var i = 0; i < checkBoxes.length; i++){
-		if(!$(checkBoxes[i]).is(":checked")){
-			allchecked = false;
-			break;
+function refreshBoRetunPopover() {
+	$("[rel=popoverBoRetun]").popover({
+		html : true,
+		placement:"bottom",
+		content: function () {
+			$(".popover").removeClass("in").remove();
+			var parent =  $(this).parent();
+			var element = $(".dialog", parent);
+			return element.html();
 		}
-	}
-	$("input[name='detailsRefundAll']").prop("checked", allchecked);
-}
-
-function detailsSelectReturn(scope, location, rootScope, route, index){
-	rootScope.returnDetails = {
-		name: scope.cartDetails.cartItems[index].bOProducts[0].product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
-		returnedItems: scope.cartDetails.cartItems[index].BOReturnedItems
-	}
-	if(rootScope.isMerchant){
-		location.path("/return");
-        location.replace();
-	}
+	});
+	$( window ).resize(function () {
+		$("[rel=popoverBoRetun]").popover("hide");
+	});
 }
