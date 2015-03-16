@@ -11,11 +11,11 @@ import akka.util.Timeout
 import com.mogobiz.pay.config.{Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
-import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
+import com.mogobiz.pay.handlers.payment.{Submit, SubmitRequest}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
-import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
+import com.mogobiz.pay.model.RequestParameters.{TransactionInitRequest, TransactionInit, SelectShippingPriceRequest, ListShippingPriceRequest}
 import com.mogobiz.session.{SessionESDirectives, Session}
 import com.mogobiz.session.SessionESDirectives._
 import spray.can.Http
@@ -66,67 +66,66 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val init = path("init") {
     post {
-      formFields('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?).as(TransactionInit) {
-        params =>
-          import Implicits._
-          handleCall(transactionHandler.init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra),
-            (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-          )
+      import Implicits._
+      entity(as[TransactionInitRequest]) { req =>
+        handleCall(transactionHandler.init(req.merchant_secret, req.transaction_amount, req.currency_code, req.currency_rate, req.extra),
+          (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+        )
       }
     }
   }
 
   lazy val listShipping = path("list-shipping") {
+    import Implicits._
     post {
-      formFields('currency_code, 'transaction_extra).as(ListShippingPriceParam) {
-        params =>
-          session {
-            session =>
-              import Implicits._
-              session.sessionData.accountId.map(_.toString) match {
-                case None => complete {
-                  StatusCodes.Forbidden -> Map('error -> "Not logged in")
-                }
-                case Some(id) =>
-                  handleCall(transactionHandler.shippingPrices(params.currency_code, params.transaction_extra, id),
-                    (shippinggPrices: Seq[ShippingPrice]) => {
-                      session.sessionData.shippingPrices = Option(shippinggPrices.toList)
-                      setSession(session) {
-                        complete(StatusCodes.OK -> shippinggPrices)
-                      }
-                    }
-                  )
+      entity(as[ListShippingPriceRequest]) { req =>
+        session {
+          session =>
+            import Implicits._
+            session.sessionData.accountId.map(_.toString) match {
+              case None => complete {
+                StatusCodes.Forbidden -> Map('error -> "Not logged in")
               }
-          }
+              case Some(id) =>
+                handleCall(transactionHandler.shippingPrices(req.currency_code, req.transaction_extra, id),
+                  (shippinggPrices: Seq[ShippingPrice]) => {
+                    session.sessionData.shippingPrices = Option(shippinggPrices.toList)
+                    setSession(session) {
+                      complete(StatusCodes.OK -> shippinggPrices)
+                    }
+                  }
+                )
+            }
+        }
       }
     }
   }
 
   lazy val selectShipping = path("select-shipping") {
+    import Implicits._
     post {
-      formFields('currency_code, 'transaction_extra, 'provider, 'service, 'rate_type).as(SelectShippingPriceParam) {
-        params =>
-          session {
-            session =>
-              import Implicits._
-              session.sessionData.accountId.map(_.toString) match {
-                case None => complete {
-                  StatusCodes.Forbidden -> Map('error -> "Not logged in")
-                }
-                case Some(id) =>
-                  handleCall(transactionHandler.shippingPrices(params.currency_code, params.transaction_extra, id),
-                    (shippingPrices: Seq[ShippingPrice]) => {
-                      val shippingPrice = transactionHandler.shippingPrice(shippingPrices, params.provider, params.service, params.rate_type)
-                      session.sessionData.selectShippingPrice = shippingPrice
-                      setSession(session) {
-                        complete {
-                          StatusCodes.OK -> shippingPrice.get
-                        }
+      entity(as[SelectShippingPriceRequest]) { req =>
+        session {
+          session =>
+            import Implicits._
+            session.sessionData.accountId.map(_.toString) match {
+              case None => complete {
+                StatusCodes.Forbidden -> Map('error -> "Not logged in")
+              }
+              case Some(id) =>
+                handleCall(transactionHandler.shippingPrices(req.currency_code, req.transaction_extra, id),
+                  (shippingPrices: Seq[ShippingPrice]) => {
+                    val shippingPrice = transactionHandler.shippingPrice(shippingPrices, req.provider, req.service, req.rate_type)
+                    session.sessionData.selectShippingPrice = shippingPrice
+                    setSession(session) {
+                      complete {
+                        StatusCodes.OK -> shippingPrice.get
                       }
                     }
-                  )
-              }
-          }
+                  }
+                )
+            }
+        }
       }
     }
   }
@@ -179,30 +178,25 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
    * callback_cardinfo, callback_cvv, callback_auth
    * card_cvv
    */
+
   lazy val submit = path("submit") {
     post {
-      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
-        submitParams =>
-          session {
-            session =>
-              doSubmit(submitParams, session)
-          }
+      import Implicits._
+      entity(as[SubmitRequest]) { req =>
+        session {
+          session =>
+            doSubmit(req, session)
+        }
       }
     }
   }
 
   lazy val submitWithSession = path("submit" / Segment) { sessionUuid =>
     post {
-      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
-        submitParams =>
-          val session = SessionESDirectives.load(sessionUuid).get
-          doSubmit(submitParams, session)
+      import Implicits._
+      entity(as[SubmitRequest]) { req =>
+        val session = SessionESDirectives.load(sessionUuid).get
+        doSubmit(req, session)
       }
     }
   }
@@ -224,15 +218,15 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
   }
 
-  private def doSubmit(submitParams: SubmitParams, session: Session): Route = {
+  private def doSubmit(submitParams: SubmitRequest, session: Session): Route = {
     import Implicits._
     def isNewSession(): Boolean = {
       val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
-      val incomingTrans = submitParams.transactionUUID
+      val incomingTrans = submitParams.transaction_id
       sessionTrans != incomingTrans
     }
 
-    if (submitParams.merchantId != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__")) {
+    if (submitParams.merchant_id != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__")) {
       complete {
         StatusCodes.Unauthorized -> "Invalid Merchant id"
       }

@@ -7,13 +7,12 @@ import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 import com.mogobiz.pay.model.Mogopay.TokenValidity._
+import com.mogobiz.pay.model.RequestParameters.{UpdateProfileLightRequest, UpdateProfileRequest, SignupRequest, LoginRequest}
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
-import shapeless.HNil
 import spray.http.MediaTypes._
 import spray.http._
 import spray.routing.Directives
-import shapeless._
 
 class AccountService extends Directives with DefaultComplete {
 
@@ -497,14 +496,14 @@ class AccountService extends Directives with DefaultComplete {
     get {
       session { session =>
         handleCall(accountHandler.listCompagnies(session.sessionData.accountId),
-            (res: List[String]) => complete(StatusCodes.OK -> res))
+          (res: List[String]) => complete(StatusCodes.OK -> res))
       }
     }
   }
 
   lazy val sendNewPassword = post {
     path("send-new-password") {
-      entity(as[SendNewPasswordParams]) {params =>
+      entity(as[SendNewPasswordParams]) { params =>
         handleCall(accountHandler.sendNewPassword(params),
           (_: Unit) => complete(StatusCodes.OK))
       }
@@ -564,12 +563,11 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   }
 
   lazy val login = path("login") {
+    import com.mogobiz.pay.implicits.Implicits._
     post {
-      var fields = formFields('email, 'password, 'merchant_id.?, 'is_customer.as[Boolean])
-      fields { (email, password, merchantId, isCustomer) =>
+      entity(as[LoginRequest]) { req =>
         session { session =>
-          val login = Login(email, password, merchantId, isCustomer)
-          handleCall(accountHandler.login(email, password, merchantId, isCustomer),
+          handleCall(accountHandler.login(req.email, req.password, req.merchant_id, req.is_customer),
             (account: Account) => {
               authenticateSession(session, account)
               setSession(session) {
@@ -608,50 +606,42 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   }
 
   lazy val signup = path("signup") {
+    import Implicits._
     post {
       type Token = String
 
-      val fields = formFields('email :: 'password :: 'password2 ::
-        'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
-        'road :: ('road2 ?) :: ('extra ?) :: 'city :: 'zip_code :: 'admin1 :: 'admin2 :: 'country ::
-        'is_merchant.as[Boolean] :: ('merchant_id ?) :: ('company ?) :: ('website ?) ::
-        'validation_url :: 'from_name :: 'from_email :: HNil)
-
-      fields.happly {
-        case email :: password :: password2 :: lphone :: civility :: firstname ::
-            lastname :: birthday :: road :: road2 :: extra :: city :: zipCode :: admin1 :: admin2 :: country ::
-            isMerchant :: merchantId :: company :: website :: validationUrl :: fromName :: fromEmail :: HNil =>
+      entity(as[SignupRequest]) { req =>
         val address = AccountAddress(
-          civility = Some(Civility.withName(civility)),
-          firstName = Some(firstname),
-          lastName = Some(lastname),
-          road = road,
-          road2 = road2,
-          extra = extra,
-          city = city,
-          zipCode = Some(zipCode),
-          country = Some(country),
-          admin1 = Some(admin1),
-          admin2 = Some(admin2)
+          civility = Some(Civility.withName(req.civility)),
+          firstName = Some(req.firstname),
+          lastName = Some(req.lastname),
+          road = req.road,
+          road2 = req.road2,
+          extra = req.extra,
+          city = req.city,
+          zipCode = Some(req.zip_code),
+          country = Some(req.country),
+          admin1 = Some(req.admin1),
+          admin2 = Some(req.admin2)
         )
 
         val signup = Signup(
-          email = email,
-          password = password,
-          password2 = password2,
-          lphone = lphone,
-          civility = civility,
-          firstName = firstname,
-          lastName = lastname,
-          birthDate = birthday,
+          email = req.email,
+          password = req.password,
+          password2 = req.password2,
+          lphone = req.lphone,
+          civility = req.civility,
+          firstName = req.firstname,
+          lastName = req.lastname,
+          birthDate = req.birthday,
           address = address,
-          isMerchant = isMerchant,
-          vendor = merchantId,
-          company = company,
-          website = website,
-          validationUrl = validationUrl,
-          fromName = fromName,
-          fromEmail = fromEmail
+          isMerchant = req.is_merchant,
+          vendor = req.merchant_id,
+          company = req.company,
+          website = req.website,
+          validationUrl = req.validation_url,
+          fromName = req.from_name,
+          fromEmail = req.from_email
         )
 
         import Implicits._
@@ -662,102 +652,80 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   }
 
   lazy val updateProfile = path("update-profile") {
+    import Implicits._
     post {
       session {
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              val fields = formFields(('password ?) :: ('password2 ?) :: 'company ::
-                'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
-                'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
-                'payment_method :: 'cb_provider ::
-                ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
-                ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
-                ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
-                ('sips_merchant_certificate_file_name.?.as[Option[String]]) ::
-                ('sips_merchant_certificate_file_content.?.as[Option[String]]) ::
-                ('sips_merchant_parcom_file_name.?.as[Option[String]]) ::
-                ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path ?) ::
-                ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
-                ('password_subject ?) :: ('password_content ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
-                ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) ::
-                'email_field :: 'password_field :: HNil)
-              fields.happly {
-                case password :: password2 :: company :: website :: lphone ::
-                  civility :: firstname :: lastname :: birthday :: road :: road2 ::
-                  city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
-                  paymentMethod :: cbProvider ::
-                  paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode :: paylineCustomPaymentTemplateURL ::
-                  payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
-                  sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
-                  sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
-                  systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
-                  passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
-                  kwixoParams :: emailField :: passwordField :: HNil =>
-                  val validPassword: Option[(String, String)] = (password, password2) match {
-                    case (Some(p), Some(p2)) => Some((p, p2))
-                    case _ => None
-                  }
+              entity(as[UpdateProfileRequest]) { req =>
+                val validPassword: Option[(String, String)] = (req.password, req.password2) match {
+                  case (Some(p), Some(p2)) => Some((p, p2))
+                  case _ => None
+                }
 
-                  val billingAddress = AccountAddress(
-                    road = road,
-                    road2 = road2,
-                    city = city,
-                    zipCode = Some(zipCode),
-                    country = Some(country),
-                    admin1 = Some(admin1),
-                    admin2 = Some(admin2)
-                  )
+                val billingAddress = AccountAddress(
+                  road = req.road,
+                  road2 = req.road2,
+                  city = req.city,
+                  zipCode = Some(req.zip_code),
+                  country = Some(req.country),
+                  admin1 = Some(req.admin1),
+                  admin2 = Some(req.admin2)
+                )
 
-                  // error handling for invalid cbProvider
-                  // error handling for invalid paymentMethod
+                // error handling for invalid cbProvider
+                // error handling for invalid paymentMethod
 
-                  // error handling if a param isn't passed
-                  val cbParam: CBParams = CBPaymentProvider.withName(cbProvider) match {
-                    case CBPaymentProvider.NONE => NoCBParams()
-                    case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
-                      paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
-                    case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxMerchantId.get)
-                    case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
-                      sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
-                      sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
-                    case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
-                  }
+                // error handling if a param isn't passed
+                val cbParam: CBParams = CBPaymentProvider.withName(req.cb_provider) match {
+                  case CBPaymentProvider.NONE => NoCBParams()
+                  case CBPaymentProvider.PAYLINE => PaylineParams(req.payline_account.get, req.payline_key.get, req.payline_contract.get,
+                    req.payline_custom_payment_page_code.get, req.payline_custom_payment_template_url.get)
 
-                  val profile = UpdateProfile(
-                    id = accountId,
-                    password = validPassword,
-                    company = company,
-                    website = website,
-                    lphone = lphone,
-                    civility = civility,
-                    firstName = firstname,
-                    lastName = lastname,
-                    birthDate = birthday,
-                    billingAddress = billingAddress,
-                    isMerchant = session.sessionData.isMerchant,
-                    vendor = vendor,
-                    emailField = emailField,
-                    passwordField = passwordField,
-                    passwordSubject = passwordSubject,
-                    passwordContent = passwordContent,
-                    callbackPrefix = callbackPrefix,
-                    passwordPattern = passwordPattern,
-                    paymentMethod = paymentMethod,
-                    cbProvider = cbProvider,
-                    payPalParam = PayPalParam(
-                      paypalUser = paypalUser,
-                      paypalPassword = paypalPassword,
-                      paypalSignature = paypalSignature
-                    ),
-                    kwixoParam = KwixoParam(kwixoParams),
-                    cbParam = cbParam
-                  )
+                  case CBPaymentProvider.PAYBOX => PayboxParams(req.paybox_site.get, req.paybox_key.get, req.paybox_rank.get, req.paybox_merchant_id.get)
 
-                  import Implicits._
+                  case CBPaymentProvider.SIPS => SIPSParams(req.sips_merchant_id.get, req.sips_merchant_country.get,
+                    req.sips_merchant_certificate_file_name, req.sips_merchant_certificate_file_content,
+                    req.sips_merchant_parcom_file_name, req.sips_merchant_parcom_file_content, req.sips_merchant_logo_path.get)
 
-                  handleCall(accountHandler.updateProfile(profile),
-                    (_: Unit) => complete(StatusCodes.OK -> Map()))
+                  case CBPaymentProvider.SYSTEMPAY => SystempayParams(req.systempay_shop_id.get, req.systempay_contract_number.get, req.systempay_certificate.get)
+                }
+
+                val profile = UpdateProfile(
+                  id = accountId,
+                  password = validPassword,
+                  company = req.company,
+                  website = req.website,
+                  lphone = req.lphone,
+                  civility = req.civility,
+                  firstName = req.firstname,
+                  lastName = req.lastname,
+                  birthDate = req.birthday,
+                  billingAddress = billingAddress,
+                  isMerchant = session.sessionData.isMerchant,
+                  vendor = req.vendor,
+                  emailField = req.email_field,
+                  passwordField = req.password_field,
+                  passwordSubject = req.password_subject,
+                  passwordContent = req.password_content,
+                  callbackPrefix = req.callback_prefix,
+                  passwordPattern = req.password_pattern,
+                  paymentMethod = req.payment_method,
+                  cbProvider = req.cb_provider,
+                  payPalParam = PayPalParam(
+                    paypalUser = req.paypal_user,
+                    paypalPassword = req.paypal_password,
+                    paypalSignature = req.paypal_signature
+                  ),
+                  kwixoParam = KwixoParam(req.kwixo_params),
+                  cbParam = cbParam
+                )
+
+                import Implicits._
+
+                handleCall(accountHandler.updateProfile(profile),
+                  (_: Unit) => complete(StatusCodes.OK -> Map()))
               }
             case _ => complete {
               import Implicits._
@@ -770,29 +738,24 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   }
 
   lazy val updateProfileLight = path("update-profile-light") {
+    import Implicits._
     post {
       session {
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              val fields = formFields('password :: 'password2 :: 'civility :: 'firstname :: 'lastname :: 'birthday :: HNil)
-              fields.happly {
-                case password :: password2 :: civility :: firstName :: lastName :: birthday :: HNil =>
-
-                  val profile = UpdateProfileLight(
-                    id = accountId,
-                    password = password,
-                    password2 = password2,
-                    civility = civility,
-                    firstName = firstName,
-                    lastName = lastName,
-                    birthDate = birthday
-                  )
-
-                  import Implicits._
-
-                  handleCall(accountHandler.updateProfileLight(profile),
-                    (_: Unit) => complete(StatusCodes.OK -> Map()))
+              entity(as[UpdateProfileLightRequest]) { req =>
+                val profile = UpdateProfileLight(
+                  id = accountId,
+                  password = req.password,
+                  password2 = req.password2,
+                  civility = req.civility,
+                  firstName = req.firstname,
+                  lastName = req.lastname,
+                  birthDate = req.birthday
+                )
+                handleCall(accountHandler.updateProfileLight(profile),
+                  (_: Unit) => complete(StatusCodes.OK -> Map()))
               }
             case _ => complete {
               import Implicits._

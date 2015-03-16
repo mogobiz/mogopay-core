@@ -31,14 +31,14 @@ import scala.collection._
 import scala.util._
 import Implicits._
 
-case class Submit(sessionData: SessionData, params: SubmitParams, actionName: Option[String], csrfToken: Option[String])
+case class Submit(sessionData: SessionData, params: SubmitRequest, actionName: Option[String], csrfToken: Option[String])
 
-case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Option[String], authURL: Option[String],
-                        cvvURL: Option[String],transactionUUID: String, amount: Long, merchantId: String,
-                        transactionType: String, customerCVV: Option[String], ccNum: Option[String],
-                        customerEmail: Option[String], customerPassword: Option[String],
-                        transactionDescription: Option[String],
-                        ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean]) {
+case class SubmitRequest(callback_success: String, callback_error: String, callback_cardinfo: Option[String], callback_auth: Option[String],
+                         callback_cvv: Option[String], transaction_id: String, transaction_amount: Long, merchant_id: String,
+                         transaction_type: String, card_cvv: Option[String], card_number: Option[String],
+                         user_email: Option[String], user_password: Option[String],
+                         transaction_desc: Option[String],
+                         card_month: Option[String], card_year: Option[String], card_type: Option[String], card_store: Option[Boolean]) {
   def toMap = Map(
     "_successURL" -> "_successURL",
     "_errorURL" -> "_errorURL",
@@ -95,7 +95,7 @@ class TransactionHandler {
   def startPayment(vendorId: String, accountId: Option[String], transactionUUID: String, paymentRequest: PaymentRequest,
                    paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
     accountHandler.load(vendorId).map { account =>
-      val customer = accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
+      val customer = accountId.map { uuid => accountHandler.load(uuid)}.getOrElse(None)
       var transaction = BOTransaction(transactionUUID, transactionUUID, "", Option(new Date), paymentRequest.amount,
         paymentRequest.currency, TransactionStatus.INITIATED, new Date, None,
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
@@ -309,16 +309,16 @@ class TransactionHandler {
             String merchantId = MogopayUtil.extractStringParam(params["merchant_id"]);
             String transactionType = MogopayUtil.extractStringParam(params["transaction_type"]);
      */
-    var transactionUUID = Option(submit.params.transactionUUID)
-    var errorURL = Option(submit.params.errorURL)
-    var successURL = Option(submit.params.successURL)
-    var transactionType = Option(submit.params.transactionType)
-    var amount = Option(submit.params.amount)
-    val cardinfoURL = submit.params.cardinfoURL
-    val authURL = submit.params.authURL
-    val cvvURL = submit.params.cvvURL
+    var transactionUUID = Option(submit.params.transaction_id)
+    var errorURL = Option(submit.params.callback_error)
+    var successURL = Option(submit.params.callback_success)
+    var transactionType = Option(submit.params.transaction_type)
+    var amount = Option(submit.params.transaction_amount)
+    val cardinfoURL = submit.params.callback_cardinfo
+    val authURL = submit.params.callback_auth
+    val cvvURL = submit.params.callback_cvv
     val sessionData = submit.sessionData
-    var cardStore = submit.params.ccStore.getOrElse(false)
+    var cardStore = submit.params.card_store.getOrElse(false)
 
     // The first time a user come, mogopay is false & cardinfo is true.
     // This definitely set the mogopay status for the whole session.
@@ -333,7 +333,7 @@ class TransactionHandler {
         amount = sessionData.amount
         accountHandler.load(sessionData.merchantId.get).orNull
       } else {
-        accountHandler.load(submit.params.merchantId).orNull
+        accountHandler.load(submit.params.merchant_id).orNull
       }
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
     if (transactionRequest.amount != amount.get) {
@@ -405,30 +405,30 @@ class TransactionHandler {
     sessionData.transactionUuid = transactionUUID
     sessionData.errorURL = errorURL
     sessionData.successURL = successURL
-    sessionData.cardinfoURL = submit.params.cardinfoURL
-    sessionData.cvvURL = submit.params.cvvURL
+    sessionData.cardinfoURL = submit.params.callback_cardinfo
+    sessionData.cvvURL = submit.params.callback_cvv
     sessionData.transactionType = transactionType
     sessionData.merchantId = Some(vendor.uuid)
     sessionData.paymentConfig = vendor.paymentConfig
-    sessionData.email = submit.params.customerEmail
-    sessionData.password = submit.params.customerPassword
+    sessionData.email = submit.params.user_email
+    sessionData.password = submit.params.user_password
 
     if (!sessionData.mogopay)
-      sessionData.mogopay = cardStore && (sessionData.authenticated || submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty))
+      sessionData.mogopay = cardStore && (sessionData.authenticated || submit.params.user_password.nonEmpty || (submit.params.card_number.isEmpty && submit.params.card_cvv.nonEmpty))
 
     sessionData.accountId.map {
       customerId =>
         // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
-        if (submit.params.ccNum.nonEmpty && cardStore) {
+        if (submit.params.card_number.nonEmpty && cardStore) {
           val customer = accountHandler.load(customerId).orNull
           // Mogopay avec une nouvele carte
-          val ccNum = submit.params.ccNum.orNull
-          val ccMonth = submit.params.ccMonth.orNull
-          val ccYear = submit.params.ccYear.orNull
-          val ccType = toCardType(submit.params.ccType.orNull)
+          val ccNum = submit.params.card_number.orNull
+          val ccMonth = submit.params.card_month.orNull
+          val ccYear = submit.params.card_year.orNull
+          val ccType = toCardType(submit.params.card_type.orNull)
           val simpleDateFormat = new SimpleDateFormat("ddMMyy")
           val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
-          val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
+          val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.user_email.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
           val cust2 = customer.copy(creditCards = List(cc))
           accountHandler.update(cust2, false)
         }
@@ -451,15 +451,15 @@ class TransactionHandler {
       // this is a mogopay payment
       if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
         // only credit card payments are supported through mogopay
-        if (submit.params.customerCVV.nonEmpty) {
+        if (submit.params.card_cvv.nonEmpty) {
           val customer = accountHandler.load(sessionData.accountId.get).orNull
           val card = customer.creditCards(0)
           val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.Secret, "AES")
           val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)
           val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
           val paymentRequest = initPaymentRequest(vendor, transactionType, true, transactionRequest.tid,
-            transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
-            submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear, card.cardType)
+            transactionExtra, transactionCurrency, sessionData, submit.params.transaction_desc.orNull,
+            submit.params.card_cvv.orNull, cardNum, cardMonth, cardYear, card.cardType)
           sessionData.paymentRequest = Some(paymentRequest)
 
           // user is already authenticated. We check start the mogopayment
@@ -483,9 +483,9 @@ class TransactionHandler {
 
     else {
       val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
-        transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
-        submit.params.customerCVV.orNull, submit.params.ccNum.orNull, submit.params.ccMonth.orNull, submit.params.ccYear.orNull,
-        toCardType(submit.params.ccType.orNull))
+        transactionExtra, transactionCurrency, sessionData, submit.params.transaction_desc.orNull,
+        submit.params.card_cvv.orNull, submit.params.card_number.orNull, submit.params.card_month.orNull, submit.params.card_year.orNull,
+        toCardType(submit.params.card_type.orNull))
       sessionData.paymentRequest = Some(paymentRequest)
       val handler = if (submit.sessionData.transactionType == Some("CREDIT_CARD")) {
         sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
@@ -506,7 +506,7 @@ class TransactionHandler {
     }.flatten
   }
 
-  def download(accountId: String, transactionUuid: String, pageFormat: String, langCountry: String) : File = {
+  def download(accountId: String, transactionUuid: String, pageFormat: String, langCountry: String): File = {
     val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
     optTransaction match {
       case Some(transaction) => {
@@ -606,42 +606,42 @@ object BOTransactionJsonTransform {
     compact(render(jsonTransaction.transform(transformBOTransaction(locale))))
   }
 
-  private def transformBOTransaction(locale: Locale) : PartialFunction[JValue, JValue] = {
-    case obj : JObject => {
+  private def transformBOTransaction(locale: Locale): PartialFunction[JValue, JValue] = {
+    case obj: JObject => {
       (obj \ "transactionUUID",
-      obj \ "transactionDate",
-      obj \ "amount",
-      obj \ "currency" \ "code",
-      obj \ "currency" \ "fractionDigits",
-      obj \ "status" \ "name",
-      obj \ "paymentData" \ "paymentType" \ "name",
-      obj \ "email",
-      obj \ "extra") match {
+        obj \ "transactionDate",
+        obj \ "amount",
+        obj \ "currency" \ "code",
+        obj \ "currency" \ "fractionDigits",
+        obj \ "status" \ "name",
+        obj \ "paymentData" \ "paymentType" \ "name",
+        obj \ "email",
+        obj \ "extra") match {
         case (JString(transactionUuid),
-          JString(transactionDate),
-          JInt(amount),
-          JString(currencyCode),
-          JInt(fractionDigits),
-          JString(status),
-          JString(paymentType),
-          JString(email),
-          JString(extra)) => {
-            JObject(
-              JField("transactionUuid", JString(transactionUuid)),
-              JField("transactionDate", JString(formatDateTime(locale, transactionDate))),
-              JField("amount", JString(formatPrice(locale, amount, currencyCode, fractionDigits))),
-              JField("status", JString(status)),
-              JField("paymentType", JString(paymentType)),
-              JField("email", JString(email)) ,
-              JField("cart", parse(extra).transformField(transformExtra(locale, currencyCode, fractionDigits)))
-            )
+        JString(transactionDate),
+        JInt(amount),
+        JString(currencyCode),
+        JInt(fractionDigits),
+        JString(status),
+        JString(paymentType),
+        JString(email),
+        JString(extra)) => {
+          JObject(
+            JField("transactionUuid", JString(transactionUuid)),
+            JField("transactionDate", JString(formatDateTime(locale, transactionDate))),
+            JField("amount", JString(formatPrice(locale, amount, currencyCode, fractionDigits))),
+            JField("status", JString(status)),
+            JField("paymentType", JString(paymentType)),
+            JField("email", JString(email)),
+            JField("cart", parse(extra).transformField(transformExtra(locale, currencyCode, fractionDigits)))
+          )
         }
         case _ => obj
       }
     }
   }
 
-  private def transformExtra(locale: Locale, currencyCode: String, fractionDigits: BigInt) : PartialFunction[JField, JField] = {
+  private def transformExtra(locale: Locale, currencyCode: String, fractionDigits: BigInt): PartialFunction[JField, JField] = {
     case JField("price", JInt(price)) => JField("price", JString(formatPrice(locale, price, currencyCode, fractionDigits)))
     case JField("endPrice", JInt(endPrice)) => JField("endPrice", JString(formatPrice(locale, endPrice, currencyCode, fractionDigits)))
     case JField("reduction", JInt(reduction)) => JField("reduction", JString(formatPrice(locale, reduction, currencyCode, fractionDigits)))

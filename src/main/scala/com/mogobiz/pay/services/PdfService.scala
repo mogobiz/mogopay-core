@@ -2,9 +2,11 @@ package com.mogobiz.pay.services
 
 
 import java.io.File
+import com.mogobiz.pay.implicits.Implicits
 
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.model.RequestParameters.{Html2PdfRequest, UpdateProfileRequest}
 import com.wordnik.swagger.annotations._
 import spray.http.{ContentType, HttpData, HttpEntity, MediaTypes}
 import spray.routing.Directives
@@ -31,9 +33,9 @@ class PdfService extends Directives with DefaultComplete {
   ))
   def convertHtml2Pdf = path("html-to-pdf") {
     post {
-      var fields = formFields('page, 'xhtml)
-      fields { (page, xhtml) =>
-        handleCall(pdfHandler.convertToPdf(page, xhtml),
+      import Implicits._
+      entity(as[Html2PdfRequest]) { req =>
+        handleCall(pdfHandler.convertToPdf(req.page, req.xhtml),
           (pdfFile: File) => {
             complete(HttpEntity(ContentType(MediaTypes.`application/pdf`), HttpData(pdfFile)))
           })
