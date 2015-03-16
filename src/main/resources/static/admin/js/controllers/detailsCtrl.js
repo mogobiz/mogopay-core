@@ -22,7 +22,7 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 	if($rootScope.selectedCustomer != null){
 		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
 	}
-	if($rootScope.selectedOrder != null){
+	if($rootScope.selectedTransaction != null){
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
@@ -46,7 +46,8 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 }
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
-	rootScope.selectedOrder = scope.historyDetails[index];
+	rootScope.returnDetails = null;
+	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
 }
 
@@ -57,13 +58,13 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			for(var  i = 0; i < scope.cartDetails.cartItems.length; i++){
 				var item = scope.cartDetails.cartItems[i];
 				item.sumReturnedItems = 0;
-				for(var j = 0; j < item.BOReturnedItems.length; j++){
-					item.sumReturnedItems += item.BOReturnedItems[j].quantity;
+				for(var j = 0; j < item.bOReturnedItems.length; j++){
+					item.sumReturnedItems += item.bOReturnedItems[j].quantity;
 				}
 			}
 		});
 	};
-	callStoreServer("backoffice/cartDetails/" + rootScope.selectedOrder.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
+	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
 }
 
 function detailsRefundCheckAll(scope, location, rootScope, route){
@@ -86,7 +87,8 @@ function detailsSelectReturn(scope, location, rootScope, route, index){
 	rootScope.itemsToBeReturned = [];
 	rootScope.returnDetails = {
 		name: scope.cartDetails.cartItems[index].bOProducts[0].product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
-		returnedItems: scope.cartDetails.cartItems[index].BOReturnedItems
+		returnedItems: scope.cartDetails.cartItems[index].bOReturnedItems,
+		cartItem: scope.cartDetails.cartItems[index]
 	}
 	if(rootScope.isMerchant){
 		location.path("/return");
@@ -97,6 +99,8 @@ function detailsSelectReturn(scope, location, rootScope, route, index){
 function returnSelectedItems(scope, location, rootScope, route){
 	rootScope.itemsToBeReturned = [];
 	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
+	if(checkBoxes.length == 0)
+		return;
 	for(var i = 0; i < checkBoxes.length; i++){
 		if($(checkBoxes[i]).is(":checked")){
 			rootScope.itemsToBeReturned[rootScope.itemsToBeReturned.length] = scope.cartDetails.cartItems[$(checkBoxes[i]).attr("index")];

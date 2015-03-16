@@ -18,15 +18,15 @@
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 							<label for="returnRefunded-{{$index}}">Refunded</label>
-							<input type="text" class="form-control" ng-disabled="item.BOReturn[0].status != 'RETURN_RECEIVED'" ng-required="item.BOReturn[0].status != 'RETURN_RECEIVED'" id="returnRefunded-{{$index}}" value="{{item.refunded}}" pattern="\d+"/>
+							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnRefunded-{{$index}}" value="{{item.refunded}}" pattern="\d+"/>
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 							<label for="returnTotalRefunded-{{$index}}">Total Refunded</label>
-							<input type="text" class="form-control" ng-disabled="item.BOReturn[0].status != 'RETURN_RECEIVED'" ng-required="item.BOReturn[0].status != 'RETURN_RECEIVED'" id="returnTotalRefunded-{{$index}}" value="{{item.totalRefunded}}" pattern="\d+" />
+							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnTotalRefunded-{{$index}}" value="{{item.totalRefunded}}" pattern="\d+" />
 						</div>
 					</div>
 				</form>
-				<div class="form-group" style="margin-bottom: 0px;" ng-if="item.BOReturn[0].status == 'RETURN_SUBMITTED' || item.BOReturn[0].status == 'RETURN_RECEIVED'">
+				<div class="form-group" style="margin-bottom: 0px;">
 					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="returnMotivation-{{$index}}">Motivation</label>
 						<textarea class="form-control" id="returnMotivation-{{$index}}" rows="3"></textarea>
@@ -42,20 +42,20 @@
 							</tr>
 						</thead>
 						<tbody>
-							<tr ng-repeat="return in item.BOReturn">
+							<tr ng-repeat="return in item.boReturns">
 								<td>{{returnStatusValues[return.status]}}</td>
 								<td>{{return.motivation}}</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
-				<button class="btn btn-success pull-right" ng-if="item.BOReturn[0].status == 'RETURN_SUBMITTED' || item.BOReturn[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="acceptReturn($index)">
+				<button class="btn btn-success pull-right" ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED' || item.boReturns[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="acceptReturn($index)">
 					Return Accepted
 				</button>
-				<button class="btn btn-danger pull-right" ng-if="item.BOReturn[0].status == 'RETURN_SUBMITTED' || item.BOReturn[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="refuseReturn($index)">
+				<button class="btn btn-danger pull-right" ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED' || item.boReturns[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="refuseReturn($index)">
 					Return Refused
 				</button>
-				<button class="btn btn-primary pull-right" ng-if="item.BOReturn[0].status == 'RETURN_TO_BE_RECEIVED'" style="margin-right: 10px;" ng-click="recieveReturn($index)">
+				<button class="btn btn-primary pull-right" ng-if="item.boReturns[0].status == 'RETURN_TO_BE_RECEIVED'" style="margin-right: 10px;" ng-click="receiveReturn($index)">
 					Return Received
 				</button>
 			</div>

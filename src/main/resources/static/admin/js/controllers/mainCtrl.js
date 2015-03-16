@@ -12,6 +12,9 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 	
 	
 	$rootScope.returnItemStatusOptions = [{
+		value: "UNDEFINED",
+		label: "Undefined"
+	},{
 		value: "NOT_AVAILABLE",
 		label: "Not Available"
 	},{

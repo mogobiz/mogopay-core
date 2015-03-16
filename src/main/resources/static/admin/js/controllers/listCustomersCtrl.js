@@ -42,7 +42,7 @@ function listCustomersSearch(scope, location, rootScope, route){
 
 function gotToCustomerDetails(scope, location, rootScope, route, index){
 	rootScope.selectedCustomer = rootScope.customers[index];
-	rootScope.selectedOrder = null;
+	rootScope.selectedTransaction = null;
 	location.path("/details");
 	location.replace();
 }

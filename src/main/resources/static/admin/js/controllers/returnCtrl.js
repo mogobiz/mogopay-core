@@ -28,60 +28,80 @@ function ReturnCtrl($scope, $location, $rootScope, $route) {
 			$scope.returnItemStatusTab[$scope.returnItemStatusTab.length] = item.status;
 		}
 	}
-	$scope.accpetReturn = function (index) {accpetReturn($scope, $location, $rootScope, $route, index);};
+	$scope.acceptReturn = function (index) {acceptReturn($scope, $location, $rootScope, $route, index);};
 	$scope.refuseReturn = function (index) {refuseReturn($scope, $location, $rootScope, $route, index);};
-	$scope.recieveReturn = function (index) {recieveReturn($scope, $location, $rootScope, $route, index);};
+	$scope.receiveReturn = function (index) {receiveReturn($scope, $location, $rootScope, $route, index);};
 
 // Customer Functions
 	$scope.submitReturnItems = function () {submitReturnItems($scope, $location, $rootScope, $route);};
 }
 
 // Merchant Functions
-function accpetReturn(scope, location, rootScope, route, index){
+function acceptReturn(scope, location, rootScope, route, index){
 	if(validateRetunForm(scope, location, rootScope, route, index)){
-		//TODO
+		if(rootScope.returnDetails.returnedItems[index].boReturns[0].status == "RETURN_SUBMITTED")
+			updateReturnItem(scope, location, rootScope, route, index, "RETURN_TO_BE_RECEIVED");
+		else
+			updateReturnItem(scope, location, rootScope, route, index, "RETURN_ACCEPTED");
 	}
 }
 
 function refuseReturn(scope, location, rootScope, route, index){
 	if(validateRetunForm(scope, location, rootScope, route, index)){
-		//TODO
+		updateReturnItem(scope, location, rootScope, route, index, "RETURN_REFUSED");
 	}
 }
 
-function recieveReturn(scope, location, rootScope, route, index){
+function receiveReturn(scope, location, rootScope, route, index){
 	if(validateRetunForm(scope, location, rootScope, route, index)){
-		//TODO
+		updateReturnItem(scope, location, rootScope, route, index, "RETURN_RECEIVED");
 	}
 }
 
-function validateRetunItemsForms(scope, location, rootScope, route, index){
-	var item = returnDetails.returnedItems[index];
-	if(item.BOReturn[0].status == 'RETURN_SUBMITTED' || item.BOReturn[0].status == 'RETURN_RECEIVED'){
-		if($("#returnMotivation-" + i).val() == ""){
-			$("#returnMotivation-" + i).focus();
-			showAlertBootStrapMsg("warning", "Motivation is required!");
-			return false;
-		}
+function updateReturnItem(scope, location, rootScope, route, index, returnStatus){
+	var data = {
+		status: scope.returnItemStatusTab[index],
+		refunded: parseInt(parseFloat($("#returnRefunded-" + index).val())),
+		totalRefunded: parseInt(parseFloat($("#returnTotalRefunded-" + index).val())),
+		returnStatus: returnStatus,
+		motivation: $("#returnMotivation-" + index).val()
 	}
-	if(item.BOReturn[0].status == 'RETURN_RECEIVED'){
-		if($("#returnRefunded-" + i).val() == ""){
-			$("#returnRefunded-" + i).focus();
+	console.log(data);
+	callStoreServerJson(
+		"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.returnDetails.cartItem.uuid + "/" + rootScope.returnDetails.returnedItems[index].uuid,
+		data,
+		function () {scope.goToDetails();scope.$apply();},
+		function () {},
+		rootScope.selectedStore,
+		"PUT"
+	);
+}
+
+function validateRetunForm(scope, location, rootScope, route, index){
+	var item = rootScope.returnDetails.returnedItems[index];
+	if($("#returnMotivation-" + index).val() == ""){
+		$("#returnMotivation-" + index).focus();
+		showAlertBootStrapMsg("warning", "Motivation is required!");
+		return false;
+	}
+	if(item.boReturns[0].status == 'RETURN_RECEIVED'){
+		if($("#returnRefunded-" + index).val() == ""){
+			$("#returnRefunded-" + index).focus();
 			showAlertBootStrapMsg("warning", "Refunded is required!");
 			return false;
 		}
-		if(!$("#returnRefunded-" + i)[0].checkValidity()){
-			$("#returnRefunded-" + i).focus();
+		if(!$("#returnRefunded-" + index)[0].checkValidity()){
+			$("#returnRefunded-" + index).focus();
 			showAlertBootStrapMsg("warning", "Invalid refunded!");
 			return false;
 		}
-		if($("#returnTotalRefunded-" + i).val() == ""){
-			$("#returnTotalRefunded-" + i).focus();
+		if($("#returnTotalRefunded-" + index).val() == ""){
+			$("#returnTotalRefunded-" + index).focus();
 			showAlertBootStrapMsg("warning", "Refunded is required!");
 			return false;
 		}
-		if(!$("#returnTotalRefunded-" + i)[0].checkValidity()){
-			$("#returnTotalRefunded-" + i).focus();
+		if(!$("#returnTotalRefunded-" + index)[0].checkValidity()){
+			$("#returnTotalRefunded-" + index).focus();
 			showAlertBootStrapMsg("warning", "Invalid refunded!");
 			return false;
 		}
@@ -92,16 +112,21 @@ function validateRetunItemsForms(scope, location, rootScope, route, index){
 // Customer Functions
 function submitReturnItems(scope, location, rootScope, route){
 	if(validateRetunItemsForms(scope, location, rootScope, route)){
-		var data = [];
 		for(var i = 0; i < rootScope.itemsToBeReturned.length; i++){
-			data[data.length] = {
-				id: rootScope.itemsToBeReturned[i].bOProducts[0].product.uuid,
-				quantity: $("#toBeReturnedQuantity-" + i).val(),
+			var data = {
+				quantity: parseInt(parseFloat($("#toBeReturnedQuantity-" + i).val())),
 				motivation: $("#toBeReturnedMotivation-" + i).val()
 			}
+			callStoreServerJson(
+				"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.itemsToBeReturned[i].uuid,
+				data,
+				function () {scope.goToDetails();scope.$apply();},
+				function () {},
+				rootScope.selectedStore,
+				"POST"
+			);
 		}
 	}
-	// TODO
 }
 
 function validateRetunItemsForms(scope, location, rootScope, route){

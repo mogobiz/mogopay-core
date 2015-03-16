@@ -74,6 +74,25 @@ function callStoreServer(action, dataToSend, success, error, storeCode, type){
     });
 }
 
+function callStoreServerJson(action, dataToSend, success, error, storeCode, type){
+    var afterCallingSuccess = function (response) {
+        success(response);
+    };
+    var afterCallingError = function (response) {
+        error(response);
+    };
+    $.ajax({
+        url :  storeUrl + storeCode + "/" + action,
+        type : type,
+        data : JSON.stringify(dataToSend),
+        contentType: "application/json; charset=utf-8",
+        cache : false,
+        async : true,
+        success : afterCallingSuccess,
+        error: afterCallingError
+    });
+}
+
 function dateToString(date, withHours){
     var dateString = "";
     if(date){

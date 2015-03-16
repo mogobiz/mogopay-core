@@ -97,7 +97,7 @@ function zerosAutoComplete(number, length){
 }
 
 function gotToOrderDetails(scope, location, rootScope, route, index){
-	rootScope.selectedOrder = rootScope.transactions[index];
+	rootScope.selectedTransaction = rootScope.transactions[index];
 	rootScope.selectedCustomer = (rootScope.transactions[index].customer != "undefined") ? rootScope.transactions[index].customer : null;
 	location.path("/details");
 	location.replace();

@@ -59,8 +59,8 @@
 					<tbody>
 						<tr ng-repeat="record in historyDetails">
 							<td>
-								<a ng-if="selectedOrder.uuid != record.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{record.uuid}}</a>
-								<span ng-if="selectedOrder.uuid == record.uuid">{{record.uuid}}</span>
+								<a ng-if="selectedTransaction.uuid != record.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{record.uuid}}</a>
+								<span ng-if="selectedTransaction.uuid == record.uuid">{{record.uuid}}</span>
 							</td>
 							<td>{{record.customer.firstName}}</td>
 							<td>{{record.customer.email}}</td>
@@ -95,7 +95,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="panel panel-default" ng-if="selectedOrder != null">
+	<div class="panel panel-default" ng-if="selectedTransaction != null">
 		<div class="panel-heading"><h3 class="panel-title">Order Details</h3></div>
 		<div class="panel-body">
 			<div class="form-group" style="margin-bottom: 0px;">
@@ -109,11 +109,11 @@
 				</div>
 				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 					<label for="cartDetailsCurrency">Currency</label>
-					<input type="email" class="form-control" id="cartDetailsCurrency" readonly value="{{cartDetails.currencyCode}}"/>
+					<input type="text" class="form-control" id="cartDetailsCurrency" readonly value="{{cartDetails.currencyCode}}"/>
 				</div>
 				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 					<label for="cartDetailsDate">Date</label>
-					<input type="email" class="form-control" id="cartDetailsDate" readonly value="{{cartDetails.lastUpdated | date:'dd/MM/yyyy'}}"/>
+					<input type="text" class="form-control" id="cartDetailsDate" readonly value="{{cartDetails.lastUpdated | date:'dd/MM/yyyy'}}"/>
 				</div>
 			</div>
 			<div class="clearfix"></div>
@@ -149,8 +149,8 @@
 							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.quantity}}</td>
 							<td>
-								<a href="javascript:void(0)" ng-if="item.BOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">Yes</a>
-								<span ng-if="item.BOReturnedItems.length == 0">No</span>
+								<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">Yes</a>
+								<span ng-if="item.bOReturnedItems.length == 0">No</span>
 							</td>
 						</tr>
 					</tbody>
@@ -177,7 +177,6 @@
 					<thead>
 						<tr>
 							<th>Quantity</th>
-							<!-- <th>Motivation</th> -->
 							<th>Refunded</th>
 							<th>Total Refunded</th>
 							<th>Status</th>
@@ -186,14 +185,13 @@
 					<tbody>
 						<tr ng-repeat="item in returnDetails.returnedItems">
 							<td>{{item.quantity}}</td>
-							<!-- <td>{{item.BOReturn[0].motivation}}</td> -->
 							<td>{{item.refunded}}</td>
 							<td>{{item.totalRefunded}}</td>
-							<td ng-if="item.BOReturn.length == 1">{{returnStatusValues[item.BOReturn[0].status]}}</td>
-							<td ng-if="item.BOReturn.length > 1">
-								<a href="javascript:void(0)" rel="popoverBoRetun">{{returnStatusValues[item.BOReturn[0].status]}}</a>
+							<td ng-if="item.boReturns.length == 1">{{returnStatusValues[item.boReturns[0].status]}}</td>
+							<td ng-if="item.boReturns.length > 1">
+								<a href="javascript:void(0)" rel="popoverBoRetun">{{returnStatusValues[item.boReturns[0].status]}}</a>
 								<div class="dialog" style="display:none;" ng-init="refreshBoRetunPopover()">
-									<div ng-repeat="return in item.BOReturn" style="padding: 5px;">{{returnStatusValues[return.status]}}: {{return.motivation}}</div>
+									<div ng-repeat="return in item.boReturns" style="padding: 5px;">{{returnStatusValues[return.status]}}: {{return.motivation}}</div>
 								</div>
 							</td>
 						</tr>
