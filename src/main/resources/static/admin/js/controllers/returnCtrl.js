@@ -66,7 +66,6 @@ function updateReturnItem(scope, location, rootScope, route, index, returnStatus
 		returnStatus: returnStatus,
 		motivation: $("#returnMotivation-" + index).val()
 	}
-	console.log(data);
 	callStoreServerJson(
 		"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.returnDetails.cartItem.uuid + "/" + rootScope.returnDetails.returnedItems[index].uuid,
 		data,

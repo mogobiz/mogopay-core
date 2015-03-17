@@ -27,8 +27,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 
         var success = function (response) {
             $rootScope.createPage = false;
-			$scope.getAllStores($scope, $rootScope);
-            $scope.loginGoToTransactions($scope, $location, $rootScope);
+			$scope.getAllStores();
         };
 
         var error = function (response) {
@@ -58,8 +57,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			$rootScope.isMerchant = response.isMerchant;
 			$rootScope.userProfile = response;
 			$rootScope.createPage = false;
-			$scope.getAllStores($scope, $rootScope);
-			$scope.loginGoToTransactions($scope, $location, $rootScope);
+			$scope.getAllStores();
 		};
 
 		failure = function (response) {
@@ -84,8 +82,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				$rootScope.isMerchant = response.isMerchant;
 				$rootScope.userProfile = response;
 				$rootScope.createPage = false;
-				$scope.getAllStores($scope, $rootScope);
-				$scope.loginGoToTransactions($scope, $location, $rootScope);
+				$scope.getAllStores();
 			}
 		};
 
@@ -118,8 +115,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				$rootScope.isMerchant = response.isMerchant;
 				$rootScope.userProfile = response;
 				$rootScope.createPage = false;
-				$scope.getAllStores($scope, $rootScope);
-				$scope.loginGoToTransactions($scope, $location, $rootScope);
+				$scope.getAllStores();
 			}
 		};
 		failure = function (response) {

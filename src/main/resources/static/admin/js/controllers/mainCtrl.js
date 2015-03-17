@@ -5,12 +5,9 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
     $scope.$on('$viewContentLoaded', function() {
         $('body').updatePolyfill();
     });
-
     $rootScope.location = $location.absUrl().split('#')[0];
-
     $rootScope.serverUrl = serverUrl;
-	
-	
+
 	$rootScope.returnItemStatusOptions = [{
 		value: "UNDEFINED",
 		label: "Undefined"
@@ -78,7 +75,6 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
     $rootScope.loginGoToTransactions = function () {
         $rootScope.transactions = null;
         $location.path("/listTransactions");
-        $scope.$apply();
         $location.replace();
     };
 	
@@ -87,6 +83,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			$scope.$apply(function () {
 				$rootScope.allStores = response;
 				$rootScope.selectedStore = response[0];
+				$scope.loginGoToTransactions($scope, $location, $rootScope);
 			});
 		};
 		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
