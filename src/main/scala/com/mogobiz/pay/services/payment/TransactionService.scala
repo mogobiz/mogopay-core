@@ -4,7 +4,7 @@ import java.io.File
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorSystem}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout

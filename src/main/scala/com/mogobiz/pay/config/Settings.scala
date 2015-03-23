@@ -59,7 +59,7 @@ object Settings {
       val IsStartTLSEnabled = config.getBoolean("mail.smtp.starttls")
     }
 
-    val MaxAge = config.getInt("mail.confirmation.maxAge")
+    val MaxAge = config.getInt("mail.confirmation.maxage")
   }
 
   object RSA {
