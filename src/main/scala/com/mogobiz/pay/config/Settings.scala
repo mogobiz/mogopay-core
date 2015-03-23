@@ -157,7 +157,7 @@ object Settings {
     val Host = config getString "mogopay.host"
     val Port = config getInt "mogopay.port"
     val BaseEndPoint = s"$Protocol://$Host:$Port"
-    val EndPoint = s"${BaseEndPoint}/pay/"
+    val EndPoint = s"${BaseEndPoint}/api/pay/"
 
     require(Secret.nonEmpty, "mogopay.secret must be non-empty")
     require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
