@@ -39,6 +39,8 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         dataToSend += "&email=" + $("#user_email").val();
         dataToSend += "&password=" + $("#user_password").val();
         dataToSend += "&is_customer=" + !$rootScope.isMerchant;
+		if(!$rootScope.isMerchant)
+			dataToSend += "&merchant_id=" + $scope.loginSelectedSeller;
 
         postOnServer("account/login", dataToSend, success, error);
     };
@@ -47,87 +49,97 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         $location.path("/passwordChange");
         $location.replace();
     }
-	
+
+	if(merchantPage == true)
+		$rootScope.isMerchant = true;
+	if(customerPage == true)
+		$rootScope.isMerchant = false;
 	$("#mainContainer").hide();
-	var success = function (){};
-	var failure = function (){};
-	if(indexPage == true){
-		success = function (response) {
-		$("#mainContainer").show();
-			$rootScope.isMerchant = response.isMerchant;
-			$rootScope.userProfile = response;
-			$rootScope.createPage = false;
-			$scope.getAllStores();
-		};
-
-		failure = function (response) {
-			$("#mainContainer").show();
-		};
-	}
-	if(merchantPage == true){
-		success = function (response) {
-			$("#mainContainer").show();
-			if(!response.isMerchant){
-				callServer("account/logout", "", function (response) {
-					callServer("account/merchant-token", "",
-					function (response) {
-						$rootScope.isMerchant = true;
-						$rootScope.xtoken = response;
-					},
-						function (response) {
-					});
-				}, function (response) {});
+	var listSuccess = function(response){
+		$scope.$apply(function () {
+			var allSellers = [];
+			for(var i = 0; i < response.length; i++){
+				for(var key in response[i]){
+					allSellers[allSellers.length] = {name: key, id: response[i][key]};
+				}
 			}
-			else{
-				$rootScope.isMerchant = response.isMerchant;
+			$rootScope.allSellers = allSellers;
+			$scope.loginSelectedSeller = $rootScope.allSellers[0].id;
+		});
+		var success = function (){};
+		var failure = function (){};
+		if(indexPage == true){
+			success = function (response) {
+			$("#mainContainer").show();
 				$rootScope.userProfile = response;
 				$rootScope.createPage = false;
 				$scope.getAllStores();
-			}
-		};
+			};
 
-		failure = function (response) {
-			$("#mainContainer").show();
-			callServer("account/merchant-token", "",
-				function (response) {
-					$rootScope.isMerchant = true;
-					$rootScope.xtoken = response;
-				},
-				function (response) {
-			});
-		};
-	}
-	if(customerPage == true){
-		success = function (response) {
-			$("#mainContainer").show();
-			if(response.isMerchant){
-				callServer("account/logout", "", function (response) {
-					callServer("account/customer-token", "",
+			failure = function (response) {
+				$("#mainContainer").show();
+			};
+		}
+		if(merchantPage == true){
+			success = function (response) {
+				$("#mainContainer").show();
+				if(!response.isMerchant){
+					callServer("account/logout", "", function (response) {
+						callServer("account/merchant-token", "",
+						function (response) {
+							$rootScope.xtoken = response;
+						},
+							function (response) {
+						});
+					}, function (response) {});
+				}
+				else{
+					$rootScope.userProfile = response;
+					$rootScope.createPage = false;
+					$scope.getAllStores();
+				}
+			};
+
+			failure = function (response) {
+				$("#mainContainer").show();
+				callServer("account/merchant-token", "",
 					function (response) {
-						$rootScope.isMerchant = false;
 						$rootScope.xtoken = response;
 					},
+					function (response) {
+				});
+			};
+		}
+		if(customerPage == true){
+			success = function (response) {
+				$("#mainContainer").show();
+				if(response.isMerchant){
+					callServer("account/logout", "", function (response) {
+						callServer("account/customer-token", "",
 						function (response) {
-					});
-				}, function (response) {});
-			}
-			else{
-				$rootScope.isMerchant = response.isMerchant;
-				$rootScope.userProfile = response;
-				$rootScope.createPage = false;
-				$scope.getAllStores();
-			}
-		};
-		failure = function (response) {
-			$("#mainContainer").show();
-			callServer("account/customer-token", "",
-				function (response) {
-					$rootScope.isMerchant = false;
-					$rootScope.xtoken = response;
-				},
-				function (response) {
-			});
-		};
+							$rootScope.xtoken = response;
+						},
+							function (response) {
+						});
+					}, function (response) {});
+				}
+				else{
+					$rootScope.userProfile = response;
+					$rootScope.createPage = false;
+					$scope.getAllStores();
+				}
+			};
+			failure = function (response) {
+				$("#mainContainer").show();
+				callServer("account/customer-token", "",
+					function (response) {
+						$rootScope.xtoken = response;
+					},
+					function (response) {
+				});
+			};
+		}
+		callServer("account/profile-info", "", success, failure);
 	}
-	callServer("account/profile-info", "", success, failure);
+	callServer("account/list-merchants", "", listSuccess, function (response) {}, "GET");
 }

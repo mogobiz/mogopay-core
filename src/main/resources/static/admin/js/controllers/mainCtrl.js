@@ -59,7 +59,6 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         $rootScope.userProfile = null;
         $rootScope.transactions = null;
         $rootScope.customers = null;
-        $rootScope.transactionLogs = null;
         $rootScope.createPage = null;
 		if(indexPage == true)
 			$location.path("/home");

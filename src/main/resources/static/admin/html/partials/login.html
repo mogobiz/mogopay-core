@@ -15,6 +15,13 @@
                         <input type="password" class="form-control" id="user_password" name="user_password" placeholder="Enter the password" required value="1234" ng-keydown="logInBykey($event)" />
                     </div>
                 </div>
+                <div class="form-group" ng-show="!isMerchant">
+                    <label for="user_seller" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">Seller</label>
+                    <div class="col-xs-12 col-sm-9 col-md-9 col-lg-9">
+                        <select class="form-control" id="user_seller" ng-model="loginSelectedSeller" ng-options="seller.id as seller.name for seller in allSellers" ng-hide="allSellers.length == 1"></select>
+						<input type="text" disabled class="form-control" ng-model="loginSelectedSeller" ng-show="allSellers.length == 1"/>
+                    </div>
+                </div>
                 <div class="form-group">
                     <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                         Don't have an account?<br/>

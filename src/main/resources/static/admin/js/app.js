@@ -9,7 +9,6 @@ var mogopay = angular.module("mogopay",  ["ngRoute","ngI18n"]).
             when("/login",				{templateUrl: "partials/login.html",				controller: LoginCtrl}).
             when("/listTransactions",	{templateUrl: "partials/listTransactions.html",		controller: ListTransactionsCtrl}).
             when("/listCustomers",		{templateUrl: "partials/listCustomers.html",		controller: ListCustomersCtrl}).
-            when("/transactionLogs",	{templateUrl: "partials/transactionLogs.html",		controller: TransactionLogsCtrl}).
             when("/profile",			{templateUrl: "partials/profile.html",				controller: ProfileCtrl}).
             when("/details",			{templateUrl: "partials/details.html",				controller: DetailsCtrl}).
             when("/signup",				{templateUrl: "partials/signup.html",				controller: SignupCtrl}).

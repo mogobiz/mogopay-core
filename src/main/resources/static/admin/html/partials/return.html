@@ -50,10 +50,10 @@
 					</table>
 				</div>
 				<button class="btn btn-success pull-right" ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED' || item.boReturns[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="acceptReturn($index)">
-					Return Accepted
+					Accept Return<span ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED'"> Request</span>
 				</button>
 				<button class="btn btn-danger pull-right" ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED' || item.boReturns[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="refuseReturn($index)">
-					Return Refused
+					Refuse Return<span ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED'"> Request</span>
 				</button>
 				<button class="btn btn-primary pull-right" ng-if="item.boReturns[0].status == 'RETURN_TO_BE_RECEIVED'" style="margin-right: 10px;" ng-click="receiveReturn($index)">
 					Return Received
