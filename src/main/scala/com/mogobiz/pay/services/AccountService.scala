@@ -48,7 +48,8 @@ class AccountService extends Directives with DefaultComplete {
         deleteShippingAddress ~
         deleteMerchantTestAccount ~
         sendNewPassword ~
-        listCompagnies
+        listCompagnies ~
+        listMerchants
     }
   }
 
@@ -513,7 +514,7 @@ class AccountService extends Directives with DefaultComplete {
 
   lazy val sendNewPassword = post {
     path("send-new-password") {
-      entity(as[SendNewPasswordParams]) {params =>
+      entity(as[SendNewPasswordParams]) { params =>
         handleCall(accountHandler.sendNewPassword(params),
           (_: Unit) => complete(StatusCodes.OK))
       }
@@ -628,44 +629,44 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
 
       fields.happly {
         case email :: password :: password2 :: lphone :: civility :: firstname ::
-            lastname :: birthday :: road :: road2 :: extra :: city :: zipCode :: admin1 :: admin2 :: country ::
-            isMerchant :: merchantId :: company :: website :: validationUrl :: fromName :: fromEmail :: HNil =>
-        val address = AccountAddress(
-          civility = Some(Civility.withName(civility)),
-          firstName = Some(firstname),
-          lastName = Some(lastname),
-          road = road,
-          road2 = road2,
-          extra = extra,
-          city = city,
-          zipCode = Some(zipCode),
-          country = Some(country),
-          admin1 = Some(admin1),
-          admin2 = Some(admin2)
-        )
+          lastname :: birthday :: road :: road2 :: extra :: city :: zipCode :: admin1 :: admin2 :: country ::
+          isMerchant :: merchantId :: company :: website :: validationUrl :: fromName :: fromEmail :: HNil =>
+          val address = AccountAddress(
+            civility = Some(Civility.withName(civility)),
+            firstName = Some(firstname),
+            lastName = Some(lastname),
+            road = road,
+            road2 = road2,
+            extra = extra,
+            city = city,
+            zipCode = Some(zipCode),
+            country = Some(country),
+            admin1 = Some(admin1),
+            admin2 = Some(admin2)
+          )
 
-        val signup = Signup(
-          email = email,
-          password = password,
-          password2 = password2,
-          lphone = lphone,
-          civility = civility,
-          firstName = firstname,
-          lastName = lastname,
-          birthDate = birthday,
-          address = address,
-          isMerchant = isMerchant,
-          vendor = merchantId,
-          company = company,
-          website = website,
-          validationUrl = validationUrl,
-          fromName = fromName,
-          fromEmail = fromEmail
-        )
+          val signup = Signup(
+            email = email,
+            password = password,
+            password2 = password2,
+            lphone = lphone,
+            civility = civility,
+            firstName = firstname,
+            lastName = lastname,
+            birthDate = birthday,
+            address = address,
+            isMerchant = isMerchant,
+            vendor = merchantId,
+            company = company,
+            website = website,
+            validationUrl = validationUrl,
+            fromName = fromName,
+            fromEmail = fromEmail
+          )
 
-        import Implicits._
-        handleCall(accountHandler.signup(signup),
-          (p: (Token, Account)) => complete(StatusCodes.OK -> Map('token -> p._1, 'account -> p._2)))
+          import Implicits._
+          handleCall(accountHandler.signup(signup),
+            (p: (Token, Account)) => complete(StatusCodes.OK -> Map('token -> p._1, 'account -> p._2)))
       }
     }
   }

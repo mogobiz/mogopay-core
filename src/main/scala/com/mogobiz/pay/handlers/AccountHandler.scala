@@ -423,7 +423,7 @@ class AccountHandler {
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
         throw new TokenExpiredException("")
       } else {
-        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE)};
+        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) };
         if (account.isDefined) {
           accountHandler.update(account.get, refresh = true)
           account.get
@@ -961,8 +961,8 @@ class AccountHandler {
     (token, account)
   }
 
-  def listCompagnies(accountUuid: Option[String]) : List[String] = {
-    val account = accountUuid.map {uuid =>
+  def listCompagnies(accountUuid: Option[String]): List[String] = {
+    val account = accountUuid.map { uuid =>
       load(uuid).map { account =>
         account
       }.getOrElse(throw new UnauthorizedException("user not logged"))
@@ -977,12 +977,15 @@ class AccountHandler {
       }).toList.distinct
     }
     else {
-      account.company.map{company => List(company)}.getOrElse(Nil)
+      account.company.map { company => List(company) }.getOrElse(Nil)
     }
   }
 
-  def listMerchants() : Seq[(String, String)] = {
-    val req: SearchDefinition = search in Settings.Mogopay.EsIndex types "Account"
+  def listMerchants(): Seq[(String, String)] = {
+    val req: SearchDefinition =
+      search in Settings.Mogopay.EsIndex types "Account" postFilter {
+        missingFilter("owner") existence true includeNull true
+      }
     EsClient.searchAll[Account](req).map(merchant => (merchant.company.getOrElse(merchant.email), merchant.uuid))
   }
 
