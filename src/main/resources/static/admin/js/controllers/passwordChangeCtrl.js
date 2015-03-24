@@ -9,6 +9,7 @@ function PasswordChangeCtrl($scope, $rootScope, $location ,$route){
     }
 }
 PasswordChangeCtrl.$inject = ["$scope", "$rootScope", "$location", "$route"];
+
 function requestPass(rootScope ,scope , location ,email){
     var success = function(response) {
         showAlertBootStrapMsg("success", "A link to choose a new password has been sent to you.");
