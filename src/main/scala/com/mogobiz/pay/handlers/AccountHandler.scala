@@ -217,6 +217,18 @@ class AccountHandler {
     res.getHits.totalHits() == 1
   }
 
+  def alreadyExistCompany(company: String, merchantId: Option[String]): Boolean = {
+    val req =
+      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
+        and(
+          termFilter("company", company),
+          missingFilter("company") includeNull false
+        )
+      }
+    val res = EsClient().execute(req).await
+    res.getHits.totalHits() == 1
+  }
+
   def login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean): Account = {
     val lowerCaseEmail = email.toLowerCase
     val userAccountRequest =
@@ -882,8 +894,13 @@ class AccountHandler {
       }))
     }
     if (alreadyExistEmail(signup.email, owner)) {
-      throw new AccountWithSameEmailAddressAlreadyExistsError("")
+      throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
     }
+
+    // TODO
+//    if (alreadyExistCompany(signup.company.orNull, owner)) {
+//      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
+//    }
 
     val birthdate = getBirthDayDate(signup.birthDate)
     val civility = Civility.withName(signup.civility)

@@ -50,6 +50,8 @@ object Exceptions {
 
   case class AccountWithSameEmailAddressAlreadyExistsError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class AccountWithSameCompanyAlreadyExistsError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class NoPasswordProvidedError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class NoActiveShippingAddressFound(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
