@@ -506,7 +506,7 @@ class AccountService extends Directives with DefaultComplete {
     get {
       session { session =>
         handleCall(accountHandler.listMerchants(),
-          (res: List[(String, String)]) => complete(StatusCodes.OK -> res))
+          (res: Seq[(String, String)]) => complete(StatusCodes.OK -> res))
       }
     }
   }

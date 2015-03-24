@@ -981,7 +981,7 @@ class AccountHandler {
     }
   }
 
-  def listMerchants() : List[(String, String)] = {
+  def listMerchants() : Seq[(String, String)] = {
     val req: SearchDefinition = search in Settings.Mogopay.EsIndex types "Account"
     EsClient.searchAll[Account](req).map(merchant => (merchant.company.getOrElse(merchant.email), merchant.uuid))
   }
