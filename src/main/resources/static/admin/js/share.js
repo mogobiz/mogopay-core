@@ -1,7 +1,6 @@
-var serverUrl = "/pay/";
-var storeUrl = "/store/";
-var clientUrl = "/mogopay-client/";
-var appUrl    = "/mogopay-admin/";
+var serverUrl = "/api/pay/";
+var storeUrl = "/api/store/";
+var clientUrl = "/pay-client/";
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
 var senderFromName = "MOGOBIZ"; // TO BE RESET
 var senderFromMail = "mogobiz@gmail.com"; // TO BE RESET
