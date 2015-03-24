@@ -502,7 +502,7 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val listCompagnies = path("list-merchants") {
+  lazy val listMerchants = path("list-merchants") {
     get {
       session { session =>
         handleCall(accountHandler.listMerchants(),
