@@ -497,7 +497,16 @@ class AccountService extends Directives with DefaultComplete {
     get {
       session { session =>
         handleCall(accountHandler.listCompagnies(session.sessionData.accountId),
-            (res: List[String]) => complete(StatusCodes.OK -> res))
+          (res: List[String]) => complete(StatusCodes.OK -> res))
+      }
+    }
+  }
+
+  lazy val listCompagnies = path("list-merchants") {
+    get {
+      session { session =>
+        handleCall(accountHandler.listMerchants(),
+          (res: List[(String, String)]) => complete(StatusCodes.OK -> res))
       }
     }
   }

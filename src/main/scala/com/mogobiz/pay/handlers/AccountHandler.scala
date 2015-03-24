@@ -981,6 +981,11 @@ class AccountHandler {
     }
   }
 
+  def listMerchants() : List[(String, String)] = {
+    val req: SearchDefinition = search in Settings.Mogopay.EsIndex types "Account"
+    EsClient.searchAll[Account](req).map(merchant => (merchant.company.getOrElse(merchant.email), merchant.uuid))
+  }
+
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String,
                                     fromName: String, fromEmail: String): Unit = {
     val vendor = if (account.owner.isDefined) load(account.owner.get) else None
