@@ -986,12 +986,12 @@ class AccountHandler {
     }.getOrElse(throw new UnauthorizedException("user not logged"))
 
     if (account.isCustomer) {
-      val req = search in Settings.Mogopay.EsIndex types "BOTransaction" sourceInclude "vendor.company" postFilter termFilter("customer.uuid", account.uuid)
+      val req = search in Settings.Mogopay.EsIndex limit Integer.MAX_VALUE types "BOTransaction" sourceInclude "vendor.company" postFilter termFilter("customer.uuid", account.uuid)
       (EsClient.searchAllRaw(req) hits() map { hit: SearchHit =>
         val json: JValue = hit
         val JString(company) = json \ "vendor" \ "company"
         company
-      }).toList.distinct
+      }).toList.distinct.sorted
     }
     else {
       account.company.map { company => List(company) }.getOrElse(Nil)
@@ -1000,10 +1000,10 @@ class AccountHandler {
 
   def listMerchants(): Seq[(String, String)] = {
     val req: SearchDefinition =
-      search in Settings.Mogopay.EsIndex types "Account" postFilter {
+      search in Settings.Mogopay.EsIndex limit Integer.MAX_VALUE types "Account" postFilter {
         missingFilter("owner") existence true includeNull true
       }
-    EsClient.searchAll[Account](req).map(merchant => (merchant.company.getOrElse(merchant.email), merchant.uuid))
+    EsClient.searchAll[Account](req).map(merchant => (merchant.company.getOrElse(merchant.email), merchant.uuid)).sortWith((x1, x2) => x1._1.compareTo(x2._1) < 0)
   }
 
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String,
