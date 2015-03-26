@@ -15,6 +15,7 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 		$location.replace();
 	};
 	$scope.refreshCardPopover = function () {refreshCardPopover();};
+	$scope.refreshReturnStatusPopover = function () {refreshReturnStatusPopover();};
 	$scope.listTransactionsSearch =  function () {listTransactionsSearch($scope, $location, $rootScope, $route)};
 	$scope.gotToOrderDetails = function (index) {gotToOrderDetails($scope, $location, $rootScope, $route, index);};
 	$scope.transactionsChangeStore = function () {transactionsChangeStore($scope, $location, $rootScope, $route);};
@@ -22,9 +23,8 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 
 function listTransactionsSearch (scope, location, rootScope, route) {
 	var success = function (response) {
-		scope.$apply(function () {
-			rootScope.transactions = response.list;
-		});
+		rootScope.transactions = response.list;
+		listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
 	};
 	var dataToSend = "";
 
@@ -88,6 +88,32 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 	callStoreServer("backoffice/listOrders", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET");
 }
 
+function listTransactionsGetCartItems(scope, location, rootScope, route, transactionUUID, index){
+	var success = function(response){
+		var items = response.cartItems;
+		var listRetunedStatus = []
+		for(var  i = 0; i < items.length; i++){
+			var item = items[i];
+			for(var j = 0; j < item.bOReturnedItems.length; j++){
+				if(item.bOReturnedItems[j].boReturns.length > 0){
+					listRetunedStatus[listRetunedStatus.length] = {value: item.bOProducts[0].product.name + ": " + rootScope.returnStatusValues[item.bOReturnedItems[j].boReturns[0].status]};
+				}
+			}
+		}
+		if(listRetunedStatus.length == 0)
+			listRetunedStatus = [{value: "None"}];
+		rootScope.transactions[index].listRetunedStatus = listRetunedStatus;
+		if(index == rootScope.transactions.length - 1){
+			scope.$apply();
+		}
+		else{
+			index++;
+			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[index].uuid, index)
+		}
+	}
+	callStoreServer("backoffice/cartDetails/" + transactionUUID, "", success, function (response) {}, rootScope.selectedStore, "GET");
+}
+
 function zerosAutoComplete(number, length){
 	var str = "" + number
 	while (str.length < length) {
@@ -116,6 +142,22 @@ function refreshCardPopover() {
 	});
 	$( window ).resize(function () {
 		$("[rel=popoverCard]").popover("hide");
+	});
+}
+
+function refreshReturnStatusPopover() {
+	$("[rel=popoverReturnStatus]").popover({
+		html : true,
+		placement:"bottom",
+		content: function () {
+			$(".popover").removeClass("in").remove();
+			var parent =  $(this).parent();
+			var element = $(".dialog", parent);
+			return element.html();
+		}
+	});
+	$( window ).resize(function () {
+		$("[rel=popoverReturnStatus]").popover("hide");
 	});
 }
 

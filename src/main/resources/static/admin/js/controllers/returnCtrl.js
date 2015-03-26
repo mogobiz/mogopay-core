@@ -21,16 +21,21 @@ function ReturnCtrl($scope, $location, $rootScope, $route) {
         callServer("account/profile-info", "", success, function (response) {});
     };
 // Merchant Functions
+	$scope.refundedValue = [];
+	$scope.totalRefundedValue = [];
 	$scope.returnItemStatusTab = [];
 	if($rootScope.isMerchant){
 		for(var i = 0; i < $rootScope.returnDetails.returnedItems.length; i++){
 			var item = $rootScope.returnDetails.returnedItems[i];
 			$scope.returnItemStatusTab[$scope.returnItemStatusTab.length] = item.status;
+			$scope.refundedValue[$scope.refundedValue.length] = item.refunded;
+			$scope.totalRefundedValue[$scope.totalRefundedValue.length] = item.totalRefunded;
 		}
 	}
 	$scope.acceptReturn = function (index) {acceptReturn($scope, $location, $rootScope, $route, index);};
 	$scope.refuseReturn = function (index) {refuseReturn($scope, $location, $rootScope, $route, index);};
 	$scope.receiveReturn = function (index) {receiveReturn($scope, $location, $rootScope, $route, index);};
+	$scope.checkTotalRefundedValidity = function (index) {checkTotalRefundedValidity($scope, $location, $rootScope, $route, index);};
 
 // Customer Functions
 	$scope.submitReturnItems = function () {submitReturnItems($scope, $location, $rootScope, $route);};
@@ -106,6 +111,17 @@ function validateRetunForm(scope, location, rootScope, route, index){
 		}
 	}
 	return true;
+}
+
+function checkTotalRefundedValidity(scope, location, rootScope, route, index){
+	var refunded = 0, totalRefunded = 0;
+	try{refunded = parseFloat($("#returnRefunded-" + index).val());} catch(e){};
+	try{totalRefunded = parseFloat($("#returnTotalRefunded-" + index).val());} catch(e){};
+	var quantity = parseFloat($("#returnQuantity-" + index).val());
+
+	if(totalRefunded < (quantity * refunded)){
+		$("#returnTotalRefunded-" + index).val(quantity * refunded);
+	}
 }
 
 // Customer Functions

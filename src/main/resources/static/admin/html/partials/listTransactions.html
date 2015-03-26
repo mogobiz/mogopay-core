@@ -71,8 +71,10 @@
                         <input type="time" class="form-control" id="listTransactionsEndTime" value="23:59"/>
                     </div>
                 </div>
-                <div>
-                    <input type="button" class="btn btn-default pull-right" value="Search" ng-click="listTransactionsSearch()"/>
+				<div class="form-group" style="padding:0px 3px;">
+					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+						<input type="button" class="btn btn-default pull-right" value="Search" ng-click="listTransactionsSearch()"/>
+					</div>
                 </div>
             </form>
         </div>
@@ -85,16 +87,17 @@
 					<th>Name</th>
 					<th>Email</th>
 					<th>Date</th>
-					<th>Price</th>
+					<th>Amount</th>
 					<th>Card</th>
 					<th>Transaction Status</th>
+					<th>Return Status</th>
 					<th>Delivery Status</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr ng-repeat="transaction in transactions">
 					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.uuid}}</a></td>
-					<td>{{transaction.customer.firstName}}</td>
+					<td>{{transaction.customer.firstName}} {{transaction.customer.lastName}}</td>
 					<td>{{transaction.customer.email}}</td>
 					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>
 					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate}}</td>
@@ -120,6 +123,15 @@
 						</div>
 					</td>
 					<td>{{transaction.status}}</td>
+					<td>
+						<span ng-if="transaction.listRetunedStatus.length == 1">{{transaction.listRetunedStatus[0].value}}</span>
+						<a ng-if="transaction.listRetunedStatus.length > 1" href="javascript:void(0)" rel="popoverReturnStatus">{{transaction.listRetunedStatus[0].value}}</a>
+						<div ng-if="transaction.listRetunedStatus.length > 1" class="dialog" style="display:none;" ng-init="refreshReturnStatusPopover()">
+							<div ng-repeat="returnedStatus in transaction.listRetunedStatus">
+								{{returnedStatus.value}}
+							</div>
+						</div>
+					</td>
 					<td>{{transaction.deliveryStatus[0]}}</td>
 				</tr>
 			</tbody>

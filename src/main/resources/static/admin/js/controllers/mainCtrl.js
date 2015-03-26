@@ -87,7 +87,27 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		};
 		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
     };
+	$scope.urlHistory = [];
+	$scope.$on("$routeChangeSuccess", function () {
+		if ($location.$$absUrl.split('#')[1] !== $scope.urlHistory[$scope.urlHistory.length - 1] && $location.$$absUrl.split('#')[1] !== "/") {
+			$scope.urlHistory.push($location.$$absUrl.split('#')[1]);
+		}
+	});
 	$scope.navigateBack = function(){navigateBack($scope, $rootScope, $location, $route);};
+	// window.onbeforeunload = function (e) {
+		// try {
+			// if (e) {
+				// e.returnValue = "This site will be closed!";
+				// e.cancelBubble = true;
+				// if (e.stopPropagation)
+					// e.stopPropagation();
+				// if (e.preventDefault)
+					// e.preventDefault();
+			// }
+		// } catch (err) {
+			// return "This site will be closed!";
+		// }
+	// }
 }
 
 MainCtrl.$inject = ["ngI18nResourceBundle", "ngI18nConfig", "$scope", "$rootScope", "$location", "$route"];

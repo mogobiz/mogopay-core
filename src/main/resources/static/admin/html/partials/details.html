@@ -149,8 +149,8 @@
 							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.quantity}}</td>
 							<td>
-								<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">Yes</a>
-								<span ng-if="item.bOReturnedItems.length == 0">No</span>
+								<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}</a>
+								<span ng-if="item.bOReturnedItems.length == 0">None</span>
 							</td>
 						</tr>
 					</tbody>
