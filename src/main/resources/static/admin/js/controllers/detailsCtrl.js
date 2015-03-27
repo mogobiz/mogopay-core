@@ -1,18 +1,17 @@
 function DetailsCtrl($scope, $location, $rootScope, $route) {
+	if(!isConnectedUser($scope, $location, $rootScope, $route))
+		return;
     $scope.goToListTrasactions = function () {
-        $location.path("/listTransactions");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
     };
 	$scope.goToListCustomers = function () {
-        $location.path("/listCustomers");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
     };
     $scope.goToProfile = function () {
         var success = function (response) {
             $rootScope.userProfile = response;
-            $location.path("/profile");
             $scope.$apply();
-            $location.replace();
+            navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
         callServer("account/profile-info", "", success, function (response) {});
     };
@@ -91,8 +90,7 @@ function detailsSelectReturn(scope, location, rootScope, route, index){
 		cartItem: scope.cartDetails.cartItems[index]
 	}
 	if(rootScope.isMerchant){
-		location.path("/return");
-        location.replace();
+		navigateToPage(scope, location, rootScope, route, "return");
 	}
 }
 
@@ -106,8 +104,7 @@ function returnSelectedItems(scope, location, rootScope, route){
 			rootScope.itemsToBeReturned[rootScope.itemsToBeReturned.length] = scope.cartDetails.cartItems[$(checkBoxes[i]).attr("index")];
 		}
 	}
-	location.path("/return");
-	location.replace();
+	navigateToPage(scope, location, rootScope, route, "return");
 }
 
 function refreshCardPopover() {

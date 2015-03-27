@@ -4,9 +4,8 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
                 $rootScope.xtoken = response;
                     $rootScope.isMerchant = false;
                     $rootScope.xtoken = response;
-                    $location.path("/login");
                     $scope.$apply();
-                    $location.replace();
+                    navigateToPage($scope, $location, $rootScope, $route, "login");
             },
             function (response) {});
     }
@@ -16,9 +15,8 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
                 $rootScope.xtoken = response;
                     $rootScope.isMerchant = true;
                     $rootScope.xtoken = response;
-                    $location.path("/login");
                     $scope.$apply();
-                    $location.replace();
+                    navigateToPage($scope, $location, $rootScope, $route, "login");
             },
             function (response) {});
     }

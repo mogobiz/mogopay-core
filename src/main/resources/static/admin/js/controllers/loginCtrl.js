@@ -2,15 +2,13 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
     $scope.signup = function () {
         $rootScope.createPage = true;
         $rootScope.userProfile = null;
-        $location.path("/signup");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "signup");
     };
 
     $scope.goToProfile = function () {
         $rootScope.createPage = true;
         $rootScope.userProfile = null;
-        $location.path("/profile");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "profile");
     };
 
     $scope.logInBykey = function (e) {
@@ -46,8 +44,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
     };
 
     $scope.requestPasswordChange =  function () {
-        $location.path("/passwordChange");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "passwordChange");
     }
 
 	if(merchantPage == true)

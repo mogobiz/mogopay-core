@@ -30,14 +30,12 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		"RETURN_ACCEPTED": "Return Accepted"
 	};
 
-    if (($rootScope.userProfile == undefined || $rootScope.userProfile == null)) {
+    if ($rootScope.userProfile == undefined || $rootScope.userProfile == null) {
         if(indexPage == true && $location.$$path != "/home"){
-			$location.path("/home");
-			$location.replace();
+			navigateToPage($scope, $location, $rootScope, $route, "home");
 		}
 		if((merchantPage == true || customerPage == true) && $location.$$path != "/login"){
-			$location.path("/login");
-			$location.replace();
+			navigateToPage($scope, $location, $rootScope, $route, "login");
 		}
 		if(validationPage == true){
 			$scope.validationInProgress = true;
@@ -61,10 +59,9 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         $rootScope.customers = null;
         $rootScope.createPage = null;
 		if(indexPage == true)
-			$location.path("/home");
+			navigateToPage($scope, $location, $rootScope, $route, "home");
 		if(merchantPage == true || customerPage == true)
-			$location.path("/login");
-        $location.replace();
+			navigateToPage($scope, $location, $rootScope, $route, "login");
     };
 
     $rootScope.isPageActive = function (route) {
@@ -73,8 +70,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 
     $rootScope.loginGoToTransactions = function () {
         $rootScope.transactions = null;
-        $location.path("/listTransactions");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
     };
 	
 	$rootScope.getAllStores = function () {
@@ -93,24 +89,42 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			$scope.urlHistory.push($location.$$absUrl.split('#')[1]);
 		}
 	});
-	$scope.navigateBack = function(){navigateBack($scope, $rootScope, $location, $route);};
-	// window.onbeforeunload = function (e) {
-		// try {
-			// if (e) {
-				// e.returnValue = "This site will be closed!";
-				// e.cancelBubble = true;
-				// if (e.stopPropagation)
-					// e.stopPropagation();
-				// if (e.preventDefault)
-					// e.preventDefault();
-			// }
-		// } catch (err) {
-			// return "This site will be closed!";
-		// }
-	// }
+	
+	$rootScope.getProductDetails =  function (id){
+		window.open(storeIndexUrl + "?productId=" + id, "_blank");
+	}
+	$scope.navigateToPage = function(page){navigateToPage($scope, $location, $rootScope, $route, page);};
+	$scope.navigateBack = function(){navigateBack($scope, $location, $rootScope, $route);};
 }
 
 MainCtrl.$inject = ["ngI18nResourceBundle", "ngI18nConfig", "$scope", "$rootScope", "$location", "$route"];
+
+function navigateToPage(scope, location, rootScope, route, page){
+	if(location.path() == "/" + page){
+		return;
+	}
+	try {window.history.pushState({}, "", window.location.href);}
+	catch (e) {console.log(e);}
+	location.path("/" + page);
+	location.replace();
+	if (scope.$root.$$phase != "$apply" && scope.$root.$$phase != "$digest") {
+		scope.$apply();
+	}
+}
+
+function navigateBack(scope, location, rootScope, route){
+	if(scope.urlHistory.length == "1") {
+		return;
+	}
+	try {window.history.pushState({}, "", window.location.href);}
+	catch (e) {console.log(e);}
+	scope.urlHistory.pop();
+	location.path(scope.urlHistory[scope.urlHistory.length - 1]);
+	location.replace();
+	if (scope.$root.$$phase != "$apply" && scope.$root.$$phase != "$digest") {
+		scope.$apply();
+	}
+}
 
 function validationConfirmSignUp(scope, location, rootScope, route){
 	var dataToSend = "token=" + scope.token;
@@ -139,15 +153,4 @@ function validationGetUserProfile(scope, location, rootScope, route){
 	}
 	var error = function(response){}
 	callServer("account/profile-info", "", success, error);
-}
-
-function navigateBack(scope, rootScope, location, route){
-	if(scope.urlHistory.length == "1") {
-		return;
-	}
-	scope.urlHistory.pop();
-	location.path(scope.urlHistory[scope.urlHistory.length - 1]);
-	if (scope.$root.$$phase != "$apply" && scope.$root.$$phase != "$digest") {
-		scope.$apply();
-	}
 }

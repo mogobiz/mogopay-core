@@ -1,14 +1,14 @@
 function ListCustomersCtrl($scope, $location, $rootScope, $route){
+	if(!isConnectedUser($scope, $location, $rootScope, $route))
+		return;
 	$scope.goToListTrasactions = function () {
-        $location.path("/listTransactions");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
     };
     $scope.goToProfile = function () {
         var success = function (response) {
             $rootScope.userProfile = response;
-            $location.path("/profile");
             $scope.$apply();
-            $location.replace();
+            navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
         callServer("account/profile-info", "", success, function (response) {});
     };
@@ -43,8 +43,7 @@ function listCustomersSearch(scope, location, rootScope, route){
 function gotToCustomerDetails(scope, location, rootScope, route, index){
 	rootScope.selectedCustomer = rootScope.customers[index];
 	rootScope.selectedTransaction = null;
-	location.path("/details");
-	location.replace();
+	navigateToPage(scope, location, rootScope, route, "details");
 }
 
 function customersChangeStore(scope, location, rootScope, route){

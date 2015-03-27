@@ -1,18 +1,18 @@
 function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
+	if(!isConnectedUser($scope, $location, $rootScope, $route))
+		return;
 	$rootScope.selectedStore = $rootScope.allStores[0];
 	$scope.transactionsSelectedStore = $rootScope.selectedStore;
 	$scope.goToProfile = function () {
 		var success = function (response) {
 			$rootScope.userProfile = response;
-			$location.path("/profile");
 			$scope.$apply();
-			$location.replace();
+			navigateToPage($scope, $location, $rootScope, $route, "profile");
 		};
 		callServer("account/profile-info", "", success, function (response) {});
 	};
 	$scope.goToListCustomers = function () {
-		$location.path("/listCustomers");
-		$location.replace();
+		navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
 	};
 	$scope.refreshCardPopover = function () {refreshCardPopover();};
 	$scope.refreshReturnStatusPopover = function () {refreshReturnStatusPopover();};
@@ -125,8 +125,7 @@ function zerosAutoComplete(number, length){
 function gotToOrderDetails(scope, location, rootScope, route, index){
 	rootScope.selectedTransaction = rootScope.transactions[index];
 	rootScope.selectedCustomer = (rootScope.transactions[index].customer != "undefined") ? rootScope.transactions[index].customer : null;
-	location.path("/details");
-	location.replace();
+	navigateToPage(scope, location, rootScope, route, "details");
 }
 
 function refreshCardPopover() {

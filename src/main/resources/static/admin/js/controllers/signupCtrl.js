@@ -186,9 +186,7 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
 				postOnServer("account/login", data, success, function (response) {});
 			}
 			else{
-				location.path("/validation");
-				scope.$apply();
-				location.replace();
+				navigateToPage(scope, location, rootScope, route, "validation");
 			}
 		};
 		var failure = function (response) {

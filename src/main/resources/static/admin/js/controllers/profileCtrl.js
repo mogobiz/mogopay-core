@@ -1,4 +1,6 @@
 function ProfileCtrl($scope, $location, $rootScope, $route) {
+	if(!isConnectedUser($scope, $location, $rootScope, $route))
+		return;
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.cbParam)
 		$scope.cbParam = JSON.parse($rootScope.userProfile.account.paymentConfig.cbParam);
 	
@@ -159,12 +161,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 
 	//Main Functions
 	$scope.goToListTrasactions = function () {
-		$location.path("/listTransactions");
-		$location.replace();
+		navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
 	};
 	$scope.goToListCustomers = function () {
-        $location.path("/listCustomers");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
     };
 
 	setTimeout(function () {
@@ -497,14 +497,12 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		var success = function (response) {
 			if (rootScope.createPage) {
 				if(indexPage == true)
-					$location.path("/home");
+					navigateToPage(scope, location, rootScope, route, "home");
 				if(merchantPage == true || customerPage == true)
-					$location.path("/login");
+					navigateToPage(scope, location, rootScope, route, "login");
 			} else {
-				location.path("/listTransactions");
+				navigateToPage(scope, location, rootScope, route, "listTransactions");
 			}
-			scope.$apply();
-			location.replace();
 		};
 		postOnServer("account/update-profile", dataToSend, success, function (response) {});
 	}

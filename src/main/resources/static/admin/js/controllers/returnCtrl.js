@@ -1,22 +1,20 @@
 function ReturnCtrl($scope, $location, $rootScope, $route) {
+	if(!isConnectedUser($scope, $location, $rootScope, $route))
+		return;
 	$scope.goToListTrasactions = function () {
-        $location.path("/listTransactions");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
     };
 	$scope.goToListCustomers = function () {
-        $location.path("/listCustomers");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
     };
 	$scope.goToDetails = function () {
-        $location.path("/details");
-        $location.replace();
+        navigateToPage($scope, $location, $rootScope, $route, "details");
     };
     $scope.goToProfile = function () {
         var success = function (response) {
             $rootScope.userProfile = response;
-            $location.path("/profile");
             $scope.$apply();
-            $location.replace();
+            navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
         callServer("account/profile-info", "", success, function (response) {});
     };

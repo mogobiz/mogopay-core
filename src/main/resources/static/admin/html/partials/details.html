@@ -136,12 +136,18 @@
 							</td>
 							<td>
 								<div ng-if="item.bOProducts.length == 1">
-									{{item.bOProducts[0].product.name}}/({{item.sku.sku}})
+									<a href="javascript:void(0);" ng-click="getProductDetails(item.bOProducts[0].product.id)">
+										{{item.bOProducts[0].product.name}}/({{item.sku.sku}})
+									</a>
 								</div>
 								<div ng-if="item.bOProducts.length > 1">
 									<a href="javascript:void(0)" rel="popoverProduts">{{item.bOProducts[0].product.name}} / ({{item.sku.sku}})</a>
 									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
-										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">{{product.product.name}}</div>
+										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">
+											<a href="javascript:void(0);" ng-click="getProductDetails(product.product.id)">
+												{{product.product.name}}
+											</a>
+										</div>
 									</div>
 								</div>
 							</td>

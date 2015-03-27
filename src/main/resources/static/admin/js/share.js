@@ -2,6 +2,7 @@ var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
 var clientUrl = "/pay-client/";
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
+var storeIndexUrl = "http://localhost:9999/store/html/index.html"; // TO BE RESET
 var senderFromName = "MOGOBIZ"; // TO BE RESET
 var senderFromMail = "mogobiz@gmail.com"; // TO BE RESET
 
@@ -174,4 +175,21 @@ function getHTTPParameter(nomParam){
 		}
 	}
 	return "";
+}
+
+function isConnectedUser(scope, location, rootScope, route){
+	if (rootScope.userProfile == undefined || rootScope.userProfile == null) {
+        if(indexPage == true && location.$$path != "/home"){
+			location.path("/home");
+		}
+		if((merchantPage == true || customerPage == true) && location.$$path != "/login"){
+			location.path("/login");
+		}
+		location.replace();
+		if (scope.$root.$$phase != "$apply" && scope.$root.$$phase != "$digest") {
+			scope.$apply();
+		}
+		return false;
+    }
+	return true;
 }

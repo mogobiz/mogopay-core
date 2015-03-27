@@ -2,7 +2,7 @@
 <div class="return">
 <!-- Merchant Block -->
 	<div ng-if="isMerchant && returnDetails != null">
-		<h1>{{returnDetails.name}}</h1>
+		<h1><a href="javascript:void(0);" ng-click="getProductDetails(returnDetails.cartItem.bOProducts[0].product.id)">{{returnDetails.name}}</a></h1>
 		<div ng-repeat="item in returnDetails.returnedItems" class="panel panel-default">
 			<div class="panel-heading"><h3 class="panel-title">{{item.date | date:'dd/MM/yyyy'}}</h3></div>
 			<div class="panel-body">
