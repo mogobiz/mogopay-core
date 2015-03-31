@@ -6,6 +6,7 @@ import java.util.{Locale, Calendar, Currency, Date}
 
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.model.ParamRequest
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -67,25 +68,24 @@ class TransactionHandler {
     EsClient.searchAll[BOTransaction](req)
   }
 
-  def init(secret: String, amount: Long, currencyCode: String,
-           currencyRate: Double, extra: Option[String]): String = {
-    (rateHandler findByCurrencyCode currencyCode map { rate: Rate =>
-      val currency = Currency.getInstance(currencyCode)
-      (accountHandler findBySecret secret map { vendor: Account =>
+  def init(params: ParamRequest.TransactionInit): String = {
+    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
+      val currency = Currency.getInstance(params.currencyCode)
+      (accountHandler findBySecret params.merchantSecret map { vendor: Account =>
         if (!vendor.roles.contains(RoleName.MERCHANT)) {
           throw NotAVendorAccountException("")
         } else {
           val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
           val txReqUUID = newUUID
 
-          val txCurrency = TransactionCurrency(currencyCode, currency.getNumericCode, currencyRate, rate.currencyFractionDigits)
-          val txRequest = TransactionRequest(txReqUUID, txSeqId, amount, extra, txCurrency, vendor.uuid)
+          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
+          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
 
           transactionRequestHandler.save(txRequest, false)
           txReqUUID
         }
       }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
-    }).getOrElse(throw CurrencyCodeNotFoundException(s"$currencyCode not found"))
+    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
 
   /*
@@ -303,7 +303,6 @@ class TransactionHandler {
    *         card_cvv
    */
   def submit(submit: Submit): (String, String) = {
-
     val mogopayAuth = false
     /*
             String merchantId = MogopayUtil.extractStringParam(params["merchant_id"]);

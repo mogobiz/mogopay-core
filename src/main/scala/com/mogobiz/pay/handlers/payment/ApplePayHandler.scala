@@ -9,10 +9,17 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{AccountDoesNotExistException, InvalidContextException, InvalidInputException, MogopayError}
+import com.mogobiz.pay.model.Mogopay.CreditCardType
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.settings.Settings
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
+import net.authorize.Environment
+import net.authorize.api.contract.v1.PaymentType
+import net.authorize.api.contract.v1.{CreditCardType => _, _}
+import net.authorize.api.controller.CreateTransactionController
+import net.authorize.api.controller.base.ApiOperationBase
+import net.authorize.sim.Fingerprint
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
 import spray.http.Uri.Query
@@ -32,23 +39,51 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
 
   /**
-   * Return (Session, URL to redirect to)
+   * Returns a String to print, or a URL to redirect to
    */
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val paymentRequest = sessionData.paymentRequest.get
     val vendorId = sessionData.merchantId.get
-    val successURL = Settings.Mogopay.EndPoint + "paypal/success"
-    val failureURL = Settings.Mogopay.EndPoint + "paypal/fail"
     val paymentConfig = sessionData.paymentConfig.get
     val amount = sessionData.amount.get
-    val maybeToken = getToken(vendorId, successURL, failureURL, paymentConfig, amount, paymentRequest)
 
-    maybeToken map { token =>
-      sessionData.token = maybeToken
-      Right(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token)))
-    } getOrElse (throw MogopayError(MogopayConstant.PaypalTokenError))
+    val appleMerchAuthenticationType = new MerchantAuthenticationType()
+    appleMerchAuthenticationType.setName("5KP3u95bQpv")
+    appleMerchAuthenticationType.setTransactionKey("8NJ88Tvd7X28Tp3N")
+
+    ApiOperationBase.setEnvironment(Environment.SANDBOX)
+    ApiOperationBase.setMerchantAuthentication(appleMerchAuthenticationType)
+
+    val op = new OpaqueDataType()
+    op.setDataDescriptor("COMMON.APPLE.INAPP.PAYMENT")
+    op.setDataValue(paymentRequest.transactionDesc);
+
+    val paymentType = new PaymentType()
+    paymentType.setOpaqueData(op)
+
+    val txnRequest = new TransactionRequestType()
+    txnRequest.setTransactionType(TransactionTypeEnum.AUTH_CAPTURE_TRANSACTION.value())
+    txnRequest.setPayment(paymentType)
+    txnRequest.setAmount(BigDecimal.long2bigDecimal(amount).bigDecimal)
+
+    val apiRequest = new CreateTransactionRequest()
+    apiRequest.setTransactionRequest(txnRequest)
+
+    val controller = new CreateTransactionController(apiRequest)
+
+    val response = controller.getApiResponse()
+
+    if (response != null) {
+      val result: TransactionResponse = response.getTransactionResponse
+      if (result.getResponseCode == "1") {
+        // contact the merchant
+      }
+    }
+
+    Right(???)
   }
 
+  /*
   private def getToken(vendorId: String, successURL: String, failureURL: String,
                        paymentConfig: PaymentConfig, amount: Long,
                        paymentRequest: PaymentRequest): Option[String] = {
@@ -87,6 +122,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
       result
     } getOrElse (throw AccountDoesNotExistException(""))
   }
+  */
 
   /*
    * Returns the redirection URL
@@ -104,6 +140,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
   }
 
   def success(sessionData: SessionData, tokenFromParams: String): Uri = {
+    /*
     val paymentConfig: PaymentConfig = sessionData.paymentConfig.get
     val token = sessionData.token.get
 
@@ -122,14 +159,17 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
           if (paymentConfig == null) {
             throw MogopayError(MogopayConstant.InvalidPaypalConfig)
           } else {
-            transactionHandler.startPayment(vendorId, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
+            transactionHandler.startPayment(vendorId, None, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
             val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId)
             finishPayment(sessionData, paymentResult)
           }
       }
     }
+    */
+    ???
   }
 
+  /*
   private def getPayerId(token: String, paymentConfig: PaymentConfig): Option[String] = {
     val parameters: Map[String, String] =
       paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -160,105 +200,116 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     val result = Await.result(res, 30 seconds)
     result
   }
+  */
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                      infosPaiement: PaymentRequest, token: String, payerId: String): PaymentResult = {
-    accountHandler.load(vendorId).map {
-      account =>
-        val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
-          .getOrElse(Map())
-        transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
-        val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
-        val user: String = parameters("paypalUser")
-        val password = parameters("paypalPassword")
-        val signature = parameters("paypalSignature")
+    accountHandler.load(vendorId).map { account =>
+      val fingerprint = Fingerprint.createFingerprint(
+        "YOUR_API_LOGIN_ID",
+        "YOUR_TRANSACTION_KEY",
+        1234567890,
+        "AMOUNT")
 
-        val paymentResult = PaymentResult(
-          transactionSequence = infosPaiement.transactionSequence,
-          orderDate = infosPaiement.orderDate,
-          amount = infosPaiement.amount,
-          ccNumber = infosPaiement.ccNumber,
-          cardType = infosPaiement.cardType,
-          expirationDate = infosPaiement.expirationDate,
-          cvv = infosPaiement.cvv,
-          gatewayTransactionId = transactionUUID,
-          transactionDate = null,
-          transactionCertificate = null,
-          authorizationId = null,
-          status = null,
-          errorCodeOrigin = null,
-          errorMessageOrigin = None,
-          data = null,
-          bankErrorCode = null,
-          bankErrorMessage = None,
-          token = token
-        )
+      val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
+        .getOrElse(Map())
+      transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+      val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
+//      val user: String = parameters("paypalUser")
+//      val password = parameters("paypalPassword")
+//      val signature = parameters("paypalSignature")
 
-        val amount = infosPaiement.amount.toDouble / 100.0
-        val paramMap = Map(
-          "USER" -> user,
-          "PWD" -> password,
-          "SIGNATURE" -> signature,
-          "VERSION" -> Settings.PayPal.Version,
-          "METHOD" -> "DoExpressCheckoutPayment",
-          "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
-          "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount.asInstanceOf[AnyRef]),
-          "TOKEN" -> token,
-          "PAYERID" -> payerId,
-          "PAYMENTREQUEST_0_CURRENCYCODE" -> infosPaiement.currency.code)
+      transaction.description
+      null
 
-        val bot1 = BOTransactionLog(
+      /*
+      val paymentResult = PaymentResult(
+        transactionSequence = infosPaiement.transactionSequence,
+        orderDate = infosPaiement.orderDate,
+        amount = infosPaiement.amount,
+        ccNumber = infosPaiement.ccNumber,
+        cardType = infosPaiement.cardType,
+        expirationDate = infosPaiement.expirationDate,
+        cvv = infosPaiement.cvv,
+        gatewayTransactionId = transactionUUID,
+        transactionDate = null,
+        transactionCertificate = null,
+        authorizationId = null,
+        status = null,
+        errorCodeOrigin = null,
+        errorMessageOrigin = None,
+        data = null,
+        bankErrorCode = null,
+        bankErrorMessage = None,
+        token = token
+      )
+
+      val amount = infosPaiement.amount.toDouble / 100.0
+      val paramMap = Map(
+        "USER" -> user,
+        "PWD" -> password,
+        "SIGNATURE" -> signature,
+        "VERSION" -> Settings.PayPal.Version,
+        "METHOD" -> "DoExpressCheckoutPayment",
+        "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
+        "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount.asInstanceOf[AnyRef]),
+        "TOKEN" -> token,
+        "PAYERID" -> payerId,
+        "PAYMENTREQUEST_0_CURRENCYCODE" -> infosPaiement.currency.code)
+
+      val bot1 = BOTransactionLog(
+        uuid = newUUID,
+        direction = "OUT",
+        log = paramMap.map(t => t._1 + "=" + t._2).reduce(_ + "&" + _),
+        provider = "PAYPAL",
+        transaction = transaction.uuid
+      )
+      boTransactionLogHandler.save(bot1)
+
+      val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(Query(paramMap))))
+      val tuples = fromHttResponse(response)
+      val res = tuples map { tuples =>
+        val bot2 = BOTransactionLog(
           uuid = newUUID,
-          direction = "OUT",
-          log = paramMap.map(t => t._1 + "=" + t._2).reduce(_ + "&" + _),
+          direction = "IN",
+          log = tuples.map(t => t._1 + "=" + t._2).reduce(_ + "&" + _),
           provider = "PAYPAL",
           transaction = transaction.uuid
         )
-        boTransactionLogHandler.save(bot1)
-
-        val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(Query(paramMap))))
-        val tuples = fromHttResponse(response)
-        val res = tuples map { tuples =>
-          val bot2 = BOTransactionLog(
-            uuid = newUUID,
-            direction = "IN",
-            log = tuples.map(t => t._1 + "=" + t._2).reduce(_ + "&" + _),
-            provider = "PAYPAL",
-            transaction = transaction.uuid
+        boTransactionLogHandler.save(bot2)
+        val ack = tuples("ACK")
+        if (ack.equals("Success") || ack.equals("SuccessWithWarning")) {
+          val transactionId = tuples.get("PAYMENTINFO_0_TRANSACTIONID").orNull
+          val cal: XMLGregorianCalendar = DatatypeFactory.newInstance()
+            .newXMLGregorianCalendar(URLDecoder.decode(tuples.get("PAYMENTINFO_0_ORDERTIME").orNull, "UTF-8"))
+          val c2 = cal.toGregorianCalendar
+          val updatedPaymentResult = paymentResult.copy(
+            status = PaymentStatus.COMPLETE,
+            transactionDate = c2.getTime(),
+            gatewayTransactionId = transactionId,
+            transactionCertificate = null
           )
-          boTransactionLogHandler.save(bot2)
-          val ack = tuples("ACK")
-          if (ack.equals("Success") || ack.equals("SuccessWithWarning")) {
-            val transactionId = tuples.get("PAYMENTINFO_0_TRANSACTIONID").orNull
-            val cal: XMLGregorianCalendar = DatatypeFactory.newInstance()
-              .newXMLGregorianCalendar(URLDecoder.decode(tuples.get("PAYMENTINFO_0_ORDERTIME").orNull, "UTF-8"))
-            val c2 = cal.toGregorianCalendar
-            val updatedPaymentResult = paymentResult.copy(
-              status = PaymentStatus.COMPLETE,
-              transactionDate = c2.getTime(),
-              gatewayTransactionId = transactionId,
-              transactionCertificate = null
-            )
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack)
-            updatedPaymentResult
-          } else {
-            val errorCode = tuples.get("L_ERRORCODE0").orNull
-            val errorCodeMessage = URLDecoder.decode(tuples.get("L_SHORTMESSAGE0").orNull, "UTF-8")
+          transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack)
+          updatedPaymentResult
+        } else {
+          val errorCode = tuples.get("L_ERRORCODE0").orNull
+          val errorCodeMessage = URLDecoder.decode(tuples.get("L_SHORTMESSAGE0").orNull, "UTF-8")
 
-            val updatedPaymentResult = paymentResult.copy(
-              status = PaymentStatus.FAILED,
-              errorCodeOrigin = errorCode,
-              errorMessageOrigin = Option(errorCodeMessage)
-            )
+          val updatedPaymentResult = paymentResult.copy(
+            status = PaymentStatus.FAILED,
+            errorCodeOrigin = errorCode,
+            errorMessageOrigin = Option(errorCodeMessage)
+          )
 
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED,
-              paymentResult, null)
+          transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED,
+            paymentResult, null)
 
-            updatedPaymentResult
-          }
+          updatedPaymentResult
         }
-        import scala.concurrent.duration._
-        Await.result(res, 30 seconds)
+      }
+      import scala.concurrent.duration._
+      Await.result(res, 30 seconds)
+      */
     }.getOrElse {
       throw AccountDoesNotExistException("")
     }

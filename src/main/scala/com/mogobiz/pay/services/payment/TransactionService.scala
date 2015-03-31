@@ -66,10 +66,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val init = path("init") {
     post {
-      formFields('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?).as(TransactionInit) {
-        params =>
-          import Implicits._
-          handleCall(transactionHandler.init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra),
+      formFields('merchant_secret, 'transaction_amount.as[Long],
+        'currency_code, 'currency_rate.as[Double],
+        'extra ?, 'return_url ?).as(TransactionInit) { params =>
+        import Implicits._
+          handleCall(transactionHandler.init(params),
             (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
           )
       }
