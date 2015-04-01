@@ -128,6 +128,7 @@ case class Enroll(accountId: String, lPhone: String, pinCode: String)
 case class Signup(email: String, password: String, password2: String,
                   lphone: String, civility: String, firstName: String,
                   lastName: String, birthDate: String, address: AccountAddress,
+                  withShippingAddress: Boolean,
                   isMerchant: Boolean, vendor: Option[String], company: Option[String],
                   website: Option[String], validationUrl: String, fromName: String, fromEmail: String)
 
@@ -946,6 +947,14 @@ class AccountHandler {
     val token = if (accountStatus == AccountStatus.ACTIVE) ""
     else Token.generateToken(accountId, owner, TokenType.Signup)
 
+    val shippingAddressList = if (signup.withShippingAddress) {
+      List(new ShippingAddress(
+        uuid = UUID.randomUUID().toString,
+        active = true,
+        address = addr.copy(telephone = addr.telephone.map {tel => tel.copy()})
+      ))
+    } else Nil
+
     val account = Account(
       uuid = accountId,
       email = signup.email,
@@ -958,6 +967,7 @@ class AccountHandler {
       secret = if (signup.isMerchant) newUUID else "",
       owner = owner,
       address = Some(addr),
+      shippingAddresses = shippingAddressList,
       waitingPhoneSince = System.currentTimeMillis(),
       waitingEmailSince = System.currentTimeMillis(),
       country = Some(country),
