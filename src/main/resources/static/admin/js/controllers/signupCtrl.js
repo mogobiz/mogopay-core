@@ -221,8 +221,6 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
 		data += "&city=" + $("#profileCity").val();
 		data += "&road=" + $("#profileRoad").val();
 		data += "&zip_code=" + $("#profilePostalCode").val();
-		data += "&from_name=" + senderFromName;
-		data += "&from_email=" + senderFromMail;
 		data += "&validation_url=" + deployUrl + "validation.html";
 		return data;
 	}

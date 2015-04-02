@@ -587,10 +587,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&callback_prefix=" + $("#authCallbackdomainField").val();
 			data += "&password_pattern=" + $("#authPasswordRegex").val();
 
-//PASSWORD INFO
+//EMAIL INFO
 			if(!rootScope.createPage) {
-				data += "&password_subject=" + $("#passwordSubject").val();
-				data += "&password_content=" + $("#passwordContent").val();
+				data += "&sender_email=" + $("#emailInfoSenderMail").val();
+				data += "&sender_name=" + $("#emailInfoSenderName").val();
 			}
 		}
 
@@ -687,6 +687,12 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				$(".nav-tabs a[data-target='#auth']").tab("show");
 				$("#authPasswordRegex").focus();
 				showAlertBootStrapMsg("warning", "Invalid password regex !");
+				return false;
+			}
+			if(!$("#emailInfoSenderMail")[0].checkValidity()) {
+				$(".nav-tabs a[data-target='#emailInfo']").tab("show");
+				$("#emailInfoSenderMail").focus();
+				showAlertBootStrapMsg("warning", "Invalid email !");
 				return false;
 			}
 		}
