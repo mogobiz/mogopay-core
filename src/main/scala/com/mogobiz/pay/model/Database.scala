@@ -199,12 +199,14 @@ object Mogopay {
                            @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod,
                            emailField: String = "user_email",
                            passwordField: String = "user_password",
-                           pwdEmailContent: Option[String],
-                           pwdEmailSubject: Option[String],
+                           senderName: Option[String],
+                           senderEmail: Option[String],
                            callbackPrefix: Option[String],
                            passwordPattern: Option[String],
                            var dateCreated: Date = Calendar.getInstance().getTime,
-                           var lastUpdated: Date = Calendar.getInstance().getTime)
+                           var lastUpdated: Date = Calendar.getInstance().getTime,
+                           pwdEmailContent: Option[String] = None,
+                           pwdEmailSubject: Option[String] = None)
 
   case class Country(uuid: String,
                      code: String,

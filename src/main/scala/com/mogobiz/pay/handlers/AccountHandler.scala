@@ -105,7 +105,7 @@ case class AddressToAssignFromGetParams(road: String, city: String,
   }
 }
 
-case class SendNewPasswordParams(merchantId: String, email: String, fromEmail: String, fromName: String)
+case class SendNewPasswordParams(merchantId: String, email: String)
 
 case class AssignBillingAddress(accountId: String, address: AddressToAssignFromGetParams)
 
@@ -130,14 +130,14 @@ case class Signup(email: String, password: String, password2: String,
                   lastName: String, birthDate: String, address: AccountAddress,
                   withShippingAddress: Boolean,
                   isMerchant: Boolean, vendor: Option[String], company: Option[String],
-                  website: Option[String], validationUrl: String, fromName: String, fromEmail: String)
+                  website: Option[String], validationUrl: String)
 
 case class UpdateProfile(id: String, password: Option[(String, String)],
                          company: String, website: String, lphone: String, civility: String,
                          firstName: String, lastName: String, birthDate: String,
                          billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
                          emailField: String, passwordField: String,
-                         passwordSubject: Option[String], passwordContent: Option[String],
+                         senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
                          payPalParam: PayPalParam, kwixoParam: KwixoParam)
@@ -165,7 +165,7 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
 
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
-case class SendNewPassword(accountId: String, fromName: String, fromEmail: String)
+case class SendNewPassword(accountId: String)
 
 class AccountHandler {
   implicit val formats = new org.json4s.DefaultFormats {}
@@ -383,17 +383,21 @@ class AccountHandler {
 
     val newPassword: String = newUUID.split("-")(4)
     update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
-    sendNewPasswordEmail(account, newPassword, req.fromName, req.fromEmail)
+    sendNewPasswordEmail(account, newPassword)
 
-    def sendNewPasswordEmail(account: Account, newPassword: String, fromName: String, fromEmail: String) = {
+    def sendNewPasswordEmail(account: Account, newPassword: String) = {
+
       val vendor = if (account.owner.isDefined) load(account.owner.get) else None
       val template = templateHandler.loadTemplateByVendor(vendor, "new-password.mustache")
 
+      val paymentConfig  = vendor.get.paymentConfig.get
+      val senderName = paymentConfig.senderName
+      val senderEmail = paymentConfig.senderEmail
       val data = s"""{"newPassword": "$newPassword"}"""
       val (subject, body) = templateHandler.mustache(template, data)
       EmailHandler.Send.to(
         Mail(
-          from = (fromEmail, fromName),
+          from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
           to = Seq(account.email),
           subject = subject,
           message = body))
@@ -780,8 +784,8 @@ class AccountHandler {
           cbParam = Some(write(updateCBParam)),
           emailField = if (profile.emailField == "") "user_email" else profile.emailField,
           passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
-          pwdEmailContent = profile.passwordContent,
-          pwdEmailSubject = profile.passwordSubject,
+          senderEmail = profile.senderEmail,
+          senderName = profile.senderName,
           callbackPrefix = profile.callbackPrefix,
           passwordPattern = profile.passwordPattern)
 
@@ -888,7 +892,7 @@ class AccountHandler {
       None
     } else {
       Some(signup.vendor.getOrElse({
-        val account = accountHandler.findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
+        val account = findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
           throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
         }
         account.uuid
@@ -899,9 +903,9 @@ class AccountHandler {
     }
 
     // TODO
-//    if (alreadyExistCompany(signup.company.orNull, owner)) {
-//      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
-//    }
+    //    if (alreadyExistCompany(signup.company.orNull, owner)) {
+    //      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
+    //    }
 
     val birthdate = getBirthDayDate(signup.birthDate)
     val civility = Civility.withName(signup.civility)
@@ -951,7 +955,7 @@ class AccountHandler {
       List(new ShippingAddress(
         uuid = UUID.randomUUID().toString,
         active = true,
-        address = addr.copy(telephone = addr.telephone.map {tel => tel.copy()})
+        address = addr.copy(telephone = addr.telephone.map { tel => tel.copy() })
       ))
     } else Nil
 
@@ -980,9 +984,16 @@ class AccountHandler {
     if (signup.isMerchant)
       transactionSequenceHandler.nextTransactionId(account.uuid)
 
-    val tryToSave = accountHandler.save(account, refresh = true)
-    tryToSave.map { _ =>
-      if (needEmailValidation) sendConfirmationEmail(account, signup.validationUrl, token, signup.fromName, signup.fromEmail)
+    val tryToSave = save(account, refresh = true)
+    tryToSave.foreach { _ =>
+      // We voluntarily use get explicitly because it should never ever be null
+      val merchant = getMerchant(owner.get)
+        val paymentConfig  = merchant.get.paymentConfig.get
+      val senderName = paymentConfig.senderName
+      val senderEmail = paymentConfig.senderEmail
+      if (needEmailValidation) {
+        sendConfirmationEmail(account, signup.validationUrl, token, senderName.getOrElse(s"${merchant.get.firstName} ${merchant.get.lastName}"), senderEmail.getOrElse(merchant.get.email))
+      }
     }
 
     (token, account)

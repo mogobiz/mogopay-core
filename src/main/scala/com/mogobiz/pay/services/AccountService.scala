@@ -625,12 +625,12 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
         'road :: ('road2 ?) :: ('extra ?) :: 'city :: 'zip_code :: 'admin1 :: 'admin2 :: 'country ::
         'is_merchant.as[Boolean] :: ('merchant_id ?) :: ('company ?) :: ('website ?) ::
-        'validation_url :: 'from_name :: 'from_email :: 'withShippingAddress.as[Boolean] :: HNil)
+        'validation_url :: 'withShippingAddress.as[Boolean] :: HNil)
 
       fields.happly {
         case email :: password :: password2 :: lphone :: civility :: firstname ::
           lastname :: birthday :: road :: road2 :: extra :: city :: zipCode :: admin1 :: admin2 :: country ::
-          isMerchant :: merchantId :: company :: website :: validationUrl :: fromName :: fromEmail ::
+          isMerchant :: merchantId :: company :: website :: validationUrl ::
           withShippingAddress :: HNil =>
           val address = AccountAddress(
             civility = Some(Civility.withName(civility)),
@@ -661,9 +661,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
             vendor = merchantId,
             company = company,
             website = website,
-            validationUrl = validationUrl,
-            fromName = fromName,
-            fromEmail = fromEmail
+            validationUrl = validationUrl
           )
 
           import Implicits._
@@ -691,7 +689,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('sips_merchant_parcom_file_name.?.as[Option[String]]) ::
                 ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
-                ('password_subject ?) :: ('password_content ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
+                ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) ::
                 'email_field :: 'password_field :: HNil)
               fields.happly {
@@ -703,7 +701,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
                   sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
                   sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
-                  systempayShopId :: systempayContractNumber :: systempayCertificate :: passwordSubject :: passwordContent ::
+                  systempayShopId :: systempayContractNumber :: systempayCertificate :: senderName :: senderEmail ::
                   passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
                   kwixoParams :: emailField :: passwordField :: HNil =>
                   val validPassword: Option[(String, String)] = (password, password2) match {
@@ -749,10 +747,10 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     billingAddress = billingAddress,
                     isMerchant = session.sessionData.isMerchant,
                     vendor = vendor,
+                    senderName = senderName,
+                    senderEmail = senderEmail,
                     emailField = emailField,
                     passwordField = passwordField,
-                    passwordSubject = passwordSubject,
-                    passwordContent = passwordContent,
                     callbackPrefix = callbackPrefix,
                     passwordPattern = passwordPattern,
                     paymentMethod = paymentMethod,
