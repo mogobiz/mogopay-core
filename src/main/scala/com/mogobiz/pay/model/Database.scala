@@ -351,6 +351,7 @@ object Mogopay {
                            errorMessageOrigin: Option[String],
                            extra: Option[String],
                            description: Option[String],
+                           gatewayData: Option[String],
                            creditCard: Option[BOCreditCard],
                            vendor: Option[Account],
                            customer: Option[Account],
@@ -421,6 +422,7 @@ object Mogopay {
                             transactionEmail: String,
                             transactionExtra: String,
                             transactionDesc: String,
+                            gatewayData: String,
                             csrfToken: String,
                             currency: TransactionCurrency)
 

@@ -184,7 +184,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     post {
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
+        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
         'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
         submitParams =>
           session {
@@ -199,7 +199,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     post {
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
+        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
         'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get

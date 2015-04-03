@@ -16,9 +16,7 @@ class ApplePayService extends Directives with DefaultComplete {
 
   val route = {
     pathPrefix("applepay") {
-      startPayment ~
-        fail ~
-        success
+      startPayment
     }
   }
 
@@ -37,40 +35,6 @@ class ApplePayService extends Directives with DefaultComplete {
               }
             }
           })
-      }
-    }
-  }
-
-  lazy val fail = path("fail") {
-    get {
-      parameters("token") {
-        token =>
-          session {
-            session =>
-              handleCall(applePayHandler.fail(session.sessionData, token),
-                (url: Uri) => {
-                  setSession(session) {
-                    redirect(url, StatusCodes.TemporaryRedirect)
-                  }
-                })
-          }
-      }
-    }
-  }
-
-  lazy val success = path("success") {
-    get {
-      parameters("token") {
-        token =>
-          session {
-            session =>
-              handleCall(applePayHandler.success(session.sessionData, token),
-                (url: Uri) => {
-                  setSession(session) {
-                    redirect(url, StatusCodes.TemporaryRedirect)
-                  }
-                })
-          }
       }
     }
   }

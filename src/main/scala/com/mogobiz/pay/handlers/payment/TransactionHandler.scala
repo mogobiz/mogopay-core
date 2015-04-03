@@ -38,7 +38,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         cvvURL: Option[String],transactionUUID: String, amount: Long, merchantId: String,
                         transactionType: String, customerCVV: Option[String], ccNum: Option[String],
                         customerEmail: Option[String], customerPassword: Option[String],
-                        transactionDescription: Option[String],
+                        transactionDescription: Option[String], gatewayData: Option[String],
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean]) {
   def toMap = Map(
     "_successURL" -> "_successURL",
@@ -101,7 +101,7 @@ class TransactionHandler {
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
         false,
         Option(paymentRequest.transactionEmail), None, None, Option(paymentRequest.transactionExtra),
-        Option(paymentRequest.transactionDesc), None, Option(account), customer, Nil)
+        Option(paymentRequest.transactionDesc), Option(paymentRequest.gatewayData), None, Option(account), customer, Nil)
 
       if (paymentType == PaymentType.CREDIT_CARD &&
         account.paymentConfig.map(_.paymentMethod) != Some(CBPaymentMethod.EXTERNAL)) {
@@ -458,6 +458,7 @@ class TransactionHandler {
           val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
           val paymentRequest = initPaymentRequest(vendor, transactionType, true, transactionRequest.tid,
             transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
+            submit.params.gatewayData.orNull,
             submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear, card.cardType)
           sessionData.paymentRequest = Some(paymentRequest)
 
@@ -483,6 +484,7 @@ class TransactionHandler {
     else {
       val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
         transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
+        submit.params.gatewayData.orNull,
         submit.params.customerCVV.orNull, submit.params.ccNum.orNull, submit.params.ccMonth.orNull, submit.params.ccYear.orNull,
         toCardType(submit.params.ccType.orNull))
       sessionData.paymentRequest = Some(paymentRequest)
@@ -524,7 +526,7 @@ class TransactionHandler {
   private def initPaymentRequest(vendor: Account, transactionType: Option[String], mogopay: Boolean,
                                  transactionSequence: Long, transactionExtra: String,
                                  transactionCurrency: TransactionCurrency, sessionData: SessionData,
-                                 transactionDesc: String, ccCrypto: String, card_number: String,
+                                 transactionDesc: String, gatewayData: String, ccCrypto: String, card_number: String,
                                  card_month: String, card_year: String, card_type: CreditCardType): PaymentRequest = {
     var errors: mutable.Seq[Exception] = mutable.Seq()
 
@@ -543,7 +545,7 @@ class TransactionHandler {
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
     var paymentProvider = CBPaymentProvider.NONE
     var paymentRequest: PaymentRequest = PaymentRequest("-1", null, -1L, "", "",
-      null, null, "", "", "", "", "", "",
+      null, null, "", "", "", "", "", "", "",
       sessionData.csrfToken.orNull, transactionCurrency)
 
     if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD" && (!externalPages || mogopay)) {
@@ -591,7 +593,9 @@ class TransactionHandler {
       transactionExtra = transactionExtra,
       transactionSequence = transactionSequence.toString,
       orderDate = new Date,
-      amount = amount
+      amount = amount,
+      transactionDesc = transactionDesc,
+      gatewayData = gatewayData
     )
   }
 }

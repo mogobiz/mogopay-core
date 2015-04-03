@@ -225,6 +225,7 @@ object DBInitializer {
       errorMessageOrigin = Some("OK"),
       extra = Some(extra),
       description = None,
+      gatewayData = None,
       creditCard = Some(creditCard),
       vendor = Some(vendor),
       customer = Some(customer),
