@@ -129,7 +129,7 @@ object Exceptions {
     override def getMessage: String = "2"
   }
 
-  case class AuthorizeNetErrorException(message: String) extends MogopayException(StatusCodes.InternalServerError, message) {
-    override def getMessage: String = "3-" + message
+  case class AuthorizeNetErrorException(errorCode: String) extends MogopayException(StatusCodes.InternalServerError, errorCode) {
+    override def getMessage: String = errorCode
   }
 }

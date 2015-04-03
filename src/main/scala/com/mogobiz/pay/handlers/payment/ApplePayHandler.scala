@@ -58,7 +58,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     paymentType.setOpaqueData(op)
 
     val txnRequest = new TransactionRequestType()
-    txnRequest.setTransactionType(TransactionTypeEnum.AUTH_ONLY_TRANSACTION.value())
+    txnRequest.setTransactionType(TransactionTypeEnum.AUTH_ONLY_TRANSACTION.value()) // todo
     txnRequest.setPayment(paymentType)
     txnRequest.setAmount(BigDecimal.long2bigDecimal(amount).bigDecimal)
 
@@ -74,7 +74,8 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     } else {
       val result = response.getTransactionResponse
       if (result.getResponseCode == "1") {
-        val successResponse = Await.result(pipeline(Get(Uri(sessionData.successURL.get))), 10 seconds)
+        val successURL: String = sessionData.successURL.getOrElse(throw new NoSuccessURLProvided)
+        val successResponse = Await.result(pipeline(Get(Uri(successURL))), Duration.Inf)
         Right(successResponse.entity.asString)
       } else {
         throw new AuthorizeNetErrorException(result.getResponseCode)
