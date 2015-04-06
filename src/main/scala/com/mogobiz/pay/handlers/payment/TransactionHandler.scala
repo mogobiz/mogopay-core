@@ -510,10 +510,13 @@ class TransactionHandler {
     val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
     optTransaction match {
       case Some(transaction) => {
-        val jsonString = BOTransactionJsonTransform.transform(transaction, langCountry)
-        val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill.mustache")
-        val (subject, body) = templateHandler.mustache(template, jsonString)
-        pdfHandler.convertToPdf(pageFormat, body);
+        if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
+          val jsonString = BOTransactionJsonTransform.transform(transaction, langCountry)
+          val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill.mustache")
+          val (subject, body) = templateHandler.mustache(template, jsonString)
+          pdfHandler.convertToPdf(pageFormat, body);
+        }
+        else throw new PaymentNotConfirmedException(transactionUuid)
       }
       case None => throw new BOTransactionNotFoundException(transactionUuid)
     }
