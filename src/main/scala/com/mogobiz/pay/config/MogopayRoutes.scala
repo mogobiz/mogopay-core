@@ -64,6 +64,7 @@ trait MogopayRoutes extends Directives {
             new GithubService().route ~
             new SystempayService().route ~
             new PayPalService().route ~
+            new ApplePayService().route ~
             new PayboxService().route ~
             new PaylineService().route ~
             new MogopayService().route ~
@@ -91,13 +92,13 @@ trait DefaultComplete {
     t match {
       case (ex: MogopayException) =>
         ex.printStackTrace()
-        complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.toString))
+        complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.getMessage))
       case (ex: UnknownHostException) =>
         ex.printStackTrace()
-        complete(StatusCodes.NotFound -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.toString))
+        complete(StatusCodes.NotFound -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.getMessage))
       case (_) =>
         t.printStackTrace()
-        complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.toString))
+        complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.getMessage))
     }
   }
 

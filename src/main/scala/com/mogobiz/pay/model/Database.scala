@@ -130,6 +130,7 @@ object Mogopay {
     val PAYBOX = Value("PAYBOX")
     val SIPS = Value("SIPS")
     val SYSTEMPAY = Value("SYSTEMPAY")
+    val APPLEPAY = Value("APPLEPAY")
   }
 
   class CBPaymentProviderRef extends TypeReference[CBPaymentProvider.type]
@@ -194,6 +195,7 @@ object Mogopay {
 
   case class PaymentConfig(kwixoParam: Option[String],
                            paypalParam: Option[String],
+                           applePayParam: Option[String],
                            cbParam: Option[String],
                            @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
                            @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod,
@@ -349,6 +351,7 @@ object Mogopay {
                            errorMessageOrigin: Option[String],
                            extra: Option[String],
                            description: Option[String],
+                           gatewayData: Option[String],
                            creditCard: Option[BOCreditCard],
                            vendor: Option[Account],
                            customer: Option[Account],
@@ -419,6 +422,7 @@ object Mogopay {
                             transactionEmail: String,
                             transactionExtra: String,
                             transactionDesc: String,
+                            gatewayData: String,
                             csrfToken: String,
                             currency: TransactionCurrency)
 

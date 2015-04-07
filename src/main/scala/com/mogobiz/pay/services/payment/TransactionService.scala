@@ -66,10 +66,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val init = path("init") {
     post {
-      formFields('merchant_secret, 'transaction_amount.as[Long], 'currency_code, 'currency_rate.as[Double], 'extra ?).as(TransactionInit) {
-        params =>
-          import Implicits._
-          handleCall(transactionHandler.init(params.merchant_secret, params.transaction_amount, params.currency_code, params.currency_rate, params.extra),
+      formFields('merchant_secret, 'transaction_amount.as[Long],
+        'currency_code, 'currency_rate.as[Double],
+        'extra ?, 'return_url ?).as(TransactionInit) { params =>
+        import Implicits._
+          handleCall(transactionHandler.init(params),
             (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
           )
       }
@@ -183,7 +184,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     post {
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
+        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
         'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
         submitParams =>
           session {
@@ -198,7 +199,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     post {
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?,
+        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
         'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get
@@ -241,7 +242,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       if (!session.sessionData.authenticated && isNewSession()) {
         session.clear()
       }
-      handleCall(transactionHandler.submit(Submit(session.sessionData, submitParams, None, None)),
+      handleCall(
+        transactionHandler.submit(Submit(session.sessionData, submitParams, None, None)),
         (t: (String, String)) => {
           val (serviceName, methodName) = t
           setSession(session) {
