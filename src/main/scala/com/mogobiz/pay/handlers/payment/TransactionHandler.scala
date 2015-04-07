@@ -39,27 +39,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         transactionType: String, customerCVV: Option[String], ccNum: Option[String],
                         customerEmail: Option[String], customerPassword: Option[String],
                         transactionDescription: Option[String], gatewayData: Option[String],
-                        ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean]) {
-  def toMap = Map(
-    "_successURL" -> "_successURL",
-    "_errorURL" -> "_errorURL",
-    "cardinfoURL" -> "cardinfoURL",
-    "cvvURL" -> "cvvURL",
-    "_transactionUUID" -> "_transactionUUID",
-    "_amount" -> "_amount",
-    "merchantId" -> "merchantId",
-    "_transactionType" -> "_transactionType",
-    "customerCVV" -> "customerCVV",
-    "ccNum" -> "ccNum",
-    "customerEmail" -> "customerEmail",
-    "customerPassword" -> "customerPassword",
-    "transactionDescription" -> "transactionDescription",
-    "ccMonth" -> "ccMonth",
-    "ccYear" -> "ccYear",
-    "ccType" -> "ccType"
-  )
-}
-
+                        ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean])
 class TransactionHandler {
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {

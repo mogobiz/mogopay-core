@@ -43,9 +43,14 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     val paymentRequest = sessionData.paymentRequest.get
     val amount = sessionData.amount.get
 
+    val paymentConfig      = sessionData.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException(""))
+    val authorizeNetParams = paymentConfig.applePayParam.map(parse(_).extract[Map[String, String]]).orElse(throw new MissingAuthorizeNetParamException)
+    val anetAPILoginID     = authorizeNetParams.get("anetAPILoginID")
+    val anetTransactionKey = authorizeNetParams.get("anetTransactionKey")
+
     val appleMerchAuthenticationType = new MerchantAuthenticationType()
-    appleMerchAuthenticationType.setName(Settings.ApplePay.anetAPILoginID)
-    appleMerchAuthenticationType.setTransactionKey(Settings.ApplePay.anetTransactionKey)
+    appleMerchAuthenticationType.setName(anetAPILoginID)
+    appleMerchAuthenticationType.setTransactionKey(anetTransactionKey)
 
     ApiOperationBase.setEnvironment(Settings.ApplePay.env)
     ApiOperationBase.setMerchantAuthentication(appleMerchAuthenticationType)
@@ -58,7 +63,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     paymentType.setOpaqueData(op)
 
     val txnRequest = new TransactionRequestType()
-    txnRequest.setTransactionType(TransactionTypeEnum.AUTH_ONLY_TRANSACTION.value()) // todo
+    txnRequest.setTransactionType(TransactionTypeEnum.AUTH_CAPTURE_TRANSACTION.value())
     txnRequest.setPayment(paymentType)
     txnRequest.setAmount(BigDecimal.long2bigDecimal(amount).bigDecimal)
 

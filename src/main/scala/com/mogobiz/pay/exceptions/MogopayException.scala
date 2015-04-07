@@ -132,4 +132,6 @@ object Exceptions {
   case class AuthorizeNetErrorException(errorCode: String) extends MogopayException(StatusCodes.InternalServerError, errorCode) {
     override def getMessage: String = errorCode
   }
+
+  case class MissingAuthorizeNetParamException() extends MogopayMessageLessException(StatusCodes.BadRequest)
 }

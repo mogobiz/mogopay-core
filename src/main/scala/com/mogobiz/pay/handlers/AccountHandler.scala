@@ -140,7 +140,7 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
-                         payPalParam: PayPalParam, applePayParam: ApplePayParam, kwixoParam: KwixoParam)
+                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam], kwixoParam: KwixoParam)
 
 case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
                               firstName: String, lastName: String, birthDate: String)
@@ -151,7 +151,7 @@ case class NoCBParams() extends CBParams
 
 case class PayPalParam(paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String]) extends CBParams
 
-case class ApplePayParam(foo: String) extends CBParams
+case class AuthorizeNetParam(apiLoginId: String, transactionKey: String) extends CBParams
 
 case class KwixoParam(kwixoParams: Option[String]) extends CBParams
 
@@ -783,7 +783,7 @@ class AccountHandler {
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           kwixoParam = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          applePayParam = Some(write(caseClassToMap(profile.applePayParam))),
+          applePayParam = profile.authorizeNetParam.map(p => write(caseClassToMap(p))),
           cbParam = Some(write(updateCBParam)),
           emailField = if (profile.emailField == "") "user_email" else profile.emailField,
           passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
