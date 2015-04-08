@@ -196,7 +196,7 @@ object Mogopay {
 
   case class PaymentConfig(kwixoParam: Option[String],
                            paypalParam: Option[String],
-                           applePayParam: Option[String],
+                           authorizeNetParam: Option[String],
                            cbParam: Option[String],
                            @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
                            @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod,

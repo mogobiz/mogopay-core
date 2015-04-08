@@ -783,7 +783,7 @@ class AccountHandler {
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           kwixoParam = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          applePayParam = profile.authorizeNetParam.map(p => write(caseClassToMap(p))),
+          authorizeNetParam = profile.authorizeNetParam.map(p => write(caseClassToMap(p))),
           cbParam = Some(write(updateCBParam)),
           emailField = if (profile.emailField == "") "user_email" else profile.emailField,
           passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
