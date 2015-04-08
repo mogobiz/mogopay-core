@@ -268,8 +268,9 @@ class TransactionHandler {
 
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
-    address.map(addr => computePrice(addr, currencyCode, parse(transactionExtra))).getOrElse(Seq[ShippingPrice]())
-
+    if (transactionExtra != null)
+      address.map(addr => computePrice(addr, currencyCode, parse(transactionExtra))).getOrElse(Seq[ShippingPrice]())
+    else Seq[ShippingPrice]()
   }
 
   def shippingPrice(prices: Seq[ShippingPrice], provider: String,
