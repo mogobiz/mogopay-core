@@ -684,13 +684,14 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
                 ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
                 ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
-                ('sips_merchant_certificate_file_name.?.as[Option[String]]) ::
-                ('sips_merchant_certificate_file_content.?.as[Option[String]]) ::
-                ('sips_merchant_parcom_file_name.?.as[Option[String]]) ::
-                ('sips_merchant_parcom_file_content.?.as[Option[String]]) :: ('sips_merchant_logo_path ?) ::
+                ('sips_merchant_certificate_file_name.?) ::
+                ('sips_merchant_certificate_file_content.?) ::
+                ('sips_merchant_parcom_file_name.?) ::
+                ('sips_merchant_parcom_file_content.?) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
                 ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) ::
+                ('anet_api_login_id ?) :: ('anet_transaction_key ?) ::
                 'email_field :: 'password_field :: HNil)
               fields.happly {
                 case password :: password2 :: company :: website :: lphone ::
@@ -703,6 +704,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
                   systempayShopId :: systempayContractNumber :: systempayCertificate :: senderName :: senderEmail ::
                   passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
+                  anetAPILoginID :: anetTransactionKey ::
                   kwixoParams :: emailField :: passwordField :: HNil =>
                   val validPassword: Option[(String, String)] = (password, password2) match {
                     case (Some(p), Some(p2)) => Some((p, p2))
@@ -732,6 +734,12 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                       sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
                       sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
                     case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
+                    case CBPaymentProvider.AUTHORIZENET => NoCBParams()
+                  }
+
+                  val authorizeNetParam = (anetAPILoginID, anetTransactionKey) match {
+                    case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
+                    case _ => None
                   }
 
                   val profile = UpdateProfile(
@@ -760,6 +768,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                       paypalPassword = paypalPassword,
                       paypalSignature = paypalSignature
                     ),
+                    authorizeNetParam = authorizeNetParam,
                     kwixoParam = KwixoParam(kwixoParams),
                     cbParam = cbParam
                   )

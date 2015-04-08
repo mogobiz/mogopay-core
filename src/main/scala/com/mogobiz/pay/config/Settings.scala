@@ -5,6 +5,8 @@ import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}
 import scalikejdbc.config._
 
+import scala.util.Try
+
 object Settings {
   private val config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
 
@@ -121,7 +123,6 @@ object Settings {
     val publicKey: String = {
       scala.io.Source.fromFile(Settings.Paybox.PemFileName).mkString
     }
-
   }
 
   object Systempay {
@@ -132,6 +133,14 @@ object Settings {
   object Sips {
     val CertifDir = config.getString("sips.certif.dir")
     val PathFile = config.getString("sips.pathfile")
+  }
+
+  object ApplePay {
+    import net.authorize.{Environment => ANetEnv}
+    val anetAPILoginID     = config.getString(s"applepay.$Env.anetAPILoginID")
+    val anetTransactionKey = config.getString(s"applepay.$Env.anetTransactionKey")
+    val token              = Try(Option(config.getString(s"applepay.$Env.token"))).getOrElse(None)
+    val env                = if (Env == Environment.DEV) ANetEnv.SANDBOX else ANetEnv.PRODUCTION
   }
 
   object Jobs {

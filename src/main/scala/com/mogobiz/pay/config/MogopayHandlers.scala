@@ -31,6 +31,7 @@ object  MogopayHandlers {
   val systempayHandler = new SystempayHandler("systempay")
   val sipsHandler = new SipsHandler("sips")
   val payPalHandler = new PayPalHandler("paypal")
+  val applePayHandler = new ApplePayHandler("applepay")
   val paylineHandler = new PaylineHandler("payline")
   val mogopayHandler = new MogopayHandler("mogopay")
   val userHandler = new UserHandler
