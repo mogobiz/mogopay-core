@@ -63,7 +63,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       session { session =>
         parameterMap { params =>
           queryString { uri =>
-            handleCall(authorizeNetHandler.donePayment(session.sessionData, params, uri),
+            handleCall(???,//authorizeNetHandler.done(session.sessionData, params, uri),
                 (data: Uri) =>
                   setSession(session) {
                     redirect(data, StatusCodes.TemporaryRedirect)
@@ -154,9 +154,8 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     get {
       session { session =>
         parameterMap { params =>
-          onComplete((actor ? Cancel(session.sessionData)).mapTo[Try[String]]) { call =>
-            handleComplete(call, (_: Any) => complete(StatusCodes.OK -> call.get))
-          }
+          handleCall(Cancel(session.sessionData),
+            (_: Any) => complete(StatusCodes.OK))
         }
       }
     }
@@ -167,9 +166,8 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     get {
       session { session =>
         parameterMap { params =>
-          onComplete((actor ? Finish(session.sessionData, params)).mapTo[Try[String]]) { call =>
-            handleComplete(call, (_: Any) => complete(StatusCodes.OK -> call.get))
-          }
+          handleCall(Finish(session.sessionData, params),
+          (_: Any) => complete(StatusCodes.OK))
         }
       }
     }
