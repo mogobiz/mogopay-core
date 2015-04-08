@@ -734,6 +734,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                       sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
                       sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
                     case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
+                    case CBPaymentProvider.AUTHORIZENET => NoCBParams()
                   }
 
                   val authorizeNetParam = (anetAPILoginID, anetTransactionKey) match {
