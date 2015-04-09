@@ -57,7 +57,7 @@ object DBInitializer {
     val PAYBOX_2DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "85", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
     val PAYBOX_3DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "109518543", "payboxContract" -> "PAYBOX_DIRECT")
     val SYS_PAY = Map("systempayShopId" -> "34889127", "systempayContractNumber" -> "5028717", "systempayCertificate" -> "7736291283331938")
-    val AUTHORIZENET = Map("apiLoginID" -> "5zLq4S76A", "transactionKey" -> "92s8GyH2Ym489JGG")
+    val AUTHORIZENET = Map("apiLoginID" -> "5zLq4S76A", "transactionKey" -> "3XbG8myA4785Qd4Y")
 
     // Création des comptes marchands
     val paypalPaylineExternal = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, Map(), PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
@@ -99,9 +99,8 @@ object DBInitializer {
     val merchantAccount12 = createMerchantAccount("7264a70e-9960-4492-b466-4377a1fc2025", "seller12@merchant.com", "Merchant12", "TEST", paypalSips3DSPaymentConfig)
     createCertification(merchantAccount12)
 
-    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.EXTERNAL)
-    var merchantAccountInfoANet = createMerchantAccount("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "mogopay-anet@merchant.com",
+    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.EXTERNAL)
+    var merchantAccountInfoANet = createMerchantAccount("cccccccc-cccc-cccc-cccc-cccccccccccc", "mogopay-anet@merchant.com",
       "ANet", "Merchant", paymentConfig12)
 
     val paymentConfig12External = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,

@@ -1,6 +1,5 @@
 package com.mogobiz.pay.services.payment
 
-import com.mogobiz.pay.actors.AuthorizeNetActor._
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.implicits.Implicits
@@ -154,7 +153,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     get {
       session { session =>
         parameterMap { params =>
-          handleCall(Cancel(session.sessionData),
+          handleCall(authorizeNetHandler.cancel(session.sessionData),
             (_: Any) => complete(StatusCodes.OK))
         }
       }
@@ -166,7 +165,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     get {
       session { session =>
         parameterMap { params =>
-          handleCall(Finish(session.sessionData, params),
+          handleCall(authorizeNetHandler.finish(session.sessionData, params),
           (_: Any) => complete(StatusCodes.OK))
         }
       }

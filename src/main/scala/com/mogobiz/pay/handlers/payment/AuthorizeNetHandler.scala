@@ -52,8 +52,9 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
     val amount = paymentRequest.amount.toString
     val currency: Int = paymentRequest.currency.numericCode
-    val apiLoginID: String = parameters("apiLoginID")
-    val transactionKey: String = parameters("transactionKey")
+    val authorizeNetParam = paymentConfig.authorizeNetParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val apiLoginID = authorizeNetParam("apiLoginID")
+    val transactionKey = authorizeNetParam("transactionKey")
 
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
 
