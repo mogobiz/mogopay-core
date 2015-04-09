@@ -84,7 +84,7 @@ class TransactionHandler {
         Option(paymentRequest.transactionDesc), Option(paymentRequest.gatewayData), None, Option(account), customer, Nil)
 
       if (paymentType == PaymentType.CREDIT_CARD &&
-        account.paymentConfig.map(_.paymentMethod) != Some(CBPaymentMethod.EXTERNAL)) {
+        account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
         val creditCard = BOCreditCard(
           number = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
           holder = None,
@@ -164,7 +164,7 @@ class TransactionHandler {
       )
       if (paymentResult.transactionDate != null) {
         val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-        boTransactionHandler.update(finalTrans, false)
+        boTransactionHandler.update(finalTrans, refresh = false)
         notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
       }
       else {
@@ -325,7 +325,7 @@ class TransactionHandler {
     val listShipping = sessionData.accountId.map {
       accountId =>
         shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
-    } getOrElse (Seq[ShippingPrice]())
+    } getOrElse Seq[ShippingPrice]()
 
     var selectedShippingPrice: Option[ShippingPrice] = None
     if (listShipping.length > 0) {
@@ -390,7 +390,7 @@ class TransactionHandler {
     sessionData.transactionType = transactionType
     sessionData.merchantId = Some(vendor.uuid)
     sessionData.paymentConfig = vendor.paymentConfig
-    sessionData.email = submit.params.customerEmail
+    if (submit.params.customerEmail.isDefined) sessionData.email = submit.params.customerEmail
     sessionData.password = submit.params.customerPassword
 
     if (!sessionData.mogopay)
@@ -557,8 +557,7 @@ class TransactionHandler {
         val cc_date = cal.getTime
         if (cc_date.compareTo(new Date()) < 0) {
           throw SomeParameterIsMissingException(MogopayConstant.CreditCardExpiryDateInvalid)
-        }
-        else {
+        } else {
           paymentRequest = paymentRequest.copy(
             cardType = cc_type,
             ccNumber = cc_num,

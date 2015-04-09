@@ -118,7 +118,9 @@ object Exceptions {
   case class AccountNotConfirmedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class InvalidInputException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class InvalidContextException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)
 
   case class NoSuccessURLProvided() extends MogopayMessageLessException(StatusCodes.InternalServerError) {
@@ -134,4 +136,6 @@ object Exceptions {
   }
 
   case class MissingAuthorizeNetParamException() extends MogopayMessageLessException(StatusCodes.BadRequest)
+
+  case class InvalidPaymentMethodException() extends MogopayException(StatusCodes.BadRequest, "Invalid payment method.")
 }

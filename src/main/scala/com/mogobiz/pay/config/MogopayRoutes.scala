@@ -53,6 +53,7 @@ trait MogopayRoutes extends Directives {
         pathPrefix(("api" / "pay") | "pay") {
           new AccountService().route ~
             new AccountServiceJsonless().route ~
+            new AuthorizeNetService().route ~
             new BackofficeService().route ~
             new CountryService().route ~
             new RateService().route ~

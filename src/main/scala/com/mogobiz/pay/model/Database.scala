@@ -126,12 +126,12 @@ object Mogopay {
   object CBPaymentProvider extends Enumeration {
     type CBPaymentProvider = Value
     val NONE = Value("NONE")
+    val AUTHORIZENET = Value("AUTHORIZENET")
     val PAYLINE = Value("PAYLINE")
     val PAYBOX = Value("PAYBOX")
     val SIPS = Value("SIPS")
     val SYSTEMPAY = Value("SYSTEMPAY")
     val APPLEPAY = Value("APPLEPAY")
-    val AUTHORIZENET = Value("AUTHORIZENET")
   }
 
   class CBPaymentProviderRef extends TypeReference[CBPaymentProvider.type]

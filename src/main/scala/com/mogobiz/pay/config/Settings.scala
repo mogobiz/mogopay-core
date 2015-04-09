@@ -98,6 +98,16 @@ object Settings {
     val MaxInactiveInterval = 300
   }
 
+  object AuthorizeNet {
+    val PaymentAction = config.getString("payline.paymentAction")
+    val PaymentMode = config.getString("payline.paymentMode")
+    val LanguageCode = config.getString("payline.languageCode")
+    val SecurityMode = config.getString("payline.securityMode")
+    val Version = config.getString("payline.version")
+    val DirectEndPoint = config.getString("payline.directendpoint")
+    val WebEndPoint = config.getString("payline.webendpoint")
+  }
+
   object Payline {
     val PaymentAction = config.getString("payline.paymentAction")
     val PaymentMode = config.getString("payline.paymentMode")
