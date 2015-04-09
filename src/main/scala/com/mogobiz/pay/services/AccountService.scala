@@ -690,9 +690,9 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('sips_merchant_parcom_file_content.?) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
                 ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
-                ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) :: ('kwixo_params ?) ::
+                ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
                 ('anet_api_login_id ?) :: ('anet_transaction_key ?) ::
-                'email_field :: 'password_field :: HNil)
+                ('kwixo_params ?) :: 'email_field :: 'password_field :: HNil)
               fields.happly {
                 case password :: password2 :: company :: website :: lphone ::
                   civility :: firstname :: lastname :: birthday :: road :: road2 ::
