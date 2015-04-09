@@ -79,7 +79,7 @@ object DBInitializer {
     val paypalPayline3DSConfig = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, Map(), PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
     val merchantAccount6 = createMerchantAccount("30958ef7-fad3-4f29-988e-df51376974cd", "seller6@merchant.com", "Merchant6", "TEST", paypalPayline3DSConfig)
 
-    val paypalSystemPayExternalConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, Map(), SYS_PAY, CBPaymentMethod.EXTERNAL)
+    val paypalSystemPayExternalConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, Map(), PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
     val merchantAccount7 = createMerchantAccount("d7b864c8-4567-4603-abd4-5f85e9ff56e6", "seller7@merchant.com", "Merchant7", "TEST", paypalSystemPayExternalConfig)
 
     val paypalSystemPay2DSConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, Map(), SYS_PAY, CBPaymentMethod.THREEDS_NO)
@@ -197,8 +197,8 @@ object DBInitializer {
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
                                   paypalConfig: Map[String, String],
-                                  cbConfig: Map[String, String],
                                   applePayConfig: Map[String, String],
+                                  cbConfig: Map[String, String],
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
                                   passwordPattern: Option[String] = Some("")) = {
@@ -206,7 +206,7 @@ object DBInitializer {
       None,
       Some(JSONObject(paypalConfig).toString()),
       Some(JSONObject(applePayConfig).toString()),
-      Some(JSONObject(paypalConfig).toString()),
+      Some(JSONObject(cbConfig).toString()),
       cbProvider,
       cbMethod,
       "user_email", "user_password",
@@ -214,7 +214,7 @@ object DBInitializer {
   }
 
   private def createTransaction(uuid: String, transactionUuid: String, amount: Long, customer: Account, vendor: Account, extra: String) = {
-    val transactionDate = randomDate();
+    val transactionDate = randomDate()
     val currency = TransactionCurrency("EUR", Currency.getInstance("EUR").getNumericCode, 0.01, 2)
     val creditCard = BOCreditCard("1234XXXXXXXXXXX9087", None, new Date(), CreditCardType.CB)
     val paymentData = BOPaymentData(PaymentType.CREDIT_CARD,
