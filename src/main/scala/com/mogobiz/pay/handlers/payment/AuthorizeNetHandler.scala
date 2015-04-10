@@ -46,7 +46,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).get
       else
         transactionHandler.startPayment(vendorId, sessionData.accountId, transactionUUID, paymentRequest,
-          PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
+          PaymentType.CREDIT_CARD, CBPaymentProvider.AUTHORIZENET).get
 
     transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
 
@@ -58,14 +58,15 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
 
-    if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-      val relayURL = s"${Settings.Mogopay.EndPoint}authorizenet/relay"
-      val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel"
+    val relayURL = s"${Settings.Mogopay.EndPoint}authorizenet/relay"
+    val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel"
 
+    if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
       val x_fp_sequence = fingerprint.getSequence
       val x_fp_timestamp = fingerprint.getTimeStamp
       val x_fp_hash = fingerprint.getFingerprintHash
 
+      // todo: make test.authorize.net configurable
       val form = {
         <form name="authorizenet" id="authorizenet" action="https://test.authorize.net/gateway/transact.dll" method="post">
           <input type="text" name="x_amount" value={amount}/>
@@ -104,7 +105,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       Left(form.mkString)
     } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_NO) {
-      val relayResponseUrl = s"${Settings.Mogopay.EndPoint}authorizenet/relay"
       val action = "https://test.authorize.net/gateway/transact.dll"
 
       val query = Map(
@@ -119,7 +119,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       )
 
       val form = {
-        <form id="authorizenet" action="https://test.authorize.net/gateway/transact.dll" method="post">
+        <form id="authorizenet" action={action} method="post">
           <label>CreditCardNumber</label>
           <input type="text" class="text" name="x_card_num" size="15"/>
           <label>Exp.</label>
@@ -127,7 +127,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <label>Amount</label>
           <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={amount}/>
           <input type="hidden" name="x_invoice_num" value={System.currentTimeMillis.toString}/>
-          <input type="hidden" name="x_relay_url" value={relayResponseUrl}/>
+          <input type="hidden" name="x_relay_url" value={relayURL}/>
           <input type="hidden" name="x_login" value={apiLoginID}/>
           <input type="hidden" name="x_fp_sequence" value={fingerprint.getSequence.toString}/>
           <input type="hidden" name="x_fp_timestamp" value={fingerprint.getTimeStamp.toString}/>
@@ -141,7 +141,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name="vendor_uuid" value={vendorId}/>
           <input type="submit" name="buy_button" value="BUY"/>
         </form>
-          <script>document.getElementById("authorizenet").submit();</script>
+        <script>document.getElementById("authorizenet").submit();</script>
       }
 
       val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
@@ -154,8 +154,9 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     }
   }
 
+  // todo: make the action configurable
   def relay(sessionData: SessionData, params: Map[String, String]) = {
-    val action = "http://7ceb5c55.ngrok.com/pay/authorizenet/finish"
+    val action = s"${Settings.Mogopay.BaseEndPoint}/pay/authorizenet/finish"
     val form = {
       <form action={action} id="redirectForm" method="GET">
         {params.map { case (name, value) =>

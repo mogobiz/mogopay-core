@@ -99,14 +99,14 @@ object DBInitializer {
     val merchantAccount12 = createMerchantAccount("7264a70e-9960-4492-b466-4377a1fc2025", "seller12@merchant.com", "Merchant12", "TEST", paypalSips3DSPaymentConfig)
     createCertification(merchantAccount12)
 
-    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.EXTERNAL)
+    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
     var merchantAccountInfoANet = createMerchantAccount("cccccccc-cccc-cccc-cccc-cccccccccccc", "mogopay-anet@merchant.com",
       "ANet", "Merchant", paymentConfig12)
 
     val paymentConfig12External = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.EXTERNAL)
+      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
     val paymentConfig12Custom = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.THREEDS_NO)
+      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.THREEDS_NO)
     var merchantAccountInfoANetExternal = createMerchantAccount("f802a048-e8ec-4619-abf0-d3a0e0eecc2e", "mogopay-anet-external@merchant.com",
       "ANET External", "Merchant", paymentConfig12External)
     var merchantAccountInfoANetCustom = createMerchantAccount("f5c4a907-6f73-4ecf-ba34-3c7d97d3d6ba", "mogopay-anet-custom@merchant.com",
@@ -197,7 +197,7 @@ object DBInitializer {
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
                                   paypalConfig: Map[String, String],
-                                  applePayConfig: Map[String, String],
+                                  authorizeNetConfig: Map[String, String],
                                   cbConfig: Map[String, String],
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
@@ -205,7 +205,7 @@ object DBInitializer {
     PaymentConfig(
       None,
       Some(JSONObject(paypalConfig).toString()),
-      Some(JSONObject(applePayConfig).toString()),
+      Some(JSONObject(authorizeNetConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
       cbProvider,
       cbMethod,
