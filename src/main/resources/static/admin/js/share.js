@@ -2,7 +2,6 @@ var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
 var clientUrl = "/pay-client/";
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
-var storeIndexUrl = "http://localhost:9999/store/html/index.html"; // TO BE RESET
 
 function callClient(action, dataToSend, success, error){
     $.ajax({
