@@ -1,38 +1,15 @@
 <div id="header">
     <a href="{{location}}"><img id="logo" alt="Ebiznext logo" src="../images/style/logo.png"/></a>
-    <div ng-if="createPage==false">
-        <input type="button" class="btn btn-primary pull-right" value="Logout" ng-click="logout()"/>
+    <div class="main" ng-if="createPage==false">
+        <div class="btn-group pull-right">
+			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Menu <span class="caret"></span></button>
+			<ul class="dropdown-menu" role="menu">
+				<li><a href="javascript:void(0);" ng-click="goToListTrasactions()">Transactions</a></li>
+				<li><a href="javascript:void(0);"ng-click="goToListCustomers()">Customers</a></li>
+				<li><a href="javascript:void(0);" ng-click="goToProfile()">Profile</a></li>
+				<li class="divider"></li>
+				<li><a href="javascript:void(0);" ng-click="logout()">Logout</a></li>
+			</ul>
+		</div>
     </div>
 </div>
-
-<nav class="navbar navbar-inverse" role="navigation" ng-if="createPage==false">
-    <div class="container-fluid">
-        <!-- Brand and toggle get grouped for better mobile display -->
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-        </div>
-
-        <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse" style="padding:0px;">
-            <ul class="nav navbar-nav">
-                <li ng-if="isPageActive('/return')">
-                    <a href="javascript:void(0);" ng-click="goToDetails()"><span class="glyphicon glyphicon-chevron-left"></span></a>
-                </li>
-				<li ng-class="{active:isPageActive('/profile')}">
-                    <a href="javascript:void(0);" ng-click="goToProfile()">Profile</a>
-                </li>
-                <li ng-class="{active:isPageActive('/listTransactions')}">
-                    <a href="javascript:void(0);" ng-click="goToListTrasactions()">Transactions</a>
-                </li>
-                <li ng-if="isMerchant" ng-class="{active:isPageActive('/listCustomers')}">
-                    <a href="javascript:void(0);" ng-click="goToListCustomers()">Customers</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
