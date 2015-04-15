@@ -90,8 +90,8 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		}
 	});
 	
-	$rootScope.getProductDetails =  function (url, id){
-		window.open(url + "?productId=" + id, "_blank");
+	$rootScope.getProductDetails =  function (url){
+		window.open(url, "_blank");
 	}
 	$scope.navigateToPage = function(page){navigateToPage($scope, $location, $rootScope, $route, page);};
 	$scope.navigateBack = function(){navigateBack($scope, $location, $rootScope, $route);};
