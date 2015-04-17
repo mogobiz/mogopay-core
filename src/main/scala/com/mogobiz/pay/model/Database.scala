@@ -262,9 +262,9 @@ object Mogopay {
                      company: Option[String] = None,
                      website: Option[String] = None,
                      password: String,
-                     @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility],
-                     firstName: Option[String],
-                     lastName: Option[String],
+                     @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility] = None,
+                     firstName: Option[String] = None,
+                     lastName: Option[String] = None,
                      birthDate: Option[java.util.Date] = None,
                      address: Option[AccountAddress] = None,
                      @JsonScalaEnumeration(classOf[AccountStatusRef]) status: AccountStatus,
@@ -338,6 +338,7 @@ object Mogopay {
 
   case class BOTransaction(uuid: String,
                            transactionUUID: String,
+                           groupTransactionUUID: Option[String] = None,
                            authorizationId: String,
                            transactionDate: Option[java.util.Date],
                            amount: Long,
@@ -410,7 +411,8 @@ object Mogopay {
                            bankErrorMessage: Option[String],
                            token: String)
 
-  case class PaymentRequest(transactionSequence: String,
+  case class PaymentRequest(uuid: String,
+                            transactionSequence: String,
                             orderDate: Date,
                             amount: Long,
                             ccNumber: String,
@@ -425,17 +427,18 @@ object Mogopay {
                             transactionDesc: String,
                             gatewayData: String,
                             csrfToken: String,
-                            currency: TransactionCurrency)
+                            currency: TransactionCurrency,
+                            var dateCreated: Date = Calendar.getInstance().getTime,
+                            var lastUpdated: Date = Calendar.getInstance().getTime)
 
-  case class SessionData(uuid: String,
-                         var finished: Boolean = false,
+  case class SessionData(uuid: String = java.util.UUID.randomUUID.toString,
                          var authenticated: Boolean = false,
                          var email: Option[String] = None,
                          var mogopay: Boolean = false,
                          var isMerchant: Boolean = false,
                          var merchantSession: Boolean = false,
                          var accountId: Option[Document] = None,
-                         var paymentRequest: Option[PaymentRequest] = None,
+                         var finished: Boolean = false,
                          var transactionUuid: Option[String] = None,
                          var transactionType: Option[String] = None,
                          var paymentConfig: Option[PaymentConfig] = None,
@@ -454,12 +457,11 @@ object Mogopay {
                          var pageNum: Integer = 0,
                          var shippingPrices: Option[List[ShippingPrice]] = None,
                          var selectShippingPrice: Option[ShippingPrice] = None,
-                         var id3d: Option[String] = None
-                          )
-
-
+                         var id3d: Option[String] = None,
+                         var payers: Map[String, Long] = Map(),
+                         var groupTxUUID: Option[String] = None,
+                         var paymentRequest: Option[PaymentRequest] = None)
 }
-
 
 object TestApp extends App {
   lazy val mapperSingleton: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)

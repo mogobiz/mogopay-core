@@ -182,14 +182,29 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
    */
   lazy val submit = path("submit") {
     post {
-      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
-        submitParams =>
-          session {
-            session =>
-              doSubmit(submitParams, session)
+      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?,
+        'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
+        'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?, 'card_month.?, 'card_year.?,
+        'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?).as(SubmitParams) {
+        submitParams: SubmitParams =>
+          val payersAmountsSum = submitParams.payers.values.sum
+          if (payersAmountsSum != submitParams.amount) {
+            complete { 400 -> "The total amount and the payers amounts don't match." }
+          } else {
+            session { session =>
+              import Implicits._
+
+              session.sessionData.payers = submitParams.payers.toMap[String, Long]//.toList.filter(_._1 == session.sessionData.email).toMap
+              session.sessionData.groupTxUUID = if (submitParams.payers.size > 1) {
+                Some(java.util.UUID.randomUUID.toString)
+              } else {
+                None
+              }
+
+              setSession(session) {
+                doSubmit(submitParams, session)
+              }
+            }
           }
       }
     }
@@ -200,7 +215,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
+        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?).as(SubmitParams) {
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get
           doSubmit(submitParams, session)

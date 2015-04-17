@@ -2,7 +2,7 @@ package com.mogobiz.pay.handlers.payment
 
 import java.io.File
 import java.text.{SimpleDateFormat, DateFormat, NumberFormat}
-import java.util.{Locale, Calendar, Currency, Date}
+import java.util.{List => _, _}
 
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.handlers.EmailHandler.Mail
@@ -28,6 +28,8 @@ import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
 import org.json4s.JsonAST.{JObject, JField}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import spray.http.Uri
+import scala.collection.Map
 import scala.collection._
 import scala.util._
 import Implicits._
@@ -39,7 +41,18 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         transactionType: String, customerCVV: Option[String], ccNum: Option[String],
                         customerEmail: Option[String], customerPassword: Option[String],
                         transactionDescription: Option[String], gatewayData: Option[String],
-                        ccMonth: Option[String], ccYear: Option[String], ccType: Option[String], ccStore : Option[Boolean])
+                        ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
+                        ccStore : Option[Boolean], private val _payers: Option[String]) {
+  def payers: Map[String, Long] = _payers.map { payers =>
+    payers
+      .split(",")
+      .map { s =>
+        val split = s.split(":")
+        (split(0), split(1).toLong)
+      }.toMap
+  }.getOrElse(Map())
+}
+
 class TransactionHandler {
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
@@ -68,20 +81,32 @@ class TransactionHandler {
     }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
 
-  /*
-			transaction.cbProvider = CBPaymentProvider.NONE;
-
-   */
-  def startPayment(vendorId: String, accountId: Option[String], transactionUUID: String, paymentRequest: PaymentRequest,
-                   paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
+  def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
+                   paymentRequest: PaymentRequest, paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
     accountHandler.load(vendorId).map { account =>
-      val customer = accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
-      var transaction = BOTransaction(transactionUUID, transactionUUID, "", Option(new Date), paymentRequest.amount,
-        paymentRequest.currency, TransactionStatus.INITIATED, new Date, None,
+      val customer = sessionData.accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
+      var transaction = BOTransaction(transactionRequestUUID,
+        transactionRequestUUID,
+        sessionData.groupTxUUID,
+        "",
+        Option(new Date),
+        paymentRequest.amount,
+        paymentRequest.currency,
+        TransactionStatus.INITIATED,
+        new Date,
+        None,
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
-        false,
-        Option(paymentRequest.transactionEmail), None, None, Option(paymentRequest.transactionExtra),
-        Option(paymentRequest.transactionDesc), Option(paymentRequest.gatewayData), None, Option(account), customer, Nil)
+        merchantConfirmation = false,
+        Option(paymentRequest.transactionEmail),
+        None,
+        None,
+        Option(paymentRequest.transactionExtra),
+        Option(paymentRequest.transactionDesc),
+        Option(paymentRequest.gatewayData),
+        None,
+        Option(account),
+        customer,
+        Nil)
 
       if (paymentType == PaymentType.CREDIT_CARD &&
         account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
@@ -149,30 +174,40 @@ class TransactionHandler {
     }.getOrElse(Failure(BOTransactionNotFoundException(s"$transactionUUID")))
   }
 
+  // called by other handlers
   def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
                     paymentResult: PaymentResult, returnCode: String): Unit = {
     val transaction = boTransactionHandler.find(transactionUUID)
-    transaction.map { transaction: BOTransaction =>
-      val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
-      val newTx = transaction.copy(
-        status = newStatus,
-        endDate = computeEndDate(newStatus),
-        authorizationId = paymentResult.authorizationId,
-        errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
-        errorMessageOrigin = paymentResult.errorMessageOrigin,
-        modifications = transaction.modifications :+ modification
-      )
-      if (paymentResult.transactionDate != null) {
-        val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-        boTransactionHandler.update(finalTrans, refresh = false)
-        notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse(""))
-      }
-      else {
-        boTransactionHandler.update(newTx, false)
-        notify(newTx.copy(extra = None), newTx.extra.getOrElse(""))
-      }
-      Success()
-    }.getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
+      .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
+
+    val payers = boTransactionHandler
+      .findOtherGroupBOTx(transaction.uuid)
+      .map(tx => (tx.email.getOrElse(""), tx.amount))
+      .toMap
+
+    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
+    val newTx = transaction.copy(
+      status = newStatus,
+      endDate = computeEndDate(newStatus),
+      authorizationId = paymentResult.authorizationId,
+      errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
+      errorMessageOrigin = paymentResult.errorMessageOrigin,
+      modifications = transaction.modifications :+ modification
+    )
+
+    val tx = if (paymentResult.transactionDate != null) {
+      val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
+      boTransactionHandler.update(finalTrans, refresh = false)
+      notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse("{}"))
+      finalTrans
+    }
+    else {
+      boTransactionHandler.update(newTx, false)
+      notify(newTx.copy(extra = None), newTx.extra.getOrElse("{}"))
+      newTx
+    }
+
+    Success()
   }
 
   def notify(transaction: BOTransaction, jsonCart: String): Unit = {
@@ -211,6 +246,7 @@ class TransactionHandler {
     }
   }
 
+  type PayersInfo = Map[String, Long]
   def verify(secret: String, amount: Option[Long], transactionUUID: String): BOTransaction = {
     val maybeVendor = accountHandler.findBySecret(secret)
 
@@ -236,6 +272,9 @@ class TransactionHandler {
     } else {
       val newTx = transaction.copy(merchantConfirmation = true)
       boTransactionHandler.update(newTx, false)
+
+      // todo
+//      (newTx, Map())
       newTx
     }
   }
@@ -315,6 +354,8 @@ class TransactionHandler {
       } else {
         accountHandler.load(submit.params.merchantId).orNull
       }
+
+    /* START */ // group + no txreq id => get all required info from the boTx
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
     if (transactionRequest.amount != amount.get) {
       throw UnexpectedAmountException(s"${amount.get}")
@@ -349,6 +390,7 @@ class TransactionHandler {
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
     transactionRequestHandler.delete(transactionRequest.uuid, false)
+    /* END */
 
     val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
     if (transaction.isDefined)
@@ -525,7 +567,7 @@ class TransactionHandler {
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
     var paymentProvider = CBPaymentProvider.NONE
-    var paymentRequest: PaymentRequest = PaymentRequest("-1", null, -1L, "", "",
+    var paymentRequest: PaymentRequest = PaymentRequest(UUID.randomUUID.toString, "-1", null, -1L, "", "",
       null, null, "", "", "", "", "", "", "",
       sessionData.csrfToken.orNull, transactionCurrency)
 
@@ -560,7 +602,7 @@ class TransactionHandler {
         } else {
           paymentRequest = paymentRequest.copy(
             cardType = cc_type,
-            ccNumber = cc_num,
+            ccNumber = "", // we don't store the credit card number (for security purpose)
             expirationDate = cc_date,
             cvv = ccCrypto
           )

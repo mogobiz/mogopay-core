@@ -99,14 +99,16 @@ object DBInitializer {
     val merchantAccount12 = createMerchantAccount("7264a70e-9960-4492-b466-4377a1fc2025", "seller12@merchant.com", "Merchant12", "TEST", paypalSips3DSPaymentConfig)
     createCertification(merchantAccount12)
 
-    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
-    var merchantAccountInfoANet = createMerchantAccount("cccccccc-cccc-cccc-cccc-cccccccccccc", "mogopay-anet@merchant.com",
-      "ANet", "Merchant", paymentConfig12)
+//    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
+//    var merchantAccountInfoANet = createMerchantAccount("cccccccc-cccc-cccc-cccc-cccccccccccc", "mogopay-anet@merchant.com",
+//      "ANet", "Merchant", paymentConfig12)
 
     val paymentConfig12External = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
+      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL, None, Some(""), Some("anet-merchant-external"),
+      Some("anet-merchant-external@mogopay.com"))
     val paymentConfig12Custom = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.THREEDS_NO)
+      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.THREEDS_NO, None, Some(""), Some("anet-merchant-custom"),
+      Some("anet-merchant-custome@mogopay.com"))
     var merchantAccountInfoANetExternal = createMerchantAccount("f802a048-e8ec-4619-abf0-d3a0e0eecc2e", "mogopay-anet-external@merchant.com",
       "ANET External", "Merchant", paymentConfig12External)
     var merchantAccountInfoANetCustom = createMerchantAccount("f5c4a907-6f73-4ecf-ba34-3c7d97d3d6ba", "mogopay-anet-custom@merchant.com",
@@ -118,7 +120,7 @@ object DBInitializer {
     createClientAccount("fd80c7e4-c91d-492a-8b48-214b809105d8", "inactif@merchant.com", "Client 3", "Inactif", merchantAccount7, true, AccountStatus.INACTIVE)
     createClientAccount("15995735-56ca-4d19-806b-a6bc7fedc162", "waiting@merchant.com", "Client", "waiting", merchantAccount7, true, AccountStatus.ACTIVE, TelephoneStatus.WAITING_ENROLLMENT)
     createClientAccount("a8858dd5-e14f-4aa0-9504-3d56bab5229d", "existing.account@test.com", "Existing", "Account", merchantAccount7, true)
-    createClientAccount("e6ca3ff5-ee4f-4184-b3e0-0adde58c77c6", "client-anet@merchant.com", "ANet", "Client", merchantAccountInfoANet, false)
+//    createClientAccount("e6ca3ff5-ee4f-4184-b3e0-0adde58c77c6", "client-anet@merchant.com", "ANet", "Client", merchantAccountInfoANet, false)
     createClientAccount("36992642-8bd3-41e0-aaaf-92956c0f78a1", "client-anet-external@merchant.com", "ANet External", "Client", merchantAccountInfoANetExternal, false)
     createClientAccount("d31bbce4-29b4-465a-aedd-1784ee6e3929", "client-anet-custom@merchant.com", "ANet Custom", "Client", merchantAccountInfoANetCustom, false)
 
@@ -201,7 +203,9 @@ object DBInitializer {
                                   cbConfig: Map[String, String],
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
-                                  passwordPattern: Option[String] = Some("")) = {
+                                  passwordPattern: Option[String] = Some(""),
+                                  senderName: Option[String] = None,
+                                  senderEmail: Option[String] = None) = {
     PaymentConfig(
       None,
       Some(JSONObject(paypalConfig).toString()),
@@ -210,7 +214,7 @@ object DBInitializer {
       cbProvider,
       cbMethod,
       "user_email", "user_password",
-      None, None, None, passwordPattern)
+      senderName, senderEmail, None, passwordPattern)
   }
 
   private def createTransaction(uuid: String, transactionUuid: String, amount: Long, customer: Account, vendor: Account, extra: String) = {

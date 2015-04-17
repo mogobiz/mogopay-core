@@ -130,8 +130,9 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           if (paymentConfig == null) {
             throw MogopayError(MogopayConstant.InvalidPaypalConfig)
           } else {
-            transactionHandler.startPayment(vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
-            val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId)
+            transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest,
+              PaymentType.PAYPAL, CBPaymentProvider.NONE)
+            val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId, sessionData)
             finishPayment(sessionData, paymentResult)
           }
       }
@@ -171,7 +172,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-                     infosPaiement: PaymentRequest, token: String, payerId: String): PaymentResult = {
+                     paymentRequest: PaymentRequest, token: String, payerId: String,
+                     sessionData: SessionData): PaymentResult = {
     accountHandler.load(vendorId).map {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
@@ -183,13 +185,13 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
         val signature = parameters("paypalSignature")
 
         val paymentResult = PaymentResult(
-          transactionSequence = infosPaiement.transactionSequence,
-          orderDate = infosPaiement.orderDate,
-          amount = infosPaiement.amount,
-          ccNumber = infosPaiement.ccNumber,
-          cardType = infosPaiement.cardType,
-          expirationDate = infosPaiement.expirationDate,
-          cvv = infosPaiement.cvv,
+          transactionSequence = paymentRequest.transactionSequence,
+          orderDate = paymentRequest.orderDate,
+          amount = paymentRequest.amount,
+          ccNumber = paymentRequest.ccNumber,
+          cardType = paymentRequest.cardType,
+          expirationDate = paymentRequest.expirationDate,
+          cvv = paymentRequest.cvv,
           gatewayTransactionId = transactionUUID,
           transactionDate = null,
           transactionCertificate = null,
@@ -203,7 +205,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           token = token
         )
 
-        val amount = infosPaiement.amount.toDouble / 100.0
+        val amount = paymentRequest.amount.toDouble / 100.0
         val paramMap = Map(
           "USER" -> user,
           "PWD" -> password,
@@ -214,7 +216,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount.asInstanceOf[AnyRef]),
           "TOKEN" -> token,
           "PAYERID" -> payerId,
-          "PAYMENTREQUEST_0_CURRENCYCODE" -> infosPaiement.currency.code)
+          "PAYMENTREQUEST_0_CURRENCYCODE" -> paymentRequest.currency.code)
 
         val bot1 = BOTransactionLog(
           uuid = newUUID,

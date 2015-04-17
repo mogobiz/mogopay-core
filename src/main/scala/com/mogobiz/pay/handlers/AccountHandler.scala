@@ -187,6 +187,11 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
+  def find(uuid: UUID): Option[Account] = {
+    val req = search in Settings.Mogopay.EsIndex types "Account" postFilter termFilter("uuid", uuid)
+    EsClient.search[Account](req)
+  }
+
   def isPatternValid(pattern: String): Boolean = {
     try {
       java.util.regex.Pattern.compile(pattern)
@@ -252,7 +257,7 @@ class AccountHandler {
           }
         }
 
-        val merchant = EsClient.search[Account](merchantReq).getOrElse(throw VendorNotFoundException(""))
+        val merchant = EsClient.search[Account](merchantReq).getOrElse(throw VendorNotFoundException())
 
         val isMerchant = merchant.roles.contains(RoleName.MERCHANT)
         if (!isMerchant) {
@@ -371,8 +376,8 @@ class AccountHandler {
     }
 
     val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistException(""))
-    val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException(s"$vendorId"))
-    val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException(""))
+    val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException())
+    val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException())
     val pattern = paymentConfig.passwordPattern.getOrElse(throw PasswordPatternNotFoundException(""))
     val matching: Boolean = `match`(pattern, password)
 
@@ -896,7 +901,7 @@ class AccountHandler {
     } else {
       Some(signup.vendor.getOrElse({
         val account = findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
-          throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
+          throw new VendorNotFoundException()
         }
         account.uuid
       }))
