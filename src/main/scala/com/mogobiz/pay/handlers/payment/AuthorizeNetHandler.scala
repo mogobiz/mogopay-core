@@ -257,7 +257,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       transaction.errorMessageOrigin, "", "", Some(""), "")
 
     transactionHandler.finishPayment(sessionData.merchantId.getOrElse(""), sessionData.transactionUuid.getOrElse(""),
-      TransactionStatus.PAYMENT_REFUSED, paymentResult, ""/*, sessionData.payers*/)
+      TransactionStatus.PAYMENT_REFUSED, paymentResult, "")
     finishPayment(sessionData, paymentResult)
   }
 }

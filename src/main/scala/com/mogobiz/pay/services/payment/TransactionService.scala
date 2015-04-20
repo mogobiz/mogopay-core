@@ -8,6 +8,7 @@ import akka.actor.{ActorSystem}
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.config.{Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
@@ -136,26 +137,28 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     import Implicits._
     get {
       val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
-      params {
-        (secret, amount, transactionUUID) =>
-          handleCall(transactionHandler.verify(secret, amount, transactionUUID),
-            (transaction: BOTransaction) => {
-              complete(
-                StatusCodes.OK ->
-                  Map(
-                    'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
-                    'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
-                    'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
-                    'transaction_email -> Option(transaction.email).getOrElse(""),
-                    'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
-                    'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
-                    'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
-                    'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
-                    'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
-                    'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8")
-                  ))
-            }
-          )
+      params { (secret, amount, transactionUUID) =>
+        handleCall(transactionHandler.verify(secret, amount, transactionUUID),
+          (result: (BOTransaction, Seq[BOTransaction])) => {
+            val transaction = result._1
+            val transactions = result._2
+            complete(
+              StatusCodes.OK -> Map(
+                'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
+                'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
+                'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
+                'transaction_email -> Option(transaction.email).getOrElse(""),
+                'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
+                'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
+                'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
+                'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
+                'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
+                'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),
+                'group_transactions -> transactions
+              )
+            )
+          }
+        )
       }
     }
   }
@@ -194,12 +197,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
             session { session =>
               import Implicits._
 
-              session.sessionData.payers = submitParams.payers.toMap[String, Long]//.toList.filter(_._1 == session.sessionData.email).toMap
-              session.sessionData.groupTxUUID = if (submitParams.payers.size > 1) {
-                Some(java.util.UUID.randomUUID.toString)
-              } else {
-                None
-              }
+              session.sessionData.payers = submitParams.payers.toMap[String, Long]
 
               setSession(session) {
                 doSubmit(submitParams, session)

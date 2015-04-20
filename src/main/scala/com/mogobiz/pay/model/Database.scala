@@ -459,7 +459,6 @@ object Mogopay {
                          var selectShippingPrice: Option[ShippingPrice] = None,
                          var id3d: Option[String] = None,
                          var payers: Map[String, Long] = Map(),
-                         var groupTxUUID: Option[String] = None,
                          var paymentRequest: Option[PaymentRequest] = None)
 }
 

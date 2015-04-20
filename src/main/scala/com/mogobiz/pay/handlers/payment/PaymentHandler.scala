@@ -37,11 +37,6 @@ trait PaymentHandler {
       "error_code_provider" -> paymentResult.errorCodeOrigin,
       "error_message_provider" -> paymentResult.errorMessageOrigin.getOrElse("")
     )
-//    ++ if (sessionData.payers.nonEmpty) {
-//      Map("", "")
-//    } else {
-//      Map("", "")
-//    }
 
     if (success) {
       val payers = sessionData.payers
@@ -61,10 +56,10 @@ trait PaymentHandler {
     Uri(redirectTo + sep + GlobalUtil.mapToQueryString(query.toMap))
   }
 
-  private def handleGroupPayment(payers: Map[String, Long], tx: BOTransaction, merchantId: String,
+  private def handleGroupPayment(payers: Map[String, Long], firstPayerBOTx: BOTransaction, merchantId: String,
                                  paymentConfig: PaymentConfig, firstPayer: Account): Unit = if (payers.nonEmpty) {
-    val groupTxUUID = UUID.randomUUID()
-    boTransactionHandler.update(tx.copy(groupTransactionUUID = Some(groupTxUUID.toString)), false)
+    val groupTxUUID = firstPayerBOTx.groupTransactionUUID
+    boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = groupTxUUID), refresh = false)
 
     val payersAccounts = payers.filter(_._1 != firstPayer.email).foreach { case (email, amount) =>
       val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
@@ -82,9 +77,9 @@ trait PaymentHandler {
 
       val boTx = {
         val txUUID = UUID.randomUUID()
-        BOTransaction(txUUID.toString, txUUID.toString, Some(groupTxUUID.toString), "",
-          Option(new Date), amount, tx.currency, TransactionStatus.INITIATED, new Date, None, null,
-          merchantConfirmation = false, Option(account.email), None, None, tx.extra, None, None, None,
+        BOTransaction(txUUID.toString, txUUID.toString, groupTxUUID, "",
+          Option(new Date), amount, firstPayerBOTx.currency, TransactionStatus.INITIATED, new Date, None, null,
+          merchantConfirmation = false, Option(account.email), None, None, firstPayerBOTx.extra, None, None, None,
           accountHandler.find(UUID.fromString(merchantId)), Option(account), Nil)
       }
       boTransactionHandler.save(boTx, false)
@@ -101,12 +96,10 @@ trait PaymentHandler {
 
         val template = templateHandler.loadTemplateByVendor(Option(merchant), "group-payment.mustache")
 
-        val jsonTx = BOTransactionJsonTransform.transform(tx, firstPayer.country.map(_.code).getOrElse("fr")) // make "FR" configurable
+        val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, firstPayer.country.map(_.code).getOrElse("fr")) // make "FR" configurable
 
         val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
         val data = //todo: add transaction extra + payers
-        //            |  "amount":      ${tx.amount},
-        //          |  "currency":    ${tx.currency},
           s"""
               |{
               |  "firstPayer":  "${payerName}",

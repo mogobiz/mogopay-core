@@ -167,7 +167,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         parameterMap { params =>
           val session = SessionESDirectives.load(params(authorizeNetHandler.SESSION_UUID)).get
           handleCall(authorizeNetHandler.finish(session.sessionData, params),
-          (_: Any) => complete(StatusCodes.OK))
+          (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
         }
       }
     }

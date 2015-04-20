@@ -87,7 +87,7 @@ class TransactionHandler {
       val customer = sessionData.accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
       var transaction = BOTransaction(transactionRequestUUID,
         transactionRequestUUID,
-        sessionData.groupTxUUID,
+        if (sessionData.payers.size > 1) Some(transactionRequestUUID) else None,
         "",
         Option(new Date),
         paymentRequest.amount,
@@ -180,11 +180,6 @@ class TransactionHandler {
     val transaction = boTransactionHandler.find(transactionUUID)
       .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
 
-    val payers = boTransactionHandler
-      .findOtherGroupBOTx(transaction.uuid)
-      .map(tx => (tx.email.getOrElse(""), tx.amount))
-      .toMap
-
     val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
     val newTx = transaction.copy(
       status = newStatus,
@@ -246,8 +241,7 @@ class TransactionHandler {
     }
   }
 
-  type PayersInfo = Map[String, Long]
-  def verify(secret: String, amount: Option[Long], transactionUUID: String): BOTransaction = {
+  def verify(secret: String, amount: Option[Long], transactionUUID: String): (BOTransaction, Seq[BOTransaction]) = {
     val maybeVendor = accountHandler.findBySecret(secret)
 
     val account: Account = maybeVendor match {
@@ -273,9 +267,9 @@ class TransactionHandler {
       val newTx = transaction.copy(merchantConfirmation = true)
       boTransactionHandler.update(newTx, false)
 
-      // todo
-//      (newTx, Map())
-      newTx
+      val transactions = boTransactionHandler.findByGroupTxUUID(transactionUUID).filter(_.uuid != transactionUUID)
+
+      (newTx, transactions)
     }
   }
 
