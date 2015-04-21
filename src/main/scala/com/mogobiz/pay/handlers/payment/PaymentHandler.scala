@@ -85,7 +85,7 @@ trait PaymentHandler {
       boTransactionHandler.save(boTx, false)
 
       val token = {
-        val clearToken = new Date((new Date).getTime + 7 * 24 * 3600).toString + account.uuid + boTx.uuid // todo make the time customizable
+        val clearToken = s"${new Date((new Date).getTime + 7 * 24 * 3600 * 1000).getTime}|${boTx.uuid}" // todo make the time customizable
         SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
       }
       val url = Uri("http://foo.com").withQuery(("token", token)) //todo: cutomize the url

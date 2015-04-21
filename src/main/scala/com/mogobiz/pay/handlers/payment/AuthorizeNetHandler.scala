@@ -97,7 +97,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         </form>
           <script>document.getElementById('authorizenet').submit();</script>
       }
-      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/auth.html"), form.toString.getBytes(StandardCharsets.UTF_8))
+      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/auth.html"), form.toString.getBytes(StandardCharsets.UTF_8)) // todo: remove
 
       val query = Map(
         "amount" -> amount,
@@ -114,7 +114,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
       EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
-      Left(form.mkString)
+      Left(form.toString)
     } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_NO) {
       val action = "https://test.authorize.net/gateway/transact.dll"
 
@@ -160,7 +160,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
       EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
-      Left(form.mkString)
+      Left(form.toString)
     } else {
       throw InvalidPaymentMethodException()
     }

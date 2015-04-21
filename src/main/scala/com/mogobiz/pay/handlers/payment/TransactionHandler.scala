@@ -62,23 +62,32 @@ class TransactionHandler {
   }
 
   def init(params: ParamRequest.TransactionInit): String = {
-    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
-      val currency = Currency.getInstance(params.currencyCode)
+//    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
       (accountHandler findBySecret params.merchantSecret map { vendor: Account =>
         if (!vendor.roles.contains(RoleName.MERCHANT)) {
           throw NotAVendorAccountException("")
         } else {
-          val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
-          val txReqUUID = newUUID
-
-          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
-          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
-
+//          val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
+//          val txReqUUID = newUUID
+//
+//          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
+//          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
+          val txRequest = createTxReqForInit(vendor, params)
           transactionRequestHandler.save(txRequest, false)
-          txReqUUID
+          txRequest.uuid
         }
       }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
-    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
+//    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
+  }
+  
+  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit): TransactionRequest = {
+    val rate = (rateHandler findByCurrencyCode params.currencyCode).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
+    val currency = Currency.getInstance(params.currencyCode)
+    val txSeqId = transactionSequenceHandler.nextTransactionId(merchant.uuid)
+    val txReqUUID = newUUID
+
+    val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
+    TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, merchant.uuid)
   }
 
   def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
@@ -350,40 +359,44 @@ class TransactionHandler {
       }
 
     /* START */ // group + no txreq id => get all required info from the boTx
-    val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(throw TransactionNotFoundException(s"${transactionUUID.get}"))
-    if (transactionRequest.amount != amount.get) {
-      throw UnexpectedAmountException(s"${amount.get}")
-    }
+//    if (submit.sessionData.payers.size == 1) {
+      val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
+        throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
 
-    var transactionExtra = transactionRequest.extra.orNull
-
-    val listShipping = sessionData.accountId.map {
-      accountId =>
-        shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
-    } getOrElse Seq[ShippingPrice]()
-
-    var selectedShippingPrice: Option[ShippingPrice] = None
-    if (listShipping.length > 0) {
-      if (sessionData.selectShippingPrice.isEmpty) {
-        throw InvalidContextException("Shipping price cannot be empty")
-      } else {
-        val sp = sessionData.selectShippingPrice.get
-        selectedShippingPrice = shippingPrice(listShipping, sp.provider, sp.service, sp.rateType)
-
-        if (selectedShippingPrice.isEmpty)
-          throw InvalidContextException("Shipping Price cannot be empty")
+      if (transactionRequest.amount != amount.get) {
+        throw UnexpectedAmountException(s"${amount.get}")
       }
-    }
 
-    selectedShippingPrice.map { selectedShippingPrice =>
-      val cart0: JValue = parse(transactionExtra) merge parse( s"""{"shipping" : ${selectedShippingPrice.price}}""")
+      var transactionExtra = transactionRequest.extra.orNull
 
-      val cart1 = cart0 merge parse( s"""{"finalPrice" : ${(cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price}}""")
-      transactionExtra = compact(render(cart1))
-    }
+      val listShipping = sessionData.accountId.map {
+        accountId =>
+          shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
+      } getOrElse Seq[ShippingPrice]()
 
-    val transactionCurrency: TransactionCurrency = transactionRequest.currency
-    transactionRequestHandler.delete(transactionRequest.uuid, false)
+      var selectedShippingPrice: Option[ShippingPrice] = None
+      if (listShipping.length > 0) {
+        if (sessionData.selectShippingPrice.isEmpty) {
+          throw InvalidContextException("Shipping price cannot be empty")
+        } else {
+          val sp = sessionData.selectShippingPrice.get
+          selectedShippingPrice = shippingPrice(listShipping, sp.provider, sp.service, sp.rateType)
+
+          if (selectedShippingPrice.isEmpty)
+            throw InvalidContextException("Shipping Price cannot be empty")
+        }
+      }
+
+      selectedShippingPrice.map { selectedShippingPrice =>
+        val cart0: JValue = parse(transactionExtra) merge parse( s"""{"shipping" : ${selectedShippingPrice.price}}""")
+
+        val cart1 = cart0 merge parse( s"""{"finalPrice" : ${(cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price}}""")
+        transactionExtra = compact(render(cart1))
+      }
+
+      val transactionCurrency: TransactionCurrency = transactionRequest.currency
+      transactionRequestHandler.delete(transactionRequest.uuid, false)
+//    }
     /* END */
 
     val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
@@ -494,11 +507,9 @@ class TransactionHandler {
         }
       }
       else {
-        throw NotACreditCardTransactionException(s"${transactionType}")
+        throw NotACreditCardTransactionException(s"$transactionType")
       }
-    }
-
-    else {
+    } else {
       val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
         transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
         submit.params.gatewayData.orNull,
@@ -613,6 +624,21 @@ class TransactionHandler {
       transactionDesc = transactionDesc,
       gatewayData = gatewayData
     )
+  }
+
+  def initGroupPayment(token: String): (Account, BOTransaction) = {
+    val decryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
+    val expirationDate = decryptedToken.split('|')(0)
+    val txUUID         = decryptedToken.split('|')(1)
+
+    if ((new Date).after(new Date(java.lang.Long.parseLong(expirationDate)))) {
+      throw new TokenExpiredException
+    }
+
+    val transaction = boTransactionHandler.find(txUUID).getOrElse(throw new BOTransactionNotFoundException(txUUID))
+    val account = transaction.customer.getOrElse(throw new AccountDoesNotExistException(""))
+
+    (account, transaction)
   }
 }
 

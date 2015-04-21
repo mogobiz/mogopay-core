@@ -445,7 +445,7 @@ class AccountHandler {
       val signupDate = new org.joda.time.DateTime(timestamp).getMillis
       val currentDate = new org.joda.time.DateTime().getMillis
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
-        throw new TokenExpiredException("")
+        throw new TokenExpiredException()
       } else {
         val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) };
         if (account.isDefined) {

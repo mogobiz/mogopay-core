@@ -581,7 +581,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
           val login = Login(email, password, merchantId, isCustomer)
           handleCall(accountHandler.login(email, password, merchantId, isCustomer),
             (account: Account) => {
-              authenticateSession(session, account)
+              ServicesUtil.authenticateSession(session, account)
               setSession(session) {
                 import Implicits._
                 complete(StatusCodes.OK, account)
@@ -598,7 +598,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         session { session =>
           handleCall(accountHandler.confirmSignup(token),
             (account: Account) => {
-              authenticateSession(session, account)
+              ServicesUtil.authenticateSession(session, account)
               setSession(session) {
                 import Implicits._
                 complete(StatusCodes.OK, account)
@@ -607,14 +607,6 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         }
       }
     }
-  }
-
-  private def authenticateSession(session: Session, account: Account) = {
-    session.sessionData.email = Some(account.email)
-    session.sessionData.accountId = Some(account.uuid)
-    session.sessionData.merchantId = account.owner
-    session.sessionData.isMerchant = account.owner.isEmpty
-    session.sessionData.authenticated = true
   }
 
   lazy val signup = path("signup") {

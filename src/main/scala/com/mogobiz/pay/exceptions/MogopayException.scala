@@ -64,6 +64,8 @@ object Exceptions {
 
   case class AccountNotActiveException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class TransactionRequestNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class TransactionNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class InvalidTransactionTypeException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
@@ -104,7 +106,7 @@ object Exceptions {
 
   case class InvalidEmailException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TokenExpiredException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class TokenExpiredException() extends MogopayMessagelessException(StatusCodes.Gone)
 
   case class InvalidTokenException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 

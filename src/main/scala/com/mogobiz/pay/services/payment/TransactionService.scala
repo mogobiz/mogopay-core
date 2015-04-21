@@ -4,29 +4,30 @@ import java.io.File
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 
-import akka.actor.{ActorSystem}
+import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.config.{Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
+import com.mogobiz.pay.model.Mogopay.{Account, BOTransaction, TransactionStatus}
 import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
+import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{SessionESDirectives, Session}
 import com.mogobiz.session.SessionESDirectives._
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
 import spray.routing._
+import spray.routing.directives.RouteDirectives
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent._
+import scala.util.{Failure, Success}
 
 
 class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
@@ -53,7 +54,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         verify ~
         submit ~
         submitWithSession ~
-        download
+        download ~
+        initGroupPayment
     }
   }
 
@@ -163,6 +165,73 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
   }
 
+  lazy val initGroupPayment = path("init-group-payment") {
+    import com.mogobiz.pay.implicits.Implicits._
+
+    def initCall(account: Account, transaction: BOTransaction,
+                 transactionType: String, next: (Account, BOTransaction, String) => Route): Route = {
+      val initParams = Map(
+        "merchant_secret" -> transaction.vendor.get.secret,
+        "transaction_amount" -> transaction.amount.toString,
+        "currency_code" -> transaction.currency.code,
+        "currency_rate" -> transaction.currency.rate.toString // todo: à quoi sert currency rate?
+      )
+      val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
+
+      try {
+        val uri = Uri(s"${Settings.Mogopay.EndPoint}transaction/init")
+        val post: HttpRequest = Post(uri, initParams.mkString("&"))
+        val result: HttpResponse = Await.result(pipeline(post), Duration.Inf)
+        next(account, transaction, transactionType)
+      } catch {
+        case e: TimeoutException => complete(500 -> "An operation timed out.")
+        case _: Throwable        => complete(500 -> "")
+      }
+    }
+
+    def redirectToSubmit(account: Account, transaction: BOTransaction, transactionType: String) = {
+      val submitParams = Map(
+        "callback_success"   -> "",
+        "callback_error"     -> "",
+        "transaction_id"     -> transaction.uuid,
+        "transaction_amount" -> transaction.amount.toString,
+        "merchant_id"        -> account.owner.get,
+        "transaction_type"   -> transactionType,
+        "payers"             -> (account.email + ":" + transaction.amount.toString)
+      )
+
+      val form =
+        <form id="form" action="/pay/transaction/submit" method="POST">
+          {submitParams.map { case (key, value) =>
+            <input type="hidden" name={key} value={value}/>
+        }}
+        </form>
+          <script>document.getElementById('form').submit();</script>
+
+      respondWithMediaType(MediaTypes.`text/html`) {
+        complete {
+          new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))
+        }
+      }
+    }
+
+    get {
+      val params = parameters('token, 'transaction_type)
+      params { (token, transactionType) =>
+        session { session =>
+          handleCall(transactionHandler.initGroupPayment(token),
+            (result: (Account, BOTransaction)) => {
+              ServicesUtil.authenticateSession(session, account = result._1)
+
+              setSession(session) {
+                initCall(result._1, result._2, transactionType, redirectToSubmit)
+              }
+            }
+          )
+        }
+      }
+    }
+  }
 
   /**
    * 1. External Payment
