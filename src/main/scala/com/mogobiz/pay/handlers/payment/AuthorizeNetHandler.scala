@@ -114,7 +114,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
       EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
-      Left(form.toString)
+      Left(form.mkString)
     } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_NO) {
       val action = "https://test.authorize.net/gateway/transact.dll"
 
@@ -160,7 +160,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
       EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
-      Left(form.toString)
+      Left(form.mkString)
     } else {
       throw InvalidPaymentMethodException()
     }

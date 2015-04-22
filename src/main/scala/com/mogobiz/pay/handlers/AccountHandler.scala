@@ -187,7 +187,7 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def find(uuid: UUID): Option[Account] = {
+  def find(uuid: String): Option[Account] = {
     val req = search in Settings.Mogopay.EsIndex types "Account" postFilter termFilter("uuid", uuid)
     EsClient.search[Account](req)
   }

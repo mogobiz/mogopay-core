@@ -14,7 +14,7 @@ import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedExce
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{Account, BOTransaction, TransactionStatus}
+import com.mogobiz.pay.model.Mogopay.{TransactionRequest, Account, BOTransaction, TransactionStatus}
 import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{SessionESDirectives, Session}
@@ -141,7 +141,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
       params { (secret, amount, transactionUUID) =>
         handleCall(transactionHandler.verify(secret, amount, transactionUUID),
-          (result: (BOTransaction, Seq[BOTransaction])) => {
+          (result: (BOTransaction, Seq[TransactionRequest])) => {
             val transaction = result._1
             val transactions = result._2
             complete(
@@ -168,36 +168,19 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val initGroupPayment = path("init-group-payment") {
     import com.mogobiz.pay.implicits.Implicits._
 
-    def initCall(account: Account, transaction: BOTransaction,
-                 transactionType: String, next: (Account, BOTransaction, String) => Route): Route = {
-      val initParams = Map(
-        "merchant_secret" -> transaction.vendor.get.secret,
-        "transaction_amount" -> transaction.amount.toString,
-        "currency_code" -> transaction.currency.code,
-        "currency_rate" -> transaction.currency.rate.toString // todo: à quoi sert currency rate?
-      )
-      val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-
-      try {
-        val uri = Uri(s"${Settings.Mogopay.EndPoint}transaction/init")
-        val post: HttpRequest = Post(uri, initParams.mkString("&"))
-        val result: HttpResponse = Await.result(pipeline(post), Duration.Inf)
-        next(account, transaction, transactionType)
-      } catch {
-        case e: TimeoutException => complete(500 -> "An operation timed out.")
-        case _: Throwable        => complete(500 -> "")
-      }
-    }
-
-    def redirectToSubmit(account: Account, transaction: BOTransaction, transactionType: String) = {
+    def buildFormToSubmit(account: Account,
+                          transaction: TransactionRequest,
+                          groupTxUUID: String,
+                          transactionType: String) = {
       val submitParams = Map(
-        "callback_success"   -> "",
-        "callback_error"     -> "",
+        "callback_success"   -> "http://success", // todo: quelle URL devra être utilisée?
+        "callback_error"     -> "http://failure",
         "transaction_id"     -> transaction.uuid,
         "transaction_amount" -> transaction.amount.toString,
         "merchant_id"        -> account.owner.get,
         "transaction_type"   -> transactionType,
-        "payers"             -> (account.email + ":" + transaction.amount.toString)
+        "payers"             -> (account.email + ":" + transaction.amount.toString),
+        "group_tx_uuid"      -> groupTxUUID
       )
 
       val form =
@@ -208,11 +191,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         </form>
           <script>document.getElementById('form').submit();</script>
 
-      respondWithMediaType(MediaTypes.`text/html`) {
-        complete {
-          new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))
-        }
-      }
+      form.mkString.replace("\n", "")
     }
 
     get {
@@ -220,11 +199,16 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       params { (token, transactionType) =>
         session { session =>
           handleCall(transactionHandler.initGroupPayment(token),
-            (result: (Account, BOTransaction)) => {
+            (result: (Account, TransactionRequest, String)) => {
               ServicesUtil.authenticateSession(session, account = result._1)
 
               setSession(session) {
-                initCall(result._1, result._2, transactionType, redirectToSubmit)
+                val form = buildFormToSubmit(result._1, result._2, result._3, transactionType)
+                respondWithMediaType(MediaTypes.`text/html`) {
+                  complete {
+                    new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))
+                  }
+                }
               }
             }
           )
@@ -257,7 +241,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?,
         'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
         'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?, 'card_month.?, 'card_year.?,
-        'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?).as(SubmitParams) {
+        'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
         submitParams: SubmitParams =>
           val payersAmountsSum = submitParams.payers.values.sum
           if (payersAmountsSum != submitParams.amount) {
@@ -266,7 +250,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
             session { session =>
               import Implicits._
 
-              session.sessionData.payers = submitParams.payers.toMap[String, Long]
+              session.sessionData.payers      = submitParams.payers.toMap[String, Long]
+              session.sessionData.groupTxUUID = submitParams.groupTxUUID
 
               setSession(session) {
                 doSubmit(submitParams, session)
@@ -282,7 +267,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?).as(SubmitParams) {
+        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get
           doSubmit(submitParams, session)

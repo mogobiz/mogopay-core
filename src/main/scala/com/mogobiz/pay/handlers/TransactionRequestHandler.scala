@@ -15,6 +15,11 @@ class TransactionRequestHandler {
 
   def find(uuid: String) = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, uuid)
 
+  def findByGroupTxUUID(uuid: String): Seq[TransactionRequest] = {
+    val req = search in Settings.Mogopay.EsIndex -> "TransactionRequest" postFilter termFilter("groupTransactionUUID", uuid)
+    EsClient.searchAll[TransactionRequest](req)
+  }
+
   def delete(uuid: String, refresh: Boolean = false) =
     EsClient.delete[TransactionRequest](Settings.Mogopay.EsIndex, uuid, refresh)
 

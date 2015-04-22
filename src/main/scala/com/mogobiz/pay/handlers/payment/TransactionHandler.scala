@@ -42,7 +42,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         customerEmail: Option[String], customerPassword: Option[String],
                         transactionDescription: Option[String], gatewayData: Option[String],
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
-                        ccStore : Option[Boolean], private val _payers: Option[String]) {
+                        ccStore : Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String]) {
   def payers: Map[String, Long] = _payers.map { payers =>
     payers
       .split(",")
@@ -72,7 +72,7 @@ class TransactionHandler {
 //
 //          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
 //          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
-          val txRequest = createTxReqForInit(vendor, params)
+          val txRequest = createTxReqForInit(vendor, params, None)
           transactionRequestHandler.save(txRequest, false)
           txRequest.uuid
         }
@@ -80,23 +80,24 @@ class TransactionHandler {
 //    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
   
-  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit): TransactionRequest = {
+  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit, groupTxUUID: Option[String]): TransactionRequest = {
     val rate = (rateHandler findByCurrencyCode params.currencyCode).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
     val currency = Currency.getInstance(params.currencyCode)
     val txSeqId = transactionSequenceHandler.nextTransactionId(merchant.uuid)
     val txReqUUID = newUUID
 
     val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
-    TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, merchant.uuid)
+    TransactionRequest(txReqUUID, txSeqId, groupTxUUID, params.transactionAmount, params.extra, txCurrency, merchant.uuid)
   }
 
   def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
                    paymentRequest: PaymentRequest, paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
     accountHandler.load(vendorId).map { account =>
       val customer = sessionData.accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
-      var transaction = BOTransaction(transactionRequestUUID,
+      var transaction = BOTransaction(
         transactionRequestUUID,
-        if (sessionData.payers.size > 1) Some(transactionRequestUUID) else None,
+        transactionRequestUUID,
+        sessionData.groupTxUUID,
         "",
         Option(new Date),
         paymentRequest.amount,
@@ -250,7 +251,7 @@ class TransactionHandler {
     }
   }
 
-  def verify(secret: String, amount: Option[Long], transactionUUID: String): (BOTransaction, Seq[BOTransaction]) = {
+  def verify(secret: String, amount: Option[Long], transactionUUID: String): (BOTransaction, Seq[TransactionRequest]) = {
     val maybeVendor = accountHandler.findBySecret(secret)
 
     val account: Account = maybeVendor match {
@@ -276,7 +277,7 @@ class TransactionHandler {
       val newTx = transaction.copy(merchantConfirmation = true)
       boTransactionHandler.update(newTx, false)
 
-      val transactions = boTransactionHandler.findByGroupTxUUID(transactionUUID).filter(_.uuid != transactionUUID)
+      val transactions = transactionRequestHandler.findByGroupTxUUID(transactionUUID)
 
       (newTx, transactions)
     }
@@ -401,7 +402,7 @@ class TransactionHandler {
 
     val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
     if (transaction.isDefined)
-      throw BOTransactionNotFoundException(s"${transactionUUID.get}")
+      throw BOTransactionNotFoundException(s"${transactionUUID.get}") // todo: C'est pas "Not found" qu'il faut dire
 
     def checkParameters(vendor: Account): Boolean = {
       def checkBCParameters(paymentConfig: PaymentConfig): Boolean = {
@@ -626,19 +627,21 @@ class TransactionHandler {
     )
   }
 
-  def initGroupPayment(token: String): (Account, BOTransaction) = {
+  def initGroupPayment(token: String): (Account, TransactionRequest, String) = {
     val decryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
-    val expirationDate = decryptedToken.split('|')(0)
-    val txUUID         = decryptedToken.split('|')(1)
+    val (expirationDate, txUUID, customerUUID, groupTxUUID) = decryptedToken.split('|').toList match {
+      case a :: b :: c :: d :: Nil => (a, b, c, d)
+      case _                       => throw new InvalidTokenException("")
+    }
 
     if ((new Date).after(new Date(java.lang.Long.parseLong(expirationDate)))) {
       throw new TokenExpiredException
     }
 
-    val transaction = boTransactionHandler.find(txUUID).getOrElse(throw new BOTransactionNotFoundException(txUUID))
-    val account = transaction.customer.getOrElse(throw new AccountDoesNotExistException(""))
+    val txReq = transactionRequestHandler.find(txUUID).getOrElse(throw new BOTransactionNotFoundException(txUUID))
+    val account = accountHandler.find(customerUUID).getOrElse(throw new AccountDoesNotExistException(""))
 
-    (account, transaction)
+    (account, txReq, groupTxUUID)
   }
 }
 
