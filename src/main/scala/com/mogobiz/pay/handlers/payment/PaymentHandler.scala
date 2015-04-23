@@ -2,11 +2,12 @@ package com.mogobiz.pay.handlers.payment
 
 import java.util.{Date, UUID}
 
+import akka.actor.{Props, ActorSystem}
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.EmailHandler
+import com.mogobiz.pay.handlers.{EmailingActor, EmailHandler}
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
@@ -17,6 +18,8 @@ import spray.http.Uri.Query
 import scala.collection.mutable
 
 trait PaymentHandler {
+  implicit val system = ActorSystem()
+
   /**
    * Returns the redirection page's URL
    */
@@ -110,15 +113,15 @@ trait PaymentHandler {
               |""".stripMargin
         val (subject, body) = templateHandler.mustache(template, data)
 
-        // todo : send mails via an actor
         val senderName = merchant.paymentConfig.get.senderName
         val senderEmail = merchant.paymentConfig.get.senderEmail
-        EmailHandler.Send.to(
-          Mail(
-            from = (senderEmail.getOrElse(""), senderName.get),
-            to = Seq(account.email),
-            subject = subject,
-            message = body))
+
+        val emailingActor = system.actorOf(Props[EmailingActor])
+        emailingActor ! Mail(
+          from = (senderEmail.getOrElse(""), senderName.get),
+          to = Seq(account.email),
+          subject = subject,
+          message = body)
       }
       sendEmail()
     }

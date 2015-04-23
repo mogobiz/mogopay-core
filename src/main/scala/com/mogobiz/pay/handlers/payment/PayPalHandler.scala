@@ -29,8 +29,6 @@ import spray.client.pipelining._
 
 class PayPalHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
-  implicit val system = ActorSystem()
-
   import system.dispatcher
 
   // execution context for futures

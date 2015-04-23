@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 class ApplePayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
-  implicit val system = ActorSystem()
+//  implicit val system = ActorSystem()
 
   import system.dispatcher
 

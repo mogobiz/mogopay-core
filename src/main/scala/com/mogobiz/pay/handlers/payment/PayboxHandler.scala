@@ -237,8 +237,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     boTransactionHandler.update(transaction, refresh = false)
   }
 
-  implicit val system = ActorSystem()
-
   import system.dispatcher
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive

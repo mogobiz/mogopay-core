@@ -26,8 +26,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   PaymentHandler.register(handlerName, this)
 
   implicit val timeout: Timeout = 40.seconds
-  implicit val system = ActorSystem()
-
   import system.dispatcher
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
@@ -132,7 +130,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       )
 
       val form = {
-        <form id="authorizenet" action={action} method="post">
+        <form id="authorizenet" action={formAction} method="post">
           <label>CreditCardNumber</label>
           <input type="text" class="text" name="x_card_num" size="15"/>
           <label>Exp.</label>

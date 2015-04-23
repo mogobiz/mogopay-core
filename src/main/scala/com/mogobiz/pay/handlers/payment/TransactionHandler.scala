@@ -223,7 +223,7 @@ class TransactionHandler {
     transaction.vendor.map { vendor =>
       val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order.mustache")
       val (subject, body) = templateHandler.mustache(template, jsonString)
-      EmailHandler.Send.to(
+      EmailHandler.Send(
         Mail(
           (transaction.vendor.get.email -> s"${transaction.vendor.get.firstName} ${transaction.vendor.get.lastName}"),
           List(transaction.email.get), List(), List(), subject, body, None, None

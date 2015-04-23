@@ -402,7 +402,7 @@ class AccountHandler {
       val senderEmail = paymentConfig.senderEmail
       val data = s"""{"newPassword": "$newPassword"}"""
       val (subject, body) = templateHandler.mustache(template, data)
-      EmailHandler.Send.to(
+      EmailHandler.Send(
         Mail(
           from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
           to = Seq(account.email),
@@ -1043,7 +1043,7 @@ class AccountHandler {
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 
     val (subject, body) = templateHandler.mustache(template, s"""{"url": "$url"}""")
-    EmailHandler.Send.to(
+    EmailHandler.Send(
       Mail(
         from = (fromEmail, fromName),
         to = Seq(account.email),
