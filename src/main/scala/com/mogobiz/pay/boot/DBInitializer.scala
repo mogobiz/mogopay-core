@@ -48,13 +48,14 @@ object DBInitializer {
     }
   }
 
+
   private def fillDB() {
     val PAYPAL = Map("paypalUser" -> "hayssams-facilitator_api1.yahoo.com", "paypalPassword" -> "1365940711", "paypalSignature" -> "An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG")
     val PAYLINE = Map("paylineAccount" -> "26399702760590", "paylineKey" -> "SH0gPsNhvHmePmlZz3Mj", "paylineContract" -> "1234567")
     val SIPS = Map("sipsMerchantId" -> "011223344553333", "sipsMerchantCountry" -> "fr")
     val SIPS_2 = Map("sipsMerchantId" -> "011223344551112", "sipsMerchantCountry" -> "fr")
     val PAYBOX_EXTERNAL = Map("payboxSite" -> "1999888", "payboxKey" -> "110647233", "payboxRank" -> "32", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
-    val PAYBOX_2DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "85", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_SYSTEM")
+    val PAYBOX_2DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "85", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_DIRECT")
     val PAYBOX_3DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "109518543", "payboxContract" -> "PAYBOX_DIRECT")
     val SYS_PAY = Map("systempayShopId" -> "34889127", "systempayContractNumber" -> "5028717", "systempayCertificate" -> "7736291283331938")
     val AUTHORIZENET = Map("apiLoginID" -> "5zLq4S76A", "transactionKey" -> "3XbG8myA4785Qd4Y")
@@ -79,7 +80,7 @@ object DBInitializer {
     val paypalPayline3DSConfig = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, Map(), PAYLINE, CBPaymentMethod.THREEDS_REQUIRED)
     val merchantAccount6 = createMerchantAccount("30958ef7-fad3-4f29-988e-df51376974cd", "seller6@merchant.com", "Merchant6", "TEST", paypalPayline3DSConfig)
 
-    val paypalSystemPayExternalConfig = createPaymentConfig(CBPaymentProvider.PAYBOX, PAYPAL, Map(), PAYBOX_EXTERNAL, CBPaymentMethod.EXTERNAL)
+    val paypalSystemPayExternalConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, Map(), SYS_PAY, CBPaymentMethod.EXTERNAL)
     val merchantAccount7 = createMerchantAccount("d7b864c8-4567-4603-abd4-5f85e9ff56e6", "seller7@merchant.com", "Merchant7", "TEST", paypalSystemPayExternalConfig)
 
     val paypalSystemPay2DSConfig = createPaymentConfig(CBPaymentProvider.SYSTEMPAY, PAYPAL, Map(), SYS_PAY, CBPaymentMethod.THREEDS_NO)
