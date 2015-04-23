@@ -339,6 +339,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         Left(form)
       }
       else {
+        // Group payment allowed only when using DIRECT_PLUS in PAYBOX and in 2D mode only
         val query = scala.collection.mutable.Map(
           "NUMQUESTION" -> String.format("%010d", paymentRequest.transactionSequence.toInt.asInstanceOf[AnyRef]),
           "REFERENCE" -> IdSession,
@@ -377,12 +378,26 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             Http.HostConnectorInfo(connector, _) <-
             IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
           ) yield logRequest ~> sendReceive(connector) ~> logResponse
-
+//        query.put("TYPE", "00056")
+//        query.put("SITE", "1999888")
+//        query.put("RANG", "069")
+//        query.put("CLE", "200932363")
+//        query.put("MONTANT", "100")
+//        val refAbonne = ""+(new Date().getTime)
+//        query.put("REFABONNE", refAbonne)
+//        val request0 = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
+//        val response0 = pipeline.flatMap(_(request0))
+//
+//        val tuples0 = Await.result(GlobalUtil.fromHttResponse(response0), Duration.Inf)
+//        tuples0.foreach(println)
+//
+//        query.put("TYPE", "00053")
+//        query.put("MONTANT", Amount)
         val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
         val response = pipeline.flatMap(_(request))
 
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
-
+        tuples.foreach(println)
         val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples))
         boTransactionLogHandler.save(botlog, false)
         val errorCode = tuples.getOrElse("CODEREPONSE", "")

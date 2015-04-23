@@ -73,9 +73,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         'currency_code, 'currency_rate.as[Double],
         'extra ?, 'return_url ?).as(TransactionInit) { params =>
         import Implicits._
-          handleCall(transactionHandler.init(params),
-            (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-          )
+        handleCall(transactionHandler.init(params),
+          (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+        )
       }
     }
   }
@@ -300,12 +300,14 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       sessionTrans != incomingTrans
     }
 
-    if (submitParams.merchantId != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__")) {
+    if (!Settings.Mogopay.Anonymous && submitParams.merchantId != session.sessionData.merchantId.getOrElse("__MERCHANT_UNDEFINED__")) {
+      // The customer comes back with the wrong merchant id
       complete {
         StatusCodes.Unauthorized -> "Invalid Merchant id"
       }
     }
     else {
+      // is he authenticated (mogopay payment) or is it his first attempt
       if (!session.sessionData.authenticated && isNewSession()) {
         session.clear()
       }
@@ -343,6 +345,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
                 }
               case Success(response) =>
+
                 println("success->" + response.entity.data.asString)
                 complete {
                   response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))

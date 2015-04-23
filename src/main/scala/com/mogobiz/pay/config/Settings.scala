@@ -167,6 +167,7 @@ object Settings {
     val Protocol = config getString "mogopay.protocol"
     val Host = config getString "mogopay.host"
     val Port = config getInt "mogopay.port"
+    val Anonymous = config getBoolean "anonymous"
     val BaseEndPoint = s"$Protocol://$Host:$Port"
     val EndPoint = s"${BaseEndPoint}/api/pay/"
     val BaseEndPointWithoutPort = s"$Protocol://$Host"

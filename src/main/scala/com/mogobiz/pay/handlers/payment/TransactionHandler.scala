@@ -1,55 +1,54 @@
 package com.mogobiz.pay.handlers.payment
 
 import java.io.File
-import java.text.{SimpleDateFormat, DateFormat, NumberFormat}
+import java.text.{DateFormat, NumberFormat, SimpleDateFormat}
 import java.util.{List => _, _}
 
-import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.handlers.EmailHandler.Mail
-import com.mogobiz.pay.model.ParamRequest
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
+import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.handlers.shipping.{ShippingPrice, ShippingService}
 import com.mogobiz.pay.handlers.{EmailHandler, UtilHandler}
-import com.mogobiz.pay.handlers.shipping.{ShippingService, ShippingPrice}
 import com.mogobiz.pay.implicits.Implicits
+import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.utils.{SymmetricCrypt, RSA, GlobalUtil}
+import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.utils.GlobalUtil._
+import com.mogobiz.utils.{GlobalUtil, SymmetricCrypt}
+import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.commons.lang.LocaleUtils
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
-import org.json4s.JsonAST.{JObject, JField}
+import org.json4s.JsonAST.{JField, JObject}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import spray.http.Uri
-import scala.collection.Map
-import scala.collection._
+
+import scala.collection.{Map, _}
 import scala.util._
-import Implicits._
 
 case class Submit(sessionData: SessionData, params: SubmitParams, actionName: Option[String], csrfToken: Option[String])
 
 case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Option[String], authURL: Option[String],
-                        cvvURL: Option[String],transactionUUID: String, amount: Long, merchantId: String,
+                        cvvURL: Option[String], transactionUUID: String, amount: Long, merchantId: String,
                         transactionType: String, customerCVV: Option[String], ccNum: Option[String],
                         customerEmail: Option[String], customerPassword: Option[String],
                         transactionDescription: Option[String], gatewayData: Option[String],
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
-                        ccStore : Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String]) {
+                        ccStore: Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String]) {
   def payers: Map[String, Long] = _payers.map { payers =>
     payers
       .split(",")
       .map { s =>
-        val split = s.split(":")
-        (split(0), split(1).toLong)
-      }.toMap
+      val split = s.split(":")
+      (split(0), split(1).toLong)
+    }.toMap
   }.getOrElse(Map())
 }
 
@@ -62,24 +61,24 @@ class TransactionHandler {
   }
 
   def init(params: ParamRequest.TransactionInit): String = {
-//    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
-      (accountHandler findBySecret params.merchantSecret map { vendor: Account =>
-        if (!vendor.roles.contains(RoleName.MERCHANT)) {
-          throw NotAVendorAccountException("")
-        } else {
-//          val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
-//          val txReqUUID = newUUID
-//
-//          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
-//          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
-          val txRequest = createTxReqForInit(vendor, params, None)
-          transactionRequestHandler.save(txRequest, false)
-          txRequest.uuid
-        }
-      }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
-//    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
+    //    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
+    (accountHandler findBySecret params.merchantSecret map { vendor: Account =>
+      if (!vendor.roles.contains(RoleName.MERCHANT)) {
+        throw NotAVendorAccountException("")
+      } else {
+        //          val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
+        //          val txReqUUID = newUUID
+        //
+        //          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
+        //          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
+        val txRequest = createTxReqForInit(vendor, params, None)
+        transactionRequestHandler.save(txRequest, false)
+        txRequest.uuid
+      }
+    }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
+    //    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
-  
+
   def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit, groupTxUUID: Option[String]): TransactionRequest = {
     val rate = (rateHandler findByCurrencyCode params.currencyCode).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
     val currency = Currency.getInstance(params.currencyCode)
@@ -93,7 +92,7 @@ class TransactionHandler {
   def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
                    paymentRequest: PaymentRequest, paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
     accountHandler.load(vendorId).map { account =>
-      val customer = sessionData.accountId.map {uuid => accountHandler.load(uuid)}.getOrElse(None)
+      val customer = sessionData.accountId.map { uuid => accountHandler.load(uuid) }.getOrElse(None)
       var transaction = BOTransaction(
         transactionRequestUUID,
         transactionRequestUUID,
@@ -216,19 +215,24 @@ class TransactionHandler {
   }
 
   def notify(transaction: BOTransaction, jsonCart: String): Unit = {
-    val jcart = parse(jsonCart)
-    val jtransaction = Extraction.decompose(transaction)
-    val json = jtransaction merge jcart
-    val jsonString = compact(render(json))
-    transaction.vendor.map { vendor =>
-      val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order.mustache")
-      val (subject, body) = templateHandler.mustache(template, jsonString)
-      EmailHandler.Send(
-        Mail(
-          (transaction.vendor.get.email -> s"${transaction.vendor.get.firstName} ${transaction.vendor.get.lastName}"),
-          List(transaction.email.get), List(), List(), subject, body, None, None
-        ))
-    } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+    try {
+      val jcart = parse(jsonCart)
+      val jtransaction = Extraction.decompose(transaction)
+      val json = jtransaction merge jcart
+      val jsonString = compact(render(json))
+      transaction.vendor.map { vendor =>
+        val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order.mustache")
+        val (subject, body) = templateHandler.mustache(template, jsonString)
+        EmailHandler.Send(
+          Mail(
+            (transaction.vendor.get.email -> s"${transaction.vendor.get.firstName} ${transaction.vendor.get.lastName}"),
+            List(transaction.email.get), List(), List(), subject, body, None, None
+          ))
+      } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+    }
+    catch {
+      case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
+    }
   }
 
   private def toCardType(xtype: String): CreditCardType = {
@@ -359,45 +363,46 @@ class TransactionHandler {
         accountHandler.load(submit.params.merchantId).orNull
       }
 
-    /* START */ // group + no txreq id => get all required info from the boTx
-//    if (submit.sessionData.payers.size == 1) {
-      val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
-        throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
+    /* START */
+    // group + no txreq id => get all required info from the boTx
+    //    if (submit.sessionData.payers.size == 1) {
+    val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
+      throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
 
-      if (transactionRequest.amount != amount.get) {
-        throw UnexpectedAmountException(s"${amount.get}")
+    if (transactionRequest.amount != amount.get) {
+      throw UnexpectedAmountException(s"${amount.get}")
+    }
+
+    var transactionExtra = transactionRequest.extra.orNull
+
+    val listShipping = sessionData.accountId.map {
+      accountId =>
+        shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
+    } getOrElse Seq[ShippingPrice]()
+
+    var selectedShippingPrice: Option[ShippingPrice] = None
+    if (listShipping.length > 0) {
+      if (sessionData.selectShippingPrice.isEmpty) {
+        throw InvalidContextException("Shipping price cannot be empty")
+      } else {
+        val sp = sessionData.selectShippingPrice.get
+        selectedShippingPrice = shippingPrice(listShipping, sp.provider, sp.service, sp.rateType)
+
+        if (selectedShippingPrice.isEmpty)
+          throw InvalidContextException("Shipping Price cannot be empty")
       }
+    }
 
-      var transactionExtra = transactionRequest.extra.orNull
+    selectedShippingPrice.map { selectedShippingPrice =>
+      val cart0: JValue = parse(transactionExtra) merge parse( s"""{"shipping" : ${selectedShippingPrice.price}}""")
 
-      val listShipping = sessionData.accountId.map {
-        accountId =>
-          shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
-      } getOrElse Seq[ShippingPrice]()
+      val cart1 = cart0 merge parse( s"""{"finalPrice" : ${(cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price}}""")
+      transactionExtra = compact(render(cart1))
+    }
 
-      var selectedShippingPrice: Option[ShippingPrice] = None
-      if (listShipping.length > 0) {
-        if (sessionData.selectShippingPrice.isEmpty) {
-          throw InvalidContextException("Shipping price cannot be empty")
-        } else {
-          val sp = sessionData.selectShippingPrice.get
-          selectedShippingPrice = shippingPrice(listShipping, sp.provider, sp.service, sp.rateType)
-
-          if (selectedShippingPrice.isEmpty)
-            throw InvalidContextException("Shipping Price cannot be empty")
-        }
-      }
-
-      selectedShippingPrice.map { selectedShippingPrice =>
-        val cart0: JValue = parse(transactionExtra) merge parse( s"""{"shipping" : ${selectedShippingPrice.price}}""")
-
-        val cart1 = cart0 merge parse( s"""{"finalPrice" : ${(cart0 \ "finalPrice").extract[Long] + selectedShippingPrice.price}}""")
-        transactionExtra = compact(render(cart1))
-      }
-
-      val transactionCurrency: TransactionCurrency = transactionRequest.currency
-      transactionRequestHandler.delete(transactionRequest.uuid, false)
-//    }
+    val transactionCurrency: TransactionCurrency = transactionRequest.currency
+    transactionRequestHandler.delete(transactionRequest.uuid, false)
+    //    }
     /* END */
 
     val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
@@ -536,7 +541,7 @@ class TransactionHandler {
     }.flatten
   }
 
-  def download(accountId: String, transactionUuid: String, pageFormat: String, langCountry: String) : File = {
+  def download(accountId: String, transactionUuid: String, pageFormat: String, langCountry: String): File = {
     val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
     optTransaction match {
       case Some(transaction) => {
@@ -631,7 +636,7 @@ class TransactionHandler {
     val decryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
     val (expirationDate, txUUID, customerUUID, groupTxUUID) = decryptedToken.split('|').toList match {
       case a :: b :: c :: d :: Nil => (a, b, c, d)
-      case _                       => throw new InvalidTokenException("")
+      case _ => throw new InvalidTokenException("")
     }
 
     if ((new Date).after(new Date(java.lang.Long.parseLong(expirationDate)))) {
@@ -657,42 +662,42 @@ object BOTransactionJsonTransform {
     compact(render(jsonTransaction.transform(transformBOTransaction(locale))))
   }
 
-  private def transformBOTransaction(locale: Locale) : PartialFunction[JValue, JValue] = {
-    case obj : JObject => {
+  private def transformBOTransaction(locale: Locale): PartialFunction[JValue, JValue] = {
+    case obj: JObject => {
       (obj \ "transactionUUID",
-      obj \ "transactionDate",
-      obj \ "amount",
-      obj \ "currency" \ "code",
-      obj \ "currency" \ "fractionDigits",
-      obj \ "status" \ "name",
-      obj \ "paymentData" \ "paymentType" \ "name",
-      obj \ "email",
-      obj \ "extra") match {
+        obj \ "transactionDate",
+        obj \ "amount",
+        obj \ "currency" \ "code",
+        obj \ "currency" \ "fractionDigits",
+        obj \ "status" \ "name",
+        obj \ "paymentData" \ "paymentType" \ "name",
+        obj \ "email",
+        obj \ "extra") match {
         case (JString(transactionUuid),
-          JString(transactionDate),
-          JInt(amount),
-          JString(currencyCode),
-          JInt(fractionDigits),
-          JString(status),
-          JString(paymentType),
-          JString(email),
-          JString(extra)) => {
-            JObject(
-              JField("transactionUuid", JString(transactionUuid)),
-              JField("transactionDate", JString(formatDateTime(locale, transactionDate))),
-              JField("amount", JString(formatPrice(locale, amount, currencyCode, fractionDigits))),
-              JField("status", JString(status)),
-              JField("paymentType", JString(paymentType)),
-              JField("email", JString(email)) ,
-              JField("cart", parse(extra).transformField(transformExtra(locale, currencyCode, fractionDigits)))
-            )
+        JString(transactionDate),
+        JInt(amount),
+        JString(currencyCode),
+        JInt(fractionDigits),
+        JString(status),
+        JString(paymentType),
+        JString(email),
+        JString(extra)) => {
+          JObject(
+            JField("transactionUuid", JString(transactionUuid)),
+            JField("transactionDate", JString(formatDateTime(locale, transactionDate))),
+            JField("amount", JString(formatPrice(locale, amount, currencyCode, fractionDigits))),
+            JField("status", JString(status)),
+            JField("paymentType", JString(paymentType)),
+            JField("email", JString(email)),
+            JField("cart", parse(extra).transformField(transformExtra(locale, currencyCode, fractionDigits)))
+          )
         }
         case _ => obj
       }
     }
   }
 
-  private def transformExtra(locale: Locale, currencyCode: String, fractionDigits: BigInt) : PartialFunction[JField, JField] = {
+  private def transformExtra(locale: Locale, currencyCode: String, fractionDigits: BigInt): PartialFunction[JField, JField] = {
     case JField("price", JInt(price)) => JField("price", JString(formatPrice(locale, price, currencyCode, fractionDigits)))
     case JField("endPrice", JInt(endPrice)) => JField("endPrice", JString(formatPrice(locale, endPrice, currencyCode, fractionDigits)))
     case JField("reduction", JInt(reduction)) => JField("reduction", JString(formatPrice(locale, reduction, currencyCode, fractionDigits)))
