@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 class ApplePayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
-  implicit val system = ActorSystem()
+//  implicit val system = ActorSystem()
 
   import system.dispatcher
 
@@ -43,7 +43,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     val paymentRequest = sessionData.paymentRequest.get
     val amount = sessionData.amount.get
 
-    val paymentConfig      = sessionData.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException(""))
+    val paymentConfig      = sessionData.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
     val authorizeNetParams = paymentConfig.authorizeNetParam.map(parse(_).extract[Map[String, String]]).orElse(throw new MissingAuthorizeNetParamException)
     val anetAPILoginID     = authorizeNetParams.get("anetAPILoginID")
     val anetTransactionKey = authorizeNetParams.get("anetTransactionKey")

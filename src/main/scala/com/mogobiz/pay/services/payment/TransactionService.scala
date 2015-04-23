@@ -4,7 +4,7 @@ import java.io.File
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 
-import akka.actor.{ActorSystem}
+import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
@@ -14,18 +14,20 @@ import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedExce
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{BOTransaction, TransactionStatus}
+import com.mogobiz.pay.model.Mogopay.{TransactionRequest, Account, BOTransaction, TransactionStatus}
 import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
+import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{SessionESDirectives, Session}
 import com.mogobiz.session.SessionESDirectives._
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
 import spray.routing._
+import spray.routing.directives.RouteDirectives
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent._
+import scala.util.{Failure, Success}
 
 
 class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
@@ -52,7 +54,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         verify ~
         submit ~
         submitWithSession ~
-        download
+        download ~
+        initGroupPayment
     }
   }
 
@@ -136,30 +139,83 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     import Implicits._
     get {
       val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
-      params {
-        (secret, amount, transactionUUID) =>
-          handleCall(transactionHandler.verify(secret, amount, transactionUUID),
-            (transaction: BOTransaction) => {
-              complete(
-                StatusCodes.OK ->
-                  Map(
-                    'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
-                    'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
-                    'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
-                    'transaction_email -> Option(transaction.email).getOrElse(""),
-                    'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
-                    'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
-                    'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
-                    'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
-                    'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
-                    'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8")
-                  ))
-            }
-          )
+      params { (secret, amount, transactionUUID) =>
+        handleCall(transactionHandler.verify(secret, amount, transactionUUID),
+          (result: (BOTransaction, Seq[TransactionRequest])) => {
+            val transaction = result._1
+            val transactions = result._2
+            complete(
+              StatusCodes.OK -> Map(
+                'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
+                'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
+                'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
+                'transaction_email -> Option(transaction.email).getOrElse(""),
+                'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
+                'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
+                'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
+                'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
+                'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
+                'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),
+                'group_transactions -> transactions
+              )
+            )
+          }
+        )
       }
     }
   }
 
+  lazy val initGroupPayment = path("init-group-payment") {
+    import com.mogobiz.pay.implicits.Implicits._
+
+    def buildFormToSubmit(account: Account,
+                          transaction: TransactionRequest,
+                          groupTxUUID: String,
+                          transactionType: String) = {
+      val submitParams = Map(
+        "callback_success"   -> "http://success", // todo: quelle URL devra être utilisée?
+        "callback_error"     -> "http://failure",
+        "transaction_id"     -> transaction.uuid,
+        "transaction_amount" -> transaction.amount.toString,
+        "merchant_id"        -> account.owner.get,
+        "transaction_type"   -> transactionType,
+        "payers"             -> (account.email + ":" + transaction.amount.toString),
+        "group_tx_uuid"      -> groupTxUUID
+      )
+
+      val form =
+        <form id="form" action="/pay/transaction/submit" method="POST">
+          {submitParams.map { case (key, value) =>
+            <input type="hidden" name={key} value={value}/>
+        }}
+        </form>
+          <script>document.getElementById('form').submit();</script>
+
+      form.mkString.replace("\n", "")
+    }
+
+    get {
+      val params = parameters('token, 'transaction_type)
+      params { (token, transactionType) =>
+        session { session =>
+          handleCall(transactionHandler.initGroupPayment(token),
+            (result: (Account, TransactionRequest, String)) => {
+              ServicesUtil.authenticateSession(session, account = result._1)
+
+              setSession(session) {
+                val form = buildFormToSubmit(result._1, result._2, result._3, transactionType)
+                respondWithMediaType(MediaTypes.`text/html`) {
+                  complete {
+                    new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))
+                  }
+                }
+              }
+            }
+          )
+        }
+      }
+    }
+  }
 
   /**
    * 1. External Payment
@@ -182,14 +238,25 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
    */
   lazy val submit = path("submit") {
     post {
-      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
-        submitParams =>
-          session {
-            session =>
-              doSubmit(submitParams, session)
+      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?,
+        'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
+        'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?, 'card_month.?, 'card_year.?,
+        'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
+        submitParams: SubmitParams =>
+          val payersAmountsSum = submitParams.payers.values.sum
+          if (payersAmountsSum != submitParams.amount) {
+            complete { 400 -> "The total amount and the payers amounts don't match." }
+          } else {
+            session { session =>
+              import Implicits._
+
+              session.sessionData.payers      = submitParams.payers.toMap[String, Long]
+              session.sessionData.groupTxUUID = submitParams.groupTxUUID
+
+              setSession(session) {
+                doSubmit(submitParams, session)
+              }
+            }
           }
       }
     }
@@ -200,7 +267,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]]).as(SubmitParams) {
+        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get
           doSubmit(submitParams, session)

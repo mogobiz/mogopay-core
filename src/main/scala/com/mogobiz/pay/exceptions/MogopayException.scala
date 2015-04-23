@@ -4,7 +4,7 @@ import spray.http.{StatusCode, StatusCodes}
 
 object Exceptions {
 
-  abstract class MogopayMessageLessException(val code: StatusCode) extends Exception()
+  abstract class MogopayMessagelessException(val code: StatusCode) extends Exception()
 
   abstract class MogopayException(val code: StatusCode, message: String) extends Exception(message)
 
@@ -16,13 +16,13 @@ object Exceptions {
 
   case class PaymentConfigIdNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class PaymentConfigNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class PaymentConfigNotFoundException() extends MogopayMessagelessException(StatusCodes.Unauthorized)
 
   case class PasswordPatternNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class PasswordDoesNotMatchPatternException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class VendorNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class VendorNotFoundException() extends MogopayMessagelessException(StatusCodes.Unauthorized)
 
   case class AccountDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
@@ -64,11 +64,15 @@ object Exceptions {
 
   case class AccountNotActiveException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class TransactionRequestNotFoundException(message: String) extends MogopayException(StatusCodes.NotFound, message)
+
   case class TransactionNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class InvalidTransactionTypeException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class BOTransactionNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
+  case class TheBOTransactionAlreadyExistsException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class UnexpectedAmountException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
@@ -104,7 +108,7 @@ object Exceptions {
 
   case class InvalidEmailException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class TokenExpiredException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class TokenExpiredException() extends MogopayMessagelessException(StatusCodes.Gone)
 
   case class InvalidTokenException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
@@ -123,11 +127,11 @@ object Exceptions {
 
   case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)
 
-  case class NoSuccessURLProvided() extends MogopayMessageLessException(StatusCodes.InternalServerError) {
+  case class NoSuccessURLProvided() extends MogopayMessagelessException(StatusCodes.InternalServerError) { // todo remove the return codes (they're not used anymore)
     override def getMessage: String = "1"
   }
 
-  case class NoResponseFromAuthorizeNetException() extends MogopayMessageLessException(StatusCodes.InternalServerError) {
+  case class NoResponseFromAuthorizeNetException() extends MogopayMessagelessException(StatusCodes.InternalServerError) {
     override def getMessage: String = "2"
   }
 
@@ -135,7 +139,11 @@ object Exceptions {
     override def getMessage: String = errorCode
   }
 
-  case class MissingAuthorizeNetParamException() extends MogopayMessageLessException(StatusCodes.BadRequest)
+  case class MissingAuthorizeNetParamException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
   case class InvalidPaymentMethodException() extends MogopayException(StatusCodes.BadRequest, "Invalid payment method.")
+
+  case class NoCustomerSetForTheBOTrasaction() extends MogopayMessagelessException(StatusCodes.NotFound)
+
+  case class NoReturnURLSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 }

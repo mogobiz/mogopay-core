@@ -140,7 +140,8 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
-                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam], kwixoParam: KwixoParam)
+                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam],
+                         kwixoParam: KwixoParam, groupPaymentReturnURL: Option[String])
 
 case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
                               firstName: String, lastName: String, birthDate: String)
@@ -184,6 +185,11 @@ class AccountHandler {
 
   def findByEmail(email: String, merchantId: Option[String]): Option[Account] = {
     val req = buildFindAccountRequest(email, merchantId)
+    EsClient.search[Account](req)
+  }
+
+  def find(uuid: String): Option[Account] = {
+    val req = search in Settings.Mogopay.EsIndex types "Account" postFilter termFilter("uuid", uuid)
     EsClient.search[Account](req)
   }
 
@@ -252,7 +258,7 @@ class AccountHandler {
           }
         }
 
-        val merchant = EsClient.search[Account](merchantReq).getOrElse(throw VendorNotFoundException(""))
+        val merchant = EsClient.search[Account](merchantReq).getOrElse(throw VendorNotFoundException())
 
         val isMerchant = merchant.roles.contains(RoleName.MERCHANT)
         if (!isMerchant) {
@@ -371,8 +377,8 @@ class AccountHandler {
     }
 
     val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistException(""))
-    val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException(s"$vendorId"))
-    val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException(""))
+    val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException())
+    val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException())
     val pattern = paymentConfig.passwordPattern.getOrElse(throw PasswordPatternNotFoundException(""))
     val matching: Boolean = `match`(pattern, password)
 
@@ -397,7 +403,7 @@ class AccountHandler {
       val senderEmail = paymentConfig.senderEmail
       val data = s"""{"newPassword": "$newPassword"}"""
       val (subject, body) = templateHandler.mustache(template, data)
-      EmailHandler.Send.to(
+      EmailHandler.Send(
         Mail(
           from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
           to = Seq(account.email),
@@ -440,7 +446,7 @@ class AccountHandler {
       val signupDate = new org.joda.time.DateTime(timestamp).getMillis
       val currentDate = new org.joda.time.DateTime().getMillis
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
-        throw new TokenExpiredException("")
+        throw new TokenExpiredException()
       } else {
         val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) };
         if (account.isDefined) {
@@ -790,7 +796,8 @@ class AccountHandler {
           senderEmail = profile.senderEmail,
           senderName = profile.senderName,
           callbackPrefix = profile.callbackPrefix,
-          passwordPattern = profile.passwordPattern)
+          passwordPattern = profile.passwordPattern,
+          groupPaymentReturnURL = profile.groupPaymentReturnURL)
 
         val newAccount = account.copy(
           password = password,
@@ -896,7 +903,7 @@ class AccountHandler {
     } else {
       Some(signup.vendor.getOrElse({
         val account = findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
-          throw new VendorNotFoundException(Settings.AccountValidateMerchantDefault)
+          throw new VendorNotFoundException()
         }
         account.uuid
       }))
@@ -1038,7 +1045,7 @@ class AccountHandler {
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 
     val (subject, body) = templateHandler.mustache(template, s"""{"url": "$url"}""")
-    EmailHandler.Send.to(
+    EmailHandler.Send(
       Mail(
         from = (fromEmail, fromName),
         to = Seq(account.email),

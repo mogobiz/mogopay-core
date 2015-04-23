@@ -64,9 +64,11 @@ class SipsService extends Directives with DefaultComplete {
   lazy val callback = path("callback" / Segment) { vendorUuid =>
     get {
       parameterMap { params =>
-        import Implicits._
-        handleCall(sipsHandler.callbackPayment(params, vendorUuid),
-          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+        session { session =>
+          import Implicits._
+          handleCall(sipsHandler.callbackPayment(params, vendorUuid),
+            (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+        }
       }
     }
   }

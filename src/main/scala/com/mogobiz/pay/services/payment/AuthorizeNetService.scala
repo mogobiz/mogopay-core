@@ -141,7 +141,12 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         entity(as[FormData]) { formData =>
           import Implicits._
           handleCall(authorizeNetHandler.relay(session.sessionData, formData.fields.toMap),
-            (_: Any) => complete(StatusCodes.OK)
+            (form: String) => //complete(StatusCodes.OK -> form)
+              respondWithMediaType(MediaTypes.`text/html`) {
+              complete {
+                new HttpResponse(StatusCodes.OK, HttpEntity(form))
+              }
+            }
           )
         }
       }
@@ -165,8 +170,9 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     get {
       session { session =>
         parameterMap { params =>
+          val session = SessionESDirectives.load(params(authorizeNetHandler.SESSION_UUID)).get
           handleCall(authorizeNetHandler.finish(session.sessionData, params),
-          (_: Any) => complete(StatusCodes.OK))
+          (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
         }
       }
     }
