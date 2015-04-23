@@ -48,7 +48,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     } else {
       transactionHandler.startPayment(
-        vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SYSTEMPAY)
+        vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SYSTEMPAY)
 
       var threeDSResult: ThreeDSResult = null
 
@@ -119,7 +119,8 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     finishPayment(sessionData, resultatPaiement)
   }
 
-  def callbackPayment(params: Map[String, String]): PaymentResult = handleResponse(params)
+  def callbackPayment(params: Map[String, String]): PaymentResult =
+    handleResponse(params)
 
   private def handleResponse(params: Map[String, String]): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted

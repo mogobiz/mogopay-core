@@ -208,6 +208,10 @@
         "type": "string",
         "index": "not_analyzed"
       },
+      "groupTransactionUUID": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
       "transactionUUID": {
         "type": "string",
         "index": "not_analyzed"

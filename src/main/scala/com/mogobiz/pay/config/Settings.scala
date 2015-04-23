@@ -140,6 +140,10 @@ object Settings {
     val token = Try(Option(config.getString(s"applepay.$Env.token"))).getOrElse(None)
     val env   = if (Env == Environment.DEV) ANetEnv.SANDBOX else ANetEnv.PRODUCTION
   }
+
+  object AuthorizeNet {
+    val formAction = config.getString(s"authorizenet.$Env.formaction")
+  }
   
   object Jobs {
 
@@ -165,6 +169,8 @@ object Settings {
     val Port = config getInt "mogopay.port"
     val BaseEndPoint = s"$Protocol://$Host:$Port"
     val EndPoint = s"${BaseEndPoint}/api/pay/"
+    val BaseEndPointWithoutPort = s"$Protocol://$Host"
+    val EndPointWithoutPort = s"${BaseEndPointWithoutPort}/api/pay/"
 
     require(Secret.nonEmpty, "mogopay.secret must be non-empty")
     require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")

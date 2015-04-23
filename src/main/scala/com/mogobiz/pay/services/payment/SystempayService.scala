@@ -71,13 +71,13 @@ class SystempayService extends Directives with DefaultComplete {
 
   lazy val callback = path("callback") {
     get {
-      parameterMap {
-        params =>
-
+      parameterMap { params =>
+        session { session =>
           import Implicits._
 
           handleCall(systempayHandler.callbackPayment(params),
             (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+        }
       }
     }
   }

@@ -18,6 +18,7 @@ object  MogopayHandlers {
   val rateImportHandler = new RateImportHandler
   val countryHandler = new CountryHandler
   val creditCardHandler = new CreditCardHandler
+  val paymentRequestHandler = new PaymentRequestHandler
   val rateHandler = new RateHandler
   val roleHandler = new RoleHandler
   val shippingAddressHandler = new ShippingAddressHandler

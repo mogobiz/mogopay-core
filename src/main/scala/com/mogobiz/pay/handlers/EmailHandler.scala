@@ -1,12 +1,13 @@
 package com.mogobiz.pay.handlers
 
+import akka.actor.Actor
 import com.mogobiz.pay.config.Settings
+import com.mogobiz.pay.handlers.EmailHandler.Mail
 
 /**
  * From https://gist.github.com/mariussoutier/3436111
  */
 object EmailHandler {
-
   sealed abstract class MailType
 
   case object Plain extends MailType
@@ -25,7 +26,7 @@ object EmailHandler {
                   attachment: Option[(java.io.File)] = None)
 
   object Send {
-    def to(mail: Mail) {
+    def apply(mail: Mail) {
       import org.apache.commons.mail._
 
       val format =
@@ -68,5 +69,10 @@ object EmailHandler {
         send()
     }
   }
+}
 
+class EmailingActor extends Actor {
+  override def receive: Receive = {
+    case mail: Mail => EmailHandler.Send(mail)
+  }
 }

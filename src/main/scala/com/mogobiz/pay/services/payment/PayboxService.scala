@@ -24,7 +24,7 @@ class PayboxService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val startPayment = path("start" / Segment) { xtoken =>
+  lazy val startPayment = path("start" / Segment) { (xtoken) =>
     import Implicits._
     get {
       parameterMap { params =>

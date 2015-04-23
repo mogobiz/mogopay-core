@@ -121,14 +121,16 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           token = ""
         )
         val creditCard = BOCreditCard(
-          number = paymentResult.ccNumber,
+          number = ccNumber,
           holder = None,
           expiryDate = paymentResult.expirationDate,
           cardType = paymentResult.cardType
         )
         boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
-        transactionHandler.finishPayment(vendorId, transactionUuid, if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, codeReponse)
+        transactionHandler.finishPayment(vendorId, transactionUuid,
+          if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+          paymentResult, codeReponse)
         finishPayment(sessionData, paymentResult)
       }
       else {
@@ -235,8 +237,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     boTransactionHandler.update(transaction, refresh = false)
   }
 
-  implicit val system = ActorSystem()
-
   import system.dispatcher
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
@@ -255,7 +255,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       if (id3d != null)
         boTransactionHandler.find(transactionUUID).get
       else
-        transactionHandler.startPayment(vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYBOX).get
+        transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD,
+          CBPaymentProvider.PAYBOX).get
 
     val vendor = accountHandler.load(vendorId).get
 
@@ -387,7 +388,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         val errorCode = tuples.getOrElse("CODEREPONSE", "")
         val errorMessage = tuples.get("COMMENTAIRE")
         paymentResult = paymentResult.copy(
-          ccNumber = UtilHandler.hideCardNumber(paymentResult.ccNumber, "X"),
+          ccNumber = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
           status = PaymentStatus.FAILED,
           errorCodeOrigin = errorCode,
           errorMessageOrigin = errorMessage,
@@ -403,7 +404,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             authorizationId = authorisation,
             transactionCertificate = null)
         }
-        transactionHandler.finishPayment(vendorId, transactionUUID, if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, errorCode)
+        transactionHandler.finishPayment(vendorId, transactionUUID,
+          if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+          paymentResult, errorCode)
         // We redirect the user to the merchant website
         Right(finishPayment(sessionData, paymentResult))
       }

@@ -96,7 +96,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
     } else {
       transactionHandler.startPayment(
-        vendorId, sessionData.accountId, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYLINE)
+        vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYLINE)
 
       var threeDSResult: ThreeDSResult = null
 
@@ -164,7 +164,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val paymentConfig = sessionData.paymentConfig.get
     val vendorId = sessionData.merchantId.get
     val paymentRequest = sessionData.paymentRequest.get
-    val paymentResult = getWebPaymentDetails(vendorId, transactionUuid, paymentConfig, paymentRequest, sessionData.token.orNull)
+    val paymentResult = getWebPaymentDetails(vendorId, transactionUuid, paymentConfig, paymentRequest,
+      sessionData.token.orNull)
     paymentResult
   }
 
@@ -182,7 +183,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       sessionData.waitFor3DS = false
       try {
         val paymentRequest2 = paymentRequest.copy(paylineMd = params("MD"), paylinePares = params("PaRes"))
-        val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2, sessionData.mogopay)
+        val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2,
+          sessionData.mogopay)
         finishPayment(sessionData, result)
       }
       catch {
@@ -288,7 +290,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     retour
   }
 
-  private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest, mogopay: Boolean): PaymentResult = {
+  private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+                     infosPaiement: PaymentRequest, mogopay: Boolean): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -436,7 +439,9 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         bankErrorMessage = Option(BankErrorCodes.getErrorMessage("")),
         status = PaymentStatus.FAILED)
     }
-    transactionHandler.finishPayment(vendorUuid, transactionUuid, if ("00000" == code) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, code)
+    transactionHandler.finishPayment(vendorUuid, transactionUuid,
+      if ("00000" == code) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+      paymentResult, code)
 
     val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid)
     boTransactionLogHandler.save(botlogIn, false)
@@ -489,7 +494,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     proxy
   }
 
-  def doWebPayment(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
+  def doWebPayment(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+                   paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -504,7 +510,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     var logdata: String = ""
     logdata += "payment.amount=" + payment.getAmount
     logdata += "&payment.currency=" + payment.getCurrency
-    logdata += "&payment.contractNumner=" + payment.getContractNumber
+    logdata += "&payment.contractNumbner=" + payment.getContractNumber
     logdata += "&payment.action=" + payment.getAction
     logdata += "&payment.mode=" + payment.getMode
     val order: Order = new Order
@@ -630,7 +636,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     }
   }
 
-  def getWebPaymentDetails(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest, token: String): PaymentResult = {
+  def getWebPaymentDetails(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+                           paymentRequest: PaymentRequest, token: String): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -711,7 +718,9 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     )
     boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
-    transactionHandler.finishPayment(vendorUuid, transactionUuid, if (result.getResult.getCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED, paymentResult, result.getResult().getCode())
+    transactionHandler.finishPayment(vendorUuid, transactionUuid,
+      if (result.getResult.getCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+      paymentResult, result.getResult().getCode())
     paymentResult
   }
 }
