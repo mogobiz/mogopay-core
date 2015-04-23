@@ -86,13 +86,15 @@ trait PaymentHandler {
       transactionRequestHandler.save(txReq, refresh = false)
 
       val token = {
-        val clearToken = s"${new Date((new Date).getTime + 7 * 24 * 3600 * 1000).getTime}|${txReq.uuid}|${account.uuid}|$groupTxUUID" // todo make the time customizable
+        val expirationTime: Long = new Date((new Date).getTime + 7 * 24 * 3600 * 1000).getTime // todo make the time customizable
+        val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID"
         SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
       }
 
       if (Settings.Env == Environment.DEV) println(s"==== Group payment token: $token")
 
-      val url = Uri("http://foo.com").withQuery(("token", token)) //todo: cutomize the url
+      val url = paymentConfig.groupPaymentReturnURL.getOrElse(throw new NoReturnURLSpecifiedException)
+      val uri = Uri(url).withQuery(("token", token))
 
       def sendEmail() {
         val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
@@ -103,11 +105,11 @@ trait PaymentHandler {
         val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, firstPayer.country.map(_.code).getOrElse("fr")) // make "FR" configurable
 
         val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
-        val data = //todo: add transaction extra + payers
+        val data =
           s"""
               |{
               |  "firstPayer":  "$payerName",
-              |  "url":         "$url",
+              |  "url":         "$uri",
               |  "transaction": $jsonTx
               |}
               |""".stripMargin

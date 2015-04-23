@@ -144,4 +144,6 @@ object Exceptions {
   case class InvalidPaymentMethodException() extends MogopayException(StatusCodes.BadRequest, "Invalid payment method.")
 
   case class NoCustomerSetForTheBOTrasaction() extends MogopayMessagelessException(StatusCodes.NotFound)
+
+  case class NoReturnURLSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 }

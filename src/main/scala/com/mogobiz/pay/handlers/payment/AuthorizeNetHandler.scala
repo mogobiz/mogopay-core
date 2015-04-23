@@ -166,7 +166,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     }
   }
 
-  def relay(sessionData: SessionData, params: Map[String, String]): String = {
+  def relay(sessionData: SessionData, params: Map[String, String]) = {
     val action = s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/authorizenet/finish"
     val form = {
       <form action={action} id="redirectForm" method="GET">
@@ -174,12 +174,9 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name={name} value={value}/>
         }}
       </form>
-        <script>document.getElementById('redirectForm').submit();</script>
-    }.mkString.replaceAll("\"", "'")
+    }.mkString
 
-    // TODO Sanitize the values
-    println(form)
-    form
+    form // TODO Sanitize the values
   }
 
   def finish(sessionData: SessionData, params: Map[String, String]) = {

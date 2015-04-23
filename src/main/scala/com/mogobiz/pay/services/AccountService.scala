@@ -684,7 +684,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
                 ('anet_api_login_id ?) :: ('anet_transaction_key ?) ::
-                ('kwixo_params ?) :: 'email_field :: 'password_field :: HNil)
+                ('kwixo_params ?) :: 'email_field :: 'password_field :: 'group_payment_return_url.? :: HNil)
               fields.happly {
                 case password :: password2 :: company :: website :: lphone ::
                   civility :: firstname :: lastname :: birthday :: road :: road2 ::
@@ -697,7 +697,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   systempayShopId :: systempayContractNumber :: systempayCertificate :: senderName :: senderEmail ::
                   passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
                   anetAPILoginID :: anetTransactionKey ::
-                  kwixoParams :: emailField :: passwordField :: HNil =>
+                  kwixoParams :: emailField :: passwordField :: groupPaymentReturnURL :: HNil =>
                   val validPassword: Option[(String, String)] = (password, password2) match {
                     case (Some(p), Some(p2)) => Some((p, p2))
                     case _ => None
@@ -762,7 +762,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     ),
                     authorizeNetParam = authorizeNetParam,
                     kwixoParam = KwixoParam(kwixoParams),
-                    cbParam = cbParam
+                    cbParam = cbParam,
+                    groupPaymentReturnURL = groupPaymentReturnURL
                   )
 
                   import Implicits._

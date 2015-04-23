@@ -140,7 +140,8 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
-                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam], kwixoParam: KwixoParam)
+                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam],
+                         kwixoParam: KwixoParam, groupPaymentReturnURL: Option[String])
 
 case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
                               firstName: String, lastName: String, birthDate: String)
@@ -795,7 +796,8 @@ class AccountHandler {
           senderEmail = profile.senderEmail,
           senderName = profile.senderName,
           callbackPrefix = profile.callbackPrefix,
-          passwordPattern = profile.passwordPattern)
+          passwordPattern = profile.passwordPattern,
+          groupPaymentReturnURL = profile.groupPaymentReturnURL)
 
         val newAccount = account.copy(
           password = password,

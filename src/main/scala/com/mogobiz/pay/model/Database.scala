@@ -209,7 +209,8 @@ object Mogopay {
                            var dateCreated: Date = Calendar.getInstance().getTime,
                            var lastUpdated: Date = Calendar.getInstance().getTime,
                            pwdEmailContent: Option[String] = None,
-                           pwdEmailSubject: Option[String] = None)
+                           pwdEmailSubject: Option[String] = None,
+                           groupPaymentReturnURL: Option[String] = None)
 
   case class Country(uuid: String,
                      code: String,
