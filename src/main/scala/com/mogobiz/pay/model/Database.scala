@@ -131,7 +131,6 @@ object Mogopay {
     val PAYBOX = Value("PAYBOX")
     val SIPS = Value("SIPS")
     val SYSTEMPAY = Value("SYSTEMPAY")
-    val APPLEPAY = Value("APPLEPAY")
   }
 
   class CBPaymentProviderRef extends TypeReference[CBPaymentProvider.type]
