@@ -7,7 +7,7 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.Settings
+import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
@@ -67,15 +67,15 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
     val relayURL = s"${Settings.Mogopay.EndPointWithoutPort}authorizenet/relay" // without port because Authorize.net doesn't hit "exotic" ports :)
     val cancelURL = s"${Settings.Mogopay.EndPointWithoutPort}authorizenet/cancel"
+    val formAction = Settings.AuthorizeNet.formAction
 
     if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
       val x_fp_sequence = fingerprint.getSequence
       val x_fp_timestamp = fingerprint.getTimeStamp
       val x_fp_hash = fingerprint.getFingerprintHash
 
-      // todo: make test.authorize.net configurable
       val form = {
-        <form name="authorizenet" id="authorizenet" action="https://test.authorize.net/gateway/transact.dll" method="post">
+        <form name="authorizenet" id="authorizenet" action={formAction} method="post">
           <input type="text" name="x_amount" value={amount}/>
           <input type="hidden" name="x_login" value={apiLoginID}/>
           <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString}/>
@@ -97,7 +97,11 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         </form>
           <script>document.getElementById('authorizenet').submit();</script>
       }
-      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/auth.html"), form.toString.getBytes(StandardCharsets.UTF_8)) // todo: remove
+
+      if (Settings.Env == Environment.DEV) { // Just `open /tmp/authorizenet-form.html` to start the payment
+        java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/authorizenet-form.html"),
+          form.toString.getBytes(StandardCharsets.UTF_8))
+      }
 
       val query = Map(
         "amount" -> amount,
@@ -116,8 +120,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       Left(form.mkString)
     } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_NO) {
-      val action = "https://test.authorize.net/gateway/transact.dll"
-
       val query = Map(
         "amount" -> amount,
         "apiLoginID" -> apiLoginID,
@@ -166,7 +168,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     }
   }
 
-  // todo: make the action configurable
   def relay(sessionData: SessionData, params: Map[String, String]): String = {
     val action = s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/authorizenet/finish"
     val form = {

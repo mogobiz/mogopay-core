@@ -402,7 +402,7 @@ class TransactionHandler {
 
     val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
     if (transaction.isDefined)
-      throw BOTransactionNotFoundException(s"${transactionUUID.get}") // todo: C'est pas "Not found" qu'il faut dire
+      throw TheBOTransactionAlreadyExistsException(s"${transactionUUID.get}")
 
     def checkParameters(vendor: Account): Boolean = {
       def checkBCParameters(paymentConfig: PaymentConfig): Boolean = {

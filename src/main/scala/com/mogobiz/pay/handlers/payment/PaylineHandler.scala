@@ -510,7 +510,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     var logdata: String = ""
     logdata += "payment.amount=" + payment.getAmount
     logdata += "&payment.currency=" + payment.getCurrency
-    logdata += "&payment.contractNumner=" + payment.getContractNumber
+    logdata += "&payment.contractNumbner=" + payment.getContractNumber
     logdata += "&payment.action=" + payment.getAction
     logdata += "&payment.mode=" + payment.getMode
     val order: Order = new Order

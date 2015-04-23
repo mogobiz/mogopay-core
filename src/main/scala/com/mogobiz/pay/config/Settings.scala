@@ -140,6 +140,10 @@ object Settings {
     val token = Try(Option(config.getString(s"applepay.$Env.token"))).getOrElse(None)
     val env   = if (Env == Environment.DEV) ANetEnv.SANDBOX else ANetEnv.PRODUCTION
   }
+
+  object AuthorizeNet {
+    val formAction = config.getString(s"authorizenet.$Env.formaction")
+  }
   
   object Jobs {
 

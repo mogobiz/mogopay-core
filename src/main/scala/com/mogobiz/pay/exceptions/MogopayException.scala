@@ -72,6 +72,8 @@ object Exceptions {
 
   case class BOTransactionNotFoundException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class TheBOTransactionAlreadyExistsException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   case class UnexpectedAmountException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class TransactionTimeoutException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
