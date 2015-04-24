@@ -244,7 +244,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
         submitParams: SubmitParams =>
           val payersAmountsSum = submitParams.payers.values.sum
-          if (payersAmountsSum != submitParams.amount) {
+          if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
             complete { 400 -> "The total amount and the payers amounts don't match." }
           } else {
             session { session =>

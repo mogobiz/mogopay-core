@@ -154,7 +154,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
           <input type="hidden" name="x_amount" value={amount}/>
           <input type="hidden" name="x_test_request" value="FALSE"/>
-          <input type="hidden" name="notes" value="extra hot please"/>
           <input type="hidden" name={VENDOR_UUID} value={vendorId}/>
           <input type="hidden" name={BOTX_UUID} value={transaction.uuid}/>
           <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
@@ -192,7 +191,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       <script>document.getElementById('redirectForm').submit();</script>
     }.mkString
 
-    form // TODO Sanitize the values
+    form // TODO Sanitize the values?
   }
 
   def finish(sessionData: SessionData, params: Map[String, String]) = {
@@ -210,16 +209,19 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val apiLoginID: String = authorizeNetParam("apiLoginID")
     val transactionKey: String = authorizeNetParam("transactionKey")
 
-    val query = Map(
-      "amount" -> amount,
-      "apiLoginID" -> apiLoginID,
-      "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
-      "currency" -> currency,
-      "cc_holder" -> paymentRequest.holder,
-      "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
-      "cc_cvv" -> paymentRequest.cvv,
-      "cc_expirationDate" -> paymentRequest.expirationDate
-    )
+//    val query = Map(
+//      "amount" -> amount,
+//      "apiLoginID" -> apiLoginID,
+//      "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
+//      "currency" -> currency,
+//      "cc_holder" -> paymentRequest.holder,
+//      "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
+//      "cc_cvv" -> paymentRequest.cvv,
+//      "cc_expirationDate" -> paymentRequest.expirationDate
+//    )
+//    val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
+//      transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
+//    EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
     val transaction: BOTransaction = sessionData.transactionUuid.flatMap { txUUID =>
       EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, txUUID)

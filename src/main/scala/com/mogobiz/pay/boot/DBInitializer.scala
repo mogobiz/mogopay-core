@@ -138,6 +138,8 @@ object DBInitializer {
       "Apple Pay", "Client", applePayMerchant, false)
   }
 
+  val franceCountry = Country(UUID.randomUUID.toString, "FR", "France", false, false, None, None, None, None, None)
+
   private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig : PaymentConfig) : Account = {
     val account = Account(uuid = uuid,
                           email = email,
@@ -150,7 +152,8 @@ object DBInitializer {
                           status = AccountStatus.ACTIVE,
                           paymentConfig = Some(paymentConfig),
                           roles = List(RoleName.MERCHANT),
-                          secret = uuid)
+                          secret = uuid,
+                          country = Some(franceCountry))
     accountHandler.save(account)
     account
   }
@@ -170,7 +173,8 @@ object DBInitializer {
       roles = List(RoleName.CUSTOMER),
       owner = Some(owner.uuid),
       shippingAddresses = if (withShippingAddress) List(createShippingAddress(firstname, lastname, true), createShippingAddress(firstname, lastname, false)) else List(),
-      secret = uuid)
+      secret = uuid,
+      country = Some(franceCountry))
     accountHandler.save(account)
     account
   }
@@ -215,7 +219,8 @@ object DBInitializer {
       cbProvider,
       cbMethod,
       "user_email", "user_password",
-      senderName, senderEmail, None, passwordPattern)
+      senderName, senderEmail, None, passwordPattern,
+      groupPaymentReturnURL = Some("http://returnurl/"))
   }
 
   private def createTransaction(uuid: String, transactionUuid: String, amount: Long, customer: Account, vendor: Account, extra: String) = {

@@ -146,4 +146,6 @@ object Exceptions {
   case class NoCustomerSetForTheBOTrasaction() extends MogopayMessagelessException(StatusCodes.NotFound)
 
   case class NoReturnURLSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
+
+  case class NoCountrySpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 }

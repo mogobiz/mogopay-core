@@ -42,7 +42,7 @@ trait PaymentHandler {
       "error_message_provider" -> paymentResult.errorMessageOrigin.getOrElse("")
     )
 
-    if (success) {
+    if (success && sessionData.payers.nonEmpty) {
       val payers = sessionData.payers
       val tx = boTransactionHandler.find(transactionUUID).getOrElse(throw new BOTransactionNotFoundException(transactionUUID))
       val merchantUUID = tx.vendor.getOrElse(throw new VendorNotFoundException).uuid
@@ -102,14 +102,17 @@ trait PaymentHandler {
 
         val template = templateHandler.loadTemplateByVendor(Option(merchant), "group-payment.mustache")
 
-        val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, firstPayer.country.map(_.code).getOrElse("fr")) // make "FR" configurable
+        val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
+        val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, country)
 
+        val amount = rateHandler.format(txReq.amount / 100, txReq.currency.code, country)
         val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
         val data =
           s"""
               |{
               |  "firstPayer":  "$payerName",
               |  "url":         "$uri",
+              |  "amount":      "$amount",
               |  "transaction": $jsonTx
               |}
               |""".stripMargin
