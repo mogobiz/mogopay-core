@@ -11,7 +11,10 @@ import com.mogobiz.pay.model.Mogopay.Rate
 class RateHandler {
   def list = EsClient.searchAll[Rate](search in Settings.Mogopay.EsIndex -> "Rate")
 
-  def format(amount: Long, currency: String, country: String): Option[String] = {
+  def format(amount: Long, currency: String, country: String): Option[String] =
+    format(amount.toFloat, currency, country)
+
+  def format(amount: Float, currency: String, country: String): Option[String] = {
     findByCurrencyCode(currency) map { rate =>
       val locale = new Locale(country)
 

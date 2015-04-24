@@ -148,4 +148,6 @@ object Exceptions {
   case class NoReturnURLSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
   case class NoCountrySpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
+
+  case class RateNotFoundException(message: String) extends MogopayException(StatusCodes.NotFound, message)
 }

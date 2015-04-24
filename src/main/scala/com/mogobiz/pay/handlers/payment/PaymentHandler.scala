@@ -105,7 +105,8 @@ trait PaymentHandler {
         val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
         val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, country)
 
-        val amount = rateHandler.format(txReq.amount / 100, txReq.currency.code, country)
+        val amount = rateHandler.format(txReq.amount.toFloat / 100, txReq.currency.code, country).getOrElse(
+          throw new RateNotFoundException(txReq.currency.code))
         val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
         val data =
           s"""
