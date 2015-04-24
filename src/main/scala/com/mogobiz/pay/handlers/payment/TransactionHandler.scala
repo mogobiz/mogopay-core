@@ -363,9 +363,6 @@ class TransactionHandler {
         accountHandler.load(submit.params.merchantId).orNull
       }
 
-    /* START */
-    // group + no txreq id => get all required info from the boTx
-    //    if (submit.sessionData.payers.size == 1) {
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
       throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
 
@@ -402,8 +399,6 @@ class TransactionHandler {
 
     val transactionCurrency: TransactionCurrency = transactionRequest.currency
     transactionRequestHandler.delete(transactionRequest.uuid, false)
-    //    }
-    /* END */
 
     val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
     if (transaction.isDefined)

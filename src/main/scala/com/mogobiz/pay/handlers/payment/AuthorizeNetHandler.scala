@@ -93,12 +93,12 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
           <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
         </form>
-          <script>document.getElementById('authorizenet').submit();</script>
+        <script>document.getElementById('authorizenet').submit();</script>
       }
 
       if (Settings.Env == Environment.DEV) { // Just `open /tmp/authorizenet-form.html` to start the payment
         java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/authorizenet-form.html"),
-          form.toString.getBytes(StandardCharsets.UTF_8))
+          form.mkString.getBytes(StandardCharsets.UTF_8))
       }
 
       val query = Map(
@@ -129,12 +129,18 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         "cc_expirationDate" -> paymentRequest.expirationDate
       )
 
+      val (cardNumberDefaultValue, expirationDateDefaultValue) = if (Settings.Env == Environment.DEV) {
+        ("4007000000027", "0219")
+      } else {
+        ("", "")
+      }
+
       val form = {
         <form id="authorizenet" action={formAction} method="post">
           <label>CreditCardNumber</label>
-          <input type="text" class="text" name="x_card_num" size="15"/>
+          <input type="text" class="text" name="x_card_num" size="15" value={cardNumberDefaultValue}/>
           <label>Exp.</label>
-          <input type="text" class="text" name="x_exp_date" size="4"/>
+          <input type="text" class="text" name="x_exp_date" size="4" value={expirationDateDefaultValue}/>
           <label>Amount</label>
           <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={amount}/>
           <input type="hidden" name="x_invoice_num" value={System.currentTimeMillis.toString}/>
@@ -151,9 +157,18 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name="notes" value="extra hot please"/>
           <input type="hidden" name={VENDOR_UUID} value={vendorId}/>
           <input type="hidden" name={BOTX_UUID} value={transaction.uuid}/>
+          <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
+          <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
           <input type="submit" name="buy_button" value="BUY"/>
+          {if (Settings.Env == Environment.DEV) {
+            <script>document.getElementById('authorizenet').submit();</script>
+          }}
         </form>
-        <script>document.getElementById("authorizenet").submit();</script>
+      }
+
+      if (Settings.Env == Environment.DEV) { // Just `open /tmp/authorizenet-form.html` to start the payment
+        java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/authorizenet-form.html"),
+          form.mkString.getBytes(StandardCharsets.UTF_8))
       }
 
       val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
@@ -174,6 +189,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name={name} value={value}/>
         }}
       </form>
+      <script>document.getElementById('redirectForm').submit();</script>
     }.mkString
 
     form // TODO Sanitize the values

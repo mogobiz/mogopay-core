@@ -141,7 +141,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         entity(as[FormData]) { formData =>
           import Implicits._
           handleCall(authorizeNetHandler.relay(session.sessionData, formData.fields.toMap),
-            (form: String) => //complete(StatusCodes.OK -> form)
+            (form: String) =>
               respondWithMediaType(MediaTypes.`text/html`) {
               complete {
                 new HttpResponse(StatusCodes.OK, HttpEntity(form))

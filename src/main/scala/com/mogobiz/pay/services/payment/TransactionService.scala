@@ -294,7 +294,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   private def doSubmit(submitParams: SubmitParams, session: Session): Route = {
     import Implicits._
-    def isNewSession(): Boolean = {
+    def isNewSession: Boolean = {
       val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
       val incomingTrans = submitParams.transactionUUID
       sessionTrans != incomingTrans
@@ -308,7 +308,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
     else {
       // is he authenticated (mogopay payment) or is it his first attempt
-      if (!session.sessionData.authenticated && isNewSession()) {
+      if (!session.sessionData.authenticated && isNewSession) {
         session.clear()
       }
       handleCall(
