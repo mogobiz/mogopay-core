@@ -13,6 +13,8 @@ import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
+import net.authorize.api.contract.v1.{TransactionRequestType, CreateTransactionRequest}
+import net.authorize.{Merchant, TransactionType}
 import net.authorize.sim._
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
@@ -251,11 +253,14 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       token = ""
     )
 
+    val anetTransactionId = params("x_trans_id")
+    val gatewayData = s"$anetTransactionId"
+
     transactionHandler.finishPayment(params("vendor_uuid"),
       sessionData.transactionUuid.getOrElse(""),
       if (status == PaymentStatus.COMPLETE) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
-      params("x_response_code"))
+      params("x_response_code"), Some(gatewayData))
     finishPayment(sessionData, paymentResult)
   }
 
@@ -273,6 +278,35 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     transactionHandler.finishPayment(sessionData.merchantId.getOrElse(""), sessionData.transactionUuid.getOrElse(""),
       TransactionStatus.PAYMENT_REFUSED, paymentResult, "")
     finishPayment(sessionData, paymentResult)
+  }
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Unit = {
+    import net.authorize.Environment
+    import net.authorize.data.creditcard.CreditCard
+
+    val authorizeNetParam = paymentConfig.authorizeNetParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val apiLoginID = authorizeNetParam("apiLoginID")
+    val transactionKey = authorizeNetParam("transactionKey")
+    val merchant = Merchant.createMerchant(Environment.SANDBOX,
+      apiLoginID, transactionKey)
+
+    val anetTransactionId = boTx.gatewayData.getOrElse(throw new ANetTransactionIdNotFoundException)
+    val creditCard = CreditCard.createCreditCard()
+    creditCard.setCreditCardNumber(boTx.creditCard.get.number.substring(9))
+//    creditCard.setExpirationMonth("12")
+//    creditCard.setExpirationYear("2015")
+//    creditCard.setMaskedCreditCardNumber(boTx.creditCard.get.number.substring(12))
+
+    val authCaptureTransaction = merchant.createAIMTransaction(
+      TransactionType.CREDIT, new java.math.BigDecimal(boTx.amount))
+    authCaptureTransaction.setTransactionId(anetTransactionId)
+    authCaptureTransaction.setCreditCard(creditCard)
+
+    val result: net.authorize.Result[Transaction] = merchant
+      .postTransaction(authCaptureTransaction)
+      .asInstanceOf[net.authorize.Result[Transaction]]
+    println(result)
   }
 }
 

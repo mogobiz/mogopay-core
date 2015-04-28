@@ -185,7 +185,7 @@ class TransactionHandler {
 
   // called by other handlers
   def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
-                    paymentResult: PaymentResult, returnCode: String): Unit = {
+                    paymentResult: PaymentResult, returnCode: String, gatewayData: Option[String] = None): Unit = {
     val transaction = boTransactionHandler.find(transactionUUID)
       .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
 
@@ -196,7 +196,8 @@ class TransactionHandler {
       authorizationId = paymentResult.authorizationId,
       errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
       errorMessageOrigin = paymentResult.errorMessageOrigin,
-      modifications = transaction.modifications :+ modification
+      modifications = transaction.modifications :+ modification,
+      gatewayData = gatewayData
     )
 
     val tx = if (paymentResult.transactionDate != null) {
@@ -569,11 +570,12 @@ class TransactionHandler {
     cc_month = card_month
     cc_year = card_year
     cc_num = if (card_number != null) card_number.replaceAll(" ", "") else card_number
+    val maskedCCNumber = hideStringExceptLastN(cc_num)
 
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
     var paymentProvider = CBPaymentProvider.NONE
-    var paymentRequest: PaymentRequest = PaymentRequest(UUID.randomUUID.toString, "-1", null, -1L, "", "",
+    var paymentRequest: PaymentRequest = PaymentRequest(UUID.randomUUID.toString, "-1", null, -1L, maskedCCNumber, "",
       null, null, "", "", "", "", "", "", "",
       sessionData.csrfToken.orNull, transactionCurrency)
 
@@ -608,7 +610,7 @@ class TransactionHandler {
         } else {
           paymentRequest = paymentRequest.copy(
             cardType = cc_type,
-            ccNumber = "", // we don't store the credit card number (for security purpose)
+            ccNumber = cc_num, // we don't store the credit card number (for security purpose)
             expirationDate = cc_date,
             cvv = ccCrypto
           )
@@ -642,6 +644,24 @@ class TransactionHandler {
     val account = accountHandler.find(customerUUID).getOrElse(throw new AccountDoesNotExistException(""))
 
     (account, txReq, groupTxUUID)
+  }
+
+  def refund(merchantSecret: String, amount: Long, boTransactionUUID: String) {
+    type Params = (PaymentConfig, BOTransaction)
+    val handlers = Map(
+      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2))
+    )
+
+    val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
+    val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException)
+    val boTransaction = boTransactionHandler.find(boTransactionUUID).getOrElse(
+      throw new BOTransactionNotFoundException(boTransactionUUID))
+
+    if (boTransaction.paymentData.cbProvider == CBPaymentProvider.NONE) {
+      throw new RefundNotSupportedException()
+    }
+
+    handlers(paymentConfig.cbProvider)(paymentConfig, boTransaction)
   }
 }
 

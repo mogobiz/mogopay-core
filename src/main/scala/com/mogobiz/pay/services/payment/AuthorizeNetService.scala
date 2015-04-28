@@ -26,11 +26,11 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       startPayment ~
       done ~
       finish ~
+      relay
 //      callbackPayment ~
 //      callback3DSecureCheck ~
 //      done3DSecureCheck ~
-      relay ~
-      cancel
+//      cancel
     }
   }
 
@@ -153,6 +153,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     }
   }
 
+  /*
   lazy val cancel = path("cancel") {
     import Implicits._
     get {
@@ -164,6 +165,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       }
     }
   }
+  */
 
   lazy val finish = path("finish") {
     import Implicits._
