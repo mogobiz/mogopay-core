@@ -19,3 +19,7 @@ SITE=1999888
 
 Création de l'abonné en paybox system
 et stockage de l'abonné puis sollicitation en direct
+
+
+PAYBOX Abonnement RANG 32 sans le 3DS
+PAYBOX Abonnement RANG 43 avec le 3DS

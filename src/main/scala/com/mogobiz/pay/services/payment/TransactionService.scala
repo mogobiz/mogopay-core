@@ -55,7 +55,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         submit ~
         submitWithSession ~
         download ~
-        initGroupPayment
+        initGroupPayment ~
+        refund
     }
   }
 
@@ -213,6 +214,28 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
             }
           )
         }
+      }
+    }
+  }
+
+  lazy val refund = path("refund") {
+    get {
+      val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid)
+      params { (merchantSecret, amount, boTransactionUUID) =>
+        handleCall(transactionHandler.refund(merchantSecret, amount, boTransactionUUID),
+          (serviceName: Any) => {
+            val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
+            val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/refund")
+            val response = pipeline(request)
+//            response.map { response =>
+//              complete(200)
+//            }
+            onComplete(response) {
+              case Success(s) => ???
+              case Failure(t) => ???
+            }
+          }
+        )
       }
     }
   }

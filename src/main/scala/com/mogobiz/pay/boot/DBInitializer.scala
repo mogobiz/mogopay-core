@@ -58,7 +58,7 @@ object DBInitializer {
     val PAYBOX_2DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "85", "payboxMerchantId" -> "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", "payboxContract" -> "PAYBOX_DIRECT")
     val PAYBOX_3DS = Map("payboxSite" -> "1999888", "payboxKey" -> "1999888I", "payboxRank" -> "69", "payboxMerchantId" -> "109518543", "payboxContract" -> "PAYBOX_DIRECT")
     val SYS_PAY = Map("systempayShopId" -> "34889127", "systempayContractNumber" -> "5028717", "systempayCertificate" -> "7736291283331938")
-    val AUTHORIZENET = Map("apiLoginID" -> "5zLq4S76A", "transactionKey" -> "3XbG8myA4785Qd4Y")
+    val AUTHORIZENET = Map("apiLoginID" -> "5zLq4S76A", "transactionKey" -> "4ue496wv74ZbNNCX")
 
     // Création des comptes marchands
     val paypalPaylineExternal = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, Map(), PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))

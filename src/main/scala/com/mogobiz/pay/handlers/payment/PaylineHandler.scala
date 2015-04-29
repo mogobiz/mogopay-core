@@ -196,7 +196,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
   }
 
 
-  def check3DSecure(sessionUuid: String, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: PaymentRequest): ThreeDSResult = {
+  def check3DSecure(sessionUuid: String, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -205,8 +205,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
     val paiement: Payment = new Payment
 
-    paiement.setAmount(infosPaiement.amount.toString)
-    paiement.setCurrency(infosPaiement.currency.numericCode.toString)
+    paiement.setAmount(paymentRequest.amount.toString)
+    paiement.setCurrency(paymentRequest.currency.numericCode.toString)
     paiement.setAction(ACTION_AUTHORISATION_VALIDATION)
     paiement.setMode(MODE_COMPTANT)
     paiement.setContractNumber(numeroContrat)
@@ -218,10 +218,10 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     logdata += "&paiement.mode=" + paiement.getMode
     logdata += "&paiement.contractNumber=" + paiement.getContractNumber
     val card: Card = new Card
-    card.setNumber(infosPaiement.ccNumber)
-    card.setType(fromCreditCardType(infosPaiement.cardType))
-    card.setExpirationDate(formatDatePayline.format(infosPaiement.expirationDate))
-    card.setCvx(infosPaiement.cvv)
+    card.setNumber(paymentRequest.ccNumber)
+    card.setType(fromCreditCardType(paymentRequest.cardType))
+    card.setExpirationDate(formatDatePayline.format(paymentRequest.expirationDate))
+    card.setCvx(paymentRequest.cvv)
     logdata += "&card.number=" + UtilHandler.hideCardNumber(card.getNumber, "X")
     logdata += "&card.type=" + card.getType
     logdata += "&card.expirationDate=" + card.getExpirationDate
@@ -229,7 +229,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val requete: VerifyEnrollmentRequest = new VerifyEnrollmentRequest
     requete.setPayment(paiement)
     requete.setCard(card)
-    requete.setOrderRef(infosPaiement.transactionSequence)
+    requete.setOrderRef(paymentRequest.transactionSequence)
     logdata += "&orderRef=" + requete.getOrderRef
     val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
     boTransactionLogHandler.save(botlog, false)
