@@ -570,8 +570,8 @@ class TransactionHandler {
     cc_type = card_type
     cc_month = card_month
     cc_year = card_year
-    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else card_number
-    val maskedCCNumber = hideStringExceptLastN(cc_num, 4, "X")
+    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else ""
+    val maskedCCNumber = hideStringExceptLastN(cc_num)
 
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL

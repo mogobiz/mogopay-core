@@ -40,7 +40,7 @@ class TemplateHandler {
     vendor.map { v =>
       locale.map { l =>
         findExternalTemplate(v.company, s"${templateName}_$l") getOrElse {
-          findExternalTemplate(v.company, s"${templateName}_${LocaleUtils.toLocale(l).getDisplayLanguage}") getOrElse {
+          findExternalTemplate(v.company, s"${templateName}_${LocaleUtils.toLocale(l).getLanguage}") getOrElse {
             findExternalTemplate(v.company, templateName) getOrElse {
               defaultTemplate()
             }
