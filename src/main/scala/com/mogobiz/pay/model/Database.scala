@@ -308,7 +308,6 @@ object Mogopay {
                                 @JsonScalaEnumeration(classOf[TransactionStatusRef]) oldStatus: Option[TransactionStatus],
                                 @JsonScalaEnumeration(classOf[TransactionStatusRef]) newStatus: Option[TransactionStatus],
                                 comment: Option[String],
-                                //                                transaction: Document,
                                 var dateCreated: Date = Calendar.getInstance().getTime,
                                 var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -464,8 +463,8 @@ object Mogopay {
                          var payers: Map[String, Long] = Map(),
                          var groupTxUUID: Option[String] = None,
                          var paymentRequest: Option[PaymentRequest] = None,
-                         var locale: Option[String] = None)
-
+                         var locale : Option[String] = None,
+                         var ipAddress: Option[String] = None)
 }
 
 object TestApp extends App {

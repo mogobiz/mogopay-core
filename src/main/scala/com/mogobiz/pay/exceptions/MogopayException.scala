@@ -154,4 +154,6 @@ object Exceptions {
   case class RefundNotSupportedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
   case class ANetTransactionIdNotFoundException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class RefundException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 }

@@ -128,7 +128,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         )
         boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
-        transactionHandler.finishPayment(vendorId, transactionUuid,
+        transactionHandler.finishPayment(transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, codeReponse, sessionData.locale)
         finishPayment(sessionData, paymentResult)
@@ -262,7 +262,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
-    transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
     var paymentResult: PaymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
@@ -419,7 +419,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             authorizationId = authorisation,
             transactionCertificate = null)
         }
-        transactionHandler.finishPayment(vendorId, transactionUUID,
+        transactionHandler.finishPayment(transactionUUID,
           if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, errorCode, sessionData.locale)
         // We redirect the user to the merchant website

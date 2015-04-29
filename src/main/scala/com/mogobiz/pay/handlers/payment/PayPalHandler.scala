@@ -176,7 +176,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
           .getOrElse(Map())
-        transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+        transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
         val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
         val user: String = parameters("paypalUser")
         val password = parameters("paypalPassword")
@@ -248,7 +248,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               gatewayTransactionId = transactionId,
               transactionCertificate = null
             )
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
+            transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
             updatedPaymentResult
           } else {
             val errorCode = tuples.get("L_ERRORCODE0").orNull
@@ -260,7 +260,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               errorMessageOrigin = Option(errorCodeMessage)
             )
 
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED,
+            transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_REFUSED,
               paymentResult, null, sessionData.locale)
 
             updatedPaymentResult

@@ -140,16 +140,17 @@ class TransactionHandler {
     }.getOrElse(Failure(new InvalidContextException("Vendor not found")))
   }
 
-  def updateStatus(vendorId: String, transactionUUID: String, ipAddress: String, newStatus: TransactionStatus, comment: String): Unit = {
+  def updateStatus(transactionUUID: String, ipAddress: Option[String],
+                   newStatus: TransactionStatus, comment: Option[String] = None) {
     val maybeTx = boTransactionHandler.find(transactionUUID)
     maybeTx.map { transaction =>
-      val modStatus: ModificationStatus = ModificationStatus(
+      val modStatus = ModificationStatus(
         uuid = newUUID,
         xdate = new Date,
-        ipAddr = Option(ipAddress),
+        ipAddr = ipAddress.orElse(transaction.modifications.collectFirst({ case e => e.ipAddr }).flatten),
         oldStatus = Option(transaction.status),
         newStatus = Option(newStatus),
-        comment = Option(comment)
+        comment = comment
       )
 
       val newTx = transaction.copy(
@@ -158,11 +159,11 @@ class TransactionHandler {
         modifications = transaction.modifications :+ modStatus
       )
 
-      boTransactionHandler.update(newTx, false)
-    }.getOrElse(throw TransactionNotFoundException(""))
+      boTransactionHandler.update(newTx, refresh = false)
+    }.getOrElse(throw TransactionNotFoundException(transactionUUID))
   }
 
-  def updateStatus3DS(vendorId: String, transactionUUID: String, status3DS: ResponseCode3DS, codeRetour: String) {
+  def updateStatus3DS(transactionUUID: String, ipAddress: Option[String], status3DS: ResponseCode3DS, codeRetour: String) {
     val maybeTx = boTransactionHandler.find(transactionUUID)
     maybeTx.map { transaction =>
       val modification = ModificationStatus(
@@ -171,7 +172,7 @@ class TransactionHandler {
         oldStatus = Option(transaction.status),
         newStatus = Option(TransactionStatus.THREEDS_TESTED),
         comment = Option(codeRetour),
-        ipAddr = None
+        ipAddr = ipAddress.orElse(transaction.modifications.collectFirst({ case e => e.ipAddr }).flatten)
       )
 
       val newTx = transaction.copy(
@@ -186,19 +187,20 @@ class TransactionHandler {
   }
 
   // called by other handlers
-  def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
+  def finishPayment(transactionUUID: String, newStatus: TransactionStatus,
                     paymentResult: PaymentResult, returnCode: String, locale: Option[String], gatewayData: Option[String] = None): Unit = {
+//    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
+    updateStatus(transactionUUID, None, newStatus, Option(returnCode))
+
     val transaction = boTransactionHandler.find(transactionUUID)
       .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
 
-    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
     val newTx = transaction.copy(
       status = newStatus,
       endDate = computeEndDate(newStatus),
       authorizationId = paymentResult.authorizationId,
       errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
       errorMessageOrigin = paymentResult.errorMessageOrigin,
-      modifications = transaction.modifications :+ modification,
       gatewayData = gatewayData
     )
 
@@ -664,7 +666,10 @@ class TransactionHandler {
       throw new RefundNotSupportedException()
     }
 
-    handlers(paymentConfig.cbProvider)(paymentConfig, boTransaction)
+    handlers(paymentConfig.cbProvider)(paymentConfig, boTransaction) match {
+      case Success(_) => updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
+      case Failure(t) => throw t
+    }
   }
 }
 

@@ -295,7 +295,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       bankErrorMessage = Option(BankErrorCodes.getErrorMessage(resp.getValue("bank_response_code"))),
       token = null)
 
-    transactionHandler.finishPayment(vendorUuid, transactionUuid,
+    transactionHandler.finishPayment(transactionUuid,
       if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult, resp.getValue("response_code"), locale)
     paymentResult
@@ -303,7 +303,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
 
   private[payment] def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val vendor = accountHandler.load(vendorUuid).get
 
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -354,12 +354,12 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val reponseSessionId: String = sipsResponse.getValue(SIPSCheckoutResponseParm.O3D_SESSION_ID)
     resultat = resultat.copy(code = if ("00" == responseCode) ResponseCode3DS.APPROVED else ResponseCode3DS.REFUSED, mdValue = reponseSessionId, url = reponseUrlAcs)
 
-    transactionHandler.updateStatus3DS(vendorUuid, transactionUuid, resultat.code, responseCode)
+    transactionHandler.updateStatus3DS(transactionUuid, sessionData.ipAddress, resultat.code, responseCode)
     resultat
   }
 
   private[payment] def order3D(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[immutable.Map[String, String]]).getOrElse(Map())
@@ -434,7 +434,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       token = null,
       data = null
     )
-    transactionHandler.finishPayment(vendorUuid, transactionUuid, computeTransactionStatus(paymentResult.status),
+    transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
       paymentResult, paymentResult.errorCodeOrigin, sessionData.locale)
     paymentResult
   }
@@ -444,7 +444,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.PAYMENT_REQUESTED)
     val merchantCountry: String = parametres("sipsMerchantCountry")
     val merchantId: String = parametres("sipsMerchantId")
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
@@ -575,7 +575,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       )
       boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), refresh = false)
 
-      transactionHandler.finishPayment(vendorUuid, transactionUuid, computeTransactionStatus(paymentResult.status),
+      transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
         paymentResult, paymentResult.errorCodeOrigin, locale)
       paymentResult
     }
@@ -621,7 +621,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val sipsRequest: SIPSDataObject = new SIPSCheckoutRequestParm(0)
     val sipsResponse: SIPSDataObject = new SIPSCheckoutResponseParm(0)
 
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.CANCEL_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.CANCEL_REQUESTED)
 
     sipsRequest.setValue("merchant_country", merchantCountry)
     sipsRequest.setValue("merchant_id", merchantId)
@@ -650,7 +650,11 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val bank_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE)
     val codeErreur: Long = diag_response_code.toLong
     val codeErreurBank: Long = if (codeErreur == 0) bank_response_code.toLong else -1
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, if (codeErreur == 0 && codeErreurBank == 0) TransactionStatus.CANCEL_CONFIRMED else TransactionStatus.CANCEL_FAILED, null)
+
+    transactionHandler.updateStatus(transactionUuid,
+      None,
+      if (codeErreur == 0 && codeErreurBank == 0) TransactionStatus.CANCEL_CONFIRMED else TransactionStatus.CANCEL_FAILED)
+
     if (codeErreur == 0 && codeErreurBank == 0)
       CancelResult(
         id = infosPaiement.id,

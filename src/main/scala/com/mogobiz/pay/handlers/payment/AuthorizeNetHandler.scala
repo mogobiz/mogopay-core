@@ -14,7 +14,7 @@ import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
 import net.authorize.api.contract.v1.{TransactionRequestType, CreateTransactionRequest}
-import net.authorize.{Merchant, TransactionType}
+import net.authorize.{aim, ResponseCode, Merchant, TransactionType}
 import net.authorize.sim._
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
@@ -53,7 +53,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         transactionHandler.startPayment(vendorId, sessionData, transactionRequestUUID, paymentRequest,
           PaymentType.CREDIT_CARD, CBPaymentProvider.AUTHORIZENET).get
 
-    transactionHandler.updateStatus(vendorId, transactionRequestUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionRequestUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
 
     paymentRequestHandler.save(paymentRequest, refresh = false)
 
@@ -76,7 +76,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       val form = {
         <form name="authorizenet" id="authorizenet" action={formAction} method="post">
-          <input type="text" name="x_amount" value={amount}/>
+          <input type="text" name="x_amount" value={(amount.toFloat / 100).toString}/>
           <input type="hidden" name="x_login" value={apiLoginID}/>
           <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString}/>
           <input type="hidden" name="x_fp_timestamp" value={x_fp_timestamp.toString}/>
@@ -256,8 +256,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val anetTransactionId = params("x_trans_id")
     val gatewayData = s"$anetTransactionId"
 
-    transactionHandler.finishPayment(params("vendor_uuid"),
-      sessionData.transactionUuid.getOrElse(""),
+    transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
       if (status == PaymentStatus.COMPLETE) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
       params("x_response_code"), sessionData.locale, Some(gatewayData))
@@ -275,12 +274,12 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       transaction.errorCodeOrigin.getOrElse(""),
       transaction.errorMessageOrigin, "", "", Some(""), "")
 
-    transactionHandler.finishPayment(sessionData.merchantId.getOrElse(""), sessionData.transactionUuid.getOrElse(""),
+    transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
       TransactionStatus.PAYMENT_REFUSED, paymentResult, "", sessionData.locale)
     finishPayment(sessionData, paymentResult)
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Unit = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
     import net.authorize.Environment
     import net.authorize.data.creditcard.CreditCard
 
@@ -299,14 +298,21 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 //    creditCard.setMaskedCreditCardNumber(boTx.creditCard.get.number.substring(12))
 
     val authCaptureTransaction = merchant.createAIMTransaction(
-      TransactionType.CREDIT, new java.math.BigDecimal(boTx.amount))
+      TransactionType.CREDIT, new java.math.BigDecimal(boTx.amount.toFloat / 100))
     authCaptureTransaction.setTransactionId(anetTransactionId)
     authCaptureTransaction.setCreditCard(creditCard)
 
     val result: net.authorize.Result[Transaction] = merchant
       .postTransaction(authCaptureTransaction)
       .asInstanceOf[net.authorize.Result[Transaction]]
-    println(result)
+
+    val response = result.asInstanceOf[aim.Result[Transaction]]
+    if (response.getResponseCode.getCode == 1)
+      Success()
+    else
+    // Todo: Replace Success by Failure
+      Success()
+//      Failure(new RefundException(s"Authorize.net message: ${response.getResponseCode.getCode} —  ${response.getResponseText}"))
   }
 }
 

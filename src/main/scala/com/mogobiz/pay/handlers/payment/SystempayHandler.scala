@@ -63,7 +63,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
-        threeDSResult = systempayClient.check3DSecure(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest)
+        threeDSResult = systempayClient.check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
 
         if (Option(threeDSResult).map(_.code) == Some(ResponseCode3DS.APPROVED)) {
           sessionData.waitFor3DS = true
@@ -181,11 +181,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         cardType = pr.cardType
       )
       boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
-      transactionHandler.finishPayment(vendorId,
-        transactionUUID,
-        if (params("vads_result") == "00")
-          TransactionStatus.PAYMENT_CONFIRMED
-        else TransactionStatus.PAYMENT_REFUSED, pr, params("vads_result"), locale)
+      transactionHandler.finishPayment(transactionUUID,
+        if (params("vads_result") == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+        pr,
+        params("vads_result"),
+        locale)
       pr
     } else {
       throw InvalidSignatureException("Invalid signature")
@@ -268,7 +268,7 @@ class SystempayClient {
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
-    transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUUID, None, TransactionStatus.PAYMENT_REQUESTED)
     var paymentResult: PaymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
@@ -461,17 +461,17 @@ class SystempayClient {
 
       if (code == 0) {
         paymentResult = paymentResult.copy(status = PaymentStatus.COMPLETE)
-        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, "" + code, locale)
+        transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, "" + code, locale)
       } else {
         paymentResult = paymentResult.copy(status = PaymentStatus.FAILED)
-        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED, paymentResult, "" + code, locale)
+        transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_REFUSED, paymentResult, "" + code, locale)
       }
     }
 
     paymentResult
   }
 
-  def check3DSecure(sessionDataUuid: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
+  def check3DSecure(sessionData: SessionData, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = boTransactionHandler.find(transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException("")
@@ -481,7 +481,7 @@ class SystempayClient {
     val contractNumber: String = parametres("systempayContractNumber")
     val certificat: String = parametres("systempayCertificate")
 
-    transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.VERIFICATION_THREEDS, null)
+    transactionHandler.updateStatus(transactionUUID, None, TransactionStatus.VERIFICATION_THREEDS)
     var result: ThreeDSResult = ThreeDSResult(code = ResponseCode3DS.ERROR, url = null, method = null, mdName = null,
       mdValue = null, pareqName = null, pareqValue = null, termUrlName = null, termUrlValue = null)
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
@@ -535,7 +535,7 @@ class SystempayClient {
           pareqName = "PaReq",
           pareqValue = encodedPareq,
           termUrlName = "TermUrl",
-          termUrlValue = s"${Settings.Mogopay.EndPoint}systempay/3ds-callback/${sessionDataUuid}",
+          termUrlValue = s"${Settings.Mogopay.EndPoint}systempay/3ds-callback/${sessionData.uuid}",
           url = acsURL,
           method = "POST"
         )
@@ -562,7 +562,7 @@ class SystempayClient {
     } else {
       result = result.copy(code = ResponseCode3DS.INVALID)
     }
-    transactionHandler.updateStatus3DS(vendorId, transactionUUID, result.code, codeRetour)
+    transactionHandler.updateStatus3DS(transactionUUID, sessionData.ipAddress, result.code, codeRetour)
 
     result
   }
