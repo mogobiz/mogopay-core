@@ -75,7 +75,7 @@ class SystempayService extends Directives with DefaultComplete {
         session { session =>
           import Implicits._
 
-          handleCall(systempayHandler.callbackPayment(params),
+          handleCall(systempayHandler.callbackPayment(session.sessionData, params),
             (pr: PaymentResult) => complete(StatusCodes.OK, pr))
         }
       }

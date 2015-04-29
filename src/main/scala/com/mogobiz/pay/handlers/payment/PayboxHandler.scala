@@ -130,7 +130,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
         transactionHandler.finishPayment(vendorId, transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult, codeReponse)
+          paymentResult, codeReponse, sessionData.locale)
         finishPayment(sessionData, paymentResult)
       }
       else {
@@ -421,7 +421,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         }
         transactionHandler.finishPayment(vendorId, transactionUUID,
           if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult, errorCode)
+          paymentResult, errorCode, sessionData.locale)
         // We redirect the user to the merchant website
         Right(finishPayment(sessionData, paymentResult))
       }

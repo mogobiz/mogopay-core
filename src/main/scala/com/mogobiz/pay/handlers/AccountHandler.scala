@@ -105,7 +105,7 @@ case class AddressToAssignFromGetParams(road: String, city: String,
   }
 }
 
-case class SendNewPasswordParams(merchantId: String, email: String)
+case class SendNewPasswordParams(merchantId: String, email: String, locale: Option[String])
 
 case class AssignBillingAddress(accountId: String, address: AddressToAssignFromGetParams)
 
@@ -130,7 +130,7 @@ case class Signup(email: String, password: String, password2: String,
                   lastName: String, birthDate: String, address: AccountAddress,
                   withShippingAddress: Boolean,
                   isMerchant: Boolean, vendor: Option[String], company: Option[String],
-                  website: Option[String], validationUrl: String)
+                  website: Option[String], validationUrl: String, locale: Option[String])
 
 case class UpdateProfile(id: String, password: Option[(String, String)],
                          company: String, website: String, lphone: String, civility: String,
@@ -396,7 +396,7 @@ class AccountHandler {
     def sendNewPasswordEmail(account: Account, newPassword: String) = {
 
       val vendor = if (account.owner.isDefined) load(account.owner.get) else None
-      val template = templateHandler.loadTemplateByVendor(vendor, "new-password.mustache")
+      val template = templateHandler.loadTemplateByVendor(vendor, "new-password", req.locale)
 
       val paymentConfig  = vendor.get.paymentConfig.get
       val senderName = paymentConfig.senderName
@@ -999,10 +999,10 @@ class AccountHandler {
       // We voluntarily use get explicitly because it should never ever be null
       val merchant = getMerchant(owner.get)
         val paymentConfig  = merchant.get.paymentConfig.get
-      val senderName = paymentConfig.senderName
-      val senderEmail = paymentConfig.senderEmail
+      val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
+      val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
       if (needEmailValidation) {
-        sendConfirmationEmail(account, signup.validationUrl, token, senderName.getOrElse(s"${merchant.get.firstName} ${merchant.get.lastName}"), senderEmail.getOrElse(merchant.get.email))
+        sendConfirmationEmail(account, signup.validationUrl, token, senderName, senderEmail, signup.locale)
       }
     }
 
@@ -1038,9 +1038,9 @@ class AccountHandler {
   }
 
   private def sendConfirmationEmail(account: Account, validationUrl: String, token: String,
-                                    fromName: String, fromEmail: String): Unit = {
+                                    fromName: String, fromEmail: String, locale: Option[String]): Unit = {
     val vendor = if (account.owner.isDefined) load(account.owner.get) else None
-    val template = templateHandler.loadTemplateByVendor(vendor, "signup-confirmation.mustache")
+    val template = templateHandler.loadTemplateByVendor(vendor, "signup-confirmation", locale)
 
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 

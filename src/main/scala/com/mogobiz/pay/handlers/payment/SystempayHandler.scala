@@ -53,10 +53,10 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       var threeDSResult: ThreeDSResult = null
 
       if (sessionData.mogopay) {
-        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
         Right(finishPayment(sessionData, paymentResult))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
         if (paymentResult.data.nonEmpty) {
           Left(paymentResult.data)
         } else {
@@ -83,13 +83,13 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
             </html>"""
           Left(form)
         } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
-          val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+          val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
           Right(finishPayment(sessionData, paymentResult))
         } else {
           Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
         }
       } else {
-        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest)
+        val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
         Right(finishPayment(sessionData, paymentResult))
       }
     }
@@ -104,7 +104,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
-        handleResponse(params)
+        handleResponse(params, sessionData.locale)
       } else {
         PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
@@ -119,10 +119,10 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     finishPayment(sessionData, resultatPaiement)
   }
 
-  def callbackPayment(params: Map[String, String]): PaymentResult =
-    handleResponse(params)
+  def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult =
+    handleResponse(params, sessionData.locale)
 
-  private def handleResponse(params: Map[String, String]): PaymentResult = {
+  private def handleResponse(params: Map[String, String], locale: Option[String]): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -185,7 +185,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         transactionUUID,
         if (params("vads_result") == "00")
           TransactionStatus.PAYMENT_CONFIRMED
-        else TransactionStatus.PAYMENT_REFUSED, pr, params("vads_result"))
+        else TransactionStatus.PAYMENT_REFUSED, pr, params("vads_result"), locale)
       pr
     } else {
       throw InvalidSignatureException("Invalid signature")
@@ -243,7 +243,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
           buildURL(errorURL, map)
         case "Y" | "A" =>
-          val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq)
+          val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq, sessionData.locale)
           finishPayment(sessionData, resultatPaiement)
         case _ =>
           throw new InvalidContextException(s"Invalid status $status")
@@ -263,7 +263,7 @@ class SystempayClient {
   implicit val formats = new DefaultFormats {}
 
   def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-             paymentRequest: PaymentRequest): PaymentResult = {
+             paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
@@ -461,10 +461,10 @@ class SystempayClient {
 
       if (code == 0) {
         paymentResult = paymentResult.copy(status = PaymentStatus.COMPLETE)
-        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, "" + code)
+        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, "" + code, locale)
       } else {
         paymentResult = paymentResult.copy(status = PaymentStatus.FAILED)
-        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED, paymentResult, "" + code)
+        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED, paymentResult, "" + code, locale)
       }
     }
 

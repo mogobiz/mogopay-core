@@ -12,6 +12,7 @@ import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.utils.{SymmetricCrypt, GlobalUtil}
+import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
 
@@ -51,7 +52,7 @@ trait PaymentHandler {
         .paymentConfig
         .getOrElse(throw new PaymentConfigNotFoundException())
       val firstPayer: Account = tx.customer.getOrElse(throw new NoCustomerSetForTheBOTrasaction)
-      handleGroupPayment(payers, tx, merchantUUID, paymentConfig, firstPayer)
+      handleGroupPayment(payers, tx, merchantUUID, paymentConfig, firstPayer, sessionData.locale)
     }
 
     sessionData.finished = true
@@ -61,7 +62,7 @@ trait PaymentHandler {
   }
 
   private def handleGroupPayment(payers: Map[String, Long], firstPayerBOTx: BOTransaction, merchantId: String,
-                                 paymentConfig: PaymentConfig, firstPayer: Account): Unit = if (payers.size > 1) {
+                                 paymentConfig: PaymentConfig, firstPayer: Account, locale: Option[String]): Unit = if (payers.size > 1) {
     val groupTxUUID = firstPayerBOTx.uuid
     boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = Some(groupTxUUID)), refresh = false)
 
@@ -100,10 +101,10 @@ trait PaymentHandler {
         val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
         val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
 
-        val template = templateHandler.loadTemplateByVendor(Option(merchant), "group-payment.mustache")
+        val template = templateHandler.loadTemplateByVendor(Option(merchant), "group-payment", locale)
 
         val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
-        val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, country)
+        val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
 
         val amount = rateHandler.format(txReq.amount.toFloat / 100, txReq.currency.code, country).getOrElse(
           throw new RateNotFoundException(txReq.currency.code))

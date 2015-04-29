@@ -255,7 +255,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       sessionData.transactionUuid.getOrElse(""),
       if (status == PaymentStatus.COMPLETE) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
-      params("x_response_code"))
+      params("x_response_code"), sessionData.locale)
     finishPayment(sessionData, paymentResult)
   }
 
@@ -271,7 +271,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       transaction.errorMessageOrigin, "", "", Some(""), "")
 
     transactionHandler.finishPayment(sessionData.merchantId.getOrElse(""), sessionData.transactionUuid.getOrElse(""),
-      TransactionStatus.PAYMENT_REFUSED, paymentResult, "")
+      TransactionStatus.PAYMENT_REFUSED, paymentResult, "", sessionData.locale)
     finishPayment(sessionData, paymentResult)
   }
 }

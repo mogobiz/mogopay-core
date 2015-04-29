@@ -241,7 +241,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?,
         'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
         'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?, 'card_month.?, 'card_year.?,
-        'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
+        'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
         submitParams: SubmitParams =>
           val payersAmountsSum = submitParams.payers.values.sum
           if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
@@ -267,7 +267,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?).as(SubmitParams) {
+        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
         submitParams =>
           val session = SessionESDirectives.load(sessionUuid).get
           doSubmit(submitParams, session)

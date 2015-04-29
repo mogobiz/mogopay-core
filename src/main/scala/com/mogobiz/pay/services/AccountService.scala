@@ -617,13 +617,13 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
         'road :: ('road2 ?) :: ('extra ?) :: 'city :: 'zip_code :: 'admin1 :: 'admin2 :: 'country ::
         'is_merchant.as[Boolean] :: ('merchant_id ?) :: ('company ?) :: ('website ?) ::
-        'validation_url :: 'withShippingAddress.as[Boolean] :: HNil)
+        'validation_url :: 'withShippingAddress.as[Boolean] :: ('locale ?) :: HNil)
 
       fields.happly {
         case email :: password :: password2 :: lphone :: civility :: firstname ::
           lastname :: birthday :: road :: road2 :: extra :: city :: zipCode :: admin1 :: admin2 :: country ::
           isMerchant :: merchantId :: company :: website :: validationUrl ::
-          withShippingAddress :: HNil =>
+          withShippingAddress :: locale :: HNil =>
           val address = AccountAddress(
             civility = Some(Civility.withName(civility)),
             firstName = Some(firstname),
@@ -637,7 +637,6 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
             admin1 = Some(admin1),
             admin2 = Some(admin2)
           )
-
           val signup = Signup(
             email = email,
             password = password,
@@ -653,7 +652,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
             vendor = merchantId,
             company = company,
             website = website,
-            validationUrl = validationUrl
+            validationUrl = validationUrl,
+            locale = locale
           )
 
           import Implicits._

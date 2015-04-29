@@ -461,7 +461,8 @@ object Mogopay {
                          var id3d: Option[String] = None,
                          var payers: Map[String, Long] = Map(),
                          var groupTxUUID: Option[String] = None,
-                         var paymentRequest: Option[PaymentRequest] = None)
+                         var paymentRequest: Option[PaymentRequest] = None,
+                         var locale : Option[String] = None)
 }
 
 object TestApp extends App {

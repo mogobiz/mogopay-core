@@ -41,7 +41,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         customerEmail: Option[String], customerPassword: Option[String],
                         transactionDescription: Option[String], gatewayData: Option[String],
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
-                        ccStore: Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String]) {
+                        ccStore: Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String], locale: Option[String]) {
   def payers: Map[String, Long] = _payers.map { payers =>
     payers
       .split(",")
@@ -185,7 +185,7 @@ class TransactionHandler {
 
   // called by other handlers
   def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
-                    paymentResult: PaymentResult, returnCode: String): Unit = {
+                    paymentResult: PaymentResult, returnCode: String, locale: Option[String]): Unit = {
     val transaction = boTransactionHandler.find(transactionUUID)
       .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
 
@@ -202,26 +202,26 @@ class TransactionHandler {
     val tx = if (paymentResult.transactionDate != null) {
       val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
       boTransactionHandler.update(finalTrans, refresh = false)
-      notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse("{}"))
+      notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse("{}"), locale)
       finalTrans
     }
     else {
       boTransactionHandler.update(newTx, false)
-      notify(newTx.copy(extra = None), newTx.extra.getOrElse("{}"))
+      notify(newTx.copy(extra = None), newTx.extra.getOrElse("{}"), locale)
       newTx
     }
 
     Success()
   }
 
-  def notify(transaction: BOTransaction, jsonCart: String): Unit = {
+  def notify(transaction: BOTransaction, jsonCart: String, locale: Option[String]): Unit = {
     try {
       val jcart = parse(jsonCart)
       val jtransaction = Extraction.decompose(transaction)
       val json = jtransaction merge jcart
       val jsonString = compact(render(json))
       transaction.vendor.map { vendor =>
-        val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order.mustache")
+        val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order", locale)
         val (subject, body) = templateHandler.mustache(template, jsonString)
         EmailHandler.Send(
           Mail(
@@ -440,6 +440,7 @@ class TransactionHandler {
     sessionData.transactionType = transactionType
     sessionData.merchantId = Some(vendor.uuid)
     sessionData.paymentConfig = vendor.paymentConfig
+    sessionData.locale = submit.params.locale
     if (submit.params.customerEmail.isDefined) sessionData.email = submit.params.customerEmail
     sessionData.password = submit.params.customerPassword
 
@@ -541,8 +542,8 @@ class TransactionHandler {
     optTransaction match {
       case Some(transaction) => {
         if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
-          val jsonString = BOTransactionJsonTransform.transform(transaction, langCountry)
-          val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill.mustache")
+          val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(langCountry))
+          val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill", Some(langCountry))
           val (subject, body) = templateHandler.mustache(template, jsonString)
           pdfHandler.convertToPdf(pageFormat, body);
         }
@@ -647,13 +648,12 @@ class TransactionHandler {
 
 object BOTransactionJsonTransform {
 
-  def transform(transaction: BOTransaction, langCountry: String) = {
+  def transform(transaction: BOTransaction, locale: Locale) = {
     val json = Extraction.decompose(transaction)
-    transformJValue(json, langCountry)
+    transformJValue(json, locale)
   }
 
-  def transformJValue(jsonTransaction: JValue, langCountry: String) = {
-    val locale = LocaleUtils.toLocale(langCountry)
+  def transformJValue(jsonTransaction: JValue, locale: Locale) = {
     compact(render(jsonTransaction.transform(transformBOTransaction(locale))))
   }
 

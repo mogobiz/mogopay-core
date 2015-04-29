@@ -248,7 +248,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               gatewayTransactionId = transactionId,
               transactionCertificate = null
             )
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack)
+            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
             updatedPaymentResult
           } else {
             val errorCode = tuples.get("L_ERRORCODE0").orNull
@@ -261,7 +261,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
             )
 
             transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED,
-              paymentResult, null)
+              paymentResult, null, sessionData.locale)
 
             updatedPaymentResult
           }

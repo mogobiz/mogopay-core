@@ -66,7 +66,7 @@ class SipsService extends Directives with DefaultComplete {
       parameterMap { params =>
         session { session =>
           import Implicits._
-          handleCall(sipsHandler.callbackPayment(params, vendorUuid),
+          handleCall(sipsHandler.callbackPayment(session.sessionData, params, vendorUuid),
             (pr: PaymentResult) => complete(StatusCodes.OK, pr))
         }
       }
