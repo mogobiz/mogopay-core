@@ -260,6 +260,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
    * card_cvv
    */
   lazy val submit = path("submit") {
+    clientIP { ip =>
     post {
       formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?,
         'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
@@ -281,6 +282,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               }
             }
           }
+      }
       }
     }
   }

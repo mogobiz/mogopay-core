@@ -35,7 +35,7 @@ class TransactionHandlerSpec extends Specification with Before {
       "correctly parse the list payers" in {
         val payers = "foo@bar.com:100;a@b.c:1"
         val params = SubmitParams(null, null, null, null, null, null, -1L, null, null, null, null, null, null, null,
-          null, null, null, null, null, Some(payers), None)
+          null, null, null, null, null, Some(payers), None, None)
         params.payers.size must_==           2
         params.payers("foo@bar.com") must_== 100L
         params.payers("a@b.c") must_==       1L
