@@ -144,7 +144,7 @@ object Settings {
   object AuthorizeNet {
     val formAction = config.getString(s"authorizenet.$Env.formaction")
   }
-  
+
   object Jobs {
 
     object Interval {

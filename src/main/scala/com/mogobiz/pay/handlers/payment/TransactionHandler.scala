@@ -43,12 +43,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
                         ccStore: Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String], locale: Option[String]) {
   def payers: Map[String, Long] = _payers.map { payers =>
-    payers
-      .split(",")
-      .map { s =>
-      val split = s.split(":")
-      (split(0), split(1).toLong)
-    }.toMap
+    queryStringToMap(payers, sep = ",", elementsSep = ":").mapValues(_.toLong)
   }.getOrElse(Map())
 }
 
@@ -574,8 +569,10 @@ class TransactionHandler {
     cc_type = card_type
     cc_month = card_month
     cc_year = card_year
-    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else ""
-    val maskedCCNumber = hideStringExceptLastN(cc_num)
+//    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else ""
+//    val maskedCCNumber = hideStringExceptLastN(cc_num)
+    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else card_number
+    val maskedCCNumber = if (cc_num == null) null else hideStringExceptLastN(cc_num)
 
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
@@ -654,7 +651,8 @@ class TransactionHandler {
   def refund(merchantSecret: String, amount: Long, boTransactionUUID: String) {
     type Params = (PaymentConfig, BOTransaction)
     val handlers = Map(
-      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2))
+      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2)),
+      CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2))
     )
 
     val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
@@ -666,7 +664,8 @@ class TransactionHandler {
       throw new RefundNotSupportedException()
     }
 
-    handlers(paymentConfig.cbProvider)(paymentConfig, boTransaction) match {
+    val call = handlers.getOrElse(paymentConfig.cbProvider, throw new RefundNotSupportedException)
+    call(paymentConfig, boTransaction) match {
       case Success(_) => updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
       case Failure(t) => throw t
     }

@@ -257,6 +257,71 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
   private def buildURL(url: String, params: Map[String, String]) = url + "?" + mapToQueryString(params)
 
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+    def createPort() = {
+      val wsdlURL = new URL("https://paiement.systempay.fr/vads-ws/v3?wsdl")
+      val qname = new QName("http://v3.ws.vads.lyra.com/", "StandardWS")
+      val ss = new StandardWS(wsdlURL, qname)
+      ss.getStandardBeanPort
+    }
+
+    def createGregorianCalendar(date: Date = new Date): XMLGregorianCalendar = {
+      val gCalendar = new GregorianCalendar()
+      gCalendar.setTime(date)
+      DatatypeFactory.newInstance().newXMLGregorianCalendar(gCalendar)
+    }
+
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val certificat     = parameters("systempayCertificate")
+//    val contractNumber = parameters("systempayContractNumber")
+
+    val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
+      sep         = SystempayClient.QUERY_STRING_SEP,
+      elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP)
+
+    val shopId = parameters("systempayShopId")
+    val transmissionDate = createGregorianCalendar(new Date(previousTxInfo("transmissionDate").toLong))
+    val transactionId = previousTxInfo("transactionId")
+    val sequenceNb = previousTxInfo("sequenceNb").toInt
+    val ctxMode = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
+    val newTransactionId = "%06d".format(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid))
+    val amount = boTx.amount
+    val devise = boTx.currency.numericCode
+    val presentationDate = createGregorianCalendar()
+    val validationMode = 0 // 0 = automatic, 1 = manual
+    val comment = ""
+
+    val wssignature = SystempayUtilities.makeSignature(certificat, Seq(
+      shopId,
+      transmissionDate,//.toString,
+      transactionId,
+      sequenceNb,//.toString,
+      ctxMode,
+      newTransactionId,
+      amount,//.toString,
+      devise,//.toString,
+      presentationDate,//.toString,
+      validationMode,//.toString,
+      comment).asInstanceOf[Seq[String]].asJava)
+
+    val response = createPort().refund(
+      shopId,
+      transmissionDate,
+      transactionId,
+      sequenceNb,
+      ctxMode,
+      newTransactionId,
+      amount,
+      devise,
+      presentationDate,
+      validationMode,
+      comment,
+      wssignature)
+
+    println(response)
+    ???
+    //      Failure(new RefundException(s"Authorize.net message: ${response.getResponseCode.getCode} —  ${response.getResponseText}"))
+  }
 }
 
 class SystempayClient {
@@ -459,12 +524,30 @@ class SystempayClient {
         bankErrorMessage = Some(BankErrorCodes.getErrorMessage("%02d".format(info.getAuthResult)))
       )
 
+      val sep = SystempayClient.QUERY_STRING_SEP
+      val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
+      val gatewayData = Map(
+        "transmissionDate" -> payment.getTransmissionDate.toGregorianCalendar.getTime.getTime,
+        "transactionId"    -> payment.getTransactionId,
+        "sequenceNb"       -> paymentRequest.transactionSequence
+      ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
+
       if (code == 0) {
         paymentResult = paymentResult.copy(status = PaymentStatus.COMPLETE)
-        transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, "" + code, locale)
+        transactionHandler.finishPayment(transactionUUID,
+          TransactionStatus.PAYMENT_CONFIRMED,
+          paymentResult,
+          "" + code,
+          locale,
+          Some(gatewayData))
       } else {
         paymentResult = paymentResult.copy(status = PaymentStatus.FAILED)
-        transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_REFUSED, paymentResult, "" + code, locale)
+        transactionHandler.finishPayment(transactionUUID,
+          TransactionStatus.PAYMENT_REFUSED,
+          paymentResult,
+          "" + code,
+          locale,
+          Some(gatewayData))
       }
     }
 
@@ -569,6 +652,9 @@ class SystempayClient {
 }
 
 object SystempayClient {
+  val QUERY_STRING_SEP = "&"
+  val QUERY_STRING_ELEMENTS_SEP = "="
+
   def getExtendedMessage(code :Int): String =extendedErrorCodes.getOrElse(code, "")
 
   val extendedErrorCodes = Map[Int, String](
