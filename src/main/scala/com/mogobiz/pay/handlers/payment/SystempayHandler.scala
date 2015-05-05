@@ -273,7 +273,6 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val certificat     = parameters("systempayCertificate")
-//    val contractNumber = parameters("systempayContractNumber")
 
     val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
       sep         = SystempayClient.QUERY_STRING_SEP,
@@ -282,7 +281,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val shopId = parameters("systempayShopId")
     val transmissionDate = createGregorianCalendar(new Date(previousTxInfo("transmissionDate").toLong))
     val transactionId = previousTxInfo("transactionId")
-    val sequenceNb = previousTxInfo("sequenceNb").toInt
+    val sequenceNb = 1
     val ctxMode = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val newTransactionId = "%06d".format(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid))
     val amount = boTx.amount
@@ -293,15 +292,15 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val wssignature = SystempayUtilities.makeSignature(certificat, Seq(
       shopId,
-      transmissionDate,//.toString,
+      transmissionDate,
       transactionId,
-      sequenceNb,//.toString,
+      sequenceNb,
       ctxMode,
       newTransactionId,
-      amount,//.toString,
-      devise,//.toString,
-      presentationDate,//.toString,
-      validationMode,//.toString,
+      amount,
+      devise,
+      presentationDate,
+      validationMode,
       comment).asInstanceOf[Seq[String]].asJava)
 
     val response = createPort().refund(
@@ -318,9 +317,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       comment,
       wssignature)
 
-    println(response)
-    ???
-    //      Failure(new RefundException(s"Authorize.net message: ${response.getResponseCode.getCode} —  ${response.getResponseText}"))
+    if (response.getErrorCode != 0) {
+      Failure(new RefundException(s"Systempay's message: ${response.getErrorCode} —  ${SystempayClient.getExtendedMessage(response.getErrorCode)}"))
+    } else {
+      Success()
+    }
   }
 }
 
@@ -528,7 +529,7 @@ class SystempayClient {
       val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
       val gatewayData = Map(
         "transmissionDate" -> payment.getTransmissionDate.toGregorianCalendar.getTime.getTime,
-        "transactionId"    -> payment.getTransactionId,
+        "transactionId"    -> "%06d".format(paymentRequest.transactionSequence.toLong),//payment.getTransactionId,
         "sequenceNb"       -> paymentRequest.transactionSequence
       ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
 
