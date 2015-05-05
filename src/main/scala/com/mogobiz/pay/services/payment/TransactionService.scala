@@ -169,13 +169,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val initGroupPayment = path("init-group-payment") {
     import com.mogobiz.pay.implicits.Implicits._
 
-    def buildFormToSubmit(account: Account,
-                          transaction: TransactionRequest,
-                          groupTxUUID: String,
-                          transactionType: String) = {
+    def buildFormToSubmit(account: Account, transaction: TransactionRequest, groupTxUUID: String,
+                          transactionType: String, successURL: String, failureURL: String) = {
       val submitParams = Map(
-        "callback_success"   -> "http://success", // todo: quelle URL devra être utilisée?
-        "callback_error"     -> "http://failure",
+        "callback_success"   -> successURL,
+        "callback_error"     -> failureURL,
         "transaction_id"     -> transaction.uuid,
         "transaction_amount" -> transaction.amount.toString,
         "merchant_id"        -> account.owner.get,
@@ -200,11 +198,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       params { (token, transactionType) =>
         session { session =>
           handleCall(transactionHandler.initGroupPayment(token),
-            (result: (Account, TransactionRequest, String)) => {
+            (result: (Account, TransactionRequest, String, String, String)) => {
               ServicesUtil.authenticateSession(session, account = result._1)
 
               setSession(session) {
-                val form = buildFormToSubmit(result._1, result._2, result._3, transactionType)
+                val form = buildFormToSubmit(result._1, result._2, result._3, transactionType, result._4, result._5)
                 respondWithMediaType(MediaTypes.`text/html`) {
                   complete {
                     new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))

@@ -147,6 +147,10 @@ object Exceptions {
 
   case class NoReturnURLSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
+  case class NoExpirationTimeSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
+
+  case class NoGroupPaymentInfoSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
+
   case class NoCountrySpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
   case class RateNotFoundException(message: String) extends MogopayException(StatusCodes.NotFound, message)
@@ -156,4 +160,6 @@ object Exceptions {
   case class ANetTransactionIdNotFoundException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
   case class RefundException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
+
+  case class MissingGroupPaymentInfoValues() extends MogopayMessagelessException(StatusCodes.BadRequest)
 }

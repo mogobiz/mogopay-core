@@ -86,15 +86,17 @@ trait PaymentHandler {
       val txReq = transactionHandler.createTxReqForInit(account, params, Some(groupTxUUID))
       transactionRequestHandler.save(txReq, refresh = false)
 
+      val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
+
       val token = {
-        val expirationTime: Long = new Date((new Date).getTime + 7 * 24 * 3600 * 1000).getTime // todo make the time customizable
-        val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID"
+        val expirationTime: Long = new Date((new Date).getTime + groupPaymentInfo.expirationTime).getTime // todo make the time customizable
+        val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
         SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
       }
 
       if (Settings.Env == Environment.DEV) println(s"==== Group payment token: $token")
 
-      val url = paymentConfig.groupPaymentReturnURL.getOrElse(throw new NoReturnURLSpecifiedException)
+      val url = groupPaymentInfo.returnURLforNextPayers
       val uri = Uri(url).withQuery(("token", token))
 
       def sendEmail() {

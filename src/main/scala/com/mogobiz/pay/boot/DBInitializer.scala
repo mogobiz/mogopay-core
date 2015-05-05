@@ -220,7 +220,13 @@ object DBInitializer {
       cbMethod,
       "user_email", "user_password",
       senderName, senderEmail, None, passwordPattern,
-      groupPaymentReturnURL = Some("http://returnurl/"))
+      groupPaymentInfo = Some(GroupPaymentInfo(
+        returnURLforNextPayers = "http://returnurl/",
+        expirationTime = 7 * 24 * 3600 * 1000,
+        successURL = "http://successURL",
+        failureURL = "http://failureURL"
+      ))
+    )
   }
 
   private def createTransaction(uuid: String, transactionUuid: String, amount: Long, customer: Account, vendor: Account, extra: String) = {

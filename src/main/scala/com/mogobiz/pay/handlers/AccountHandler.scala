@@ -141,7 +141,9 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
                          payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam],
-                         kwixoParam: KwixoParam, groupPaymentReturnURL: Option[String])
+                         kwixoParam: KwixoParam, groupPaymentReturnURLforNextPayers: Option[String],
+                         groupPaymentExpirationTime: Option[Long], groupPaymentSuccessURL: Option[String],
+                         groupPaymentFailureURL: Option[String])
 
 case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
                               firstName: String, lastName: String, birthDate: String)
@@ -784,6 +786,13 @@ class AccountHandler {
           cbParam
         }
 
+        val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers, profile.groupPaymentExpirationTime,
+          profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
+          case (None, None, None, None)             => None
+          case (Some(a), Some(b), Some(c), Some(d)) => Some(GroupPaymentInfo(a, b, c, d))
+          case _                                    => throw new MissingGroupPaymentInfoValues
+        }
+
         val paymentConfig = PaymentConfig(
           paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
@@ -797,7 +806,7 @@ class AccountHandler {
           senderName = profile.senderName,
           callbackPrefix = profile.callbackPrefix,
           passwordPattern = profile.passwordPattern,
-          groupPaymentReturnURL = profile.groupPaymentReturnURL)
+          groupPaymentInfo = newGroupPaymentInfo)
 
         val newAccount = account.copy(
           password = password,

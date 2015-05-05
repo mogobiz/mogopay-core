@@ -43,7 +43,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
                         ccStore: Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String], locale: Option[String]) {
   def payers: Map[String, Long] = _payers.map { payers =>
-    queryStringToMap(payers, sep = ",", elementsSep = ":").mapValues(_.toLong)
+    queryStringToMap(payers, sep = ",", elementsSep = ":").mapValues(_.toLong).map(identity)
   }.getOrElse(Map())
 }
 
@@ -631,10 +631,10 @@ class TransactionHandler {
     )
   }
 
-  def initGroupPayment(token: String): (Account, TransactionRequest, String) = {
+  def initGroupPayment(token: String): (Account, TransactionRequest, String, String, String) = {
     val decryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
-    val (expirationDate, txUUID, customerUUID, groupTxUUID) = decryptedToken.split('|').toList match {
-      case a :: b :: c :: d :: Nil => (a, b, c, d)
+    val (expirationDate, txUUID, customerUUID, groupTxUUID, successURL, failureURL) = decryptedToken.split('|').toList match {
+      case a :: b :: c :: d :: e :: f :: Nil => (a, b, c, d, e, f)
       case _ => throw new InvalidTokenException("")
     }
 
@@ -645,7 +645,7 @@ class TransactionHandler {
     val txReq = transactionRequestHandler.find(txUUID).getOrElse(throw new BOTransactionNotFoundException(txUUID))
     val account = accountHandler.find(customerUUID).getOrElse(throw new AccountDoesNotExistException(""))
 
-    (account, txReq, groupTxUUID)
+    (account, txReq, groupTxUUID, successURL, failureURL)
   }
 
   def refund(merchantSecret: String, amount: Long, boTransactionUUID: String) {
