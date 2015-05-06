@@ -127,17 +127,11 @@ object Exceptions {
 
   case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)
 
-  case class NoSuccessURLProvided() extends MogopayMessagelessException(StatusCodes.InternalServerError) { // todo remove the return codes (they're not used anymore)
-    override def getMessage: String = "1"
-  }
+  case class NoSuccessURLProvided() extends MogopayMessagelessException(StatusCodes.InternalServerError)
 
-  case class NoResponseFromAuthorizeNetException() extends MogopayMessagelessException(StatusCodes.InternalServerError) {
-    override def getMessage: String = "2"
-  }
+  case class NoResponseFromAuthorizeNetException() extends MogopayMessagelessException(StatusCodes.InternalServerError)
 
-  case class AuthorizeNetErrorException(errorCode: String) extends MogopayException(StatusCodes.InternalServerError, errorCode) {
-    override def getMessage: String = errorCode
-  }
+  case class AuthorizeNetErrorException(errorCode: String) extends MogopayException(StatusCodes.InternalServerError, errorCode)
 
   case class MissingAuthorizeNetParamException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
