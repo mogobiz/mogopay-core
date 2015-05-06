@@ -6,18 +6,18 @@ import java.util.Date
 import javax.xml.namespace.QName
 import javax.xml.ws.{Binding, BindingProvider}
 
-import com.experian.payline.ws.impl.{DirectPaymentAPI, DirectPaymentAPI_Service, DoAuthorizationRequest, DoAuthorizationResponse, DoResetRequest, DoResetResponse, DoWebPaymentRequest, DoWebPaymentResponse, GetWebPaymentDetailsRequest, GetWebPaymentDetailsResponse, VerifyEnrollmentRequest, VerifyEnrollmentResponse, WebPaymentAPI, WebPaymentAPI_Service}
+import com.experian.payline.ws.impl._
 import com.experian.payline.ws.obj.{Authentication3DSecure, Authorization, Card, Order, Payment, Result, Transaction}
 import com.experian.payline.ws.wrapper.WebPayment
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.{NotAvailablePaymentGatewayException, InvalidContextException, MogopayError}
+import com.mogobiz.pay.exceptions.Exceptions.{TransactionIdNotFoundException, NotAvailablePaymentGatewayException, InvalidContextException, MogopayError}
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
-import com.mogobiz.utils.{NaiveHostnameVerifier, TrustedSSLFactory, GlobalUtil}
+import com.mogobiz.utils.{NaiveHostnameVerifier, TrustedSSLFactory}
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
@@ -29,6 +29,8 @@ import scala.util._
  * @see com.ebiznext.mogopay.payment.PaylinePaymentService
  */
 object PaylineHandler  {
+  val QUERY_STRING_SEP = "&"
+  val QUERY_STRING_ELEMENTS_SEP = "="
 
   def fromCreditCardType(`type`: CreditCardType): String = {
     var retour: String = "CB"
@@ -74,6 +76,7 @@ object PaylineHandler  {
   }
 
   val ACTION_AUTHORISATION_VALIDATION: String = "101"
+  val ACTION_REFUND: String = "421"
   val MODE_COMPTANT: String = "CPT"
   val ServiceName: QName = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
 }
@@ -235,7 +238,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
     boTransactionLogHandler.save(botlog, false)
 
-    val response: VerifyEnrollmentResponse = createProxy(transaction, parametres).verifyEnrollment(requete)
+    val response: VerifyEnrollmentResponse = createProxy(parametres).verifyEnrollment(requete)
     val result: Result = response.getResult
     val code: String = result.getCode
     logdata = ""
@@ -384,7 +387,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     requete.setCard(card)
     requete.setOrder(order)
     requete.setAuthentication3DSecure(authen)
-    val response: DoAuthorizationResponse = createProxy(transaction, parametres).doAuthorization(requete)
+    val response: DoAuthorizationResponse = createProxy(parametres).doAuthorization(requete)
     val result: Result = response.getResult
     logdata = ""
     logdata += "result.code=" + result.getCode
@@ -418,7 +421,6 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       token = null
     )
 
-
     paymentResult = if ("00000" == code) {
       val authorisation: Authorization = response.getAuthorization
       logdata += "&authorisation.number=" + authorisation.getNumber
@@ -442,7 +444,10 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     }
     transactionHandler.finishPayment(transactionUuid,
       if ("00000" == code) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-      paymentResult, code, locale)
+      paymentResult,
+      code,
+      locale,
+      Some(response.getTransaction.getId))
 
     val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid)
     boTransactionLogHandler.save(botlogIn, false)
@@ -463,7 +468,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
     boTransactionLogHandler.save(botlog, false)
 
-    val response: DoResetResponse = createProxy(transaction, parametres).doReset(requete)
+    val response: DoResetResponse = createProxy(parametres).doReset(requete)
     val result: Result = response.getResult
     logdata = ""
     logdata += "&result.code=" + result.getCode
@@ -482,7 +487,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       errorMessageOrigin = Option(result.getLongMessage))
   }
 
-  private def createProxy(transaction: BOTransaction, parametres: Map[String, String]): DirectPaymentAPI = {
+  private def createProxy(parametres: Map[String, String]): DirectPaymentAPI = {
     val accountId: String = parametres("paylineAccount")
     val cleAccess: String = parametres("paylineKey")
     val endpoint: String = Settings.Payline.DirectEndPoint
@@ -727,6 +732,29 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       paymentResult, result.getResult().getCode(), locale)
     paymentResult
   }
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
+      sep         = QUERY_STRING_SEP,
+      elementsSep = QUERY_STRING_ELEMENTS_SEP)
+
+    val payment = new Payment
+    payment.setAmount(boTx.amount.toString)
+    payment.setCurrency(boTx.currency.numericCode.toString)
+    payment.setAction(ACTION_REFUND)
+    payment.setMode(MODE_COMPTANT)
+    payment.setContractNumber(parameters("paylineContract"))
+
+    val request = new DoRefundRequest
+    request.setVersion("3")
+    request.setTransactionID(boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException))//previousTxInfo("transactionId"))
+    request.setPayment(payment)
+
+    val response = createProxy(parameters).doRefund(request)
+    val result = response.getResult
+
+    Success()
+  }
 }
-
-

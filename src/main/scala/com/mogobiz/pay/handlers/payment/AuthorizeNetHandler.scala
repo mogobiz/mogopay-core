@@ -290,7 +290,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val merchant = Merchant.createMerchant(Environment.SANDBOX,
       apiLoginID, transactionKey)
 
-    val anetTransactionId = boTx.gatewayData.getOrElse(throw new ANetTransactionIdNotFoundException)
+    val anetTransactionId = boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException)
     val creditCard = CreditCard.createCreditCard()
     creditCard.setCreditCardNumber(boTx.creditCard.get.number.substring(9))
 //    creditCard.setExpirationMonth("12")

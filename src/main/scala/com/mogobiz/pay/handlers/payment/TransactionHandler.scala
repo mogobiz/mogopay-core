@@ -652,13 +652,18 @@ class TransactionHandler {
     type Params = (PaymentConfig, BOTransaction)
     val handlers = Map(
       CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2)),
-      CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2))
+      CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2)),
+      CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2))
     )
 
     val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
     val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException)
     val boTransaction = boTransactionHandler.find(boTransactionUUID).getOrElse(
       throw new BOTransactionNotFoundException(boTransactionUUID))
+
+    if (boTransaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
+      throw new PaymentAlreadyRefundedException()
+    }
 
     if (boTransaction.paymentData.cbProvider == CBPaymentProvider.NONE) {
       throw new RefundNotSupportedException()
