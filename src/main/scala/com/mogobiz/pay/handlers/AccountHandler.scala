@@ -921,10 +921,9 @@ class AccountHandler {
       throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
     }
 
-    // TODO
-    //    if (alreadyExistCompany(signup.company.orNull, owner)) {
-    //      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
-    //    }
+    if (alreadyExistCompany(signup.company.orNull, owner)) {
+      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
+    }
 
     val birthdate = getBirthDayDate(signup.birthDate)
     val civility = Civility.withName(signup.civility)
