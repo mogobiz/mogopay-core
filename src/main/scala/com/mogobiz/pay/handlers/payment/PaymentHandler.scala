@@ -89,7 +89,7 @@ trait PaymentHandler {
       val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
 
       val token = {
-        val expirationTime: Long = new Date((new Date).getTime + groupPaymentInfo.expirationTime).getTime // todo make the time customizable
+        val expirationTime: Long = new Date((new Date).getTime + groupPaymentInfo.expirationTime).getTime
         val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
         SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
       }
