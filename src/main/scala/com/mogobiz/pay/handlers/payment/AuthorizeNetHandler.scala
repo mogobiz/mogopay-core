@@ -307,12 +307,16 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       .asInstanceOf[net.authorize.Result[Transaction]]
 
     val response = result.asInstanceOf[aim.Result[Transaction]]
-    if (response.getResponseCode.getCode == 1)
+    if (response.getResponseCode.getCode == 1) {
       Success()
-    else
+    } else {
     // Todo: Replace Success by Failure
-      Success()
-//      Failure(new RefundException(s"Authorize.net message: ${response.getResponseCode.getCode} —  ${response.getResponseText}"))
+      //Success()
+      val responseCode = response.getResponseCode.getCode
+      val reasonResponseCode = response.getReasonResponseCode.getResponseReasonCode
+      val responseText = response.getResponseText
+      Failure(new RefundException(s"Authorize.net message: $responseCode-$reasonResponseCode —  $responseText"))
+    }
   }
 }
 
