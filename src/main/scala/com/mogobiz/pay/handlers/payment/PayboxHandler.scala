@@ -320,7 +320,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
                   <head>
                   </head>
                   <body>
-                <FORM id="formpaybox" ACTION = "${action}" METHOD="POST">
+                <FORM id="formpaybox" ACTION = "$action" METHOD="POST">
                   <INPUT TYPE="hidden" NAME ="IdMerchant" VALUE = "${IdMerchant}"><br>
                   <INPUT TYPE="hidden" NAME ="IdSession" VALUE = "${IdSession}"><br>
                   <INPUT TYPE="hidden" NAME ="Amount" VALUE = "${Amount}"><br>
@@ -421,7 +421,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         }
         transactionHandler.finishPayment(transactionUUID,
           if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult, errorCode, sessionData.locale)
+          paymentResult,
+          errorCode,
+          sessionData.locale,
+          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
         Right(finishPayment(sessionData, paymentResult))
       }
@@ -491,6 +494,34 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     else {
       throw InvalidContextException( s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
     }
+  }
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val gatewayData = GlobalUtil.queryStringToMap(boTx.gatewayData.getOrElse(""))
+
+    val query: Map[String, String] = Map(
+      "VERSION" -> (if (parameters("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"),
+      "SITE" -> parameters("payboxSite"),
+      "TYPE" -> "00014", // 00014 for refund
+      "RANG" -> parameters("payboxRank"),
+      "CLE" -> parameters("payboxKey"),
+      "NUMQUESTION" -> transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid).toString.format("%010d"),// String.format("%010d", (Seq(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid)).toArray:_*)),
+      "MONTANT" -> boTx.amount.toString,
+      "DEVISE" -> boTx.currency.numericCode.toString,
+      "REFERENCE" -> (boTx.vendor.get.uuid + "--" + boTx.uuid),
+      "NUMTRANS" -> gatewayData("NUMTRANS"),
+      "NUMAPPEL" -> gatewayData("NUMAPPEL"),
+      "ACTIVITE" -> "024", // 024 is the default value
+      "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date())
+    )
+
+    val uri = Uri(Settings.Paybox.DirectEndPoint)
+    val post = Post(uri).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query)))
+    val successResponse = Await.result(pipeline(post), Duration.Inf)
+
+    Success()
   }
 }
 

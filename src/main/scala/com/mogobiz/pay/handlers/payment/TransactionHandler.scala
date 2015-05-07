@@ -653,7 +653,8 @@ class TransactionHandler {
     val handlers = Map(
       CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2)),
       CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2)),
-      CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2))
+      CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2)),
+      CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2))
     )
 
     val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
