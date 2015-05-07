@@ -13,7 +13,7 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.{TransactionIdNotFoundException, NotAvailablePaymentGatewayException, InvalidContextException, MogopayError}
+import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
@@ -736,10 +736,6 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
   def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
-    val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
-      sep         = QUERY_STRING_SEP,
-      elementsSep = QUERY_STRING_ELEMENTS_SEP)
-
     val payment = new Payment
     payment.setAmount(boTx.amount.toString)
     payment.setCurrency(boTx.currency.numericCode.toString)
@@ -749,12 +745,17 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
     val request = new DoRefundRequest
     request.setVersion("3")
-    request.setTransactionID(boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException))//previousTxInfo("transactionId"))
+    request.setTransactionID(boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException))
     request.setPayment(payment)
 
     val response = createProxy(parameters).doRefund(request)
-    val result = response.getResult
 
-    Success()
+    if (response.getResult.getCode == "00000") {
+      Success()
+    } else {
+      val code = response.getResult.getCode
+      val longMessage = response.getResult.getLongMessage
+      Failure(new RefundException(s"Payline's message: $code — $longMessage"))
+    }
   }
 }

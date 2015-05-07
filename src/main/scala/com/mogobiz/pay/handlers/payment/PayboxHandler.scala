@@ -13,7 +13,7 @@ import akka.util.Timeout
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
+import com.mogobiz.pay.exceptions.Exceptions.{RefundException, InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.TransactionStatus
@@ -507,7 +507,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       "TYPE" -> "00014", // 00014 for refund
       "RANG" -> parameters("payboxRank"),
       "CLE" -> parameters("payboxKey"),
-      "NUMQUESTION" -> transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid).toString.format("%010d"),// String.format("%010d", (Seq(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid)).toArray:_*)),
+      "NUMQUESTION" -> transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid).toString.format("%010d"),
       "MONTANT" -> boTx.amount.toString,
       "DEVISE" -> boTx.currency.numericCode.toString,
       "REFERENCE" -> (boTx.vendor.get.uuid + "--" + boTx.uuid),
@@ -519,9 +519,14 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     val uri = Uri(Settings.Paybox.DirectEndPoint)
     val post = Post(uri).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query)))
-    val successResponse = Await.result(pipeline(post), Duration.Inf)
+    val response = Await.result(pipeline(post), Duration.Inf)
 
-    Success()
+    val result = GlobalUtil.queryStringToMap(response.entity.data.asString)
+    if (result("CODEREPONSE") == "00000") {
+      Success()
+    } else {
+      Failure(new RefundException(s"Paybox's message: $result"))
+    }
   }
 }
 
