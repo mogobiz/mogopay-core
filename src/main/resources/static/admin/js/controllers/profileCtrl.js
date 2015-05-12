@@ -18,7 +18,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			$("#authorizeNetLogin").attr("required", "required");
 		else
 			$("#authorizeNetLogin").removeAttr("required");
-	})
+	});
 
 	//Main Variables
 	var minBirthDate = new Date();
@@ -71,7 +71,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		{"value": "THREEDS_REQUIRED", "name": "Require customer card to be enrolled for 3DSecure"}
 	];
 	$scope.creditCardModeModel = null;
-	// TODO
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.paymentMethod) {
 		switch($rootScope.userProfile.account.paymentConfig.paymentMethod.name) {
 			case "EXTERNAL":$scope.creditCardModeModel = $scope.creditCardModeOptions[0];break;
@@ -83,27 +82,24 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	}
 
 	//Card Provider
-	$scope.creditCardProviderOptions = [
-		{"value": "NONE", "name": "NONE"},
-		{"value": "PAYLINE", "name": "PAYLINE"},
-		{"value": "PAYBOX", "name": "PAYBOX"},
-		{"value": "SIPS", "name": "SIPS"},
-		{"value": "SYSTEMPAY", "name": "SYSTEMPAY"},
-		{"value": "AUTHORIZENET", "name": "AUTHORIZENET"}
-	];
+	$scope.creditCardProviderOptions = providersList; // see providersList.js
 	$scope.creditCardProviderModel = null;
+	$scope.creditCardProviderTemplate = "";
 
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.cbProvider) {
-		switch($rootScope.userProfile.account.paymentConfig.cbProvider.name) {
-			case "NONE":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[0];break;
-			case "PAYLINE":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[1];break;
-			case "PAYBOX":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[2];break;
-			case "SIPS":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[3];break;
-			case "SYSTEMPAY":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[4];break;
-			case "AUTHORIZENET":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[5];break;
+		switch($rootScope.userProfile.account.paymentConfig.cbProvider.name.toLowerCase()) {
+			case "none":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[0];break;
+			case "payline":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[1];break;
+			case "paybox":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[2];break;
+			case "sips":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[3];break;
+			case "systempay":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[4];break;
+			case "anet":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[5];break;
 			default:break;
 		}
+		if($scope.creditCardProviderModel && $scope.creditCardProviderModel.value.toLowerCase() != "none")
+			$scope.creditCardProviderTemplate = "partials/providers/" + $scope.creditCardProviderModel.value + ".html";
 	}
+	$scope.creditCardProviderChange = function () {creditCardProviderChange($scope, $location, $rootScope, $route)};
 
 	//Paybox Contract
 	$scope.payboxContractTypeOptions = [
@@ -222,12 +218,12 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 
 	$scope.saveProfile = function () {setTimeout(function () {saveProfile($scope, $location, $rootScope, $route);}, 250);};
 
-	$scope.addCard = function () {profileAddCreditCard($scope, $location, $rootScope, $route)};
-	$scope.updateCard = function (index) {profileUpdateCreditCard($scope, $location, $rootScope, $route, index)};
-	$scope.deleteCard = function (index) {profileDeleteCreditCard($scope, $location, $rootScope, $route, index)};
+	$scope.addCard = function () {profileAddCreditCard($scope, $location, $rootScope, $route);};
+	$scope.updateCard = function (index) {profileUpdateCreditCard($scope, $location, $rootScope, $route, index);};
+	$scope.deleteCard = function (index) {profileDeleteCreditCard($scope, $location, $rootScope, $route, index);};
 
-	$("#sipsCetificateFile").change(function (evt) {sipsCetificateFileChangeContent(evt, $scope, $location, $rootScope, $route);});
-	$("#sipsParcomFile").change(function (evt) {sipsParcomFileChangeContent(evt, $scope, $location, $rootScope, $route);});
+	$scope.sipsCetificateFileChangeContent = function(evt) {sipsCetificateFileChangeContent(evt, $scope, $location, $rootScope, $route);};
+	$scope.sipsParcomFileChangeContent = function(evt) {sipsParcomFileChangeContent(evt, $scope, $location, $rootScope, $route);};
 
 	function luhn10(a,b,c,d,e) {
 		if(a == "")
@@ -242,18 +238,15 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.userUUID = response.uuid;
 			scope.$apply();
 		}
-		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
-		callServer("account/generate-new-secret", dataToSend, success, function () {})
+		callServer("account/generate-new-secret", "", success, function () {})
 	}
 
 	function profileResendMailConfirmation(scope, location, rootScope, route) {
-		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
-		callServer("account/generateNewEmailCode", dataToSend, function (response) {}, function (response) {});
+		callServer("account/generateNewEmailCode", "", function (response) {}, function (response) {});
 	}
 
 	function profileResendPhoneValidation(scope, location, rootScope, route) {
-		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
-		callServer("account/generateNewPhoneCode", dataToSend, function (response) {}, function (response) {});
+		callServer("account/generateNewPhoneCode", "", function (response) {}, function (response) {});
 	}
 
 	function profileCheckPhoneNumberForCountry(scope, location, rootScope, route) {
@@ -400,7 +393,15 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		}
 	}
 
-// CREDIT CARD FUNCTIONS
+// CREDIT CARD PROVIDER FUNCTION
+	function creditCardProviderChange(scope, location, rootScope, route){
+		if(scope.creditCardProviderModel.value == "none")
+			scope.creditCardProviderTemplate = "";
+		else
+			scope.creditCardProviderTemplate = "partials/providers/" + scope.creditCardProviderModel.value + ".html";
+	}
+
+// PERSONAL CARDS FUNCTIONS
 	function profileAddCreditCard(scope, location, rootScope, route) {
 		if (scope.personalCardTypeModel.value == "") {
 			showAlertBootStrapMsg("warning", "Please choose a type !");
@@ -450,7 +451,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.$apply();
 		};
 
-		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
+		var dataToSend = "";
 		dataToSend += "&type=" + scope.personalCardTypeModel.value;
 		dataToSend += "&number=" + $("#personalCardNumber").val();
 		dataToSend += "&holder=" + $("#personalCardHolderName").val();
@@ -474,7 +475,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		var success = function (response) {
 			scope.$apply();
 		};
-		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
+		var dataToSend = "";
 		dataToSend += "&card_id=" + scope.creditCards[index].uuid;
 		dataToSend += "&type=" + scope.personalCardsTypeModel[index].value;
 		dataToSend += "&holder=" + $("#personalCardHolderName-" + index).val();
@@ -489,7 +490,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.personalCardsTypeModel.splice(index, 1);
 			scope.$apply();
 		};
-		var dataToSend = "";//"xtoken=" + rootScope.xtoken;
+		var dataToSend = "";
 		dataToSend += "&card_id=" + scope.creditCards[index].uuid;
 		callServer("account/delete-credit-card", dataToSend, success, function (response) {});
 	}
@@ -514,7 +515,17 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 
 	function getProfileFormData(scope, location, rootScope, route) {
 		var data = "";
-
+		data += "lphone=" + $("#profilePhoneNumber").val();
+		data += "&civility=" + scope.profileCivilityModel.value;
+		data += "&firstname=" + $("#profileFirstName").val();
+		data += "&lastname=" + $("#profileLastName").val();
+		data += "&birthday=" + $("#profileBirthDate").val();
+		data += "&country=" + scope.profileCountriesModel.code;
+		data += "&admin1=" + ((scope.profileStateModel != "") ? scope.profileStateModel.code : "");
+		data += "&admin2=" + ((scope.profileRegionModel != "") ? scope.profileRegionModel.code : "");
+		data += "&city=" + $("#profileCity").val();
+		data += "&road=" + $("#profileRoad").val();
+		data += "&zip_code=" + $("#profilePostalCode").val();
 		if(rootScope.createPage) {
 			data += "&password=" + $("#profilePassword").val();
 			data += "&password2=" + $("#profileConfirmPassword").val();
@@ -526,37 +537,27 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		else{ // TO BE DELETED
 			data += "&company=CustomerCompany"; // TO BE DELETED
 		} // TO BE DELETED
-		data += "&lphone=" + $("#profilePhoneNumber").val();
-		data += "&civility=" + scope.profileCivilityModel.value;
-		data += "&firstname=" + $("#profileFirstName").val();
-		data += "&lastname=" + $("#profileLastName").val();
-		data += "&birthday=" + $("#profileBirthDate").val();
-		data += "&country=" + scope.profileCountriesModel.code;
-		data += "&admin1=" + ((scope.profileStateModel != "") ? scope.profileStateModel.code : "");
-		data += "&admin2=" + ((scope.profileRegionModel != "") ? scope.profileRegionModel.code : "");
-		data += "&city=" + $("#profileCity").val();
-		data += "&road=" + $("#profileRoad").val();
-		data += "&zip_code=" + $("#profilePostalCode").val();
 
 		if (rootScope.isMerchant) {
 			data += "&payment_method=" + scope.creditCardModeModel.value;
-			data += "&cb_provider=" + ((scope.creditCardProviderModel != "") ? scope.creditCardProviderModel.value : "");
+			data += "&cb_provider=" + ((scope.creditCardProviderModel != null) ? scope.creditCardProviderModel.value : "");
+
 			switch (scope.creditCardProviderModel.value) {
-				case "PAYLINE":
+				case "payline":
 					data += "&payline_account=" + $("#paylineAccount").val();
 					data += "&payline_key=" + $("#paylineKey").val();
 					data += "&payline_contract=" + $("#paylineContract").val();
 					data += "&payline_custom_payment_page_code=" + $("#paylineCustomPageCode").val();
 					data += "&payline_custom_payment_template_url=" + $("#paylineTemplateURL").val();
 					break;
-				case "PAYBOX":
+				case "paybox":
 					data += "&paymentProviderParam.payboxContract=" + ((scope.payboxContractTypeModel != "") ? scope.payboxContractTypeModel.value : "");
 					data += "&paybox_site=" + $("#payboxSite").val();
 					data += "&paybox_key=" + $("#payboxKey").val();
 					data += "&paybox_rank=" + $("#payboxContract").val();
 					data += "&paybox_merchant_id=" + $("#payboxMerchantId").val();
 					break;
-				case "SIPS":
+				case "sips":
 					data += "&sips_merchant_id=" + $("#sipsMerchantId").val();
 					data += "&sips_merchant_country=" + $("#sipsCountry").val();
 					data += "&sips_merchant_certificate_file_name=" + scope.sipsCetificateFileName;
@@ -565,7 +566,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 					data += "&sips_merchant_parcom_file_content=" + scope.sipsParcomFileContent;
 					data += "&sips_merchant_logo_path=" + $("#sipsLogoPath").val();
 					break;
-				case "SYSTEMPAY":
+				case "systempay":
 					data += "&systempay_shop_id=" + $("#systempayShopId").val();
 					data += "&systempay_contract_number=" + $("#systempayContract").val();
 					data += "&systempay_certificate=" + $("#systempayCertificate").val();
@@ -598,11 +599,24 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				data += "&sender_name=" + $("#emailInfoSenderName").val();
 			}
 		}
-
 		return data;
 	}
 
 	function validateProfileForm(scope, location, rootScope, route) {
+		
+			var inputs = $("#creditCardForm input");
+			for(var i = 0; i < inputs.length; i++){
+				if(!$(inputs[i])[0].checkValidity()){
+					$(".nav-tabs a[data-target='#creditCard']").tab("show");
+					$(inputs[i]).focus();
+					showAlertBootStrapMsg("warning", $(inputs[i]).attr("errorMessage"));
+					return false;
+				}
+			}
+		
+		
+		
+		
 		if($("#profileEmail").val() == "" || $("#profileCompanyName").val() == "" || $("#profileWebsite").val() == "" || $("#profilePhoneNumber").val() == ""
 			|| $("#profileFirstName").val() == "" || $("#profileLastName").val() == "" || $("#profileBirthDate").val() == ""
 			|| !scope.profileCountriesModel || scope.profileCountriesModel == "" || $("#profileCity").val() == "" || $("#profileRoad").val() == ""
@@ -614,18 +628,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		if(rootScope.createPage) {
 			if($("#profilePassword").val() == "" || $("#profileConfirmPassword").val() == "" || $("#captchaText").val() == "") {
 				$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-				showAlertBootStrapMsg("warning", "Please fill all required fields");
-				return false;
-			}
-		}
-		if(rootScope.isMerchant) {
-			if(!scope.creditCardModeModel || scope.creditCardModeModel == "") {
-				$(".nav-tabs a[data-target='#creditCard']").tab("show");
-				showAlertBootStrapMsg("warning", "Please fill all required fields");
-				return false;
-			}
-			if(!scope.creditCardProviderModel || scope.creditCardProviderModel == "") {
-				$(".nav-tabs a[data-target='#creditCard']").tab("show");
 				showAlertBootStrapMsg("warning", "Please fill all required fields");
 				return false;
 			}
@@ -663,11 +665,33 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			return false;
 		}
 		if(rootScope.isMerchant) {
-			if(scope.creditCardProviderModel != "" && scope.creditCardProviderModel.value == "PAYLINE" && !$("#paylineTemplateURL")[0].checkValidity()) {
+			if(!scope.creditCardModeModel || scope.creditCardModeModel == "") {
 				$(".nav-tabs a[data-target='#creditCard']").tab("show");
-				$("#paylineTemplateURL").focus();
-				showAlertBootStrapMsg("warning", "Invalid URL!");
+				showAlertBootStrapMsg("warning", "Please fill all required fields");
 				return false;
+			}
+			if(!scope.creditCardProviderModel || scope.creditCardProviderModel == "") {
+				$(".nav-tabs a[data-target='#creditCard']").tab("show");
+				showAlertBootStrapMsg("warning", "Please fill all required fields");
+				return false;
+			}
+			var inputs = $("#creditCardForm input");
+			for(var i = 0; i < inputs.length; i++){
+				if(!$(inputs[i])[0].checkValidity()){
+					$(".nav-tabs a[data-target='#creditCard']").tab("show");
+					$(inputs[i]).focus();
+					showAlertBootStrapMsg("warning", $(inputs[i]).attr("errorMessage"));
+					return false;
+				}
+			}
+			var selects = $("#creditCardForm select");
+			for(var i = 0; i < selects.length; i++){
+				if(!$(selects[i])[0].checkValidity()){
+					$(".nav-tabs a[data-target='#creditCard']").tab("show");
+					$(selects[i]).focus();
+					showAlertBootStrapMsg("warning", $(selects[i]).attr("errorMessage"));
+					return false;
+				}
 			}
 			if(!$("#authorizeNetLogin")[0].checkValidity()){
 				$(".nav-tabs a[data-target='#authorize']").tab("show");

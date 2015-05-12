@@ -198,7 +198,7 @@
 		</fieldset>
 	</div>
 	<div class="tab-pane" id="creditCard">
-		<form role="form" class="form-horizontal">
+		<div class="form-horizontal">
 			<div class="form-group">
 				<div style="padding:0px 3px;">
 					<label for="creditCardMode">Payment Mode</label>
@@ -212,180 +212,13 @@
 					<label for="creditCardProvider">Provider</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<select id="creditCardProvider" required class="form-control" ng-model="creditCardProviderModel" ng-options="obj.name for obj in creditCardProviderOptions"></select>
+					<select id="creditCardProvider" required class="form-control" ng-model="creditCardProviderModel" ng-options="obj.name for obj in creditCardProviderOptions" ng-change="creditCardProviderChange();"></select>
 				</div>
 			</div>
-			<div ng-show="creditCardProviderModel.value=='PAYLINE'">
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="paylineAccount">Account</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="paylineAccount" placeholder="Account" value="{{cbParam.paylineAccount}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="paylineKey">Key</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="paylineKey" placeholder="Key" value="{{cbParam.paylineKey}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="paylineContract">Contract</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="paylineContract" placeholder="Contract" value="{{cbParam.paylineContract}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="paylineCustomPageCode">Custom Page Code</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="paylineCustomPageCode" placeholder="Custom Page Code" value="{{cbParam.paylineCustomPaymentPageCode}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="paylineTemplateURL">Custom Template URL</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="paylineTemplateURL" placeholder="Custom Template URL" value="{{cbParam.paylineCustomPaymentTemplateURL}}" pattern="https?://.+" />
-					</div>
-				</div>
-			</div>
-			<div ng-show="creditCardProviderModel.value=='PAYBOX'">
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="payboxContractType">Contract Type</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<select id="payboxContractType" class="form-control" ng-model="payboxContractTypeModel" ng-options="obj.name for obj in payboxContractTypeOptions"></select>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="payboxSite">Site</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="payboxSite" placeholder="Site" value="{{cbParam.payboxSite}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="payboxKey">Key</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="payboxKey" placeholder="Key" value="{{cbParam.payboxKey}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="payboxContract">Contract</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="payboxContract" placeholder="Contract" value="{{cbParam.payboxRank}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="payboxMerchantId">Merchant Id / HMAC Key</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="payboxMerchantId" placeholder="Merchant Id / HMAC Key" value="{{cbParam.payboxMerchantId}}"/>
-					</div>
-				</div>
-			</div>
-			<div ng-show="creditCardProviderModel.value=='SIPS'">
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="sipsMerchantId">Id</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="sipsMerchantId" placeholder="Id" value="{{cbParam.sipsMerchantId}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="sipsCountry">Country</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="sipsCountry" placeholder="Country" value="{{cbParam.sipsMerchantCountry}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="sipsCetificateFile">{{sipsCetificateFileLabel}}</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input id="sipsCetificateFile" type="file"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="sipsParcomFile">{{sipsParcomFileLabel}}</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input id="sipsParcomFile" type="file"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="sipsLogoPath">Logo Path</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="sipsLogoPath" placeholder="Logo Path" value="{{cbParam.sipsMerchantLogoPath}}"/>
-					</div>
-				</div>
-			</div>
-			<div ng-show="creditCardProviderModel.value=='SYSTEMPAY'">
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="systempayShopId">Shop Id</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="systempayShopId" placeholder="Shop Id" value="{{cbParam.systempayShopId}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="systempayContract">Contract</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="systempayContract" placeholder="Contract" value="{{cbParam.systempayContractNumber}}"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<div style="padding:0px 3px;">
-						<label for="systempayCertificate">Certificate</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<!--TODO-->
-						<input type="text" class="form-control" id="systempayCertificate" placeholder="Certificate" value="{{cbParam.systempayCertificate}}"/>
-					</div>
-				</div>
-			</div>
-			<div ng-show="creditCardProviderModel.value=='AUTHORIZENET'">
-				Make sure you have the right information in the <a href="javascript:void(0)" ng-click="activateAutorizeTab();">authorize</a></li> tab
-			</div>
-		</form>
+			<form role="form" id="creditCardForm">
+				<ng-include src="creditCardProviderTemplate"></ng-include>
+			</form>
+		</div>
 	</div>
 	<div class="tab-pane" id="paypal">
 		<form role="form" class="form-horizontal">
@@ -422,7 +255,6 @@
 					<label for="kwixoParams">Params</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<!--TODO-->
 					<input type="text" class="form-control" id="kwixoParams" placeholder="Params" value="{{userProfile.account.paymentConfig.kwixoParam}}"/>
 				</div>
 			</div>
@@ -471,7 +303,6 @@
 					<label for="authCallbackdomainField">Callback domain Field</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<!--TODO-->
 					<input type="text" class="form-control" id="authCallbackdomainField" placeholder="Callback domain Field" value="{{userProfile.callbackPrefix}}"/>
 				</div>
 			</div>

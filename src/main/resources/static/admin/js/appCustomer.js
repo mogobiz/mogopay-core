@@ -37,3 +37,13 @@ mogopay.value("ngI18nConfig", {
     //default is false
     cache:true
 });
+
+mogopay.directive('ngFileChange', function() {
+	return {
+		restrict: 'A',
+		link: function (scope, element, attrs) {
+			var onChangeHandler = scope.$eval(attrs.ngFileChange);
+			element.bind('change', function(evt){onChangeHandler.call(this, evt);});
+		}
+	};
+});
