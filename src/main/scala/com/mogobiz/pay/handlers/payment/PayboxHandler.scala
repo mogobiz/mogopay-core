@@ -399,7 +399,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
         tuples.foreach(println)
         val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples))
-        boTransactionLogHandler.save(botlog, false)
+        boTransactionLogHandler.save(bolog, false)
         val errorCode = tuples.getOrElse("CODEREPONSE", "")
         val errorMessage = tuples.get("COMMENTAIRE")
         paymentResult = paymentResult.copy(
