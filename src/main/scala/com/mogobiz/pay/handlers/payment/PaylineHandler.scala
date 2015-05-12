@@ -17,7 +17,7 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
-import com.mogobiz.utils.{NaiveHostnameVerifier, TrustedSSLFactory}
+import com.mogobiz.utils.{GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory}
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
@@ -748,7 +748,33 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     request.setTransactionID(boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException))
     request.setPayment(payment)
 
+    val queryOUT = Map(
+      "amount"        -> payment.getAmount,
+      "currency"      -> payment.getCurrency,
+      "action"        -> payment.getAction,
+      "mode"          -> payment.getMode,
+      "contactNumber" -> payment.getContractNumber,
+      "version"       -> request.getVersion,
+      "transactionID" -> request.getTransactionID
+    )
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT))
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
+
     val response = createProxy(parameters).doRefund(request)
+
+    val responseMap = Map(
+      "code" -> response.getResult.getCode,
+      "shortMessage"  -> response.getResult.getShortMessage,
+      "longMessage"   -> response.getResult.getLongMessage,
+      "transactionId" -> response.getTransaction.getId,
+      "date"          -> response.getTransaction.getDate,
+      "isDuplicated"  -> response.getTransaction.getIsDuplicated,
+      "isPossibleFraud" -> response.getTransaction.getIsPossibleFraud
+    )
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "IN",
+      transaction = boTx.uuid, log = mapToQueryString(responseMap))
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
     if (response.getResult.getCode == "00000") {
       Success()

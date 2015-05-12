@@ -517,9 +517,17 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date())
     )
 
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(query))
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
+
     val uri = Uri(Settings.Paybox.DirectEndPoint)
     val post = Post(uri).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query)))
     val response = Await.result(pipeline(post), Duration.Inf)
+
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+      transaction = boTx.uuid, log = response.entity.data.asString)
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
     val result = GlobalUtil.queryStringToMap(response.entity.data.asString)
     if (result("CODEREPONSE") == "00000") {

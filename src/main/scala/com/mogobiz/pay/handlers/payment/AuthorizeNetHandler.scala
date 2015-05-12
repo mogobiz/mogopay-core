@@ -1,5 +1,6 @@
 package com.mogobiz.pay.handlers.payment
 
+import java.math
 import java.nio.charset.StandardCharsets
 import java.util.{UUID, Date}
 
@@ -297,16 +298,38 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 //    creditCard.setExpirationYear("2015")
 //    creditCard.setMaskedCreditCardNumber(boTx.creditCard.get.number.substring(12))
 
+    val amount = new math.BigDecimal(boTx.amount.toFloat / 100)
     val authCaptureTransaction = merchant.createAIMTransaction(
-      TransactionType.CREDIT, new java.math.BigDecimal(boTx.amount.toFloat / 100))
+      TransactionType.CREDIT, amount)
     authCaptureTransaction.setTransactionId(anetTransactionId)
     authCaptureTransaction.setCreditCard(creditCard)
+
+    val queryOUT = Map(
+      "apiLoginID" -> apiLoginID,
+      "transactionKey" -> transactionKey,
+      "anetTransactionId" -> anetTransactionId,
+      "creditCard" -> creditCard.getCreditCardNumber,
+      "amount" -> amount
+    )
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT))
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
 
     val result: net.authorize.Result[Transaction] = merchant
       .postTransaction(authCaptureTransaction)
       .asInstanceOf[net.authorize.Result[Transaction]]
 
     val response = result.asInstanceOf[aim.Result[Transaction]]
+
+    val responseMap = Map(
+      "responseCode" -> response.getResponseCode,
+      "getReasonResponseCode" -> response.getReasonResponseCode,
+      "responseText" -> response.getResponseText
+    )
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(responseMap))
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
+
     if (response.getResponseCode.getCode == 1) {
       Success()
     } else {

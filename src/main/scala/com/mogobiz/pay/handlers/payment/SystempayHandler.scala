@@ -11,18 +11,21 @@ import javax.xml.ws.handler.MessageContext
 
 import com.lyra.vads.ws.stub.{CreatePaiementInfo, Standard, StandardWS, TransactionInfo}
 import com.lyra.vads.ws3ds.stub.{PaResInfo, ThreeDSecure, VeResPAReqInfo}
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{DefaultFormats, StringInput}
 import spray.http.Uri
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.util._
 import scala.util.control.NonFatal
@@ -271,14 +274,14 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       DatatypeFactory.newInstance().newXMLGregorianCalendar(gCalendar)
     }
 
-    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-    val certificat     = parameters("systempayCertificate")
+    val cbParams    = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val certificate = cbParams("systempayCertificate")
 
     val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
       sep         = SystempayClient.QUERY_STRING_SEP,
       elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP)
 
-    val shopId = parameters("systempayShopId")
+    val shopId = cbParams("systempayShopId")
     val transmissionDate = createGregorianCalendar(new Date(previousTxInfo("transmissionDate").toLong))
     val transactionId = previousTxInfo("transactionId")
     val sequenceNb = 1
@@ -290,18 +293,25 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val validationMode = 0 // 0 = automatic, 1 = manual
     val comment = ""
 
-    val wssignature = SystempayUtilities.makeSignature(certificat, Seq(
-      shopId,
-      transmissionDate,
-      transactionId,
-      sequenceNb,
-      ctxMode,
-      newTransactionId,
-      amount,
-      devise,
-      presentationDate,
-      validationMode,
-      comment).asInstanceOf[Seq[String]].asJava)
+    val parameters = mutable.LinkedHashMap(
+      "shopId"           -> shopId,
+      "transmissionDate" -> transmissionDate,
+      "transactionId"    -> transactionId,
+      "sequenceNb"       -> sequenceNb,
+      "ctxMode"          -> ctxMode,
+      "newTransactionId" -> newTransactionId,
+      "amount"           -> amount,
+      "devise"           -> devise,
+      "presentationDate" -> presentationDate,
+      "validationMode"   -> validationMode,
+      "comment"          -> comment
+    )
+    val wsSignature = SystempayUtilities.makeSignature(certificate, parameters.values.toList.asInstanceOf[Seq[String]].asJava)
+
+    val queryOUT = parameters + ("certificate" -> certificate)
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT.toMap))
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
 
     val response = createPort().refund(
       shopId,
@@ -315,7 +325,19 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       presentationDate,
       validationMode,
       comment,
-      wssignature)
+      wsSignature)
+
+    val responseMap = Map(
+      "timestamp" -> response.getTimestamp,
+      "signature" -> response.getSignature,
+      "errorCode" -> response.getErrorCode,
+      "extendedErrorCode" -> response.getExtendedErrorCode,
+      "transactionStatus" -> response.getTransactionStatus,
+      "timestamp" -> response.getTimestamp
+    )
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "IN",
+      transaction = boTx.uuid, log = mapToQueryString(responseMap))
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
     if (response.getErrorCode != 0) {
       Failure(new RefundException(s"Systempay's message: ${response.getErrorCode} —  ${SystempayClient.getExtendedMessage(response.getErrorCode)}"))
