@@ -17,17 +17,20 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
     };
 	$scope.historyDetails = null;
 	$rootScope.returnDetails = null;
+	$rootScope.logsDetails = null;
 	$rootScope.itemsToBeReturned = [];
 	if($rootScope.selectedCustomer != null){
 		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
 	}
 	if($rootScope.selectedTransaction != null){
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
+		if($rootScope.isMerchant)
+			detailsGetOrderLogs($scope, $location, $rootScope, $route)
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
 	$scope.detailsRefundCheckAll = function () {detailsRefundCheckAll($scope, $location, $rootScope, $route);};
 	$scope.detailsRefundCheckOne = function () {detailsRefundCheckOne($scope, $location, $rootScope, $route);};
-	$scope.returnSelectedItems = function () {returnSelectedItems($scope, $location, $rootScope, $route);};
+	$scope.detailsReturnSelectedItems = function () {detailsReturnSelectedItems($scope, $location, $rootScope, $route);};
 	$scope.detailsSelectReturn = function (index) {detailsSelectReturn($scope, $location, $rootScope, $route, index);};
 	$scope.refreshCardPopover = function () {refreshCardPopover();};
 	$scope.refreshProductsPopover = function () {refreshProductsPopover();};
@@ -46,8 +49,11 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
 	rootScope.returnDetails = null;
+	rootScope.logsDetails = null;
 	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
+	if(rootScope.isMerchant)
+		detailsGetOrderLogs(scope, location, rootScope, route)
 }
 
 function detailsGetOrderDetails(scope, location, rootScope, route){
@@ -64,6 +70,22 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 		});
 	};
 	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
+}
+
+function detailsGetOrderLogs(scope, location, rootScope, route){
+	var success = function (response) {
+		for (var i = 0; i < response.length; i++){
+			var log = response[i].log.replace(new RegExp("=", "g"), " = ");
+			if(log.indexOf("&") >= 0)
+				response[i].log = log.split("&");
+			else
+				response[i].log = [log];
+		}
+		scope.$apply(function () {
+			rootScope.logsDetails = response;
+		});
+	};
+	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, function (response) {});
 }
 
 function detailsRefundCheckAll(scope, location, rootScope, route){
@@ -94,7 +116,7 @@ function detailsSelectReturn(scope, location, rootScope, route, index){
 	}
 }
 
-function returnSelectedItems(scope, location, rootScope, route){
+function detailsReturnSelectedItems(scope, location, rootScope, route){
 	rootScope.itemsToBeReturned = [];
 	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
 	if(checkBoxes.length == 0)
