@@ -593,6 +593,12 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&callback_prefix=" + $("#authCallbackdomainField").val();
 			data += "&password_pattern=" + $("#authPasswordRegex").val();
 
+// GROUP PAYMENT INFO
+			data += "&group_payment_return_url_for_next_payers=" + $("#groupPaymentUrlNextPayer").val();
+			data += "&group_payment_expiration_time=" + $("#groupPaymentExpirationTime").val();
+			data += "&group_payment_success_url=" + $("#groupPaymentSuccessURL").val();
+			data += "&group_payment_failure_url=" + $("#groupPaymentFailureURL").val();
+
 //EMAIL INFO
 			if(!rootScope.createPage) {
 				data += "&sender_email=" + $("#emailInfoSenderMail").val();
@@ -709,6 +715,30 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				$(".nav-tabs a[data-target='#auth']").tab("show");
 				$("#authPasswordRegex").focus();
 				showAlertBootStrapMsg("warning", "Invalid password regex !");
+				return false;
+			}
+			if(!$("#groupPaymentUrlNextPayer")[0].checkValidity()) {
+				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
+				$("#groupPaymentUrlNextPayer").focus();
+				showAlertBootStrapMsg("warning", "Invalid URL !");
+				return false;
+			}
+			if(!$("#groupPaymentExpirationTime")[0].checkValidity()) {
+				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
+				$("#groupPaymentExpirationTime").focus();
+				showAlertBootStrapMsg("warning", "Invalid number !");
+				return false;
+			}
+			if(!$("#groupPaymentSuccessURL")[0].checkValidity()) {
+				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
+				$("#groupPaymentSuccessURL").focus();
+				showAlertBootStrapMsg("warning", "Invalid URL !");
+				return false;
+			}
+			if(!$("#groupPaymentFailureURL")[0].checkValidity()) {
+				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
+				$("#groupPaymentFailureURL").focus();
+				showAlertBootStrapMsg("warning", "Invalid URL !");
 				return false;
 			}
 			if(!$("#emailInfoSenderMail")[0].checkValidity()) {

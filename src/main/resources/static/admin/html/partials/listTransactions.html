@@ -83,7 +83,8 @@
         <table class="table table-bordered table-striped">
 			<thead>
 				<tr>
-					<th>Id</th>
+					<th>UUID</th>
+					<th>group UUID</th>
 					<th>Name</th>
 					<th>Email</th>
 					<th>Date</th>
@@ -97,6 +98,10 @@
 			<tbody>
 				<tr ng-repeat="transaction in transactions">
 					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.uuid}}</a></td>
+					<td>
+						<span ng-if="transaction.groupTransactionUUID != null">{{transaction.groupTransactionUUID}}</span>
+						<span ng-if="transaction.groupTransactionUUID == null"><i>Not a group payment</i></span>
+					</td>
 					<td>{{transaction.customer.firstName}} {{transaction.customer.lastName}}</td>
 					<td>{{transaction.customer.email}}</td>
 					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>

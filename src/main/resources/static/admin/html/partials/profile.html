@@ -7,6 +7,7 @@
     <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#kwixo" data-toggle="tab">Kwixo</a></li>
     <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#authorize" data-toggle="tab">Authorize.net</a></li>
     <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#auth" data-toggle="tab">Auth</a></li>
+    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#groupPayment" data-toggle="tab">Group Payment</a></li>
     <li ng-if="isMerchant==true && createPage==false"><a href="javascript:void(0)" data-target="#emailInfo" data-toggle="tab">Email info</a></li>
 </ul>
 
@@ -87,7 +88,7 @@
 						<label for="profileWebsite">Website</label>
 					</div>
 					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="text" class="form-control" id="profileWebsite" placeholder="Website" pattern="https?://.+" required value="{{userProfile.account.website}}"/>
+						<input type="text" class="form-control" id="profileWebsite" placeholder="Website" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" required value="{{userProfile.account.website}}"/>
 					</div>
 				</div>
 				<div class="form-group">
@@ -312,6 +313,42 @@
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 					<input type="text" class="form-control" id="authPasswordRegex" placeholder="Password Regex" value="{{userProfile.passwordPattern}}"  ng-blur="profileCheckPasswordRegExValidity()"/>
+				</div>
+			</div>
+		</form>
+	</div>
+	<div class="tab-pane" id="groupPayment">
+		<form role="form" class="form-horizontal">
+			<div class="form-group">
+				<div style="padding:0px 3px;">
+					<label for="groupPaymentUrlNextPayer">Return URL for Next Payers</label>
+				</div>
+				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+					<input type="text" class="form-control" id="groupPaymentUrlNextPayer" placeholder="URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.group_payment_return_url_for_next_payers}}" />
+				</div>
+			</div>
+			<div class="form-group">
+				<div style="padding:0px 3px;">
+					<label for="groupPaymentExpirationTime">Expiration Time</label>
+				</div>
+				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+					<input type="text" class="form-control" id="groupPaymentExpirationTime" placeholder="Expiration Time" pattern="\d+" value="{{userProfile.group_payment_expiration_time}}" />
+				</div>
+			</div>
+			<div class="form-group">
+				<div style="padding:0px 3px;">
+					<label for="groupPaymentSuccessURL">Success URL</label>
+				</div>
+				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+					<input type="text" class="form-control" id="groupPaymentSuccessURL" placeholder="Success URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.group_payment_success_url}}" />
+				</div>
+			</div>
+			<div class="form-group">
+				<div style="padding:0px 3px;">
+					<label for="groupPaymentFailureURL">Failure URL</label>
+				</div>
+				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+					<input type="text" class="form-control" id="groupPaymentFailureURL" placeholder="Failure URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.group_payment_failure_url}}" />
 				</div>
 			</div>
 		</form>

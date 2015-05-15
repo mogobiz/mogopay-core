@@ -46,7 +46,8 @@
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
-							<th>Id</th>
+							<th>UUID</th>
+							<th>group UUID</th>
 							<th>Name</th>
 							<th>Email</th>
 							<th>Date</th>
@@ -61,6 +62,10 @@
 							<td>
 								<a ng-if="selectedTransaction.uuid != record.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{record.uuid}}</a>
 								<span ng-if="selectedTransaction.uuid == record.uuid">{{record.uuid}}</span>
+							</td>
+							<td>
+								<span ng-if="record.groupTransactionUUID != null">{{record.groupTransactionUUID}}</span>
+								<span ng-if="record.groupTransactionUUID == null"><i>Not a group payment</i></span>
 							</td>
 							<td>{{record.customer.firstName}}</td>
 							<td>{{record.customer.email}}</td>
