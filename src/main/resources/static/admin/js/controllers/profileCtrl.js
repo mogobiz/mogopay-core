@@ -595,7 +595,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 
 // GROUP PAYMENT INFO
 			data += "&group_payment_return_url_for_next_payers=" + $("#groupPaymentUrlNextPayer").val();
-			data += "&group_payment_expiration_time=" + $("#groupPaymentExpirationTime").val();
 			data += "&group_payment_success_url=" + $("#groupPaymentSuccessURL").val();
 			data += "&group_payment_failure_url=" + $("#groupPaymentFailureURL").val();
 
@@ -721,12 +720,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
 				$("#groupPaymentUrlNextPayer").focus();
 				showAlertBootStrapMsg("warning", "Invalid URL !");
-				return false;
-			}
-			if(!$("#groupPaymentExpirationTime")[0].checkValidity()) {
-				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
-				$("#groupPaymentExpirationTime").focus();
-				showAlertBootStrapMsg("warning", "Invalid number !");
 				return false;
 			}
 			if(!$("#groupPaymentSuccessURL")[0].checkValidity()) {
