@@ -24,7 +24,7 @@ import com.mogobiz.pay.model.Mogopay.PaymentStatus._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayError}
+import com.mogobiz.pay.exceptions.Exceptions.{RefundException, InvalidContextException, MogopayError}
 import com.mogobiz.pay.handlers.payment.{BankErrorCodes, ThreeDSResult, PaymentHandler}
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS._
@@ -89,7 +89,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val paymentRequest = sessionData.paymentRequest.get
 
     if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.SIPS) {
-      throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
+      throw MogopayError(MogopayConstant.InvalidSipsConfig)
     }
     else {
       transactionHandler.startPayment(vendorUuid, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
@@ -297,7 +297,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
     transactionHandler.finishPayment(transactionUuid,
       if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-      paymentResult, resp.getValue("response_code"), locale)
+      paymentResult, resp.getValue("response_code"), locale, Option(resp.getValue("transaction_id")))
     paymentResult
   }
 
@@ -435,7 +435,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       data = null
     )
     transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
-      paymentResult, paymentResult.errorCodeOrigin, sessionData.locale)
+      paymentResult, paymentResult.errorCodeOrigin, sessionData.locale, Option(transaction_id))
     paymentResult
   }
 
@@ -576,7 +576,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), refresh = false)
 
       transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
-        paymentResult, paymentResult.errorCodeOrigin, locale)
+        paymentResult, paymentResult.errorCodeOrigin, locale, Option(transaction_id))
       paymentResult
     }
   }
@@ -669,6 +669,42 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         errorCodeOrigin = codeErreur.toString,
         errorMessageOrigin = Some("")
       )
+  }
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+    val vendor = boTx.vendor.get
+    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
+    val targetFile: File = new File(dir, "pathfile")
+    val merchantCountry: String = parametres("sipsMerchantCountry")
+    val merchantId: String = parametres("sipsMerchantId")
+
+    val api = new SIPSOfficeApi(targetFile.getAbsolutePath)
+    val sipsRequest: SIPSDataObject = new SIPSOfficeRequestParm()
+    val sipsResponse: SIPSDataObject = new SIPSOfficeResponseParm()
+
+    sipsRequest.setValue("origin", "")
+    sipsRequest.setValue("merchant_id", merchantId)
+    sipsRequest.setValue("merchant_country", merchantCountry)
+    sipsRequest.setValue("transaction_id", boTx.gatewayData.getOrElse(""))//transactionSequenceHandler.nextTransactionId(vendor.uuid).toString)
+    sipsRequest.setValue("currency_code", "" + boTx.currency.numericCode.toString)
+    sipsRequest.setValue("payment_date", new SimpleDateFormat("yyyyMMdd").format(new Date))
+    sipsRequest.setValue("amount", boTx.amount.toString)
+
+    val logOut = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = boTx.uuid, log = serialize(sipsRequest))
+    boTransactionLogHandler.save(logOut, false)
+
+    api.asoCreditTransaction(sipsRequest, sipsResponse)
+
+    val logIn = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "IN", transaction = boTx.uuid, log = serialize(sipsResponse))
+    boTransactionLogHandler.save(logIn, false)
+
+    val responseCode = sipsResponse.getValue("transaction_respcode")
+    if (responseCode == "00") {
+      Success()
+    } else {
+      Failure(new RefundException(s"SIPS' message: $responseCode — ${errorMessages(responseCode)}"))
+    }
   }
 }
 

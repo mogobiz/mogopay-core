@@ -146,19 +146,19 @@ object Settings {
   }
 
   object Jobs {
-
     object Interval {
       val CleanAccounts = config.getInt("jobs.cron.recycleaccount")
       val ImportCountries = config.getInt("jobs.cron.importcountries")
       val ImportRates = config.getInt("jobs.cron.importrates")
+      val Refund = config.getInt("jobs.cron.refund")
     }
 
     object Delay {
       val CleanAccounts = config.getInt("jobs.delay.recycleaccount")
       val ImportCountries = config.getInt("jobs.delay.importcountries")
       val ImportRates = config.getInt("jobs.delay.importrates")
+      val Refund = config.getInt("jobs.delay.refund")
     }
-
   }
 
   object Mogopay {

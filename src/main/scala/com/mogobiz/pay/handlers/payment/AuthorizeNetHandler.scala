@@ -298,7 +298,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 //    creditCard.setExpirationYear("2015")
 //    creditCard.setMaskedCreditCardNumber(boTx.creditCard.get.number.substring(12))
 
-    val amount = new math.BigDecimal(boTx.amount.toFloat / 100)
+    val amount = new math.BigDecimal(boTx.amount.toFloat / 100 * boTx.groupPaymentRefundPercentage / 100)
     val authCaptureTransaction = merchant.createAIMTransaction(
       TransactionType.CREDIT, amount)
     authCaptureTransaction.setTransactionId(anetTransactionId)

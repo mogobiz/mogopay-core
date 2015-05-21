@@ -1,5 +1,7 @@
 package com.mogobiz.pay.model
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.module.scala.{JsonScalaEnumeration, DefaultScalaModule}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.model.Mogopay._
@@ -343,6 +345,8 @@ object Mogopay {
   case class BOTransaction(uuid: String,
                            transactionUUID: String,
                            groupTransactionUUID: Option[String] = None,
+                           @JsonDeserialize(contentAs = classOf[java.lang.Long]) groupPaymentExpirationDate: Option[Long] = None,
+                           groupPaymentRefundPercentage: Int = 100,
                            authorizationId: String,
                            transactionDate: Option[java.util.Date],
                            amount: Long,
@@ -375,6 +379,8 @@ object Mogopay {
   case class TransactionRequest(uuid: String,
                                 tid: Long,
                                 groupTransactionUUID: Option[String] = None,
+                                groupPaymentExpirationDate: Option[Long] = None,
+                                groupPaymentRefundPercentage: Int = 100,
                                 amount: Long,
                                 extra: Option[String],
                                 currency: TransactionCurrency,
@@ -435,6 +441,8 @@ object Mogopay {
                             gatewayData: String,
                             csrfToken: String,
                             currency: TransactionCurrency,
+                            groupPaymentExpirationDate: Option[Long] = None,
+                            groupPaymentRefundPercentage: Int = 100,
                             var dateCreated: Date = Calendar.getInstance().getTime,
                             var lastUpdated: Date = Calendar.getInstance().getTime)
 

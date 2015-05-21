@@ -14,8 +14,15 @@ class TransactionHandlerSpec extends Specification with Before {
     Mapping.set
 
     val acc = Account("xyz", "", None, None, "", None, None, None, None, None, null, 0, 0L, 0L, None, None, None, None, Nil, None, None, Nil, "", Nil, None)
-    val tx = BOTransaction("123", null, None, null, None, 0L, null, null, null, null, null, false, null, null, null,
+//<<<<<<< HEAD
+//    val tx = BOTransaction("123", null, None, null, None, 0L, null, null, null, null, null, false, null, null, null,
+//      null, null, null, null, null, null, Some(acc), null, null)
+//=======
+    val tx = BOTransaction("123", null, None, None, -1, null, None, 0L, null, null, null, null, null, false, null, null, null,
       null, null, null, null, null, null, Some(acc), null, null)
+//    val tx = BOTransaction("123", null, None, None, 100, null, None, 0L, null, null, null, null, null, false, null, null, null,
+//      null, null, null, null, Some(acc), null, null)
+//>>>>>>> Add RefundJob (and fix many small things)
     boTransactionHandler.save(tx, true)
   }
 

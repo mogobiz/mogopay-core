@@ -66,7 +66,7 @@ class TransactionHandler {
         //
         //          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
         //          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
-        val txRequest = createTxReqForInit(vendor, params, None)
+        val txRequest = createTxReqForInit(vendor, params, None, params.groupPaymentExpirationDate, params.groupPaymentRefundPercentage)
         transactionRequestHandler.save(txRequest, false)
         txRequest.uuid
       }
@@ -74,14 +74,17 @@ class TransactionHandler {
     //    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
 
-  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit, groupTxUUID: Option[String]): TransactionRequest = {
+  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit,
+                         groupTxUUID: Option[String],
+                         groupPaymentExpirationDate: Option[Long], groupPaymentRefundPercentage: Option[Int]): TransactionRequest = {
     val rate = (rateHandler findByCurrencyCode params.currencyCode).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
     val currency = Currency.getInstance(params.currencyCode)
     val txSeqId = transactionSequenceHandler.nextTransactionId(merchant.uuid)
     val txReqUUID = newUUID
 
     val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
-    TransactionRequest(txReqUUID, txSeqId, groupTxUUID, params.transactionAmount, params.extra, txCurrency, merchant.uuid)
+    TransactionRequest(txReqUUID, txSeqId, groupTxUUID, groupPaymentExpirationDate, groupPaymentRefundPercentage.getOrElse(100),
+      params.transactionAmount, params.extra, txCurrency, merchant.uuid)
   }
 
   def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
@@ -92,6 +95,8 @@ class TransactionHandler {
         transactionRequestUUID,
         transactionRequestUUID,
         sessionData.groupTxUUID,
+        paymentRequest.groupPaymentExpirationDate,
+        paymentRequest.groupPaymentRefundPercentage,
         "",
         Option(new Date),
         paymentRequest.amount,
@@ -358,14 +363,23 @@ class TransactionHandler {
         successURL = sessionData.successURL
         transactionType = sessionData.transactionType
         amount = sessionData.amount
-        accountHandler.load(sessionData.merchantId.get).orNull
+        accountHandler.load(sessionData.merchantId.get).getOrElse(throw VendorNotFoundException())
       } else {
-        accountHandler.load(submit.params.merchantId).orNull
+        accountHandler.load(submit.params.merchantId).getOrElse(throw VendorNotFoundException())
       }
 
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
       throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
 
+    if (transactionRequest.vendor != vendor.uuid)
+      throw TransactionRequestWasInitiatedByAnotherMerchantException()
+
+    if (sessionData.payers.size > 1 && transactionRequest.groupPaymentExpirationDate.isEmpty)
+      throw NotAGroupPaymentException()
+
+//    if (sessionData.payers.size < 2 && transactionRequest.groupPaymentExpirationDate.isDefined)
+//      throw MissingPayersForGroupPaymentException()
+//
     if (transactionRequest.amount != amount.get) {
       throw UnexpectedAmountException(s"${amount.get}")
     }
@@ -490,8 +504,8 @@ class TransactionHandler {
           val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
           val paymentRequest = initPaymentRequest(vendor, transactionType, true, transactionRequest.tid,
             transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
-            submit.params.gatewayData.orNull,
-            submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear, card.cardType)
+            submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear,
+            card.cardType, transactionRequest.groupPaymentExpirationDate)
           sessionData.paymentRequest = Some(paymentRequest)
 
           // user is already authenticated. We check start the mogopayment
@@ -514,9 +528,9 @@ class TransactionHandler {
     } else {
       val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
         transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
-        submit.params.gatewayData.orNull,
-        submit.params.customerCVV.orNull, submit.params.ccNum.orNull, submit.params.ccMonth.orNull, submit.params.ccYear.orNull,
-        toCardType(submit.params.ccType.orNull))
+        submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, submit.params.ccNum.orNull,
+        submit.params.ccMonth.orNull, submit.params.ccYear.orNull, toCardType(submit.params.ccType.orNull),
+        transactionRequest.groupPaymentExpirationDate)
       sessionData.paymentRequest = Some(paymentRequest)
       val handler = if (submit.sessionData.transactionType == Some("CREDIT_CARD")) {
         sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
@@ -557,7 +571,8 @@ class TransactionHandler {
                                  transactionSequence: Long, transactionExtra: String,
                                  transactionCurrency: TransactionCurrency, sessionData: SessionData,
                                  transactionDesc: String, gatewayData: String, ccCrypto: String, card_number: String,
-                                 card_month: String, card_year: String, card_type: CreditCardType): PaymentRequest = {
+                                 card_month: String, card_year: String, card_type: CreditCardType,
+                                 groupPaymentExpirationDate: Option[Long]): PaymentRequest = {
     var errors: mutable.Seq[Exception] = mutable.Seq()
 
     var cc_type: CreditCardType = null
@@ -579,7 +594,7 @@ class TransactionHandler {
     var paymentProvider = CBPaymentProvider.NONE
     var paymentRequest: PaymentRequest = PaymentRequest(UUID.randomUUID.toString, "-1", null, -1L, maskedCCNumber, "",
       null, null, "", "", "", "", "", "", "",
-      sessionData.csrfToken.orNull, transactionCurrency)
+      sessionData.csrfToken.orNull, transactionCurrency, groupPaymentExpirationDate)
 
     if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD" && (!externalPages || mogopay)) {
       paymentProvider = vendor.paymentConfig.orNull.cbProvider
@@ -648,13 +663,14 @@ class TransactionHandler {
     (account, txReq, groupTxUUID, successURL, failureURL)
   }
 
-  def refund(merchantSecret: String, amount: Long, boTransactionUUID: String) {
+  def refund(merchantSecret: String, boTransactionUUID: String) {
     type Params = (PaymentConfig, BOTransaction)
     val handlers = Map(
       CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2)),
       CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2)),
       CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2)),
-      CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2))
+      CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2)),
+      CBPaymentProvider.SIPS         -> ((p: Params) => sipsHandler.refund(p._1, p._2))
     )
 
     val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
@@ -675,6 +691,14 @@ class TransactionHandler {
       case Success(_) => updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
       case Failure(t) => throw t
     }
+  }
+
+  def refundGroupPayments() = {
+    val transactions = boTransactionHandler.findAllGroupTransactions()
+    transactions
+      .filter(tx => tx.groupPaymentExpirationDate.exists(_ * 1000 <= (new Date).getTime))
+      .filter(tx => tx.status == TransactionStatus.PAYMENT_CONFIRMED)
+      .foreach(transaction => transactionHandler.refund(transaction.vendor.get.secret, transaction.uuid))
   }
 }
 

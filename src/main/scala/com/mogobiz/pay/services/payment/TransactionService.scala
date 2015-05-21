@@ -2,13 +2,14 @@ package com.mogobiz.pay.services.payment
 
 import java.io.File
 import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 
 import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.config.{Settings, DefaultComplete}
+import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
@@ -71,8 +72,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long],
-        'currency_code, 'currency_rate.as[Double],
-        'extra ?, 'return_url ?).as(TransactionInit) { params =>
+        'currency_code, 'currency_rate.as[Double], 'extra ?, 'return_url ?,
+        'group_payment_exp_date.?.as[Option[Long]],
+        'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
         import Implicits._
         handleCall(transactionHandler.init(params),
           (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
@@ -178,17 +180,26 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         "transaction_amount" -> transaction.amount.toString,
         "merchant_id"        -> account.owner.get,
         "transaction_type"   -> transactionType,
-        "payers"             -> (account.email + ":" + transaction.amount.toString),
-        "group_tx_uuid"      -> groupTxUUID
+        "group_tx_uuid"      -> groupTxUUID,
+        "card_cvv" -> "123",
+        "card_month" -> "02",
+        "card_year" -> "2019",
+        "card_type" -> "VISA",
+        "card_number" -> "4007000000027"
       )
 
       val form =
-        <form id="form" action="/pay/transaction/submit" method="POST">
+        <form id="form" action={s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/transaction/submit"} method="POST">
           {submitParams.map { case (key, value) =>
             <input type="hidden" name={key} value={value}/>
         }}
         </form>
           <script>document.getElementById('form').submit();</script>
+
+      if (Settings.Env == Environment.DEV) { // Just `open /tmp/mogopay-submit-form.html` to start the payment
+        java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
+          form.mkString.getBytes(StandardCharsets.UTF_8))
+      }
 
       form.mkString.replace("\n", "")
     }
@@ -205,7 +216,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 val form = buildFormToSubmit(result._1, result._2, result._3, transactionType, result._4, result._5)
                 respondWithMediaType(MediaTypes.`text/html`) {
                   complete {
-                    new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))
+                    new HttpResponse(StatusCodes.OK, HttpEntity(form))
                   }
                 }
               }
@@ -220,7 +231,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     get {
       val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid)
       params { (merchantSecret, amount, boTransactionUUID) =>
-        handleCall(transactionHandler.refund(merchantSecret, amount, boTransactionUUID),
+        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID),
           (_: Any) => complete(200 -> "")
         )
       }
@@ -260,13 +271,17 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
             session { session =>
               import Implicits._
 
-              clientIP { ip =>
-                session.sessionData.ipAddress   = Some(ip.toString)
-                session.sessionData.payers      = submitParams.payers.toMap[String, Long]
-                session.sessionData.groupTxUUID = submitParams.groupTxUUID
+              if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
+                complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
+              } else {
+                clientIP { ip =>
+                  session.sessionData.ipAddress   = Some(ip.toString)
+                  session.sessionData.payers      = submitParams.payers.toMap[String, Long]
+                  session.sessionData.groupTxUUID = submitParams.groupTxUUID
 
-                setSession(session) {
-                  doSubmit(submitParams, session)
+                  setSession(session) {
+                    doSubmit(submitParams, session)
+                  }
                 }
               }
             }
