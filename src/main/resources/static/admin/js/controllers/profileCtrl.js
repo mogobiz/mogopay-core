@@ -4,20 +4,20 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.cbParam)
 		$scope.cbParam = JSON.parse($rootScope.userProfile.account.paymentConfig.cbParam);
-	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.authorizeNetParam)
-		$scope.authorizeNetParam = JSON.parse($rootScope.userProfile.account.paymentConfig.authorizeNetParam);
+	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.applePayParam)
+		$scope.applePayParam = JSON.parse($rootScope.userProfile.account.paymentConfig.applePayParam);
 
-	$("#authorizeNetLogin").change(function(){
+	$("#applePayLogin").change(function(){
 		if($(this).val() != "")
-			$("#authorizeNetTransactionKey").attr("required", "required");
+			$("#applePayTransactionKey").attr("required", "required");
 		else
-			$("#authorizeNetTransactionKey").removeAttr("required");
+			$("#applePayTransactionKey").removeAttr("required");
 	});
-	$("#authorizeNetTransactionKey").change(function(){
+	$("#applePayTransactionKey").change(function(){
 		if($(this).val() != "")
-			$("#authorizeNetLogin").attr("required", "required");
+			$("#applePayLogin").attr("required", "required");
 		else
-			$("#authorizeNetLogin").removeAttr("required");
+			$("#applePayLogin").removeAttr("required");
 	});
 
 	//Main Variables
@@ -159,9 +159,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	}
 
 	//Main Functions
-	$scope.activateAutorizeTab = function () {
-		$(".nav-tabs a[data-target='#authorize']").tab("show");
-	};
 	$scope.goToListTrasactions = function () {
 		navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
 	};
@@ -571,6 +568,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 					data += "&systempay_contract_number=" + $("#systempayContract").val();
 					data += "&systempay_certificate=" + $("#systempayCertificate").val();
 					break;
+				case "anet":
+					data += "&anet_api_login_id=" + $("#authorizeNetLogin").val();
+					data += "&anet_transaction_key=" + $("#authorizeNetTransactionKey").val();
+					break;
 				default:
 					break;
 			}
@@ -583,9 +584,9 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 //KWIXO INFO
 			data += "&kwixo_params=" + $("#kwixoParams").val();
 
-//AUTHORIZENET INFO
-			data += "&anet_api_login_id=" + $("#authorizeNetLogin").val();
-			data += "&anet_transaction_key=" + $("#authorizeNetTransactionKey").val();
+//APPLE PAY INFO
+			data += "&apple_pay_anet_api_login_id=" + $("#applePayLogin").val();
+			data += "&apple_pay_anet_transaction_key=" + $("#applePayTransactionKey").val();
 
 //AUTH INFO
 			data += "&email_field=" + $("#authEmailField").val();
@@ -608,20 +609,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	}
 
 	function validateProfileForm(scope, location, rootScope, route) {
-		
-			var inputs = $("#creditCardForm input");
-			for(var i = 0; i < inputs.length; i++){
-				if(!$(inputs[i])[0].checkValidity()){
-					$(".nav-tabs a[data-target='#creditCard']").tab("show");
-					$(inputs[i]).focus();
-					showAlertBootStrapMsg("warning", $(inputs[i]).attr("errorMessage"));
-					return false;
-				}
-			}
-		
-		
-		
-		
 		if($("#profileEmail").val() == "" || $("#profileCompanyName").val() == "" || $("#profileWebsite").val() == "" || $("#profilePhoneNumber").val() == ""
 			|| $("#profileFirstName").val() == "" || $("#profileLastName").val() == "" || $("#profileBirthDate").val() == ""
 			|| !scope.profileCountriesModel || scope.profileCountriesModel == "" || $("#profileCity").val() == "" || $("#profileRoad").val() == ""
@@ -698,16 +685,16 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 					return false;
 				}
 			}
-			if(!$("#authorizeNetLogin")[0].checkValidity()){
-				$(".nav-tabs a[data-target='#authorize']").tab("show");
-				$("#authorizeNetLogin").focus();
-				showAlertBootStrapMsg("warning", "AUTHORIZENET API Login ID and Transaction Key are related!");
+			if(!$("#applePayLogin")[0].checkValidity()){
+				$(".nav-tabs a[data-target='#applePay']").tab("show");
+				$("#applePayLogin").focus();
+				showAlertBootStrapMsg("warning", "Apple pay API Login ID and Transaction Key are related!");
 				return false;
 			}
-			if(!$("#authorizeNetTransactionKey")[0].checkValidity()){
-				$(".nav-tabs a[data-target='#authorize']").tab("show");
-				$("#authorizeNetTransactionKey").focus();
-				showAlertBootStrapMsg("warning", "AUTHORIZENET API Login ID and Transaction Key are related!");
+			if(!$("#applePayTransactionKey")[0].checkValidity()){
+				$(".nav-tabs a[data-target='#applePay']").tab("show");
+				$("#applePayTransactionKey").focus();
+				showAlertBootStrapMsg("warning", "Apple pay API Login ID and Transaction Key are related!");
 				return false;
 			}
 			if(!$("#authPasswordRegex")[0].checkValidity()) {
@@ -744,3 +731,16 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		return true;
 	}
 }
+
+function anetChangeLogin(){
+	if($("#authorizeNetLogin").val() != "")
+		$("#authorizeNetTransactionKey").attr("required", "required");
+	else
+		$("#authorizeNetTransactionKey").removeAttr("required");
+};
+function anetChangeTransactionKey(){
+	if($("#authorizeNetTransactionKey").val() != "")
+		$("#authorizeNetLogin").attr("required", "required");
+	else
+		$("#authorizeNetLogin").removeAttr("required");
+};
