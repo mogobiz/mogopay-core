@@ -106,7 +106,7 @@ object DBInitializer {
 
     val systemPayCustomConfig = createPaymentConfig(cbProvider = CBPaymentProvider.SYSTEMPAY,
       paypalConfig = PAYPAL,
-      authorizeNetConfig = Map(),
+      applePayConfig = Map(),
       cbConfig = SYS_PAY,
       cbMethod = CBPaymentMethod.THREEDS_NO,
       senderEmail = Some("mogopay-systempay-custom@merchant.com"),
@@ -115,7 +115,7 @@ object DBInitializer {
 
     val payboxCustomConfig = createPaymentConfig(cbProvider = CBPaymentProvider.PAYBOX,
       paypalConfig = PAYPAL,
-      authorizeNetConfig = Map(),
+      applePayConfig = Map(),
       cbConfig = PAYBOX_2DS,
       cbMethod = CBPaymentMethod.THREEDS_NO,
       senderEmail = Some("mogopay-paybox-custom@merchant.com"),
@@ -124,7 +124,7 @@ object DBInitializer {
 
     val paylineCustomConfig = createPaymentConfig(cbProvider = CBPaymentProvider.PAYLINE,
       paypalConfig = PAYPAL,
-      authorizeNetConfig = Map(),
+      applePayConfig = Map(),
       cbConfig = PAYLINE,
       cbMethod = CBPaymentMethod.THREEDS_NO,
       senderEmail = Some("mogopay-payline-custom@merchant.com"),
@@ -133,7 +133,7 @@ object DBInitializer {
 
     val sipsCustomConfig = createPaymentConfig(cbProvider = CBPaymentProvider.SIPS,
       paypalConfig = PAYPAL,
-      authorizeNetConfig = Map(),
+      applePayConfig = Map(),
       cbConfig = SIPS,
       cbMethod = CBPaymentMethod.THREEDS_NO,
       senderEmail = Some("mogopay-sips-custom@merchant.com"),
@@ -142,10 +142,10 @@ object DBInitializer {
     createCertification(merchantAccountInfoSIPSCustom)
 
     val paymentConfig12External = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL, None, Some(""), Some("anet-merchant-external"),
+      PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.EXTERNAL, None, Some(""), Some("anet-merchant-external"),
       Some("anet-merchant-external@mogopay.com"))
     val paymentConfig12Custom = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
-      PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.THREEDS_NO, None, Some(""), Some("anet-merchant-custom"),
+      PAYPAL, Map(), AUTHORIZENET, CBPaymentMethod.THREEDS_NO, None, Some(""), Some("anet-merchant-custom"),
       Some("anet-merchant-custome@mogopay.com"))
     var merchantAccountInfoANetExternal = createMerchantAccount("f802a048-e8ec-4619-abf0-d3a0e0eecc2e", "mogopay-anet-external@merchant.com",
       "ANET External", "Merchant", paymentConfig12External)
@@ -245,7 +245,7 @@ object DBInitializer {
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
                                   paypalConfig: Map[String, String],
-                                  authorizeNetConfig: Map[String, String],
+                                  applePayConfig: Map[String, String],
                                   cbConfig: Map[String, String],
                                   cbMethod: CBPaymentMethod,
                                   id: Option[Long] = None,
@@ -255,7 +255,7 @@ object DBInitializer {
     PaymentConfig(
       None,
       Some(JSONObject(paypalConfig).toString()),
-      Some(JSONObject(authorizeNetConfig).toString()),
+      Some(JSONObject(applePayConfig).toString()),
       Some(JSONObject(cbConfig).toString()),
       cbProvider,
       cbMethod,

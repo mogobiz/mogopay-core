@@ -60,9 +60,9 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
     val amount = paymentRequest.amount.toString
     val currency: Int = paymentRequest.currency.numericCode
-    val authorizeNetParam = paymentConfig.authorizeNetParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-    val apiLoginID = authorizeNetParam("apiLoginID")
-    val transactionKey = authorizeNetParam("transactionKey")
+    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val apiLoginID = cbParam("apiLoginID")
+    val transactionKey = cbParam("transactionKey")
 
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
 
@@ -203,14 +203,14 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
     val paymentConfig = sessionData.paymentConfig.get
-    val authorizeNetParam = paymentConfig.authorizeNetParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val paymentRequest = sessionData.paymentRequest.get
 
     val amount = paymentRequest.amount.toString
     val currency: Int = paymentRequest.currency.numericCode
-    val apiLoginID: String = authorizeNetParam("apiLoginID")
-    val transactionKey: String = authorizeNetParam("transactionKey")
+    val apiLoginID: String = cbParam("apiLoginID")
+    val transactionKey: String = cbParam("transactionKey")
 
 //    val query = Map(
 //      "amount" -> amount,
@@ -284,10 +284,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     import net.authorize.Environment
     import net.authorize.data.creditcard.CreditCard
 
-    val authorizeNetParam = paymentConfig.authorizeNetParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
-    val apiLoginID = authorizeNetParam("apiLoginID")
-    val transactionKey = authorizeNetParam("transactionKey")
+    val apiLoginID = cbParam("apiLoginID")
+    val transactionKey = cbParam("transactionKey")
     val merchant = Merchant.createMerchant(Environment.SANDBOX,
       apiLoginID, transactionKey)
 

@@ -140,7 +140,7 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
-                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam],
+                         payPalParam: PayPalParam, applePayParam: Option[AuthorizeNetParam],
                          kwixoParam: KwixoParam, groupPaymentReturnURLforNextPayers: Option[String],
                          groupPaymentExpirationTime: Option[Long], groupPaymentSuccessURL: Option[String],
                          groupPaymentFailureURL: Option[String])
@@ -167,6 +167,8 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
                       sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
                       sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
                       sipsMerchantLogoPath: String) extends CBParams
+
+case class AuthorizeNetParams(anetAPILoginID: String, anetTransactionKey: String) extends CBParams
 
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
@@ -798,7 +800,7 @@ class AccountHandler {
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           kwixoParam = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          authorizeNetParam = profile.authorizeNetParam.map(p => write(caseClassToMap(p))),
+          applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
           cbParam = Some(write(updateCBParam)),
           emailField = if (profile.emailField == "") "user_email" else profile.emailField,
           passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
