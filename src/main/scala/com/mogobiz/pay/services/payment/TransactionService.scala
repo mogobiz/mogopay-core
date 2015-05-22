@@ -170,50 +170,28 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val initGroupPayment = path("init-group-payment") {
     import com.mogobiz.pay.implicits.Implicits._
-
-    def buildFormToSubmit(account: Account, transaction: TransactionRequest, groupTxUUID: String,
-                          transactionType: String, successURL: String, failureURL: String) = {
-      val submitParams = Map(
-        "callback_success"   -> successURL,
-        "callback_error"     -> failureURL,
-        "transaction_id"     -> transaction.uuid,
-        "transaction_amount" -> transaction.amount.toString,
-        "merchant_id"        -> account.owner.get,
-        "transaction_type"   -> transactionType,
-        "group_tx_uuid"      -> groupTxUUID,
-        "card_cvv" -> "123",
-        "card_month" -> "02",
-        "card_year" -> "2019",
-        "card_type" -> "VISA",
-        "card_number" -> "4007000000027"
-      )
-
-      val form =
-        <form id="form" action={s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/transaction/submit"} method="POST">
-          {submitParams.map { case (key, value) =>
-            <input type="hidden" name={key} value={value}/>
-        }}
-        </form>
-          <script>document.getElementById('form').submit();</script>
-
-      if (Settings.Env == Environment.DEV) { // Just `open /tmp/mogopay-submit-form.html` to start the payment
-        java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
-          form.mkString.getBytes(StandardCharsets.UTF_8))
-      }
-
-      form.mkString.replace("\n", "")
-    }
-
     get {
-      val params = parameters('token, 'transaction_type)
-      params { (token, transactionType) =>
+      val params = parameters('token, 'transaction_type, 'card_cvv, 'card_month, 'card_year, 'card_type, 'card_number)
+      params { (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
         session { session =>
           handleCall(transactionHandler.initGroupPayment(token),
             (result: (Account, TransactionRequest, String, String, String)) => {
               ServicesUtil.authenticateSession(session, account = result._1)
 
               setSession(session) {
-                val form = buildFormToSubmit(result._1, result._2, result._3, transactionType, result._4, result._5)
+                val form = buildFormForInitGroupPayment(
+                  account = result._1,
+                  transaction = result._2,
+                  groupTxUUID = result._3,
+                  transactionType = transactionType,
+                  successURL = result._4,
+                  failureURL = result._5,
+                  ccCVV,
+                  ccMonth,
+                  ccYear,
+                  ccType,
+                  ccNumber
+                )
                 respondWithMediaType(MediaTypes.`text/html`) {
                   complete {
                     new HttpResponse(StatusCodes.OK, HttpEntity(form))
@@ -383,5 +361,39 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         }
       )
     }
+  }
+
+  def buildFormForInitGroupPayment(account: Account, transaction: TransactionRequest, groupTxUUID: String,
+                        transactionType: String, successURL: String, failureURL: String,
+                        ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String) = {
+    val submitParams = Map(
+      "callback_success"   -> successURL,
+      "callback_error"     -> failureURL,
+      "transaction_id"     -> transaction.uuid,
+      "transaction_amount" -> transaction.amount.toString,
+      "merchant_id"        -> account.owner.get,
+      "transaction_type"   -> transactionType,
+      "group_tx_uuid"      -> groupTxUUID,
+      "card_cvv"           -> ccCVV,
+      "card_month"         -> ccMonth,
+      "card_year"          -> ccYear,
+      "card_type"          -> ccType,
+      "card_number"        -> ccNumber
+    )
+
+    val form =
+      <form id="form" action={s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/transaction/submit"} method="POST">
+        {submitParams.map { case (key, value) =>
+          <input type="hidden" name={key} value={value}/>
+      }}
+      </form>
+        <script>document.getElementById('form').submit();</script>
+
+    if (Settings.Env == Environment.DEV) { // Just `open /tmp/mogopay-submit-form.html` to start the payment
+      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
+        form.mkString.getBytes(StandardCharsets.UTF_8))
+    }
+
+    form.mkString.replace("\n", "")
   }
 }
