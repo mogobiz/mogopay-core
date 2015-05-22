@@ -260,7 +260,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
   private def buildURL(url: String, params: Map[String, String]) = url + "?" + mapToQueryString(params)
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
     def createPort() = {
       val wsdlURL = new URL("https://paiement.systempay.fr/vads-ws/v3?wsdl")
       val qname = new QName("http://v3.ws.vads.lyra.com/", "StandardWS")
@@ -339,11 +339,8 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       transaction = boTx.uuid, log = mapToQueryString(responseMap))
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
-    if (response.getErrorCode != 0) {
-      Failure(new RefundException(s"Systempay's message: ${response.getErrorCode} —  ${SystempayClient.getExtendedMessage(response.getErrorCode)}"))
-    } else {
-      Success()
-    }
+    val status = if (response.getErrorCode == 0) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, response.getErrorCode.toString, SystempayClient.extendedErrorCodes.get(response.getErrorCode))
   }
 }
 
@@ -551,7 +548,7 @@ class SystempayClient {
       val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
       val gatewayData = Map(
         "transmissionDate" -> payment.getTransmissionDate.toGregorianCalendar.getTime.getTime,
-        "transactionId"    -> "%06d".format(paymentRequest.transactionSequence.toLong),//payment.getTransactionId,
+        "transactionId"    -> payment.getTransactionId,
         "sequenceNb"       -> paymentRequest.transactionSequence
       ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
 
@@ -678,7 +675,7 @@ object SystempayClient {
   val QUERY_STRING_SEP = "&"
   val QUERY_STRING_ELEMENTS_SEP = "="
 
-  def getExtendedMessage(code :Int): String =extendedErrorCodes.getOrElse(code, "")
+  def getExtendedMessage(code :Int): String = extendedErrorCodes.getOrElse(code, "")
 
   val extendedErrorCodes = Map[Int, String](
     0 -> "Action réalisée avec succès",

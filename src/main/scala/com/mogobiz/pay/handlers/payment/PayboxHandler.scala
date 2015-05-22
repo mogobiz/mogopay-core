@@ -496,7 +496,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     }
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val gatewayData = GlobalUtil.queryStringToMap(boTx.gatewayData.getOrElse(""))
@@ -529,12 +529,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       transaction = boTx.uuid, log = response.entity.data.asString)
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
-    val result = GlobalUtil.queryStringToMap(response.entity.data.asString)
-    if (result("CODEREPONSE") == "00000") {
-      Success()
-    } else {
-      Failure(new RefundException(s"Paybox's message: $result"))
-    }
+    val responseCode = GlobalUtil.queryStringToMap(response.entity.data.asString)("CODEREPONSE")
+    val status = if (responseCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, responseCode, PayboxHandler.errorMessages.get(responseCode))
   }
 }
 

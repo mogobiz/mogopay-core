@@ -280,7 +280,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     finishPayment(sessionData, paymentResult)
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
     import net.authorize.Environment
     import net.authorize.data.creditcard.CreditCard
 
@@ -330,16 +330,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(responseMap))
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
-    if (response.getResponseCode.getCode == 1) {
-      Success()
-    } else {
-    // Todo: Replace Success by Failure
-      //Success()
-      val responseCode = response.getResponseCode.getCode
-      val reasonResponseCode = response.getReasonResponseCode.getResponseReasonCode
-      val responseText = response.getResponseText
-      Failure(new RefundException(s"Authorize.net message: $responseCode-$reasonResponseCode —  $responseText"))
-    }
+    val responseCode = response.getResponseCode.getCode
+    val reasonResponseCode = response.getReasonResponseCode.getResponseReasonCode
+    val status = if (responseCode == 1) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, s"$responseCode-$reasonResponseCode", Option(response.getResponseText))
   }
 }
 

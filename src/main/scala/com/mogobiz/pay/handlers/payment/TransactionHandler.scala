@@ -687,9 +687,12 @@ class TransactionHandler {
     }
 
     val call = handlers.getOrElse(paymentConfig.cbProvider, throw new RefundNotSupportedException)
-    call(paymentConfig, boTransaction) match {
-      case Success(_) => updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
-      case Failure(t) => throw t
+    val refundResult = call(paymentConfig, boTransaction)
+
+    if (refundResult.status == PaymentStatus.REFUNDED) {
+      updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
+    } else {
+      throw new RefundException(s"{paymentConfig.cbProvider}' message: ${refundResult.errorCode} — ${refundResult.errorMessage}")
     }
   }
 

@@ -534,13 +534,13 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       val diag_time: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_TIME)
       val diag_date: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_DATE)
       val diag_certificate: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_CERTIFICATE)
-      val merchant_id: String = sipsResponse.getValue(SIPSOfficeResponseParm.MERCHANT_ID)
-      val merchant_country: String = sipsResponse.getValue(SIPSOfficeResponseParm.MERCHANT_COUNTRY)
-      val transaction_id: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_ID)
-      val avs_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.AVS_RESPONSE_CODE)
-      val new_amount: String = sipsResponse.getValue(SIPSOfficeResponseParm.AMOUNT)
-      val currency_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.CURRENCY_CODE)
-      val transaction_status: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS)
+//      val merchant_id: String = sipsResponse.getValue(SIPSOfficeResponseParm.MERCHANT_ID)
+//      val merchant_country: String = sipsResponse.getValue(SIPSOfficeResponseParm.MERCHANT_COUNTRY)
+      val transaction_id: String = sipsRequest.getValue(SIPSOfficeResponseParm.TRANSACTION_ID)
+//      val avs_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.AVS_RESPONSE_CODE)
+//      val new_amount: String = sipsResponse.getValue(SIPSOfficeResponseParm.AMOUNT)
+//      val currency_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.CURRENCY_CODE)
+//      val transaction_status: String = sipsResponse.getValue(SIPSOfficeResponseParm.TRANSACTION_STATUS)
       val authorisation_id: String = sipsResponse.getValue(SIPSOfficeResponseParm.AUTHORISATION_ID)
       val bank_response_code: String = sipsResponse.getValue(SIPSOfficeResponseParm.BANK_RESPONSE_CODE)
       val codeErreur = diag_response_code
@@ -671,25 +671,24 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       )
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
     val vendor = boTx.vendor.get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
     val targetFile: File = new File(dir, "pathfile")
-    val merchantCountry: String = parametres("sipsMerchantCountry")
-    val merchantId: String = parametres("sipsMerchantId")
+    val merchantCountry: String = parameters("sipsMerchantCountry")
+    val merchantId: String = parameters("sipsMerchantId")
 
     val api = new SIPSOfficeApi(targetFile.getAbsolutePath)
     val sipsRequest: SIPSDataObject = new SIPSOfficeRequestParm()
     val sipsResponse: SIPSDataObject = new SIPSOfficeResponseParm()
 
-    sipsRequest.setValue("origin", "")
-    sipsRequest.setValue("merchant_id", merchantId)
-    sipsRequest.setValue("merchant_country", merchantCountry)
-    sipsRequest.setValue("transaction_id", boTx.gatewayData.getOrElse(""))//transactionSequenceHandler.nextTransactionId(vendor.uuid).toString)
-    sipsRequest.setValue("currency_code", "" + boTx.currency.numericCode.toString)
-    sipsRequest.setValue("payment_date", new SimpleDateFormat("yyyyMMdd").format(new Date))
     sipsRequest.setValue("amount", boTx.amount.toString)
+    sipsRequest.setValue("currency_code", "" + boTx.currency.numericCode.toString)
+    sipsRequest.setValue("merchant_country", merchantCountry)
+    sipsRequest.setValue("merchant_id", merchantId)
+    sipsRequest.setValue("payment_date", new SimpleDateFormat("yyyyMMdd").format(boTx.creationDate))
+    sipsRequest.setValue("transaction_id", boTx.paymentData.transactionSequence.getOrElse("-1"))
 
     val logOut = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = boTx.uuid, log = serialize(sipsRequest))
     boTransactionLogHandler.save(logOut, false)
@@ -700,11 +699,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     boTransactionLogHandler.save(logIn, false)
 
     val responseCode = sipsResponse.getValue("transaction_respcode")
-    if (responseCode == "00") {
-      Success()
-    } else {
-      Failure(new RefundException(s"SIPS' message: $responseCode — ${errorMessages(responseCode)}"))
-    }
+    val status = if (responseCode == "00") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, responseCode.toString, errorMessages.get(responseCode))
   }
 }
 

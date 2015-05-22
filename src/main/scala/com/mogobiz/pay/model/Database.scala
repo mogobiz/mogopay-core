@@ -172,6 +172,8 @@ object Mogopay {
     val COMPLETE = Value("COMPLETE")
     val CANCELED = Value("CANCELED")
     val CANCEL_FAILED = Value("CANCEL_FAILED")
+    val REFUNDED = Value("REFUNDED")
+    val REFUND_FAILED = Value("REFUND_FAILED")
   }
 
   import PaymentStatus._
@@ -404,6 +406,8 @@ object Mogopay {
   case class CancelRequest(id: String, currency: TransactionCurrency)
 
   case class CancelResult(id: String, status: PaymentStatus, errorCodeOrigin: String, errorMessageOrigin: Option[String])
+
+  case class RefundResult(status: PaymentStatus, errorCode: String, errorMessage: Option[String])
 
   case class PaymentResult(transactionSequence: String,
                            orderDate: Date,

@@ -733,7 +733,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     paymentResult
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): Try[_] = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val payment = new Payment
@@ -776,12 +776,9 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       transaction = boTx.uuid, log = mapToQueryString(responseMap))
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
-    if (response.getResult.getCode == "00000") {
-      Success()
-    } else {
-      val code = response.getResult.getCode
-      val longMessage = response.getResult.getLongMessage
-      Failure(new RefundException(s"Payline's message: $code — $longMessage"))
-    }
+    val status = if (response.getResult.getCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    val code = response.getResult.getCode
+    val longMessage = response.getResult.getLongMessage
+    RefundResult(status, code, Option(longMessage))
   }
 }
