@@ -285,16 +285,16 @@ object Mogopay {
                      var dateCreated: Date = Calendar.getInstance().getTime,
                      var lastUpdated: Date = Calendar.getInstance().getTime) {
 
-    lazy val isCustomer : Boolean = {
+    lazy val isCustomer: Boolean = {
       hasRoleName(RoleName.CUSTOMER)
     }
 
-    lazy val isMerchant : Boolean = {
+    lazy val isMerchant: Boolean = {
       hasRoleName(RoleName.MERCHANT)
     }
 
-    private def hasRoleName(roleName: RoleName) : Boolean = {
-      roles.find{r: RoleName => roleName == r}.map{r: RoleName => true}.getOrElse(false)
+    private def hasRoleName(roleName: RoleName): Boolean = {
+      roles.find { r: RoleName => roleName == r }.map { r: RoleName => true }.getOrElse(false)
     }
   }
 
@@ -334,7 +334,7 @@ object Mogopay {
                           @JsonScalaEnumeration(classOf[CreditCardTypeRef]) cardType: CreditCardType)
 
 
-  case class TransactionUser(email:String, amount : Long, status: PaymentStatus, master:Boolean)
+  case class TransactionUser(email: String, amount: Long, status: PaymentStatus, master: Boolean)
 
   case class BOTransaction(uuid: String,
                            transactionUUID: String,
@@ -355,6 +355,8 @@ object Mogopay {
                            description: Option[String],
                            gatewayData: Option[String],
                            creditCard: Option[BOCreditCard],
+                           shipping: Option[String],
+                           shippingTrackingNumber: Option[String],
                            vendor: Option[Account],
                            customer: Option[Account],
                            modifications: List[ModificationStatus],
@@ -462,7 +464,8 @@ object Mogopay {
                          var payers: Map[String, Long] = Map(),
                          var groupTxUUID: Option[String] = None,
                          var paymentRequest: Option[PaymentRequest] = None,
-                         var locale : Option[String] = None)
+                         var locale: Option[String] = None)
+
 }
 
 object TestApp extends App {

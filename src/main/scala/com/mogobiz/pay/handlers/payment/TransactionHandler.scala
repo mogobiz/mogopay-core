@@ -113,6 +113,8 @@ class TransactionHandler {
         Option(paymentRequest.transactionDesc),
         Option(paymentRequest.gatewayData),
         None,
+        None,
+        None,
         Option(account),
         customer,
         Nil)

@@ -15,7 +15,7 @@ class TransactionHandlerSpec extends Specification with Before {
 
     val acc = Account("xyz", "", None, None, "", None, None, None, None, None, null, 0, 0L, 0L, None, None, None, None, Nil, None, None, Nil, "", Nil, None)
     val tx = BOTransaction("123", null, None, null, None, 0L, null, null, null, null, null, false, null, null, null,
-      null, null, null, null, Some(acc), null, null)
+      null, null, null, null, null, null, Some(acc), null, null)
     boTransactionHandler.save(tx, true)
   }
 
@@ -30,16 +30,16 @@ class TransactionHandlerSpec extends Specification with Before {
     }
   }
 
-//  "SubmitParam" in {
-//    "payers" should {
-//      "correctly parse the list payers" in {
-//        val payers = "foo@bar.com:100;a@b.c:1"
-//        val params = SubmitParams(null, null, null, null, null, null, -1L, null, null, null, null, null, null, null,
-//          null, null, null, null, null, Some(payers), None, None, None, None)
-//        params.payers.size must_==           2
-//        params.payers("foo@bar.com") must_== 100L
-//        params.payers("a@b.c") must_==       1L
-//      }
-//    }
-//  }
+  //  "SubmitParam" in {
+  //    "payers" should {
+  //      "correctly parse the list payers" in {
+  //        val payers = "foo@bar.com:100;a@b.c:1"
+  //        val params = SubmitParams(null, null, null, null, null, null, -1L, null, null, null, null, null, null, null,
+  //          null, null, null, null, null, Some(payers), None, None, None, None)
+  //        params.payers.size must_==           2
+  //        params.payers("foo@bar.com") must_== 100L
+  //        params.payers("a@b.c") must_==       1L
+  //      }
+  //    }
+  //  }
 }

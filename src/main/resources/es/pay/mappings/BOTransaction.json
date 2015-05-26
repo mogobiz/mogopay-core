@@ -157,6 +157,14 @@
         "type": "string",
         "index": "not_analyzed"
       },
+      "shipping": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
+      "shippingTrackingNumber": {
+        "type": "string",
+        "index": "not_analyzed"
+      },
       "extra": {
         "type": "string",
         "index": "not_analyzed"

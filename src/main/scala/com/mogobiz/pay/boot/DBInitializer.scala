@@ -34,8 +34,8 @@ object DBInitializer {
           }
           catch {
             case NonFatal(e) =>
-              // Ignore if sequence exists
-              //e.printStackTrace()
+            // Ignore if sequence exists
+            //e.printStackTrace()
           }
         }
       }
@@ -100,9 +100,9 @@ object DBInitializer {
     val merchantAccount12 = createMerchantAccount("7264a70e-9960-4492-b466-4377a1fc2025", "seller12@merchant.com", "Merchant12", "TEST", paypalSips3DSPaymentConfig)
     createCertification(merchantAccount12)
 
-//    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
-//    var merchantAccountInfoANet = createMerchantAccount("cccccccc-cccc-cccc-cccc-cccccccccccc", "mogopay-anet@merchant.com",
-//      "ANet", "Merchant", paymentConfig12)
+    //    val paymentConfig12 = createPaymentConfig(CBPaymentProvider.AUTHORIZENET, PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL)
+    //    var merchantAccountInfoANet = createMerchantAccount("cccccccc-cccc-cccc-cccc-cccccccccccc", "mogopay-anet@merchant.com",
+    //      "ANet", "Merchant", paymentConfig12)
 
     val paymentConfig12External = createPaymentConfig(CBPaymentProvider.AUTHORIZENET,
       PAYPAL, AUTHORIZENET, Map(), CBPaymentMethod.EXTERNAL, None, Some(""), Some("anet-merchant-external"),
@@ -121,7 +121,7 @@ object DBInitializer {
     createClientAccount("fd80c7e4-c91d-492a-8b48-214b809105d8", "inactif@merchant.com", "Client 3", "Inactif", merchantAccount7, true, AccountStatus.INACTIVE)
     createClientAccount("15995735-56ca-4d19-806b-a6bc7fedc162", "waiting@merchant.com", "Client", "waiting", merchantAccount7, true, AccountStatus.ACTIVE, TelephoneStatus.WAITING_ENROLLMENT)
     createClientAccount("a8858dd5-e14f-4aa0-9504-3d56bab5229d", "existing.account@test.com", "Existing", "Account", merchantAccount7, true)
-//    createClientAccount("e6ca3ff5-ee4f-4184-b3e0-0adde58c77c6", "client-anet@merchant.com", "ANet", "Client", merchantAccountInfoANet, false)
+    //    createClientAccount("e6ca3ff5-ee4f-4184-b3e0-0adde58c77c6", "client-anet@merchant.com", "ANet", "Client", merchantAccountInfoANet, false)
     createClientAccount("36992642-8bd3-41e0-aaaf-92956c0f78a1", "client-anet-external@merchant.com", "ANet External", "Client", merchantAccountInfoANetExternal, false)
     createClientAccount("d31bbce4-29b4-465a-aedd-1784ee6e3929", "client-anet-custom@merchant.com", "ANet Custom", "Client", merchantAccountInfoANetCustom, false)
 
@@ -131,7 +131,7 @@ object DBInitializer {
 
     val APPLEPAY: Map[String, String] = Map()
     val applePayConfig = createPaymentConfig(CBPaymentProvider.NONE,
-      PAYPAL, APPLEPAY,PAYLINE, CBPaymentMethod.EXTERNAL, Some(42), Some( """\d+"""))
+      PAYPAL, APPLEPAY, PAYLINE, CBPaymentMethod.EXTERNAL, Some(42), Some( """\d+"""))
     var applePayMerchant = createMerchantAccount("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "mogopay-apay@merchant.com", "Merchant",
       "Mogopay", applePayConfig)
     val applePayClient = createClientAccount("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "client-apay@merchant.com",
@@ -140,25 +140,25 @@ object DBInitializer {
 
   val franceCountry = Country(UUID.randomUUID.toString, "FR", "France", false, false, None, None, None, None, None)
 
-  private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig : PaymentConfig) : Account = {
+  private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig: PaymentConfig): Account = {
     val account = Account(uuid = uuid,
-                          email = email,
-                          company = Some("acmesport"),
-                          password = new Sha256Hash("1234").toString,
-                          civility = Some(Civility.MR),
-                          firstName = Some(firstname),
-                          lastName = Some(lastname),
-                          address = Some(createAddress(firstname, lastname)),
-                          status = AccountStatus.ACTIVE,
-                          paymentConfig = Some(paymentConfig),
-                          roles = List(RoleName.MERCHANT),
-                          secret = uuid,
-                          country = Some(franceCountry))
+      email = email,
+      company = Some("acmesport"),
+      password = new Sha256Hash("1234").toString,
+      civility = Some(Civility.MR),
+      firstName = Some(firstname),
+      lastName = Some(lastname),
+      address = Some(createAddress(firstname, lastname)),
+      status = AccountStatus.ACTIVE,
+      paymentConfig = Some(paymentConfig),
+      roles = List(RoleName.MERCHANT),
+      secret = uuid,
+      country = Some(franceCountry))
     accountHandler.save(account)
     account
   }
 
-  private def createClientAccount(uuid: String, email: String, firstname: String, lastname: String, owner: Account, withShippingAddress: Boolean, status: AccountStatus = AccountStatus.ACTIVE, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE) : Account = {
+  private def createClientAccount(uuid: String, email: String, firstname: String, lastname: String, owner: Account, withShippingAddress: Boolean, status: AccountStatus = AccountStatus.ACTIVE, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE): Account = {
     val birthDate = Calendar.getInstance()
     birthDate.set(2000, 0, 1)
     val account = Account(uuid = uuid,
@@ -179,7 +179,7 @@ object DBInitializer {
     account
   }
 
-  private def createAddress(firstname: String, lastname: String, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE) : AccountAddress = {
+  private def createAddress(firstname: String, lastname: String, telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE): AccountAddress = {
     val phone = Telephone("+33123456789", "0123456789", "FR", Some("000"), telephoneStatus)
     AccountAddress(civility = Some(Civility.MR),
       firstName = Some(firstname),
@@ -195,11 +195,11 @@ object DBInitializer {
       admin2 = Some("FR.A8.75"))
   }
 
-  private def createShippingAddress(firstname: String, lastname: String, active: Boolean) : ShippingAddress = {
+  private def createShippingAddress(firstname: String, lastname: String, active: Boolean): ShippingAddress = {
     val prefixe = if (active) "Active " else ""
     ShippingAddress(uuid = UUID.randomUUID().toString,
-                    active = active,
-                    address = createAddress(prefixe + firstname, prefixe + lastname))
+      active = active,
+      address = createAddress(prefixe + firstname, prefixe + lastname))
   }
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
@@ -254,6 +254,8 @@ object DBInitializer {
       description = None,
       gatewayData = None,
       creditCard = Some(creditCard),
+      shipping = None,
+      shippingTrackingNumber = None,
       vendor = Some(vendor),
       customer = Some(customer),
       modifications = Nil
@@ -264,7 +266,7 @@ object DBInitializer {
     boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "IN", "o", "SYSTEMPAY", transaction.uuid))
   }
 
-  private def randomDate() : Date = {
+  private def randomDate(): Date = {
     val current = System.currentTimeMillis()
     val diff = new Random().nextInt(30) * 24 * 60 * 60 * 1000
     new Date(current - diff)
@@ -438,11 +440,11 @@ __FIN__*/
     targetFile.delete()
     val targetContent =
       s"""D_LOGO!${Settings.ImagesPath + "sips/logo/"}!
-          |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
-          |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!
-          |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
-          |F_CTYPE!jsp!
-          |""".stripMargin
+                                                        |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
+                                                                                                                             |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!
+                                                                                                                                                                                        |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
+                                                                                                                                                                                                                                                         |F_CTYPE!jsp!
+                                                                                                                                                                                                                                                         |""".stripMargin
     scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(targetContent)
   }
 
