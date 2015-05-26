@@ -280,7 +280,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     finishPayment(sessionData, paymentResult)
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: java.math.BigDecimal): RefundResult = {
     import net.authorize.Environment
     import net.authorize.data.creditcard.CreditCard
 
@@ -294,11 +294,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val anetTransactionId = boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException)
     val creditCard = CreditCard.createCreditCard()
     creditCard.setCreditCardNumber(boTx.creditCard.get.number.substring(9))
-//    creditCard.setExpirationMonth("12")
-//    creditCard.setExpirationYear("2015")
-//    creditCard.setMaskedCreditCardNumber(boTx.creditCard.get.number.substring(12))
 
-    val amount = new math.BigDecimal(boTx.amount.toFloat / 100 * boTx.groupPaymentRefundPercentage / 100)
     val authCaptureTransaction = merchant.createAIMTransaction(
       TransactionType.CREDIT, amount)
     authCaptureTransaction.setTransactionId(anetTransactionId)

@@ -260,7 +260,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
   private def buildURL(url: String, params: Map[String, String]) = url + "?" + mapToQueryString(params)
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
     def createPort() = {
       val wsdlURL = new URL("https://paiement.systempay.fr/vads-ws/v3?wsdl")
       val qname = new QName("http://v3.ws.vads.lyra.com/", "StandardWS")
@@ -287,7 +287,6 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val sequenceNb = 1
     val ctxMode = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val newTransactionId = "%06d".format(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid))
-    val amount = boTx.amount
     val devise = boTx.currency.numericCode
     val presentationDate = createGregorianCalendar()
     val validationMode = 0 // 0 = automatic, 1 = manual

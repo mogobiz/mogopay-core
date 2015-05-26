@@ -663,20 +663,25 @@ class TransactionHandler {
     (account, txReq, groupTxUUID, successURL, failureURL)
   }
 
-  def refund(merchantSecret: String, boTransactionUUID: String) {
-    type Params = (PaymentConfig, BOTransaction)
+  def refund(merchantSecret: String, boTransactionUUID: String, maybeAmount: Option[Long] = None) {
+    implicit def longToBigDecimal(n: Long): java.math.BigDecimal = new java.math.BigDecimal(n * 1.0)
+
+    type Params = (PaymentConfig, BOTransaction, Long)
     val handlers = Map(
-      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2)),
-      CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2)),
-      CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2)),
-      CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2)),
-      CBPaymentProvider.SIPS         -> ((p: Params) => sipsHandler.refund(p._1, p._2))
+      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.SIPS         -> ((p: Params) => sipsHandler.refund(p._1, p._2, p._3))
     )
 
     val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
     val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException)
     val boTransaction = boTransactionHandler.find(boTransactionUUID).getOrElse(
       throw new BOTransactionNotFoundException(boTransactionUUID))
+
+    if (maybeAmount.exists(_ > boTransaction.amount))
+      throw new TheRefundAmountIsHigherThanTheInitialAmountException()
 
     if (boTransaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
       throw new PaymentAlreadyRefundedException()
@@ -686,13 +691,17 @@ class TransactionHandler {
       throw new RefundNotSupportedException()
     }
 
+    val amount: Long = maybeAmount.getOrElse(
+      (boTransaction.amount.toFloat * boTransaction.groupPaymentRefundPercentage / 100).toLong)
+
     val call = handlers.getOrElse(paymentConfig.cbProvider, throw new RefundNotSupportedException)
-    val refundResult = call(paymentConfig, boTransaction)
+    val refundResult = call(paymentConfig, boTransaction, amount)
 
     if (refundResult.status == PaymentStatus.REFUNDED) {
       updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
     } else {
-      throw new RefundException(s"${paymentConfig.cbProvider}' message: ${refundResult.errorCode} — ${refundResult.errorMessage}")
+      val message = refundResult.errorMessage.map(s => s" — $s").getOrElse("")
+      throw new RefundException(s"[${paymentConfig.cbProvider}] ${refundResult.errorCode}$message")
     }
   }
 

@@ -671,7 +671,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       )
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
     val vendor = boTx.vendor.get
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
@@ -683,7 +683,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val sipsRequest: SIPSDataObject = new SIPSOfficeRequestParm()
     val sipsResponse: SIPSDataObject = new SIPSOfficeResponseParm()
 
-    sipsRequest.setValue("amount", boTx.amount.toString)
+    sipsRequest.setValue("amount", amount.toString)
     sipsRequest.setValue("currency_code", "" + boTx.currency.numericCode.toString)
     sipsRequest.setValue("merchant_country", merchantCountry)
     sipsRequest.setValue("merchant_id", merchantId)

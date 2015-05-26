@@ -166,4 +166,6 @@ object Exceptions {
   case class MissingPayersForGroupPaymentException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
   case class TransactionRequestWasInitiatedByAnotherMerchantException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class TheRefundAmountIsHigherThanTheInitialAmountException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 }

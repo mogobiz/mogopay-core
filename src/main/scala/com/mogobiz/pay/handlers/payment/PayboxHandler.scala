@@ -496,7 +496,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     }
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val gatewayData = GlobalUtil.queryStringToMap(boTx.gatewayData.getOrElse(""))

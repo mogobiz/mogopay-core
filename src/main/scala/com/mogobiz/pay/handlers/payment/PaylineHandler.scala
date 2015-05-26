@@ -733,11 +733,11 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     paymentResult
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction): RefundResult = {
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val payment = new Payment
-    payment.setAmount(boTx.amount.toString)
+    payment.setAmount(amount.toString)
     payment.setCurrency(boTx.currency.numericCode.toString)
     payment.setAction(ACTION_REFUND)
     payment.setMode(MODE_COMPTANT)
