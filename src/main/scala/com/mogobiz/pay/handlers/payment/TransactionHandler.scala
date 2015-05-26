@@ -692,7 +692,7 @@ class TransactionHandler {
     if (refundResult.status == PaymentStatus.REFUNDED) {
       updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
     } else {
-      throw new RefundException(s"{paymentConfig.cbProvider}' message: ${refundResult.errorCode} — ${refundResult.errorMessage}")
+      throw new RefundException(s"${paymentConfig.cbProvider}' message: ${refundResult.errorCode} — ${refundResult.errorMessage}")
     }
   }
 
