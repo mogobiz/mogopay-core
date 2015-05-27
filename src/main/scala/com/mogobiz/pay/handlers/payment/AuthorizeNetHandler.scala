@@ -116,7 +116,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       )
 
       val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-        transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
+        transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.START_PAYMENT)
       EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
       Left(form.mkString)
@@ -174,7 +174,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       }
 
       val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-        transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
+        transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.START_PAYMENT)
       EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
       Left(form.mkString)
@@ -199,7 +199,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
   def finish(sessionData: SessionData, params: Map[String, String]) = {
     val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
-      transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params))
+      transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params), step = TransactionStep.FINISH)
     EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
     val paymentConfig = sessionData.paymentConfig.get
@@ -266,7 +266,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
   def cancel(sessionData: SessionData) = {
     val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
-      transaction = sessionData.transactionUuid.getOrElse("None"), log = "")
+      transaction = sessionData.transactionUuid.getOrElse("None"), log = "", step = TransactionStep.CANCEL)
     EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
     val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, sessionData.transactionUuid.getOrElse("???")).orNull
@@ -308,7 +308,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       "amount" -> amount
     )
     val logOUT = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT))
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT), step = TransactionStep.REFUND)
     EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
 
     val result: net.authorize.Result[Transaction] = merchant
@@ -323,7 +323,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       "responseText" -> response.getResponseText
     )
     val logIN = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
-      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(responseMap))
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(responseMap), step = TransactionStep.REFUND)
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
     val responseCode = response.getResponseCode.getCode

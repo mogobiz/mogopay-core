@@ -162,6 +162,8 @@ object Mogopay {
     val EXPIRED = Value("EXPIRED")
   }
 
+  class TokenValidityRef extends TypeReference[TokenValidity.type]
+
 
   object PaymentStatus extends Enumeration {
     type PaymentStatus = Value
@@ -178,7 +180,24 @@ object Mogopay {
 
   import PaymentStatus._
 
-  class TokenValidityRef extends TypeReference[TokenValidity.type]
+  object TransactionStep extends Enumeration {
+    type TransactionStep = Value
+    val START_PAYMENT = Value("PAYMENT")
+    val FINISH = Value("FINISH")
+    val CANCEL = Value("CANCEL")
+    val REFUND = Value("REFUND")
+    val SUBMIT = Value("SUBMIT")
+    val DONE = Value("DONE")
+    val CHECK_THREEDS = Value("CHECK_THREEDS")
+    val THREEDS_CALLBACK = Value("THREEDS_CALLBACK")
+    val SUCCESS = Value("SUCCESS")
+    val DO_WEB_PAYMENT = Value("DO_WEB_PAYMENT")
+    val GET_WEB_PAYMENT_DETAILS = Value("GET_WEB_PAYMENT_DETAILS")
+    val CALLBACK_PAYMENT = Value("CALLBACK_PAYMENT")
+    val ORDER_THREEDS = Value("ORDER_THREEDS")
+  }
+  class TransactionStepRef extends TypeReference[TransactionStep.type]
+  import TransactionStep._
 
   case class CreditCard(uuid: String,
                         number: String,
@@ -325,6 +344,7 @@ object Mogopay {
                               log: String,
                               provider: String,
                               transaction: Document,
+                              @JsonScalaEnumeration(classOf[TransactionStepRef]) step: TransactionStep,
                               var dateCreated: Date = Calendar.getInstance().getTime,
                               var lastUpdated: Date = Calendar.getInstance().getTime)
 

@@ -365,7 +365,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         else if (id3d != "" && paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
           query += "ID3D" -> id3d
 
-        val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
+        val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+          transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap),
+          step = TransactionStep.START_PAYMENT)
         boTransactionLogHandler.save(botlog, false)
 
         val uri = Uri(Settings.Paybox.DirectEndPoint)
@@ -398,7 +400,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
         tuples.foreach(println)
-        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples))
+        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+          transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples),
+          step = TransactionStep.START_PAYMENT)
         boTransactionLogHandler.save(bolog, false)
         val errorCode = tuples.getOrElse("CODEREPONSE", "")
         val errorMessage = tuples.get("COMMENTAIRE")
@@ -453,7 +457,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
       val queryString = mapToQueryStringNoEncode(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
-      val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
+      val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+        transaction = transactionUUID, log = queryString, step = TransactionStep.START_PAYMENT)
       boTransactionLogHandler.save(botlog, false)
       val action = Settings.Paybox.SystemEndPoint
       val query = queryList.toMap
@@ -518,7 +523,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     )
 
     val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
-      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(query))
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.REFUND)
     EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
 
     val uri = Uri(Settings.Paybox.DirectEndPoint)
@@ -526,7 +531,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val response = Await.result(pipeline(post), Duration.Inf)
 
     val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
-      transaction = boTx.uuid, log = response.entity.data.asString)
+      transaction = boTx.uuid, log = response.entity.data.asString, step = TransactionStep.REFUND)
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
     val responseCode = GlobalUtil.queryStringToMap(response.entity.data.asString)("CODEREPONSE")

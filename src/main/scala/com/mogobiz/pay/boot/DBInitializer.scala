@@ -309,8 +309,8 @@ object DBInitializer {
     )
     boTransactionHandler.save(transaction, refresh = true)
 
-    boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "OUT", "m", "SYSTEMPAY", transaction.uuid))
-    boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "IN", "o", "SYSTEMPAY", transaction.uuid))
+    boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "OUT", "m", "SYSTEMPAY", transaction.uuid, TransactionStep.START_PAYMENT))
+    boTransactionLogHandler.save(BOTransactionLog(UUID.randomUUID().toString, "IN", "o", "SYSTEMPAY", transaction.uuid, TransactionStep.START_PAYMENT))
   }
 
   private def randomDate(): Date = {

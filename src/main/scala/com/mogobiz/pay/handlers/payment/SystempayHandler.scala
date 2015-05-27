@@ -17,6 +17,7 @@ import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
+import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
@@ -107,7 +108,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
-        handleResponse(params, sessionData.locale)
+        handleResponse(params, sessionData.locale, TransactionStep.DONE)
       } else {
         PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
@@ -123,9 +124,10 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
   }
 
   def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult =
-    handleResponse(params, sessionData.locale)
+    handleResponse(params, sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
 
-  private def handleResponse(params: Map[String, String], locale: Option[String]): PaymentResult = {
+  private def handleResponse(params: Map[String, String], locale: Option[String],
+                             step: TransactionStep): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -140,7 +142,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     if (ok) {
       val transaction = boTransactionHandler.find(transactionUUID).orNull
 
-      val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid)
+      val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid, step)
       boTransactionLogHandler.save(botlog, false)
       val vads_card_brand = try {
         CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString))
@@ -309,7 +311,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val queryOUT = parameters + ("certificate" -> certificate)
     val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "OUT",
-      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT.toMap))
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT.toMap), step = TransactionStep.REFUND)
     EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
 
     val response = createPort().refund(
@@ -335,7 +337,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       "timestamp" -> response.getTimestamp
     )
     val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "IN",
-      transaction = boTx.uuid, log = mapToQueryString(responseMap))
+      transaction = boTx.uuid, log = mapToQueryString(responseMap), step = TransactionStep.REFUND)
     EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
     val status = if (response.getErrorCode == 0) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
