@@ -30,7 +30,7 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
 			$rootScope.isMerchant = response.isMerchant;
 			$rootScope.userProfile = response;
 			$rootScope.createPage = false;
-			$scope.getAllStores();
+			$rootScope.getAllStores();
 		};
 
 		failure = function (response) {

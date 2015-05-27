@@ -30,7 +30,11 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		"RETURN_ACCEPTED": "Return Accepted"
 	};
 
-    if ($rootScope.userProfile == undefined || $rootScope.userProfile == null) {
+    if(getHTTPParameter("profile") == "true"){
+		localStorage.setItem("mogopayGoToProfile", "true");
+		window.location.href = $location.$$absUrl.split("?")[0];
+	}
+	if ($rootScope.userProfile == undefined || $rootScope.userProfile == null) {
         if(indexPage == true && $location.$$path != "/home"){
 			navigateToPage($scope, $location, $rootScope, $route, "home");
 		}
@@ -68,20 +72,21 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         return route === $location.path();
     };
 
-    $rootScope.loginGoToTransactions = function () {
-        $rootScope.transactions = null;
-        navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
-    };
-	
-	$rootScope.getAllStores = function () {
+	    $rootScope.getAllStores = function () {
         var success = function (response) {
-			$scope.$apply(function () {
+            $scope.$apply(function () {
 				$rootScope.allStores = response;
 				$rootScope.selectedStore = response[0];
-				$scope.loginGoToTransactions($scope, $location, $rootScope);
-			});
-		};
-		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
+				$rootScope.transactions = null;
+				if(localStorage.getItem("mogopayGoToProfile") == "true"){
+					localStorage.removeItem("mogopayGoToProfile");
+					navigateToPage($scope, $location, $rootScope, $route, "profile");
+				}
+				else
+					navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
+            });
+        };
+        callServer("account/list-compagnies", "", success, function (response) {}, "GET");
     };
 	$scope.urlHistory = [];
 	$scope.$on("$routeChangeSuccess", function () {
