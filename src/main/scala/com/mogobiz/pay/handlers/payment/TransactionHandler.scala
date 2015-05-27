@@ -261,14 +261,10 @@ class TransactionHandler {
   }
 
   def verify(secret: String, amount: Option[Long], transactionUUID: String): (BOTransaction, Seq[TransactionRequest]) = {
-    val maybeVendor = accountHandler.findBySecret(secret)
-
-    val account: Account = maybeVendor match {
-      case None => throw AccountDoesNotExistException("secret=****")
-      case Some(a) => a
-    }
-
     val transaction = boTransactionHandler.find(transactionUUID).getOrElse(throw TransactionNotFoundException(s"$transactionUUID"))
+
+    if (transaction.vendor.get.secret != secret)
+      throw InvalidMerchantAccountException("")
 
     val validatedTx = if (amount.map(transaction.amount == _).getOrElse(true)) transaction else throw UnexpectedAmountException(s"$amount")
 
