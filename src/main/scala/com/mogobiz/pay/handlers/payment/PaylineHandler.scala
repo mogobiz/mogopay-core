@@ -6,18 +6,19 @@ import java.util.Date
 import javax.xml.namespace.QName
 import javax.xml.ws.{Binding, BindingProvider}
 
-import com.experian.payline.ws.impl.{DirectPaymentAPI, DirectPaymentAPI_Service, DoAuthorizationRequest, DoAuthorizationResponse, DoResetRequest, DoResetResponse, DoWebPaymentRequest, DoWebPaymentResponse, GetWebPaymentDetailsRequest, GetWebPaymentDetailsResponse, VerifyEnrollmentRequest, VerifyEnrollmentResponse, WebPaymentAPI, WebPaymentAPI_Service}
+import com.experian.payline.ws.impl._
 import com.experian.payline.ws.obj.{Authentication3DSecure, Authorization, Card, Order, Payment, Result, Transaction}
 import com.experian.payline.ws.wrapper.WebPayment
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.{NotAvailablePaymentGatewayException, InvalidContextException, MogopayError}
+import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
+import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
-import com.mogobiz.utils.{NaiveHostnameVerifier, TrustedSSLFactory, GlobalUtil}
+import com.mogobiz.utils.{GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory}
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
@@ -29,6 +30,8 @@ import scala.util._
  * @see com.ebiznext.mogopay.payment.PaylinePaymentService
  */
 object PaylineHandler  {
+  val QUERY_STRING_SEP = "&"
+  val QUERY_STRING_ELEMENTS_SEP = "="
 
   def fromCreditCardType(`type`: CreditCardType): String = {
     var retour: String = "CB"
@@ -74,6 +77,7 @@ object PaylineHandler  {
   }
 
   val ACTION_AUTHORISATION_VALIDATION: String = "101"
+  val ACTION_REFUND: String = "421"
   val MODE_COMPTANT: String = "CPT"
   val ServiceName: QName = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
 }
@@ -101,7 +105,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       var threeDSResult: ThreeDSResult = null
 
       if (sessionData.mogopay) {
-        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, true, sessionData.locale)
+        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, true, sessionData.locale,
+          TransactionStep.START_PAYMENT)
         Right(finishPayment(sessionData, paymentResult))
       } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
@@ -112,7 +117,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
           Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
-        threeDSResult = check3DSecure(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest)
+        threeDSResult = check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
         if (threeDSResult != null && threeDSResult.code == ResponseCode3DS.APPROVED) {
           // 3DS approuve, redirection vers payline
           sessionData.waitFor3DS = true
@@ -134,7 +139,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         }
         else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           // on lance un paiement classique
-          val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay, sessionData.locale)
+          val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
+            sessionData.locale, TransactionStep.START_PAYMENT)
           Right(finishPayment(sessionData, paymentResult))
         }
         else {
@@ -143,7 +149,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         }
       } else {
         // on lance un paiement classique
-        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay, sessionData.locale)
+        val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
+          sessionData.locale, TransactionStep.START_PAYMENT)
         Right(finishPayment(sessionData, paymentResult))
       }
     }
@@ -184,7 +191,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       try {
         val paymentRequest2 = paymentRequest.copy(paylineMd = params("MD"), paylinePares = params("PaRes"))
         val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2,
-          sessionData.mogopay, sessionData.locale)
+          sessionData.mogopay, sessionData.locale, TransactionStep.THREEDS_CALLBACK)
         finishPayment(sessionData, result)
       }
       catch {
@@ -196,13 +203,14 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
   }
 
 
-  def check3DSecure(sessionUuid: String, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
+  def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document,
+                    paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val numeroContrat: String = parametres("paylineContract")
     var logdata: String = null
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.VERIFICATION_THREEDS, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val paiement: Payment = new Payment
 
     paiement.setAmount(paymentRequest.amount.toString)
@@ -231,10 +239,10 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     requete.setCard(card)
     requete.setOrderRef(paymentRequest.transactionSequence)
     logdata += "&orderRef=" + requete.getOrderRef
-    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
+    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, step = TransactionStep.CHECK_THREEDS)
     boTransactionLogHandler.save(botlog, false)
 
-    val response: VerifyEnrollmentResponse = createProxy(transaction, parametres).verifyEnrollment(requete)
+    val response: VerifyEnrollmentResponse = createProxy(parametres).verifyEnrollment(requete)
     val result: Result = response.getResult
     val code: String = result.getCode
     logdata = ""
@@ -271,7 +279,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         pareqName = response.getPareqFieldName,
         pareqValue = response.getPareqFieldValue,
         termUrlName = response.getTermUrlName,
-        termUrlValue = s"${Settings.Mogopay.EndPoint}payline/3ds-callback/${sessionUuid}" //response.getTermUrlValue
+        termUrlValue = s"${Settings.Mogopay.EndPoint}payline/3ds-callback/${sessionData.uuid}" //response.getTermUrlValue
       )
 
     }
@@ -284,21 +292,22 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     else {
       default3DS.copy(code = ResponseCode3DS.ERROR)
     }
-    val botlogIn = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
+    val botlogIn = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, step = TransactionStep.CHECK_THREEDS)
     boTransactionLogHandler.save(botlogIn, false)
-    transactionHandler.updateStatus3DS(vendorUuid, transactionUuid, retour.code, code)
+    transactionHandler.updateStatus3DS(transactionUuid, sessionData.ipAddress, retour.code, code)
     retour
   }
 
   private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                     infosPaiement: PaymentRequest, mogopay: Boolean, locale: Option[String]): PaymentResult = {
+                     infosPaiement: PaymentRequest, mogopay: Boolean, locale: Option[String],
+                     step: TransactionStep): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     var logdata: String = ""
     val formatDatePayline = new SimpleDateFormat("MMyy")
 
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.PAYMENT_REQUESTED)
     val numeroContrat: String = parametres("paylineContract")
 
     if (mogopay) {
@@ -376,14 +385,14 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       logdata += "&authen.md=" + authen.getMd
       logdata += "&authen.pares=" + authen.getPares
     }
-    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
+    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, step = step)
     boTransactionLogHandler.save(botlog, false)
     val requete: DoAuthorizationRequest = new DoAuthorizationRequest
     requete.setPayment(paiement)
     requete.setCard(card)
     requete.setOrder(order)
     requete.setAuthentication3DSecure(authen)
-    val response: DoAuthorizationResponse = createProxy(transaction, parametres).doAuthorization(requete)
+    val response: DoAuthorizationResponse = createProxy(parametres).doAuthorization(requete)
     val result: Result = response.getResult
     logdata = ""
     logdata += "result.code=" + result.getCode
@@ -417,7 +426,6 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       token = null
     )
 
-
     paymentResult = if ("00000" == code) {
       val authorisation: Authorization = response.getAuthorization
       logdata += "&authorisation.number=" + authorisation.getNumber
@@ -439,11 +447,14 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         bankErrorMessage = Option(BankErrorCodes.getErrorMessage("")),
         status = PaymentStatus.FAILED)
     }
-    transactionHandler.finishPayment(vendorUuid, transactionUuid,
+    transactionHandler.finishPayment(transactionUuid,
       if ("00000" == code) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-      paymentResult, code, locale)
+      paymentResult,
+      code,
+      locale,
+      Some(response.getTransaction.getId))
 
-    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid)
+    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, step = step)
     boTransactionLogHandler.save(botlogIn, false)
 
     paymentResult
@@ -453,32 +464,35 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, TransactionStatus.CANCEL_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.CANCEL_REQUESTED)
 
     val requete: DoResetRequest = new DoResetRequest
     requete.setTransactionID(infosPaiement.id)
     var logdata: String = ""
     logdata = "requete.transactionID=" + requete.getTransactionID
-    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
+    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, step = TransactionStep.CANCEL)
     boTransactionLogHandler.save(botlog, false)
 
-    val response: DoResetResponse = createProxy(transaction, parametres).doReset(requete)
+    val response: DoResetResponse = createProxy(parametres).doReset(requete)
     val result: Result = response.getResult
     logdata = ""
     logdata += "&result.code=" + result.getCode
     logdata += "&result.shortMessage=" + result.getShortMessage
     logdata += "&result.longMessage=" + result.getLongMessage
-    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid)
+    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, step = TransactionStep.CANCEL)
     boTransactionLogHandler.save(botlogIn, false)
 
-    val code: String = result.getCode
+    transactionHandler.updateStatus(transactionUuid,
+      None,
+      if ("00000" == result.getCode) TransactionStatus.CANCEL_CONFIRMED else TransactionStatus.CANCEL_FAILED)
 
-    transactionHandler.updateStatus(vendorUuid, transactionUuid, null, if ("00000" == code) TransactionStatus.CANCEL_CONFIRMED else TransactionStatus.CANCEL_FAILED, code)
-
-    CancelResult(id = infosPaiement.id, status = if ("00000" == code) PaymentStatus.CANCELED else PaymentStatus.CANCEL_FAILED, errorCodeOrigin = code, errorMessageOrigin = Option(result.getLongMessage))
+    CancelResult(id = infosPaiement.id,
+      status = if ("00000" == result.getCode) PaymentStatus.CANCELED else PaymentStatus.CANCEL_FAILED,
+      errorCodeOrigin = result.getCode,
+      errorMessageOrigin = Option(result.getLongMessage))
   }
 
-  private def createProxy(transaction: BOTransaction, parametres: Map[String, String]): DirectPaymentAPI = {
+  private def createProxy(parametres: Map[String, String]): DirectPaymentAPI = {
     val accountId: String = parametres("paylineAccount")
     val cleAccess: String = parametres("paylineKey")
     val endpoint: String = Settings.Payline.DirectEndPoint
@@ -558,7 +572,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     val handlerList = binding.getHandlerChain
     handlerList.add(new TraceHandler(transaction, "PAYLINE"))
     binding.setHandlerChain(handlerList)
-    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
+    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, TransactionStep.DO_WEB_PAYMENT)
     boTransactionLogHandler.save(botlog, false)
 
     result = proxy.doWebPayment(parameters)
@@ -573,7 +587,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       logdata += "&result.token=" + result.getToken
       logdata += "&result.redirectURL=" + result.getRedirectURL
     }
-    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid)
+    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, TransactionStep.DO_WEB_PAYMENT)
     boTransactionLogHandler.save(botlogIn, false)
     /*
       case class PaymentResult(transactionSequence: String,
@@ -659,7 +673,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     var logdata: String = null
     logdata = "version=" + parameters.getVersion
     logdata += "&token=" + parameters.getToken
-    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid)
+    val botlog = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, TransactionStep.GET_WEB_PAYMENT_DETAILS)
     boTransactionLogHandler.save(botlog, false)
     result = proxy.getWebPaymentDetails(parameters)
 
@@ -687,7 +701,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         logdata += "&result.getAuthentication3DSecure.vadsResult" + result.getAuthentication3DSecure.getVadsResult
       }
     }
-    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid)
+    val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, TransactionStep.GET_WEB_PAYMENT_DETAILS)
     boTransactionLogHandler.save(botlogIn, false)
 
     val paymentResult = PaymentResult(
@@ -718,11 +732,58 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     )
     boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
-    transactionHandler.finishPayment(vendorUuid, transactionUuid,
+    transactionHandler.finishPayment(transactionUuid,
       if (result.getResult.getCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult, result.getResult().getCode(), locale)
     paymentResult
   }
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val payment = new Payment
+    payment.setAmount(amount.toString)
+    payment.setCurrency(boTx.currency.numericCode.toString)
+    payment.setAction(ACTION_REFUND)
+    payment.setMode(MODE_COMPTANT)
+    payment.setContractNumber(parameters("paylineContract"))
+
+    val request = new DoRefundRequest
+    request.setVersion("3")
+    request.setTransactionID(boTx.gatewayData.getOrElse(throw new TransactionIdNotFoundException))
+    request.setPayment(payment)
+
+    val queryOUT = Map(
+      "amount"        -> payment.getAmount,
+      "currency"      -> payment.getCurrency,
+      "action"        -> payment.getAction,
+      "mode"          -> payment.getMode,
+      "contactNumber" -> payment.getContractNumber,
+      "version"       -> request.getVersion,
+      "transactionID" -> request.getTransactionID
+    )
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT), step = TransactionStep.REFUND)
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
+
+    val response = createProxy(parameters).doRefund(request)
+
+    val responseMap = Map(
+      "code" -> response.getResult.getCode,
+      "shortMessage"  -> response.getResult.getShortMessage,
+      "longMessage"   -> response.getResult.getLongMessage,
+      "transactionId" -> response.getTransaction.getId,
+      "date"          -> response.getTransaction.getDate,
+      "isDuplicated"  -> response.getTransaction.getIsDuplicated,
+      "isPossibleFraud" -> response.getTransaction.getIsPossibleFraud
+    )
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "IN",
+      transaction = boTx.uuid, log = mapToQueryString(responseMap), step = TransactionStep.REFUND)
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
+
+    val status = if (response.getResult.getCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    val code = response.getResult.getCode
+    val longMessage = response.getResult.getLongMessage
+    RefundResult(status, code, Option(longMessage))
+  }
 }
-
-

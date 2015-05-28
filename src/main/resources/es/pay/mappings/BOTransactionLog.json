@@ -30,6 +30,10 @@
       "uuid": {
         "type": "string",
         "index": "not_analyzed"
+      },
+      "step": {
+        "type": "string",
+        "index": "not_analyzed"
       }
     }
   }

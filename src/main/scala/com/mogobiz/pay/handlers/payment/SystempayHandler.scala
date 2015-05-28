@@ -11,18 +11,22 @@ import javax.xml.ws.handler.MessageContext
 
 import com.lyra.vads.ws.stub.{CreatePaiementInfo, Standard, StandardWS, TransactionInfo}
 import com.lyra.vads.ws3ds.stub.{PaResInfo, ThreeDSecure, VeResPAReqInfo}
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
+import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{DefaultFormats, StringInput}
 import spray.http.Uri
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.util._
 import scala.util.control.NonFatal
@@ -63,7 +67,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
-        threeDSResult = systempayClient.check3DSecure(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest)
+        threeDSResult = systempayClient.check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
 
         if (Option(threeDSResult).map(_.code) == Some(ResponseCode3DS.APPROVED)) {
           sessionData.waitFor3DS = true
@@ -104,7 +108,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
-        handleResponse(params, sessionData.locale)
+        handleResponse(params, sessionData.locale, TransactionStep.DONE)
       } else {
         PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
@@ -120,9 +124,10 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
   }
 
   def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult =
-    handleResponse(params, sessionData.locale)
+    handleResponse(params, sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
 
-  private def handleResponse(params: Map[String, String], locale: Option[String]): PaymentResult = {
+  private def handleResponse(params: Map[String, String], locale: Option[String],
+                             step: TransactionStep): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -137,7 +142,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     if (ok) {
       val transaction = boTransactionHandler.find(transactionUUID).orNull
 
-      val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid)
+      val botlog = BOTransactionLog(newUUID, "IN", params.mkString(", "), "SYSTEMPAY", transaction.uuid, step)
       boTransactionLogHandler.save(botlog, false)
       val vads_card_brand = try {
         CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString))
@@ -181,11 +186,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         cardType = pr.cardType
       )
       boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
-      transactionHandler.finishPayment(vendorId,
-        transactionUUID,
-        if (params("vads_result") == "00")
-          TransactionStatus.PAYMENT_CONFIRMED
-        else TransactionStatus.PAYMENT_REFUSED, pr, params("vads_result"), locale)
+      transactionHandler.finishPayment(transactionUUID,
+        if (params("vads_result") == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+        pr,
+        params("vads_result"),
+        locale)
       pr
     } else {
       throw InvalidSignatureException("Invalid signature")
@@ -257,6 +262,87 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
   private def buildURL(url: String, params: Map[String, String]) = url + "?" + mapToQueryString(params)
 
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
+    def createPort() = {
+      val wsdlURL = new URL("https://paiement.systempay.fr/vads-ws/v3?wsdl")
+      val qname = new QName("http://v3.ws.vads.lyra.com/", "StandardWS")
+      val ss = new StandardWS(wsdlURL, qname)
+      ss.getStandardBeanPort
+    }
+
+    def createGregorianCalendar(date: Date = new Date): XMLGregorianCalendar = {
+      val gCalendar = new GregorianCalendar()
+      gCalendar.setTime(date)
+      DatatypeFactory.newInstance().newXMLGregorianCalendar(gCalendar)
+    }
+
+    val cbParams    = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val certificate = cbParams("systempayCertificate")
+
+    val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
+      sep         = SystempayClient.QUERY_STRING_SEP,
+      elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP)
+
+    val shopId = cbParams("systempayShopId")
+    val transmissionDate = createGregorianCalendar(new Date(previousTxInfo("transmissionDate").toLong))
+    val transactionId = previousTxInfo("transactionId")
+    val sequenceNb = 1
+    val ctxMode = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
+    val newTransactionId = "%06d".format(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid))
+    val devise = boTx.currency.numericCode
+    val presentationDate = createGregorianCalendar()
+    val validationMode = 0 // 0 = automatic, 1 = manual
+    val comment = ""
+
+    val parameters = mutable.LinkedHashMap(
+      "shopId"           -> shopId,
+      "transmissionDate" -> transmissionDate,
+      "transactionId"    -> transactionId,
+      "sequenceNb"       -> sequenceNb,
+      "ctxMode"          -> ctxMode,
+      "newTransactionId" -> newTransactionId,
+      "amount"           -> amount,
+      "devise"           -> devise,
+      "presentationDate" -> presentationDate,
+      "validationMode"   -> validationMode,
+      "comment"          -> comment
+    )
+    val wsSignature = SystempayUtilities.makeSignature(certificate, parameters.values.toList.asInstanceOf[Seq[String]].asJava)
+
+    val queryOUT = parameters + ("certificate" -> certificate)
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT.toMap), step = TransactionStep.REFUND)
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
+
+    val response = createPort().refund(
+      shopId,
+      transmissionDate,
+      transactionId,
+      sequenceNb,
+      ctxMode,
+      newTransactionId,
+      amount,
+      devise,
+      presentationDate,
+      validationMode,
+      comment,
+      wsSignature)
+
+    val responseMap = Map(
+      "timestamp" -> response.getTimestamp,
+      "signature" -> response.getSignature,
+      "errorCode" -> response.getErrorCode,
+      "extendedErrorCode" -> response.getExtendedErrorCode,
+      "transactionStatus" -> response.getTransactionStatus,
+      "timestamp" -> response.getTimestamp
+    )
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "IN",
+      transaction = boTx.uuid, log = mapToQueryString(responseMap), step = TransactionStep.REFUND)
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
+
+    val status = if (response.getErrorCode == 0) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, response.getErrorCode.toString, SystempayClient.extendedErrorCodes.get(response.getErrorCode))
+  }
 }
 
 class SystempayClient {
@@ -268,7 +354,7 @@ class SystempayClient {
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
-    transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUUID, None, TransactionStatus.PAYMENT_REQUESTED)
     var paymentResult: PaymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
@@ -459,19 +545,37 @@ class SystempayClient {
         bankErrorMessage = Some(BankErrorCodes.getErrorMessage("%02d".format(info.getAuthResult)))
       )
 
+      val sep = SystempayClient.QUERY_STRING_SEP
+      val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
+      val gatewayData = Map(
+        "transmissionDate" -> payment.getTransmissionDate.toGregorianCalendar.getTime.getTime,
+        "transactionId"    -> payment.getTransactionId,
+        "sequenceNb"       -> paymentRequest.transactionSequence
+      ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
+
       if (code == 0) {
         paymentResult = paymentResult.copy(status = PaymentStatus.COMPLETE)
-        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, "" + code, locale)
+        transactionHandler.finishPayment(transactionUUID,
+          TransactionStatus.PAYMENT_CONFIRMED,
+          paymentResult,
+          "" + code,
+          locale,
+          Some(gatewayData))
       } else {
         paymentResult = paymentResult.copy(status = PaymentStatus.FAILED)
-        transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED, paymentResult, "" + code, locale)
+        transactionHandler.finishPayment(transactionUUID,
+          TransactionStatus.PAYMENT_REFUSED,
+          paymentResult,
+          "" + code,
+          locale,
+          Some(gatewayData))
       }
     }
 
     paymentResult
   }
 
-  def check3DSecure(sessionDataUuid: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
+  def check3DSecure(sessionData: SessionData, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = boTransactionHandler.find(transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException("")
@@ -481,7 +585,7 @@ class SystempayClient {
     val contractNumber: String = parametres("systempayContractNumber")
     val certificat: String = parametres("systempayCertificate")
 
-    transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.VERIFICATION_THREEDS, null)
+    transactionHandler.updateStatus(transactionUUID, None, TransactionStatus.VERIFICATION_THREEDS)
     var result: ThreeDSResult = ThreeDSResult(code = ResponseCode3DS.ERROR, url = null, method = null, mdName = null,
       mdValue = null, pareqName = null, pareqValue = null, termUrlName = null, termUrlValue = null)
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
@@ -535,7 +639,7 @@ class SystempayClient {
           pareqName = "PaReq",
           pareqValue = encodedPareq,
           termUrlName = "TermUrl",
-          termUrlValue = s"${Settings.Mogopay.EndPoint}systempay/3ds-callback/${sessionDataUuid}",
+          termUrlValue = s"${Settings.Mogopay.EndPoint}systempay/3ds-callback/${sessionData.uuid}",
           url = acsURL,
           method = "POST"
         )
@@ -562,14 +666,17 @@ class SystempayClient {
     } else {
       result = result.copy(code = ResponseCode3DS.INVALID)
     }
-    transactionHandler.updateStatus3DS(vendorId, transactionUUID, result.code, codeRetour)
+    transactionHandler.updateStatus3DS(transactionUUID, sessionData.ipAddress, result.code, codeRetour)
 
     result
   }
 }
 
 object SystempayClient {
-  def getExtendedMessage(code :Int): String =extendedErrorCodes.getOrElse(code, "")
+  val QUERY_STRING_SEP = "&"
+  val QUERY_STRING_ELEMENTS_SEP = "="
+
+  def getExtendedMessage(code :Int): String = extendedErrorCodes.getOrElse(code, "")
 
   val extendedErrorCodes = Map[Int, String](
     0 -> "Action réalisée avec succès",

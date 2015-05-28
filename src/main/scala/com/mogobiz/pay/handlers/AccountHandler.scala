@@ -140,8 +140,10 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
                          paymentMethod: String, cbProvider: String, cbParam: CBParams,
-                         payPalParam: PayPalParam, authorizeNetParam: Option[AuthorizeNetParam],
-                         kwixoParam: KwixoParam, groupPaymentReturnURL: Option[String])
+                         payPalParam: PayPalParam, applePayParam: Option[AuthorizeNetParam],
+                         kwixoParam: KwixoParam, groupPaymentReturnURLforNextPayers: Option[String],
+                         groupPaymentExpirationTime: Option[Long], groupPaymentSuccessURL: Option[String],
+                         groupPaymentFailureURL: Option[String])
 
 case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
                               firstName: String, lastName: String, birthDate: String)
@@ -165,6 +167,8 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
                       sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
                       sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
                       sipsMerchantLogoPath: String) extends CBParams
+
+case class AuthorizeNetParams(anetAPILoginID: String, anetTransactionKey: String) extends CBParams
 
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
@@ -784,12 +788,19 @@ class AccountHandler {
           cbParam
         }
 
+        val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers, profile.groupPaymentExpirationTime,
+          profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
+          case (None, None, None, None)             => None
+          case (Some(a), Some(b), Some(c), Some(d)) => Some(GroupPaymentInfo(a, b, c, d))
+          case _                                    => throw new MissingGroupPaymentInfoValues
+        }
+
         val paymentConfig = PaymentConfig(
           paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
           cbProvider = CBPaymentProvider.withName(profile.cbProvider),
           kwixoParam = profile.kwixoParam.kwixoParams,
           paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          authorizeNetParam = profile.authorizeNetParam.map(p => write(caseClassToMap(p))),
+          applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
           cbParam = Some(write(updateCBParam)),
           emailField = if (profile.emailField == "") "user_email" else profile.emailField,
           passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
@@ -797,7 +808,7 @@ class AccountHandler {
           senderName = profile.senderName,
           callbackPrefix = profile.callbackPrefix,
           passwordPattern = profile.passwordPattern,
-          groupPaymentReturnURL = profile.groupPaymentReturnURL)
+          groupPaymentInfo = newGroupPaymentInfo)
 
         val newAccount = account.copy(
           password = password,
@@ -912,10 +923,9 @@ class AccountHandler {
       throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
     }
 
-    // TODO
-    //    if (alreadyExistCompany(signup.company.orNull, owner)) {
-    //      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
-    //    }
+    if (alreadyExistCompany(signup.company.orNull, owner)) {
+      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
+    }
 
     val birthdate = getBirthDayDate(signup.birthDate)
     val civility = Civility.withName(signup.civility)

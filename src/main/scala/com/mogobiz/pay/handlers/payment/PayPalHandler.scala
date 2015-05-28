@@ -11,6 +11,7 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidInputException, InvalidContextException, AccountDoesNotExistException, MogopayError}
 import com.mogobiz.pay.implicits.Implicits
+import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.pay.model.Mogopay._
@@ -130,7 +131,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           } else {
             transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest,
               PaymentType.PAYPAL, CBPaymentProvider.NONE)
-            val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId, sessionData)
+            val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId,
+              sessionData, TransactionStep.SUCCESS)
             finishPayment(sessionData, paymentResult)
           }
       }
@@ -171,12 +173,12 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
                      paymentRequest: PaymentRequest, token: String, payerId: String,
-                     sessionData: SessionData): PaymentResult = {
+                     sessionData: SessionData, step: TransactionStep): PaymentResult = {
     accountHandler.load(vendorId).map {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
           .getOrElse(Map())
-        transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+        transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
         val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
         val user: String = parameters("paypalUser")
         val password = parameters("paypalPassword")
@@ -221,7 +223,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           direction = "OUT",
           log = paramMap.map(t => t._1 + "=" + t._2).reduce(_ + "&" + _),
           provider = "PAYPAL",
-          transaction = transaction.uuid
+          transaction = transaction.uuid,
+          step = step
         )
         boTransactionLogHandler.save(bot1)
 
@@ -233,7 +236,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
             direction = "IN",
             log = tuples.map(t => t._1 + "=" + t._2).reduce(_ + "&" + _),
             provider = "PAYPAL",
-            transaction = transaction.uuid
+            transaction = transaction.uuid,
+            step = step
           )
           boTransactionLogHandler.save(bot2)
           val ack = tuples("ACK")
@@ -248,7 +252,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               gatewayTransactionId = transactionId,
               transactionCertificate = null
             )
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
+            transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
             updatedPaymentResult
           } else {
             val errorCode = tuples.get("L_ERRORCODE0").orNull
@@ -260,7 +264,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               errorMessageOrigin = Option(errorCodeMessage)
             )
 
-            transactionHandler.finishPayment(vendorId, transactionUUID, TransactionStatus.PAYMENT_REFUSED,
+            transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_REFUSED,
               paymentResult, null, sessionData.locale)
 
             updatedPaymentResult

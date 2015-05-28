@@ -51,7 +51,8 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
         direction = "IN",
         log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
         provider = provider,
-        transaction = transaction.uuid
+        transaction = transaction.uuid,
+        step = null
       )
       boTransactionLogHandler.save(log)
     }
@@ -100,7 +101,8 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
           direction = if (outboundProperty) "OUT" else "IN",
           log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
           provider = provider,
-          transaction = transaction.uuid
+          transaction = transaction.uuid,
+          step = null
         )
         boTransactionLogHandler.save(log)
       }

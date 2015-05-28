@@ -1,5 +1,7 @@
 package com.mogobiz.pay.model
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.module.scala.{JsonScalaEnumeration, DefaultScalaModule}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.model.Mogopay._
@@ -160,6 +162,8 @@ object Mogopay {
     val EXPIRED = Value("EXPIRED")
   }
 
+  class TokenValidityRef extends TypeReference[TokenValidity.type]
+
 
   object PaymentStatus extends Enumeration {
     type PaymentStatus = Value
@@ -170,11 +174,30 @@ object Mogopay {
     val COMPLETE = Value("COMPLETE")
     val CANCELED = Value("CANCELED")
     val CANCEL_FAILED = Value("CANCEL_FAILED")
+    val REFUNDED = Value("REFUNDED")
+    val REFUND_FAILED = Value("REFUND_FAILED")
   }
 
   import PaymentStatus._
 
-  class TokenValidityRef extends TypeReference[TokenValidity.type]
+  object TransactionStep extends Enumeration {
+    type TransactionStep = Value
+    val START_PAYMENT = Value("PAYMENT")
+    val FINISH = Value("FINISH")
+    val CANCEL = Value("CANCEL")
+    val REFUND = Value("REFUND")
+    val SUBMIT = Value("SUBMIT")
+    val DONE = Value("DONE")
+    val CHECK_THREEDS = Value("CHECK_THREEDS")
+    val THREEDS_CALLBACK = Value("THREEDS_CALLBACK")
+    val SUCCESS = Value("SUCCESS")
+    val DO_WEB_PAYMENT = Value("DO_WEB_PAYMENT")
+    val GET_WEB_PAYMENT_DETAILS = Value("GET_WEB_PAYMENT_DETAILS")
+    val CALLBACK_PAYMENT = Value("CALLBACK_PAYMENT")
+    val ORDER_THREEDS = Value("ORDER_THREEDS")
+  }
+  class TransactionStepRef extends TypeReference[TransactionStep.type]
+  import TransactionStep._
 
   case class CreditCard(uuid: String,
                         number: String,
@@ -195,7 +218,7 @@ object Mogopay {
 
   case class PaymentConfig(kwixoParam: Option[String],
                            paypalParam: Option[String],
-                           authorizeNetParam: Option[String],
+                           applePayParam: Option[String],
                            cbParam: Option[String],
                            @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
                            @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod,
@@ -209,7 +232,12 @@ object Mogopay {
                            var lastUpdated: Date = Calendar.getInstance().getTime,
                            pwdEmailContent: Option[String] = None,
                            pwdEmailSubject: Option[String] = None,
-                           groupPaymentReturnURL: Option[String] = None)
+                           groupPaymentInfo: Option[GroupPaymentInfo] = None)
+
+  case class GroupPaymentInfo(returnURLforNextPayers: String,
+                              expirationTime: Long,
+                              successURL: String,
+                              failureURL: String)
 
   case class Country(uuid: String,
                      code: String,
@@ -308,7 +336,6 @@ object Mogopay {
                                 @JsonScalaEnumeration(classOf[TransactionStatusRef]) oldStatus: Option[TransactionStatus],
                                 @JsonScalaEnumeration(classOf[TransactionStatusRef]) newStatus: Option[TransactionStatus],
                                 comment: Option[String],
-                                //                                transaction: Document,
                                 var dateCreated: Date = Calendar.getInstance().getTime,
                                 var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -317,6 +344,7 @@ object Mogopay {
                               log: String,
                               provider: String,
                               transaction: Document,
+                              @JsonScalaEnumeration(classOf[TransactionStepRef]) step: TransactionStep,
                               var dateCreated: Date = Calendar.getInstance().getTime,
                               var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -339,6 +367,8 @@ object Mogopay {
   case class BOTransaction(uuid: String,
                            transactionUUID: String,
                            groupTransactionUUID: Option[String] = None,
+                           @JsonDeserialize(contentAs = classOf[java.lang.Long]) groupPaymentExpirationDate: Option[Long] = None,
+                           groupPaymentRefundPercentage: Int = 100,
                            authorizationId: String,
                            transactionDate: Option[java.util.Date],
                            amount: Long,
@@ -371,6 +401,8 @@ object Mogopay {
   case class TransactionRequest(uuid: String,
                                 tid: Long,
                                 groupTransactionUUID: Option[String] = None,
+                                groupPaymentExpirationDate: Option[Long] = None,
+                                groupPaymentRefundPercentage: Int = 100,
                                 amount: Long,
                                 extra: Option[String],
                                 currency: TransactionCurrency,
@@ -394,6 +426,8 @@ object Mogopay {
   case class CancelRequest(id: String, currency: TransactionCurrency)
 
   case class CancelResult(id: String, status: PaymentStatus, errorCodeOrigin: String, errorMessageOrigin: Option[String])
+
+  case class RefundResult(status: PaymentStatus, errorCode: String, errorMessage: Option[String])
 
   case class PaymentResult(transactionSequence: String,
                            orderDate: Date,
@@ -431,6 +465,8 @@ object Mogopay {
                             gatewayData: String,
                             csrfToken: String,
                             currency: TransactionCurrency,
+                            groupPaymentExpirationDate: Option[Long] = None,
+                            groupPaymentRefundPercentage: Int = 100,
                             var dateCreated: Date = Calendar.getInstance().getTime,
                             var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -464,8 +500,8 @@ object Mogopay {
                          var payers: Map[String, Long] = Map(),
                          var groupTxUUID: Option[String] = None,
                          var paymentRequest: Option[PaymentRequest] = None,
-                         var locale: Option[String] = None)
-
+                         var locale : Option[String] = None,
+                         var ipAddress: Option[String] = None)
 }
 
 object TestApp extends App {

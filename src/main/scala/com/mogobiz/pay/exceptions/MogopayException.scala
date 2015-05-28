@@ -127,17 +127,11 @@ object Exceptions {
 
   case class NotAvailablePaymentGatewayException(message: String) extends MogopayException(StatusCodes.ServiceUnavailable, message)
 
-  case class NoSuccessURLProvided() extends MogopayMessagelessException(StatusCodes.InternalServerError) { // todo remove the return codes (they're not used anymore)
-    override def getMessage: String = "1"
-  }
+  case class NoSuccessURLProvided() extends MogopayMessagelessException(StatusCodes.InternalServerError)
 
-  case class NoResponseFromAuthorizeNetException() extends MogopayMessagelessException(StatusCodes.InternalServerError) {
-    override def getMessage: String = "2"
-  }
+  case class NoResponseFromAuthorizeNetException() extends MogopayMessagelessException(StatusCodes.InternalServerError)
 
-  case class AuthorizeNetErrorException(errorCode: String) extends MogopayException(StatusCodes.InternalServerError, errorCode) {
-    override def getMessage: String = errorCode
-  }
+  case class AuthorizeNetErrorException(errorCode: String) extends MogopayException(StatusCodes.InternalServerError, errorCode)
 
   case class MissingAuthorizeNetParamException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
@@ -147,11 +141,31 @@ object Exceptions {
 
   case class NoReturnURLSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
+  case class NoExpirationTimeSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
+
+  case class NoGroupPaymentInfoSpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
+
   case class NoCountrySpecifiedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
   case class RateNotFoundException(message: String) extends MogopayException(StatusCodes.NotFound, message)
 
   case class RefundNotSupportedException() extends MogopayMessagelessException(StatusCodes.NotFound)
 
-  case class ANetTransactionIdNotFoundException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+  case class TransactionIdNotFoundException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class RefundException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
+
+  case class MissingGroupPaymentInfoValues() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class PaymentAlreadyRefundedException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class NoRefundPercentageSpecifiedException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class NotAGroupPaymentException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class MissingPayersForGroupPaymentException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class TransactionRequestWasInitiatedByAnotherMerchantException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class TheRefundAmountIsHigherThanTheInitialAmountException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 }

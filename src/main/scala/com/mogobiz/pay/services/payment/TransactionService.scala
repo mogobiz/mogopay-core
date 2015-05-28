@@ -2,13 +2,14 @@ package com.mogobiz.pay.services.payment
 
 import java.io.File
 import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 
 import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.config.{Settings, DefaultComplete}
+import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
@@ -71,8 +72,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long],
-        'currency_code, 'currency_rate.as[Double],
-        'extra ?, 'return_url ?).as(TransactionInit) { params =>
+        'currency_code, 'currency_rate.as[Double], 'extra ?, 'return_url ?,
+        'group_payment_exp_date.?.as[Option[Long]],
+        'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
         import Implicits._
         handleCall(transactionHandler.init(params),
           (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
@@ -168,46 +170,31 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val initGroupPayment = path("init-group-payment") {
     import com.mogobiz.pay.implicits.Implicits._
-
-    def buildFormToSubmit(account: Account,
-                          transaction: TransactionRequest,
-                          groupTxUUID: String,
-                          transactionType: String) = {
-      val submitParams = Map(
-        "callback_success"   -> "http://success", // todo: quelle URL devra être utilisée?
-        "callback_error"     -> "http://failure",
-        "transaction_id"     -> transaction.uuid,
-        "transaction_amount" -> transaction.amount.toString,
-        "merchant_id"        -> account.owner.get,
-        "transaction_type"   -> transactionType,
-        "payers"             -> (account.email + ":" + transaction.amount.toString),
-        "group_tx_uuid"      -> groupTxUUID
-      )
-
-      val form =
-        <form id="form" action="/pay/transaction/submit" method="POST">
-          {submitParams.map { case (key, value) =>
-            <input type="hidden" name={key} value={value}/>
-        }}
-        </form>
-          <script>document.getElementById('form').submit();</script>
-
-      form.mkString.replace("\n", "")
-    }
-
     get {
-      val params = parameters('token, 'transaction_type)
-      params { (token, transactionType) =>
+      val params = parameters('token, 'transaction_type, 'card_cvv, 'card_month, 'card_year, 'card_type, 'card_number)
+      params { (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
         session { session =>
           handleCall(transactionHandler.initGroupPayment(token),
-            (result: (Account, TransactionRequest, String)) => {
+            (result: (Account, TransactionRequest, String, String, String)) => {
               ServicesUtil.authenticateSession(session, account = result._1)
 
               setSession(session) {
-                val form = buildFormToSubmit(result._1, result._2, result._3, transactionType)
+                val form = buildFormForInitGroupPayment(
+                  account = result._1,
+                  transaction = result._2,
+                  groupTxUUID = result._3,
+                  transactionType = transactionType,
+                  successURL = result._4,
+                  failureURL = result._5,
+                  ccCVV,
+                  ccMonth,
+                  ccYear,
+                  ccType,
+                  ccNumber
+                )
                 respondWithMediaType(MediaTypes.`text/html`) {
                   complete {
-                    new HttpResponse(StatusCodes.OK, HttpEntity(form.mkString.replace("\n", "")))
+                    new HttpResponse(StatusCodes.OK, HttpEntity(form))
                   }
                 }
               }
@@ -222,19 +209,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     get {
       val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid)
       params { (merchantSecret, amount, boTransactionUUID) =>
-        handleCall(transactionHandler.refund(merchantSecret, amount, boTransactionUUID),
-          (serviceName: Any) => {
-            val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-            val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/refund")
-            val response = pipeline(request)
-//            response.map { response =>
-//              complete(200)
-//            }
-            onComplete(response) {
-              case Success(s) => ???
-              case Failure(t) => ???
-            }
-          }
+        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount)),
+          (_: Any) => complete(200 -> "")
         )
       }
     }
@@ -273,11 +249,18 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
             session { session =>
               import Implicits._
 
-              session.sessionData.payers      = submitParams.payers.toMap[String, Long]
-              session.sessionData.groupTxUUID = submitParams.groupTxUUID
+              if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
+                complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
+              } else {
+                clientIP { ip =>
+                  session.sessionData.ipAddress   = Some(ip.toString)
+                  session.sessionData.payers      = submitParams.payers.toMap[String, Long]
+                  session.sessionData.groupTxUUID = submitParams.groupTxUUID
 
-              setSession(session) {
-                doSubmit(submitParams, session)
+                  setSession(session) {
+                    doSubmit(submitParams, session)
+                  }
+                }
               }
             }
           }
@@ -378,5 +361,39 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         }
       )
     }
+  }
+
+  def buildFormForInitGroupPayment(account: Account, transaction: TransactionRequest, groupTxUUID: String,
+                        transactionType: String, successURL: String, failureURL: String,
+                        ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String) = {
+    val submitParams = Map(
+      "callback_success"   -> successURL,
+      "callback_error"     -> failureURL,
+      "transaction_id"     -> transaction.uuid,
+      "transaction_amount" -> transaction.amount.toString,
+      "merchant_id"        -> account.owner.get,
+      "transaction_type"   -> transactionType,
+      "group_tx_uuid"      -> groupTxUUID,
+      "card_cvv"           -> ccCVV,
+      "card_month"         -> ccMonth,
+      "card_year"          -> ccYear,
+      "card_type"          -> ccType,
+      "card_number"        -> ccNumber
+    )
+
+    val form =
+      <form id="form" action={s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/transaction/submit"} method="POST">
+        {submitParams.map { case (key, value) =>
+          <input type="hidden" name={key} value={value}/>
+      }}
+      </form>
+        <script>document.getElementById('form').submit();</script>
+
+    if (Settings.Env == Environment.DEV) { // Just `open /tmp/mogopay-submit-form.html` to start the payment
+      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
+        form.mkString.getBytes(StandardCharsets.UTF_8))
+    }
+
+    form.mkString.replace("\n", "")
   }
 }

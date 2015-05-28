@@ -681,10 +681,12 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('sips_merchant_parcom_file_name.?) ::
                 ('sips_merchant_parcom_file_content.?) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
+                ('anet_api_login_id ?) :: ('anet_transaction_key ?) ::
                 ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
-                ('anet_api_login_id ?) :: ('anet_transaction_key ?) ::
-                ('kwixo_params ?) :: 'email_field :: 'password_field :: 'group_payment_return_url.? :: HNil)
+                ('apple_pay_anet_api_login_id ?) :: ('apple_pay_anet_transaction_key ?) ::
+                ('kwixo_params ?) :: 'email_field :: 'password_field :: 'group_payment_return_url_for_next_payers.? ::
+                'group_payment_expiration_time.?.as[Option[Long]] :: 'group_payment_success_url.? :: 'group_payment_failure_url.? :: HNil)
               fields.happly {
                 case password :: password2 :: company :: website :: lphone ::
                   civility :: firstname :: lastname :: birthday :: road :: road2 ::
@@ -695,9 +697,11 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
                   sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
                   systempayShopId :: systempayContractNumber :: systempayCertificate :: senderName :: senderEmail ::
-                  passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
                   anetAPILoginID :: anetTransactionKey ::
-                  kwixoParams :: emailField :: passwordField :: groupPaymentReturnURL :: HNil =>
+                  passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
+                  applePayAnetAPILoginID :: applePayAnetTransactionKey ::
+                  kwixoParams :: emailField :: passwordField :: groupPaymentReturnURLforNextPayers :: groupPaymentExpirationTime ::
+                  groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
                   val validPassword: Option[(String, String)] = (password, password2) match {
                     case (Some(p), Some(p2)) => Some((p, p2))
                     case _ => None
@@ -726,10 +730,10 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                       sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
                       sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
                     case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
-                    case CBPaymentProvider.AUTHORIZENET => NoCBParams()
+                    case CBPaymentProvider.AUTHORIZENET => AuthorizeNetParams(anetAPILoginID.get, anetTransactionKey.get)
                   }
 
-                  val authorizeNetParam = (anetAPILoginID, anetTransactionKey) match {
+                  val applePayParam = (anetAPILoginID, anetTransactionKey) match {
                     case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
                     case _ => None
                   }
@@ -760,10 +764,13 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                       paypalPassword = paypalPassword,
                       paypalSignature = paypalSignature
                     ),
-                    authorizeNetParam = authorizeNetParam,
+                    applePayParam = applePayParam,
                     kwixoParam = KwixoParam(kwixoParams),
                     cbParam = cbParam,
-                    groupPaymentReturnURL = groupPaymentReturnURL
+                    groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
+                    groupPaymentExpirationTime = groupPaymentExpirationTime,
+                    groupPaymentSuccessURL = groupPaymentSuccessURL,
+                    groupPaymentFailureURL = groupPaymentFailureURL
                   )
 
                   import Implicits._

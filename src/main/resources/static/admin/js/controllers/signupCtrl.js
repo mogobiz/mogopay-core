@@ -175,7 +175,7 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
 			if(response.token == ""){
 				var success = function (response) {
 					$rootScope.createPage = false;
-					$scope.getAllStores();
+					$rootScope.getAllStores();
 				};
 
 				var data = "";

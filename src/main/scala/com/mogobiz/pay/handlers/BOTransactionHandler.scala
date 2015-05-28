@@ -1,7 +1,5 @@
 package com.mogobiz.pay.handlers
 
-import java.util.UUID
-
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.BOTransactionNotFoundException
@@ -26,6 +24,13 @@ class BOTransactionHandler {
       .getOrElse(Seq())
       .filter(_.customer.isDefined)
       .filter(_.customer.get.uuid != uuid)
+  }
+
+  def findAllGroupTransactions(): Seq[BOTransaction] = {
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
+      existsFilter("groupTransactionUUID")
+    }
+    EsClient.searchAll[BOTransaction](req)
   }
 
   def save(transaction: BOTransaction, refresh: Boolean = false) = {

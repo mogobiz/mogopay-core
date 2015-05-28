@@ -43,12 +43,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
                         ccMonth: Option[String], ccYear: Option[String], ccType: Option[String],
                         ccStore: Option[Boolean], private val _payers: Option[String], groupTxUUID: Option[String], locale: Option[String]) {
   def payers: Map[String, Long] = _payers.map { payers =>
-    payers
-      .split(",")
-      .map { s =>
-      val split = s.split(":")
-      (split(0), split(1).toLong)
-    }.toMap
+    queryStringToMap(payers, sep = ",", elementsSep = ":").mapValues(_.toLong).map(identity)
   }.getOrElse(Map())
 }
 
@@ -71,7 +66,7 @@ class TransactionHandler {
         //
         //          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
         //          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
-        val txRequest = createTxReqForInit(vendor, params, None)
+        val txRequest = createTxReqForInit(vendor, params, None, params.groupPaymentExpirationDate, params.groupPaymentRefundPercentage)
         transactionRequestHandler.save(txRequest, false)
         txRequest.uuid
       }
@@ -79,14 +74,17 @@ class TransactionHandler {
     //    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
 
-  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit, groupTxUUID: Option[String]): TransactionRequest = {
+  def createTxReqForInit(merchant: Account, params: ParamRequest.TransactionInit,
+                         groupTxUUID: Option[String],
+                         groupPaymentExpirationDate: Option[Long], groupPaymentRefundPercentage: Option[Int]): TransactionRequest = {
     val rate = (rateHandler findByCurrencyCode params.currencyCode).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
     val currency = Currency.getInstance(params.currencyCode)
     val txSeqId = transactionSequenceHandler.nextTransactionId(merchant.uuid)
     val txReqUUID = newUUID
 
     val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
-    TransactionRequest(txReqUUID, txSeqId, groupTxUUID, params.transactionAmount, params.extra, txCurrency, merchant.uuid)
+    TransactionRequest(txReqUUID, txSeqId, groupTxUUID, groupPaymentExpirationDate, groupPaymentRefundPercentage.getOrElse(100),
+      params.transactionAmount, params.extra, txCurrency, merchant.uuid)
   }
 
   def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
@@ -97,6 +95,8 @@ class TransactionHandler {
         transactionRequestUUID,
         transactionRequestUUID,
         sessionData.groupTxUUID,
+        paymentRequest.groupPaymentExpirationDate,
+        paymentRequest.groupPaymentRefundPercentage,
         "",
         Option(new Date),
         paymentRequest.amount,
@@ -140,16 +140,17 @@ class TransactionHandler {
     }.getOrElse(Failure(new InvalidContextException("Vendor not found")))
   }
 
-  def updateStatus(vendorId: String, transactionUUID: String, ipAddress: String, newStatus: TransactionStatus, comment: String): Unit = {
+  def updateStatus(transactionUUID: String, ipAddress: Option[String],
+                   newStatus: TransactionStatus, comment: Option[String] = None) {
     val maybeTx = boTransactionHandler.find(transactionUUID)
     maybeTx.map { transaction =>
-      val modStatus: ModificationStatus = ModificationStatus(
+      val modStatus = ModificationStatus(
         uuid = newUUID,
         xdate = new Date,
-        ipAddr = Option(ipAddress),
+        ipAddr = ipAddress.orElse(transaction.modifications.collectFirst({ case e => e.ipAddr }).flatten),
         oldStatus = Option(transaction.status),
         newStatus = Option(newStatus),
-        comment = Option(comment)
+        comment = comment
       )
 
       val newTx = transaction.copy(
@@ -158,11 +159,11 @@ class TransactionHandler {
         modifications = transaction.modifications :+ modStatus
       )
 
-      boTransactionHandler.update(newTx, false)
-    }.getOrElse(throw TransactionNotFoundException(""))
+      boTransactionHandler.update(newTx, refresh = false)
+    }.getOrElse(throw TransactionNotFoundException(transactionUUID))
   }
 
-  def updateStatus3DS(vendorId: String, transactionUUID: String, status3DS: ResponseCode3DS, codeRetour: String) {
+  def updateStatus3DS(transactionUUID: String, ipAddress: Option[String], status3DS: ResponseCode3DS, codeRetour: String) {
     val maybeTx = boTransactionHandler.find(transactionUUID)
     maybeTx.map { transaction =>
       val modification = ModificationStatus(
@@ -171,7 +172,7 @@ class TransactionHandler {
         oldStatus = Option(transaction.status),
         newStatus = Option(TransactionStatus.THREEDS_TESTED),
         comment = Option(codeRetour),
-        ipAddr = None
+        ipAddr = ipAddress.orElse(transaction.modifications.collectFirst({ case e => e.ipAddr }).flatten)
       )
 
       val newTx = transaction.copy(
@@ -186,19 +187,20 @@ class TransactionHandler {
   }
 
   // called by other handlers
-  def finishPayment(vendorId: String, transactionUUID: String, newStatus: TransactionStatus,
+  def finishPayment(transactionUUID: String, newStatus: TransactionStatus,
                     paymentResult: PaymentResult, returnCode: String, locale: Option[String], gatewayData: Option[String] = None): Unit = {
+//    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
+    updateStatus(transactionUUID, None, newStatus, Option(returnCode))
+
     val transaction = boTransactionHandler.find(transactionUUID)
       .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
 
-    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
     val newTx = transaction.copy(
       status = newStatus,
       endDate = computeEndDate(newStatus),
       authorizationId = paymentResult.authorizationId,
       errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
       errorMessageOrigin = paymentResult.errorMessageOrigin,
-      modifications = transaction.modifications :+ modification,
       gatewayData = gatewayData
     )
 
@@ -259,14 +261,10 @@ class TransactionHandler {
   }
 
   def verify(secret: String, amount: Option[Long], transactionUUID: String): (BOTransaction, Seq[TransactionRequest]) = {
-    val maybeVendor = accountHandler.findBySecret(secret)
-
-    val account: Account = maybeVendor match {
-      case None => throw AccountDoesNotExistException("secret=****")
-      case Some(a) => a
-    }
-
     val transaction = boTransactionHandler.find(transactionUUID).getOrElse(throw TransactionNotFoundException(s"$transactionUUID"))
+
+    if (transaction.vendor.get.secret != secret)
+      throw InvalidMerchantAccountException("")
 
     val validatedTx = if (amount.map(transaction.amount == _).getOrElse(true)) transaction else throw UnexpectedAmountException(s"$amount")
 
@@ -361,14 +359,23 @@ class TransactionHandler {
         successURL = sessionData.successURL
         transactionType = sessionData.transactionType
         amount = sessionData.amount
-        accountHandler.load(sessionData.merchantId.get).orNull
+        accountHandler.load(sessionData.merchantId.get).getOrElse(throw VendorNotFoundException())
       } else {
-        accountHandler.load(submit.params.merchantId).orNull
+        accountHandler.load(submit.params.merchantId).getOrElse(throw VendorNotFoundException())
       }
 
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
       throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
 
+    if (transactionRequest.vendor != vendor.uuid)
+      throw TransactionRequestWasInitiatedByAnotherMerchantException()
+
+    if (sessionData.payers.size > 1 && transactionRequest.groupPaymentExpirationDate.isEmpty)
+      throw NotAGroupPaymentException()
+
+//    if (sessionData.payers.size < 2 && transactionRequest.groupPaymentExpirationDate.isDefined)
+//      throw MissingPayersForGroupPaymentException()
+//
     if (transactionRequest.amount != amount.get) {
       throw UnexpectedAmountException(s"${amount.get}")
     }
@@ -493,8 +500,8 @@ class TransactionHandler {
           val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
           val paymentRequest = initPaymentRequest(vendor, transactionType, true, transactionRequest.tid,
             transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
-            submit.params.gatewayData.orNull,
-            submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear, card.cardType)
+            submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear,
+            card.cardType, transactionRequest.groupPaymentExpirationDate)
           sessionData.paymentRequest = Some(paymentRequest)
 
           // user is already authenticated. We check start the mogopayment
@@ -517,9 +524,9 @@ class TransactionHandler {
     } else {
       val paymentRequest = initPaymentRequest(vendor, transactionType, false, transactionRequest.tid,
         transactionExtra, transactionCurrency, sessionData, submit.params.transactionDescription.orNull,
-        submit.params.gatewayData.orNull,
-        submit.params.customerCVV.orNull, submit.params.ccNum.orNull, submit.params.ccMonth.orNull, submit.params.ccYear.orNull,
-        toCardType(submit.params.ccType.orNull))
+        submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, submit.params.ccNum.orNull,
+        submit.params.ccMonth.orNull, submit.params.ccYear.orNull, toCardType(submit.params.ccType.orNull),
+        transactionRequest.groupPaymentExpirationDate)
       sessionData.paymentRequest = Some(paymentRequest)
       val handler = if (submit.sessionData.transactionType == Some("CREDIT_CARD")) {
         sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
@@ -560,7 +567,8 @@ class TransactionHandler {
                                  transactionSequence: Long, transactionExtra: String,
                                  transactionCurrency: TransactionCurrency, sessionData: SessionData,
                                  transactionDesc: String, gatewayData: String, ccCrypto: String, card_number: String,
-                                 card_month: String, card_year: String, card_type: CreditCardType): PaymentRequest = {
+                                 card_month: String, card_year: String, card_type: CreditCardType,
+                                 groupPaymentExpirationDate: Option[Long]): PaymentRequest = {
     var errors: mutable.Seq[Exception] = mutable.Seq()
 
     var cc_type: CreditCardType = null
@@ -572,15 +580,17 @@ class TransactionHandler {
     cc_type = card_type
     cc_month = card_month
     cc_year = card_year
-    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else ""
-    val maskedCCNumber = hideStringExceptLastN(cc_num)
+//    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else ""
+//    val maskedCCNumber = hideStringExceptLastN(cc_num)
+    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else card_number
+    val maskedCCNumber = if (cc_num == null) null else hideStringExceptLastN(cc_num)
 
     val amount: Long = sessionData.amount.getOrElse(0L)
     val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
     var paymentProvider = CBPaymentProvider.NONE
     var paymentRequest: PaymentRequest = PaymentRequest(UUID.randomUUID.toString, "-1", null, -1L, maskedCCNumber, "",
       null, null, "", "", "", "", "", "", "",
-      sessionData.csrfToken.orNull, transactionCurrency)
+      sessionData.csrfToken.orNull, transactionCurrency, groupPaymentExpirationDate)
 
     if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD" && (!externalPages || mogopay)) {
       paymentProvider = vendor.paymentConfig.orNull.cbProvider
@@ -632,10 +642,10 @@ class TransactionHandler {
     )
   }
 
-  def initGroupPayment(token: String): (Account, TransactionRequest, String) = {
+  def initGroupPayment(token: String): (Account, TransactionRequest, String, String, String) = {
     val decryptedToken = SymmetricCrypt.decrypt(token, Settings.Mogopay.Secret, "AES")
-    val (expirationDate, txUUID, customerUUID, groupTxUUID) = decryptedToken.split('|').toList match {
-      case a :: b :: c :: d :: Nil => (a, b, c, d)
+    val (expirationDate, txUUID, customerUUID, groupTxUUID, successURL, failureURL) = decryptedToken.split('|').toList match {
+      case a :: b :: c :: d :: e :: f :: Nil => (a, b, c, d, e, f)
       case _ => throw new InvalidTokenException("")
     }
 
@@ -646,13 +656,19 @@ class TransactionHandler {
     val txReq = transactionRequestHandler.find(txUUID).getOrElse(throw new BOTransactionNotFoundException(txUUID))
     val account = accountHandler.find(customerUUID).getOrElse(throw new AccountDoesNotExistException(""))
 
-    (account, txReq, groupTxUUID)
+    (account, txReq, groupTxUUID, successURL, failureURL)
   }
 
-  def refund(merchantSecret: String, amount: Long, boTransactionUUID: String) {
-    type Params = (PaymentConfig, BOTransaction)
+  def refund(merchantSecret: String, boTransactionUUID: String, maybeAmount: Option[Long] = None) {
+    implicit def longToBigDecimal(n: Long): java.math.BigDecimal = new java.math.BigDecimal(n * 1.0)
+
+    type Params = (PaymentConfig, BOTransaction, Long)
     val handlers = Map(
-      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2))
+      CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2, p._3)),
+      CBPaymentProvider.SIPS         -> ((p: Params) => sipsHandler.refund(p._1, p._2, p._3))
     )
 
     val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
@@ -660,11 +676,37 @@ class TransactionHandler {
     val boTransaction = boTransactionHandler.find(boTransactionUUID).getOrElse(
       throw new BOTransactionNotFoundException(boTransactionUUID))
 
+    if (maybeAmount.exists(_ > boTransaction.amount))
+      throw new TheRefundAmountIsHigherThanTheInitialAmountException()
+
+    if (boTransaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
+      throw new PaymentAlreadyRefundedException()
+    }
+
     if (boTransaction.paymentData.cbProvider == CBPaymentProvider.NONE) {
       throw new RefundNotSupportedException()
     }
 
-    handlers(paymentConfig.cbProvider)(paymentConfig, boTransaction)
+    val amount: Long = maybeAmount.getOrElse(
+      (boTransaction.amount.toFloat * boTransaction.groupPaymentRefundPercentage / 100).toLong)
+
+    val call = handlers.getOrElse(paymentConfig.cbProvider, throw new RefundNotSupportedException)
+    val refundResult = call(paymentConfig, boTransaction, amount)
+
+    if (refundResult.status == PaymentStatus.REFUNDED) {
+      updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
+    } else {
+      val message = refundResult.errorMessage.map(s => s" — $s").getOrElse("")
+      throw new RefundException(s"[${paymentConfig.cbProvider}] ${refundResult.errorCode}$message")
+    }
+  }
+
+  def refundGroupPayments() = {
+    val transactions = boTransactionHandler.findAllGroupTransactions()
+    transactions
+      .filter(tx => tx.groupPaymentExpirationDate.exists(_ * 1000 <= (new Date).getTime))
+      .filter(tx => tx.status == TransactionStatus.PAYMENT_CONFIRMED)
+      .foreach(transaction => transactionHandler.refund(transaction.vendor.get.secret, transaction.uuid))
   }
 }
 

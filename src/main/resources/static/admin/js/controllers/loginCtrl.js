@@ -22,10 +22,13 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
             showAlertBootStrapMsg("warning", "Please fill all required fields.");
             return;
         }
-
         var success = function (response) {
-            $rootScope.createPage = false;
-			$scope.getAllStores();
+			$rootScope.createPage = false;
+			var infoSuccess = function(infoResponse){
+				$rootScope.userProfile = infoResponse;
+				$rootScope.getAllStores();
+			}
+			callServer("account/profile-info", "", infoSuccess, function(){});
         };
 
         var error = function (response) {
@@ -52,6 +55,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 	if(customerPage == true)
 		$rootScope.isMerchant = false;
 	$("#mainContainer").hide();
+
 	var listSuccess = function(response){
 		$scope.$apply(function () {
 			var allSellers = [];
@@ -70,7 +74,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			$("#mainContainer").show();
 				$rootScope.userProfile = response;
 				$rootScope.createPage = false;
-				$scope.getAllStores();
+				$rootScope.getAllStores();
 			};
 
 			failure = function (response) {
@@ -93,7 +97,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				else{
 					$rootScope.userProfile = response;
 					$rootScope.createPage = false;
-					$scope.getAllStores();
+					$rootScope.getAllStores();
 				}
 			};
 
@@ -123,7 +127,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				else{
 					$rootScope.userProfile = response;
 					$rootScope.createPage = false;
-					$scope.getAllStores();
+					$rootScope.getAllStores();
 				}
 			};
 			failure = function (response) {

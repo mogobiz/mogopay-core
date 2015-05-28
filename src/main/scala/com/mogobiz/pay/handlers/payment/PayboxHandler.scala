@@ -13,7 +13,7 @@ import akka.util.Timeout
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
+import com.mogobiz.pay.exceptions.Exceptions.{RefundException, InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.TransactionStatus
@@ -128,7 +128,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         )
         boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
-        transactionHandler.finishPayment(vendorId, transactionUuid,
+        transactionHandler.finishPayment(transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, codeReponse, sessionData.locale)
         finishPayment(sessionData, paymentResult)
@@ -262,7 +262,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
-    transactionHandler.updateStatus(vendorId, transactionUUID, null, TransactionStatus.PAYMENT_REQUESTED, null)
+    transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
     var paymentResult: PaymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
@@ -320,7 +320,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
                   <head>
                   </head>
                   <body>
-                <FORM id="formpaybox" ACTION = "${action}" METHOD="POST">
+                <FORM id="formpaybox" ACTION = "$action" METHOD="POST">
                   <INPUT TYPE="hidden" NAME ="IdMerchant" VALUE = "${IdMerchant}"><br>
                   <INPUT TYPE="hidden" NAME ="IdSession" VALUE = "${IdSession}"><br>
                   <INPUT TYPE="hidden" NAME ="Amount" VALUE = "${Amount}"><br>
@@ -365,7 +365,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         else if (id3d != "" && paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
           query += "ID3D" -> id3d
 
-        val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap))
+        val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+          transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap),
+          step = TransactionStep.START_PAYMENT)
         boTransactionLogHandler.save(botlog, false)
 
         val uri = Uri(Settings.Paybox.DirectEndPoint)
@@ -398,8 +400,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
         tuples.foreach(println)
-        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN", transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples))
-        boTransactionLogHandler.save(botlog, false)
+        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+          transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples),
+          step = TransactionStep.START_PAYMENT)
+        boTransactionLogHandler.save(bolog, false)
         val errorCode = tuples.getOrElse("CODEREPONSE", "")
         val errorMessage = tuples.get("COMMENTAIRE")
         paymentResult = paymentResult.copy(
@@ -419,9 +423,12 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             authorizationId = authorisation,
             transactionCertificate = null)
         }
-        transactionHandler.finishPayment(vendorId, transactionUUID,
+        transactionHandler.finishPayment(transactionUUID,
           if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult, errorCode, sessionData.locale)
+          paymentResult,
+          errorCode,
+          sessionData.locale,
+          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
         Right(finishPayment(sessionData, paymentResult))
       }
@@ -450,7 +457,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
       val queryString = mapToQueryStringNoEncode(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
-      val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT", transaction = transactionUUID, log = queryString)
+      val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+        transaction = transactionUUID, log = queryString, step = TransactionStep.START_PAYMENT)
       boTransactionLogHandler.save(botlog, false)
       val action = Settings.Paybox.SystemEndPoint
       val query = queryList.toMap
@@ -491,6 +499,44 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     else {
       throw InvalidContextException( s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
     }
+  }
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
+    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val gatewayData = GlobalUtil.queryStringToMap(boTx.gatewayData.getOrElse(""))
+
+    val query: Map[String, String] = Map(
+      "VERSION" -> (if (parameters("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"),
+      "SITE" -> parameters("payboxSite"),
+      "TYPE" -> "00014", // 00014 for refund
+      "RANG" -> parameters("payboxRank"),
+      "CLE" -> parameters("payboxKey"),
+      "NUMQUESTION" -> transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid).toString.format("%010d"),
+      "MONTANT" -> boTx.amount.toString,
+      "DEVISE" -> boTx.currency.numericCode.toString,
+      "REFERENCE" -> (boTx.vendor.get.uuid + "--" + boTx.uuid),
+      "NUMTRANS" -> gatewayData("NUMTRANS"),
+      "NUMAPPEL" -> gatewayData("NUMAPPEL"),
+      "ACTIVITE" -> "024", // 024 is the default value
+      "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date())
+    )
+
+    val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+      transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.REFUND)
+    EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
+
+    val uri = Uri(Settings.Paybox.DirectEndPoint)
+    val post = Post(uri).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query)))
+    val response = Await.result(pipeline(post), Duration.Inf)
+
+    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+      transaction = boTx.uuid, log = response.entity.data.asString, step = TransactionStep.REFUND)
+    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
+
+    val responseCode = GlobalUtil.queryStringToMap(response.entity.data.asString)("CODEREPONSE")
+    val status = if (responseCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, responseCode, PayboxHandler.errorMessages.get(responseCode))
   }
 }
 

@@ -179,16 +179,18 @@
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
-							<th style="width: 25%;">Direction</th>
-							<th style="width: 25%;">Provider</th>
-							<th style="width: 50%;">Log</th>
+							<th style="width: 20%;">Direction</th>
+							<th style="width: 20%;">Provider</th>
+							<th style="width: 20%;">Step</th>
+							<th style="width: 40%;">Log</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr ng-repeat="row in logsDetails">
-							<td style="width: 25%;">{{row.direction}}</td>
-							<td style="width: 25%;">{{row.provider}}</td>
-							<td style="width: 50%;">
+							<td style="width: 20%;">{{row.direction}}</td>
+							<td style="width: 20%;">{{row.provider}}</td>
+							<td style="width: 20%;">{{row.step}}</td>
+							<td style="width: 40%;">
 								<div ng-repeat="instance in row.log">{{instance}}</div>
 							</td>
 						</tr>
