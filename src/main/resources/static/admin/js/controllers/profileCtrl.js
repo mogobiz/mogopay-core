@@ -53,7 +53,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 
 	//Options and Model
 	//Civility
-	$scope.profileCivilityOptions = [{"value": "MR", "name": "Male"}, {"value": "MRS", "name": "Female"}];
+	$scope.profileCivilityOptions = [{"value": "MR", "name": "Mr."}, {"value": "MRS", "name": "Mrs."}];
 	$scope.profileCivilityModel = $scope.profileCivilityOptions[0];
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.civility.name == "MRS") {
 		$scope.profileCivilityModel = $scope.profileCivilityOptions[1];
