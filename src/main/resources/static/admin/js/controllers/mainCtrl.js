@@ -30,7 +30,12 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		"RETURN_ACCEPTED": "Return Accepted"
 	};
 
-    if(getHTTPParameter("profile") == "true"){
+    $rootScope.mogopayGoToProfile = false;
+	if(localStorage.getItem("mogopayGoToProfile") == "true"){
+		localStorage.removeItem("mogopayGoToProfile");
+		$rootScope.mogopayGoToProfile = true;
+	}
+	if(getHTTPParameter("profile") == "true"){
 		localStorage.setItem("mogopayGoToProfile", "true");
 		window.location.href = $location.$$absUrl.split("?")[0];
 	}
@@ -72,14 +77,14 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
         return route === $location.path();
     };
 
-	    $rootScope.getAllStores = function () {
+	$rootScope.getAllStores = function () {
         var success = function (response) {
             $scope.$apply(function () {
 				$rootScope.allStores = response;
 				$rootScope.selectedStore = response[0];
 				$rootScope.transactions = null;
-				if(localStorage.getItem("mogopayGoToProfile") == "true"){
-					localStorage.removeItem("mogopayGoToProfile");
+				if($rootScope.mogopayGoToProfile){
+					$rootScope.mogopayGoToProfile = false;
 					navigateToPage($scope, $location, $rootScope, $route, "profile");
 				}
 				else
