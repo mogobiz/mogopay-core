@@ -406,9 +406,9 @@ class SystempayClient {
       val signature: String =
         SystempayUtilities.encode(Seq(
           vads_action_mode,
-          paymentRequest.amount.toString,
-          context,
-          currency,
+          vads_amount,
+          vads_ctx_mode,
+          vads_currency,
           vads_order_info,
           vads_page_action,
           vads_payment_config,
@@ -502,7 +502,7 @@ class SystempayClient {
         payment.getCardExpirationDate,
         payment.getCvv,
         payment.getContractNumber,
-        null,
+        "",
         payment.getSubPaymentType,
         payment.getSubReference,
         payment.getSubPaymentNumber,
