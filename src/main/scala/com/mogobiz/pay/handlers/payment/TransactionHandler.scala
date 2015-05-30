@@ -230,7 +230,7 @@ class TransactionHandler {
         val (subject, body) = templateHandler.mustache(template, jsonString)
         EmailHandler.Send(
           Mail(
-            (transaction.vendor.get.email -> s"${transaction.vendor.get.firstName} ${transaction.vendor.get.lastName}"),
+            (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
             List(transaction.email.get), List(), List(), subject, body, None, None
           ))
       } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
