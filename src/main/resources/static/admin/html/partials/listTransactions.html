@@ -83,8 +83,6 @@
         <table class="table table-bordered table-striped">
 			<thead>
 				<tr>
-					<th>UUID</th>
-					<th>group UUID</th>
 					<th>Name</th>
 					<th>Email</th>
 					<th>Date</th>
@@ -93,16 +91,13 @@
 					<th>Transaction Status</th>
 					<th>Return Status</th>
 					<th>Delivery Status</th>
+					<th>UUID</th>
+					<th>group UUID</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr ng-repeat="transaction in transactions">
-					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.uuid}}</a></td>
-					<td>
-						<span ng-if="transaction.groupTransactionUUID != null">{{transaction.groupTransactionUUID}}</span>
-						<span ng-if="transaction.groupTransactionUUID == null"><i>Not a group payment</i></span>
-					</td>
-					<td>{{transaction.customer.firstName}} {{transaction.customer.lastName}}</td>
+					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.customer.firstName}} {{transaction.customer.lastName}}</a></td>
 					<td>{{transaction.customer.email}}</td>
 					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>
 					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate}}</td>
@@ -138,6 +133,11 @@
 						</div>
 					</td>
 					<td>{{transaction.deliveryStatus[0]}}</td>
+					<td>{{transaction.uuid}}</td>
+					<td>
+						<span ng-if="transaction.groupTransactionUUID != null">{{transaction.groupTransactionUUID}}</span>
+						<span ng-if="transaction.groupTransactionUUID == null"><i>N.A.</i></span>
+					</td>
 				</tr>
 			</tbody>
         </table>
