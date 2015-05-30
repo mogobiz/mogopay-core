@@ -93,7 +93,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			case "paybox":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[2];break;
 			case "sips":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[3];break;
 			case "systempay":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[4];break;
-			case "anet":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[5];break;
+			case "authorizenet":$scope.creditCardProviderModel = $scope.creditCardProviderOptions[5];break;
 			default:break;
 		}
 		if($scope.creditCardProviderModel && $scope.creditCardProviderModel.value.toLowerCase() != "none")
@@ -568,7 +568,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 					data += "&systempay_contract_number=" + $("#systempayContract").val();
 					data += "&systempay_certificate=" + $("#systempayCertificate").val();
 					break;
-				case "anet":
+				case "authorizenet":
 					data += "&anet_api_login_id=" + $("#authorizeNetLogin").val();
 					data += "&anet_transaction_key=" + $("#authorizeNetTransactionKey").val();
 					break;

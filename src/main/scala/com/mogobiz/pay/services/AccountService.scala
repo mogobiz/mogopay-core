@@ -686,21 +686,25 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
                 ('apple_pay_anet_api_login_id ?) :: ('apple_pay_anet_transaction_key ?) ::
                 ('kwixo_params ?) :: 'email_field :: 'password_field :: 'group_payment_return_url_for_next_payers.? ::
-                'group_payment_expiration_time.?.as[Option[Long]] :: 'group_payment_success_url.? :: 'group_payment_failure_url.? :: HNil)
+                'group_payment_success_url.? :: 'group_payment_failure_url.? :: HNil)
               fields.happly {
-                case password :: password2 :: company :: website :: lphone ::
-                  civility :: firstname :: lastname :: birthday :: road :: road2 ::
-                  city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
+                case password :: password2 :: company ::
+                  website :: lphone :: civility :: firstname :: lastname :: birthday ::
+                  road :: road2 :: city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
                   paymentMethod :: cbProvider ::
-                  paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode :: paylineCustomPaymentTemplateURL ::
-                  payboxSite :: payboxKey :: payboxRank :: payboxMerchantId ::
-                  sipsMerchantId :: sipsMerchantCountry :: sipsMerchantCertificateFileName :: sipsMerchantCertificateFileContent ::
-                  sipsMerchantParcomFileName :: sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
-                  systempayShopId :: systempayContractNumber :: systempayCertificate :: senderName :: senderEmail ::
+                  paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode ::
+                  paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank ::
+                  payboxMerchantId :: sipsMerchantId :: sipsMerchantCountry ::
+                  sipsMerchantCertificateFileName ::
+                  sipsMerchantCertificateFileContent ::
+                  sipsMerchantParcomFileName ::
+                  sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
+                  systempayShopId :: systempayContractNumber :: systempayCertificate ::
                   anetAPILoginID :: anetTransactionKey ::
-                  passwordPattern :: callbackPrefix :: paypalUser :: paypalPassword :: paypalSignature ::
+                  senderName :: senderEmail :: passwordPattern :: callbackPrefix ::
+                  paypalUser :: paypalPassword :: paypalSignature ::
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
-                  kwixoParams :: emailField :: passwordField :: groupPaymentReturnURLforNextPayers :: groupPaymentExpirationTime ::
+                  kwixoParams :: emailField :: passwordField :: groupPaymentReturnURLforNextPayers ::
                   groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
                   val validPassword: Option[(String, String)] = (password, password2) match {
                     case (Some(p), Some(p2)) => Some((p, p2))
@@ -721,7 +725,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   // error handling for invalid paymentMethod
 
                   // error handling if a param isn't passed
-                  val cbParam: CBParams = CBPaymentProvider.withName(cbProvider) match {
+                  val cbParam: CBParams = CBPaymentProvider.withName(cbProvider.toUpperCase) match {
                     case CBPaymentProvider.NONE => NoCBParams()
                     case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
                       paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
@@ -733,7 +737,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     case CBPaymentProvider.AUTHORIZENET => AuthorizeNetParams(anetAPILoginID.get, anetTransactionKey.get)
                   }
 
-                  val applePayParam = (anetAPILoginID, anetTransactionKey) match {
+                  val applePayParam = (applePayAnetAPILoginID, applePayAnetTransactionKey) match {
                     case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
                     case _ => None
                   }
@@ -758,7 +762,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     callbackPrefix = callbackPrefix,
                     passwordPattern = passwordPattern,
                     paymentMethod = paymentMethod,
-                    cbProvider = cbProvider,
+                    cbProvider = cbProvider.toUpperCase,
                     payPalParam = PayPalParam(
                       paypalUser = paypalUser,
                       paypalPassword = paypalPassword,
@@ -768,7 +772,6 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     kwixoParam = KwixoParam(kwixoParams),
                     cbParam = cbParam,
                     groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
-                    groupPaymentExpirationTime = groupPaymentExpirationTime,
                     groupPaymentSuccessURL = groupPaymentSuccessURL,
                     groupPaymentFailureURL = groupPaymentFailureURL
                   )

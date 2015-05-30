@@ -263,7 +263,6 @@ object DBInitializer {
       senderName, senderEmail, None, passwordPattern,
       groupPaymentInfo = Some(GroupPaymentInfo(
         returnURLforNextPayers = "http://returnurl/",
-        expirationTime = 7 * 24 * 3600 * 1000,
         successURL = "http://successURL",
         failureURL = "http://failureURL"
       ))
