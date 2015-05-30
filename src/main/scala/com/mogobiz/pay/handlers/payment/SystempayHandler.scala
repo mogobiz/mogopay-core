@@ -58,13 +58,13 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
       if (sessionData.mogopay) {
         val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
-        Right(finishPayment(sessionData, paymentResult))
+        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
         if (paymentResult.data.nonEmpty) {
           Left(paymentResult.data)
         } else {
-          Right(finishPayment(sessionData, paymentResult))
+          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
         threeDSResult = systempayClient.check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
@@ -88,13 +88,13 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           Left(form)
         } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
-          Right(finishPayment(sessionData, paymentResult))
+          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
         } else {
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, createThreeDSNotEnrolledResult()))
         }
       } else {
         val paymentResult = systempayClient.submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
-        Right(finishPayment(sessionData, paymentResult))
+        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
       }
     }
   }
@@ -120,7 +120,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           transaction.errorCodeOrigin.getOrElse(""),
           transaction.errorMessageOrigin, "", "", Some(""), "")
       }
-    finishPayment(sessionData, resultatPaiement)
+    finishPayment(sessionData, PaymentType.CREDIT_CARD, resultatPaiement)
   }
 
   def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult =
@@ -249,7 +249,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           buildURL(errorURL, map)
         case "Y" | "A" =>
           val resultatPaiement = systempayClient.submit(vendorId, transactionUUID, paymentConfig, newPReq, sessionData.locale)
-          finishPayment(sessionData, resultatPaiement)
+          finishPayment(sessionData, PaymentType.CREDIT_CARD, resultatPaiement)
         case _ =>
           throw new InvalidContextException(s"Invalid status $status")
       }

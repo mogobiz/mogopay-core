@@ -9,6 +9,7 @@ import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.{EmailingActor, EmailHandler}
 import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.utils.{SymmetricCrypt, GlobalUtil}
@@ -24,7 +25,7 @@ trait PaymentHandler {
   /**
    * Returns the redirection page's URL
    */
-  protected def finishPayment(sessionData: SessionData,
+  protected def finishPayment(sessionData: SessionData, paymentType:PaymentType,
                               paymentResult: PaymentResult): Uri = {
     val errorURL = sessionData.errorURL.getOrElse("")
     val successURL = sessionData.successURL.getOrElse("")
@@ -36,7 +37,7 @@ trait PaymentHandler {
       "result" -> (if (success) MogopayConstant.Success else MogopayConstant.Error),
       "transaction_id" -> transactionUUID,
       "transaction_sequence" -> transactionSequence,
-      "transaction_type" -> "CREDIT_CARD",
+      "transaction_type" -> paymentType.toString,
       "error_code_bank" -> paymentResult.bankErrorCode,
       "error_message_bank" -> paymentResult.bankErrorMessage.getOrElse(""),
       "error_code_provider" -> paymentResult.errorCodeOrigin,

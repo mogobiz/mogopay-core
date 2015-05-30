@@ -106,7 +106,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     } else {
       val pr = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
         "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
-      finishPayment(sessionData, pr)
+      finishPayment(sessionData, PaymentType.PAYPAL, pr)
     }
   }
 
@@ -133,7 +133,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               PaymentType.PAYPAL, CBPaymentProvider.NONE)
             val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId,
               sessionData, TransactionStep.SUCCESS)
-            finishPayment(sessionData, paymentResult)
+            finishPayment(sessionData, PaymentType.PAYPAL, paymentResult)
           }
       }
     }

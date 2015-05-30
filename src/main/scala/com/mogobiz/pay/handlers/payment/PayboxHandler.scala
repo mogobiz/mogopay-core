@@ -131,7 +131,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         transactionHandler.finishPayment(transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, codeReponse, sessionData.locale)
-        finishPayment(sessionData, paymentResult)
+        finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
       }
       else {
         throw InvalidSignatureException(s"$signature")
@@ -158,7 +158,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         bankErrorMessage = Some(""),
         token = ""
       )
-      finishPayment(sessionData, paymentResult)
+      finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
     }
 
   }
@@ -214,7 +214,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(errorCode)),
           token = ""
         )
-        finishPayment(sessionData, paymentResult)
+        finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
       }
     }
   }
@@ -430,7 +430,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           sessionData.locale,
           Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
-        Right(finishPayment(sessionData, paymentResult))
+        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
       }
     }
     else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {

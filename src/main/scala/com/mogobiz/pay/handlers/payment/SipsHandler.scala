@@ -99,7 +99,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         if (resultat.data != null)
           Left(resultat.data)
         else
-          Right(finishPayment(sessionData, resultat))
+          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, resultat))
       }
       else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED) {
         val resultat3DS = check3DSecure(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
@@ -125,16 +125,16 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           // on lance un paiement classique
           val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
-          Right(finishPayment(sessionData, resultat))
+          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, resultat))
         }
         else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, createThreeDSNotEnrolledResult()))
         }
       }
       else {
         val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
-        Right(finishPayment(sessionData, resultat))
+        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, resultat))
       }
     }
   }
@@ -162,7 +162,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       sessionData.waitFor3DS = false
       try {
         val result = order3D(sessionData, vendorId, transactionUUID, paymentConfig.orNull, paymentRequest)
-        finishPayment(sessionData, result)
+        finishPayment(sessionData, PaymentType.CREDIT_CARD, result)
       }
       catch {
         case ex: Exception =>
@@ -196,7 +196,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
           transaction.errorCodeOrigin.getOrElse(""),
           transaction.errorMessageOrigin, "", "", Some(""), "")
       }
-    finishPayment(sessionData, resultatPaiement)
+    finishPayment(sessionData, PaymentType.CREDIT_CARD, resultatPaiement)
 
   }
 
