@@ -235,7 +235,6 @@ object Mogopay {
                            groupPaymentInfo: Option[GroupPaymentInfo] = None)
 
   case class GroupPaymentInfo(returnURLforNextPayers: String,
-                              expirationTime: Long,
                               successURL: String,
                               failureURL: String)
 

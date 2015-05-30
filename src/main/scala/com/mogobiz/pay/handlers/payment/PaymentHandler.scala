@@ -66,7 +66,7 @@ trait PaymentHandler {
     val groupTxUUID = firstPayerBOTx.uuid
     boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = Some(groupTxUUID)), refresh = false)
 
-    val payersAccounts = payers.filter(_._1 != firstPayer.email).foreach { case (email, amount) =>
+    payers.filter(_._1 != firstPayer.email).foreach { case (email, amount) =>
       val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
         val newAccount = Account(
           uuid     = UUID.randomUUID().toString,
@@ -91,7 +91,8 @@ trait PaymentHandler {
       val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
 
       val token = {
-        val expirationTime: Long = new Date((new Date).getTime + groupPaymentInfo.expirationTime).getTime
+        val expirationDate = firstPayerBOTx.groupPaymentExpirationDate.getOrElse(throw NoExpirationTimeSpecifiedException())
+        val expirationTime: Long = new Date((new Date).getTime + expirationDate).getTime
         val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
         SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
       }
