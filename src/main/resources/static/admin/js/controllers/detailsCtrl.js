@@ -107,7 +107,7 @@ function detailsRefundCheckOne(scope, location, rootScope, route){
 function detailsSelectReturn(scope, location, rootScope, route, index){
 	rootScope.itemsToBeReturned = [];
 	rootScope.returnDetails = {
-		name: scope.cartDetails.cartItems[index].bOProducts[0].product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
+		name: scope.cartDetails.cartItems[index].principal.product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
 		returnedItems: scope.cartDetails.cartItems[index].bOReturnedItems,
 		cartItem: scope.cartDetails.cartItems[index]
 	}

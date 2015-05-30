@@ -96,7 +96,7 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 			var item = items[i];
 			for(var j = 0; j < item.bOReturnedItems.length; j++){
 				if(item.bOReturnedItems[j].boReturns.length > 0){
-					listRetunedStatus[listRetunedStatus.length] = {value: item.bOProducts[0].product.name + ": " + rootScope.returnStatusValues[item.bOReturnedItems[j].boReturns[0].status]};
+					listRetunedStatus[listRetunedStatus.length] = {value: item.principal.product.name + ": " + rootScope.returnStatusValues[item.bOReturnedItems[j].boReturns[0].status]};
 				}
 			}
 		}
