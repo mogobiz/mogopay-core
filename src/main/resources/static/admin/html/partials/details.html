@@ -140,19 +140,20 @@
 								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
 							</td>
 							<td>
-								<div ng-if="item.bOProducts.length == 1">
-									<a href="javascript:void(0);" ng-if="item.url" ng-click="getProductDetails(item.url)">{{item.bOProducts[0].product.name}}/({{item.sku.sku}})</a>
-									<span ng-if="!item.url">{{item.bOProducts[0].product.name}}/({{item.sku.sku}})</span>
+								<!--<div ng-if="item.bOProducts.length == 1">-->
+								<div>
+									<a href="javascript:void(0);" ng-if="item.url" ng-click="getProductDetails(item.url)">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+									<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
 								</div>
-								<div ng-if="item.bOProducts.length > 1">
-									<a href="javascript:void(0)" rel="popoverProduts">{{item.bOProducts[0].product.name}} / ({{item.sku.sku}})</a>
-									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
-										<div ng-repeat="product in item.bOProducts" style="padding: 5px;">
-											<a href="javascript:void(0);" ng-if="!item.url" ng-click="getProductDetails(item.url)">{{product.product.name}}</a>
-											<span ng-if="!item.url">{{item.bOProducts[0].product.name}}/({{item.sku.sku}})</span>
-										</div>
-									</div>
-								</div>
+								<!--<div ng-if="item.bOProducts.length > 1">-->
+									<!--<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}} / ({{item.sku.sku}})</a>-->
+									<!--<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">-->
+										<!--<div ng-repeat="product in item.secondary" style="padding: 5px;">-->
+											<!--<a href="javascript:void(0);" ng-if="!item.url" ng-click="getProductDetails(item.url)">{{product.product.name}}</a>-->
+											<!--<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>-->
+										<!--</div>-->
+									<!--</div>-->
+								<!--</div>-->
 							</td>
 							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
