@@ -77,31 +77,32 @@ case class AddressToUpdateFromGetParams(id: String, road: String,
                                         city: String, road2: Option[String],
                                         zipCode: String, extra: String,
                                         civility: String, firstName: String,
-                                        lastName: String, country: String,
+                                        lastName: String, company: Option[String], country: String,
                                         admin1: String, admin2: String, lphone: String)
 
 case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
                                      zipCode: String, extra: Option[String],
                                      civility: String, firstName: String,
+                                     company: Option[String],
                                      lastName: String, country: String,
                                      admin1: String, admin2: String, lphone: String) {
   def getAddress = {
     val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
     AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
-      Option(lastName), Option(telephone), Option(country), Option(admin1), Option(admin2))
+      Option(lastName), company, Option(telephone), Option(country), Option(admin1), Option(admin2))
   }
 }
 
 case class AddressToAssignFromGetParams(road: String, city: String,
                                         road2: Option[String], zipCode: String,
                                         extra: Option[String], civility: String,
-                                        firstName: String, lastName: String,
+                                        firstName: String, lastName: String, company: Option[String],
                                         country: String, admin1: String,
                                         admin2: String, lphone: String) {
   def getAddress = {
     val c = Civility.withName(civility)
     AccountAddress(road, road2, city, Some(zipCode), extra, Some(c), Some(firstName),
-      Some(lastName), None, Some(country), Some(admin1), Some(admin2))
+      Some(lastName), company, None, Some(country), Some(admin1), Some(admin2))
   }
 }
 
@@ -401,7 +402,7 @@ class AccountHandler {
       val vendor = if (account.owner.isDefined) load(account.owner.get) else None
       val template = templateHandler.loadTemplateByVendor(vendor, "new-password", req.locale)
 
-      val paymentConfig  = vendor.get.paymentConfig.get
+      val paymentConfig = vendor.get.paymentConfig.get
       val senderName = paymentConfig.senderName
       val senderEmail = paymentConfig.senderEmail
       val data = s"""{"newPassword": "$newPassword"}"""
@@ -789,10 +790,10 @@ class AccountHandler {
 
         val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers,
           profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
-          case (None,     None,     None)     => None
+          case (None, None, None) => None
           case (Some(""), Some(""), Some("")) => None
-          case (Some(a),  Some(b),  Some(c))  => Some(GroupPaymentInfo(a, b, c))
-          case _                              => throw new MissingGroupPaymentInfoValues
+          case (Some(a), Some(b), Some(c)) => Some(GroupPaymentInfo(a, b, c))
+          case _ => throw new MissingGroupPaymentInfoValues
         }
 
         val paymentConfig = PaymentConfig(
@@ -1008,7 +1009,7 @@ class AccountHandler {
     tryToSave.foreach { _ =>
       // We voluntarily use get explicitly because it should never ever be null
       val merchant = getMerchant(owner.get)
-        val paymentConfig  = merchant.get.paymentConfig.get
+      val paymentConfig = merchant.get.paymentConfig.get
       val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
       val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
       if (needEmailValidation) {

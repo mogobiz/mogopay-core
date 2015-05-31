@@ -20,7 +20,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
 
   import system.dispatcher
 
-  val paymentType = PaymentType.CREDIT_CARD
+  val paymentType = com.mogobiz.pay.model.Mogopay.PaymentType.CREDIT_CARD
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
 
@@ -49,12 +49,12 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     op.setDataDescriptor("COMMON.APPLE.INAPP.PAYMENT")
     op.setDataValue(Settings.ApplePay.token.getOrElse(paymentRequest.gatewayData))
 
-    val paymentType = new PaymentType()
-    paymentType.setOpaqueData(op)
+    val thePaymentType = new PaymentType()
+    thePaymentType.setOpaqueData(op)
 
     val txnRequest = new TransactionRequestType()
     txnRequest.setTransactionType(TransactionTypeEnum.AUTH_CAPTURE_TRANSACTION.value())
-    txnRequest.setPayment(paymentType)
+    txnRequest.setPayment(thePaymentType)
     txnRequest.setAmount(BigDecimal.long2bigDecimal(amount).bigDecimal)
 
     val apiRequest = new CreateTransactionRequest()

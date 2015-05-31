@@ -279,6 +279,7 @@ object Mogopay {
                             @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility] = None,
                             firstName: Option[String] = None,
                             lastName: Option[String] = None,
+                            company: Option[String] = None,
                             telephone: Option[Telephone] = None,
                             country: Option[String] = None,
                             admin1: Option[String] = None,
@@ -501,6 +502,10 @@ object Mogopay {
                          var paymentRequest: Option[PaymentRequest] = None,
                          var locale : Option[String] = None,
                          var ipAddress: Option[String] = None)
+
+  case class ShippingParcel(height:Double, width:Double, length:Double, weight:Double)
+
+
 }
 
 object TestApp extends App {
@@ -523,6 +528,7 @@ object TestApp extends App {
       Some(Civility.MR),
       Some("Me2"),
       Some("You2"),
+      None,
       Some(Telephone(
         "0102030405",
         "3314567890987",

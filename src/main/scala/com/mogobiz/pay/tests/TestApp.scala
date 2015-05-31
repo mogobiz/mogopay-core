@@ -40,6 +40,7 @@ object TestApp extends App {
       Some(Civility.MR),
       Some("Me2"),
       Some("You2"),
+      None,
       Some(Telephone(
         "0102030405",
         "3314567890987",

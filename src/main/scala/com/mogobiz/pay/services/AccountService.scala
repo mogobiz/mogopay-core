@@ -384,7 +384,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val assignBillingAddress = get {
     path("assign-billing-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'country, 'admin1, 'admin2, 'lphone)
+        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2, 'lphone)
 
       params.as(AddressToAssignFromGetParams) {
         address =>
@@ -428,7 +428,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val addShippingAddress = get {
     path("add-shipping-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'country, 'admin1, 'admin2, 'lphone)
+        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2, 'lphone)
 
       params.as(AddressToAddFromGetParams) {
         address =>
@@ -452,7 +452,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val updateShippingAddress = get {
     path("update-shipping-address") {
       val params = parameters('address_id, 'road, 'city, 'road2.?,
-        'zip_code, 'extra.?, 'civility, 'firstname, 'lastname, 'country,
+        'zip_code, 'extra.?, 'civility, 'firstname, 'lastname, 'company.?, 'country,
         'admin1, 'admin2, 'lphone)
 
       params.as(AddressToUpdateFromGetParams) {
