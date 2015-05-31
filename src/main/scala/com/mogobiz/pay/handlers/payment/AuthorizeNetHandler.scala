@@ -31,6 +31,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   implicit val timeout: Timeout = 40.seconds
   import system.dispatcher
 
+  val paymentType = PaymentType.CREDIT_CARD
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
   implicit val formats = new org.json4s.DefaultFormats {}
 
@@ -261,7 +262,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       if (status == PaymentStatus.COMPLETE) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
       params("x_response_code"), sessionData.locale, Some(gatewayData))
-    finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
+    finishPayment(sessionData, paymentResult)
   }
 
   def cancel(sessionData: SessionData) = {
@@ -277,7 +278,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
     transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
       TransactionStatus.PAYMENT_REFUSED, paymentResult, "", sessionData.locale)
-    finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
+    finishPayment(sessionData, paymentResult)
   }
 
   def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: java.math.BigDecimal): RefundResult = {

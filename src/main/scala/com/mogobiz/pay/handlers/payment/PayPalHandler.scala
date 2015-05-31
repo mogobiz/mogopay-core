@@ -38,6 +38,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
 
   implicit val formats = new org.json4s.DefaultFormats {}
 
+  val paymentType = PaymentType.PAYPAL
+
   /**
    * Return (Session, URL to redirect to)
    */
@@ -106,7 +108,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     } else {
       val pr = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
         "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
-      finishPayment(sessionData, PaymentType.PAYPAL, pr)
+      finishPayment (sessionData, pr)
     }
   }
 
@@ -133,7 +135,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
               PaymentType.PAYPAL, CBPaymentProvider.NONE)
             val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId,
               sessionData, TransactionStep.SUCCESS)
-            finishPayment(sessionData, PaymentType.PAYPAL, paymentResult)
+            finishPayment(sessionData, paymentResult)
           }
       }
     }

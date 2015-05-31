@@ -22,11 +22,11 @@ import scala.collection.mutable
 trait PaymentHandler {
   implicit val system = ActorSystem()
 
+  def paymentType : PaymentType
   /**
    * Returns the redirection page's URL
    */
-  protected def finishPayment(sessionData: SessionData, paymentType:PaymentType,
-                              paymentResult: PaymentResult): Uri = {
+  protected def finishPayment(sessionData: SessionData, paymentResult: PaymentResult): Uri = {
     val errorURL = sessionData.errorURL.getOrElse("")
     val successURL = sessionData.successURL.getOrElse("")
     val transactionUUID = sessionData.transactionUuid.getOrElse("")

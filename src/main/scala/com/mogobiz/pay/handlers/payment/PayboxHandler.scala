@@ -40,7 +40,8 @@ import scala.util._
 class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
   PaymentHandler.register(handlerName, this)
 
-    implicit val timeout: Timeout = 40.seconds
+  implicit val timeout: Timeout = 40.seconds
+  val paymentType = PaymentType.CREDIT_CARD
 
   def verifySha1(data: String, sign: String, pemdata: String): Boolean = {
     val Charset = "UTF-8"
@@ -66,7 +67,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     sig.verify(signature)
   }
 
-  def callbackPayment(sessionData: SessionData, params: Map[String, String], uri:String): Unit = {
+  def callbackPayment(sessionData: SessionData, params: Map[String, String], uri: String): Unit = {
     if (params("CODEREPONSE") == "00000") donePayment(sessionData, params, uri)
   }
 
@@ -131,7 +132,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         transactionHandler.finishPayment(transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, codeReponse, sessionData.locale)
-        finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
+        finishPayment(sessionData, paymentResult)
       }
       else {
         throw InvalidSignatureException(s"$signature")
@@ -158,7 +159,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         bankErrorMessage = Some(""),
         token = ""
       )
-      finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
+      finishPayment(sessionData, paymentResult)
     }
 
   }
@@ -214,7 +215,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(errorCode)),
           token = ""
         )
-        finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
+        finishPayment(sessionData, paymentResult)
       }
     }
   }
@@ -373,28 +374,28 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         val uri = Uri(Settings.Paybox.DirectEndPoint)
         val host = uri.authority.host
 
-        val logRequest: HttpRequest => HttpRequest = { r => println(r); r}
-        val logResponse: HttpResponse => HttpResponse = { r => println(r); r}
+        val logRequest: HttpRequest => HttpRequest = { r => println(r); r }
+        val logResponse: HttpResponse => HttpResponse = { r => println(r); r }
         val pipeline: Future[SendReceive] =
           for (
             Http.HostConnectorInfo(connector, _) <-
             IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
           ) yield logRequest ~> sendReceive(connector) ~> logResponse
-//        query.put("TYPE", "00056")
-//        query.put("SITE", "1999888")
-//        query.put("RANG", "069")
-//        query.put("CLE", "200932363")
-//        query.put("MONTANT", "100")
-//        val refAbonne = ""+(new Date().getTime)
-//        query.put("REFABONNE", refAbonne)
-//        val request0 = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
-//        val response0 = pipeline.flatMap(_(request0))
-//
-//        val tuples0 = Await.result(GlobalUtil.fromHttResponse(response0), Duration.Inf)
-//        tuples0.foreach(println)
-//
-//        query.put("TYPE", "00053")
-//        query.put("MONTANT", Amount)
+        //        query.put("TYPE", "00056")
+        //        query.put("SITE", "1999888")
+        //        query.put("RANG", "069")
+        //        query.put("CLE", "200932363")
+        //        query.put("MONTANT", "100")
+        //        val refAbonne = ""+(new Date().getTime)
+        //        query.put("REFABONNE", refAbonne)
+        //        val request0 = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
+        //        val response0 = pipeline.flatMap(_(request0))
+        //
+        //        val tuples0 = Await.result(GlobalUtil.fromHttResponse(response0), Duration.Inf)
+        //        tuples0.foreach(println)
+        //
+        //        query.put("TYPE", "00053")
+        //        query.put("MONTANT", Amount)
         val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
         val response = pipeline.flatMap(_(request))
 
@@ -428,9 +429,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           paymentResult,
           errorCode,
           sessionData.locale,
-          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
+          Some( s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
-        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
+        Right(finishPayment(sessionData, paymentResult))
       }
     }
     else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {

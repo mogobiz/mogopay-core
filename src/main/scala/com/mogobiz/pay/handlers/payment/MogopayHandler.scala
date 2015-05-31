@@ -7,13 +7,14 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
-import com.mogobiz.pay.model.Mogopay.{Account, AccountStatus, SessionData}
+import com.mogobiz.pay.model.Mogopay.{PaymentType, Account, AccountStatus, SessionData}
 import org.apache.shiro.crypto.hash.Sha256Hash
 import spray.http.Uri
 import scala.util.Left
 
 class MogopayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
+  val paymentType = PaymentType.CREDIT_CARD
 
   def authenticate(sessionData: SessionData): Left[String, Nothing] = {
     val ownerFilter =

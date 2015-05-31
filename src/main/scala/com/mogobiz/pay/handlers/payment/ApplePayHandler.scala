@@ -1,36 +1,26 @@
 package com.mogobiz.pay.handlers.payment
 
-import java.net.URLDecoder
-import java.util.{Date, Locale}
-
-import akka.actor.ActorSystem
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.Mogopay.CreditCardType
-import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.utils.GlobalUtil._
-import net.authorize.Environment
-import net.authorize.api.contract.v1.PaymentType
+import com.mogobiz.pay.exceptions.Exceptions._
+import com.mogobiz.pay.model.Mogopay._
 import net.authorize.api.contract.v1.{CreditCardType => _, _}
 import net.authorize.api.controller.CreateTransactionController
 import net.authorize.api.controller.base.ApiOperationBase
-import net.authorize.sim.Fingerprint
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
-import spray.http.Uri.Query
 import spray.http.{Uri, _}
 
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util._
-import scala.concurrent.duration._
 
 class ApplePayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
-//  implicit val system = ActorSystem()
+  //  implicit val system = ActorSystem()
 
   import system.dispatcher
+
+  val paymentType = PaymentType.CREDIT_CARD
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
 
@@ -43,9 +33,9 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler {
     val paymentRequest = sessionData.paymentRequest.get
     val amount = sessionData.amount.get
 
-    val paymentConfig      = sessionData.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
+    val paymentConfig = sessionData.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
     val authorizeNetParams = paymentConfig.applePayParam.map(parse(_).extract[Map[String, String]]).orElse(throw new MissingAuthorizeNetParamException)
-    val anetAPILoginID     = authorizeNetParams.get("anetAPILoginID")
+    val anetAPILoginID = authorizeNetParams.get("anetAPILoginID")
     val anetTransactionKey = authorizeNetParams.get("anetTransactionKey")
 
     val appleMerchAuthenticationType = new MerchantAuthenticationType()

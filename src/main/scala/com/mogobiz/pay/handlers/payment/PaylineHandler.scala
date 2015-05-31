@@ -86,6 +86,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {
   }
+  val paymentType = PaymentType.CREDIT_CARD
 
   import com.mogobiz.pay.handlers.payment.PaylineHandler._
 
@@ -107,14 +108,14 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       if (sessionData.mogopay) {
         val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, true, sessionData.locale,
           TransactionStep.START_PAYMENT)
-        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
+        Right(finishPayment(sessionData, paymentResult))
       } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
         sessionData.token = Option(paymentResult.token)
         if (paymentResult.data != null && paymentResult.data.nonEmpty) {
           Left(paymentResult.data)
         } else {
-          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
+          Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
         threeDSResult = check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
@@ -141,24 +142,24 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
           // on lance un paiement classique
           val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
             sessionData.locale, TransactionStep.START_PAYMENT)
-          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
+          Right(finishPayment(sessionData, paymentResult))
         }
         else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
         }
       } else {
         // on lance un paiement classique
         val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
           sessionData.locale, TransactionStep.START_PAYMENT)
-        Right(finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult))
+        Right(finishPayment(sessionData, paymentResult))
       }
     }
   }
 
   def done(sessionData: SessionData, params: Map[String, String]): Uri = {
     val paymentResult = handleResponse(sessionData, params)
-    finishPayment(sessionData, PaymentType.CREDIT_CARD, paymentResult)
+    finishPayment(sessionData, paymentResult)
   }
 
   def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult = {
@@ -192,7 +193,7 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         val paymentRequest2 = paymentRequest.copy(paylineMd = params("MD"), paylinePares = params("PaRes"))
         val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2,
           sessionData.mogopay, sessionData.locale, TransactionStep.THREEDS_CALLBACK)
-        finishPayment(sessionData, PaymentType.CREDIT_CARD, result)
+        finishPayment(sessionData, result)
       }
       catch {
         case ex: Exception =>
