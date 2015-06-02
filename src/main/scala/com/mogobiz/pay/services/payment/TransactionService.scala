@@ -155,7 +155,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 'transaction_email -> Option(transaction.email).getOrElse(""),
                 'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
                 'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
-                'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.creationDate), "UTF-8"),
+                'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated), "UTF-8"),
                 'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
                 'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
                 'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),

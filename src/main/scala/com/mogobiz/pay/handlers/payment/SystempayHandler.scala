@@ -154,7 +154,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       }
 
       var pr = PaymentResult(transaction.uuid,
-        transaction.creationDate,
+        transaction.dateCreated,
         transaction.amount,
         params("vads_card_number"),
         vads_card_brand,

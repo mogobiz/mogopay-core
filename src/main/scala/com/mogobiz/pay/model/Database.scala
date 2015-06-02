@@ -374,7 +374,6 @@ object Mogopay {
                            amount: Long,
                            currency: TransactionCurrency,
                            @JsonScalaEnumeration(classOf[TransactionStatusRef]) status: TransactionStatus,
-                           creationDate: java.util.Date,
                            endDate: Option[java.util.Date],
                            paymentData: BOPaymentData,
                            merchantConfirmation: Boolean = false,

@@ -4,10 +4,6 @@
       "amount": {
         "type": "long"
       },
-      "creationDate": {
-        "type": "date",
-        "format": "dateOptionalTime"
-      },
       "transactionDate": {
         "type": "date",
         "format": "dateOptionalTime",

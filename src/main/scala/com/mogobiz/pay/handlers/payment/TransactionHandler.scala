@@ -102,7 +102,6 @@ class TransactionHandler {
         paymentRequest.amount,
         paymentRequest.currency,
         TransactionStatus.INITIATED,
-        new Date,
         None,
         BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
         merchantConfirmation = false,

@@ -698,7 +698,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     sipsRequest.setValue("currency_code", "" + boTx.currency.numericCode.toString)
     sipsRequest.setValue("merchant_country", merchantCountry)
     sipsRequest.setValue("merchant_id", merchantId)
-    sipsRequest.setValue("payment_date", new SimpleDateFormat("yyyyMMdd").format(boTx.creationDate))
+    sipsRequest.setValue("payment_date", new SimpleDateFormat("yyyyMMdd").format(boTx.dateCreated))
     sipsRequest.setValue("transaction_id", boTx.paymentData.transactionSequence.getOrElse("-1"))
 
     val logOut = new BOTransactionLog(uuid = newUUID, provider = "SIPS", direction = "OUT", transaction = boTx.uuid,

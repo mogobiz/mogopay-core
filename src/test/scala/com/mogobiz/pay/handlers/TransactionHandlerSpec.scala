@@ -18,7 +18,7 @@ class TransactionHandlerSpec extends Specification with Before {
 //    val tx = BOTransaction("123", null, None, null, None, 0L, null, null, null, null, null, false, null, null, null,
 //      null, null, null, null, null, null, Some(acc), null, null)
 //=======
-    val tx = BOTransaction("123", null, None, None, -1, null, None, 0L, null, null, null, null, null, false, null, null, null,
+    val tx = BOTransaction("123", null, None, None, -1, null, None, 0L, null, null, null, null, false, null, null, null,
       null, null, null, null, null, null, Some(acc), null, null)
 //    val tx = BOTransaction("123", null, None, None, 100, null, None, 0L, null, null, null, null, null, false, null, null, null,
 //      null, null, null, null, Some(acc), null, null)

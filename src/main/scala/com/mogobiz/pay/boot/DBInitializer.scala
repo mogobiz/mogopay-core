@@ -289,7 +289,6 @@ object DBInitializer {
       amount = amount,
       currency = currency,
       status = TransactionStatus.PAYMENT_CONFIRMED,
-      creationDate = transactionDate,
       endDate = Some(transactionDate),
       paymentData = paymentData,
       merchantConfirmation = true,
