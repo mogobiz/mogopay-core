@@ -99,10 +99,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			$scope.urlHistory.push($location.$$absUrl.split('#')[1]);
 		}
 	});
-	
-	$rootScope.getProductDetails =  function (url){
-		window.open(url, "_blank");
-	}
+
 	$scope.navigateToPage = function(page){navigateToPage($scope, $location, $rootScope, $route, page);};
 	$scope.navigateBack = function(){navigateBack($scope, $location, $rootScope, $route);};
 }

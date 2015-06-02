@@ -140,20 +140,19 @@
 								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
 							</td>
 							<td>
-								<!--<div ng-if="item.bOProducts.length == 1">-->
-								<div>
-									<a href="javascript:void(0);" ng-if="item.url" ng-click="getProductDetails(item.url)">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+								<div ng-if="!item.secondary">
+									<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
 									<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
 								</div>
-								<!--<div ng-if="item.bOProducts.length > 1">-->
-									<!--<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}} / ({{item.sku.sku}})</a>-->
-									<!--<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">-->
-										<!--<div ng-repeat="product in item.secondary" style="padding: 5px;">-->
-											<!--<a href="javascript:void(0);" ng-if="!item.url" ng-click="getProductDetails(item.url)">{{product.product.name}}</a>-->
-											<!--<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>-->
-										<!--</div>-->
-									<!--</div>-->
-								<!--</div>-->
+								<div ng-if="item.secondary">
+									<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
+										<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
+											<span>{{productSec.product.name}}/({{item.sku.sku}})</span>
+										</div>
+										<a href="{{item.url}}" ng-if="item.url" class="pull-right" target="_blank">Details>></a>
+									</div>
+								</div>
 							</td>
 							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
 							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>

@@ -3,7 +3,7 @@
 <!-- Merchant Block -->
 	<div ng-if="isMerchant && returnDetails != null">
 		<h1>
-			<a href="javascript:void(0);" ng-if="returnDetails.cartItem.url" ng-click="getProductDetails(returnDetails.cartItem.urlid)">{{returnDetails.name}}</a>
+			<a href="{{returnDetails.cartItem.url}}" ng-if="returnDetails.cartItem.url" target="_blank">{{returnDetails.name}}</a>
 			<span ng-if="!returnDetails.cartItem.url">{{returnDetails.name}}</span>
 		</h1>
 		<div ng-repeat="item in returnDetails.returnedItems" class="panel panel-default">
