@@ -111,7 +111,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val selectShipping = path("select-shipping") {
     post {
-      formFields('currency_code, 'transaction_extra, 'provider, 'service, 'rate_type).as(SelectShippingPriceParam) {
+      formFields('currency_code, 'transaction_extra, 'shipmentId, 'rateId).as(SelectShippingPriceParam) {
         params =>
           session {
             session =>
@@ -121,17 +121,25 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  handleCall(transactionHandler.shippingPrices(params.currency_code, params.transaction_extra, id),
-                    (shippingPrices: Seq[ShippingPrice]) => {
-                      val shippingPrice = transactionHandler.shippingPrice(shippingPrices, params.provider, params.service, params.rate_type)
-                      session.sessionData.selectShippingPrice = shippingPrice
+                  session.sessionData.shippingPrices.map { shippingPrices: List[ShippingPrice] =>
+                    val shippingPriceOpt = transactionHandler.shippingPrice(shippingPrices, params.shipmentId, params.rateId)
+                    session.sessionData.selectShippingPrice = shippingPriceOpt
+                    shippingPriceOpt.map { shippingPrice =>
                       setSession(session) {
                         complete {
-                          StatusCodes.OK -> shippingPrice.get
+                          StatusCodes.OK -> shippingPrice
                         }
                       }
+                    }.getOrElse {
+                      complete {
+                        StatusCodes.NotFound -> Map('error -> "Shipping is not found")
+                      }
                     }
-                  )
+                  }.getOrElse {
+                    complete {
+                      StatusCodes.NotFound -> Map('error -> "Shipping is not computed")
+                    }
+                  }
               }
           }
       }

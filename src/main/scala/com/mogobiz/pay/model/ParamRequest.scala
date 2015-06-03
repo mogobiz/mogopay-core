@@ -11,6 +11,6 @@ object ParamRequest {
 
   case class ListShippingPriceParam(currency_code: String, transaction_extra: String)
 
-  case class SelectShippingPriceParam(currency_code: String, transaction_extra: String, provider: String, service: String, rate_type: String)
+  case class SelectShippingPriceParam(currency_code: String, transaction_extra: String, shipmentId: String, rateId: String)
 }
 

@@ -1,5 +1,7 @@
 package com.mogobiz.pay.handlers.shipping
 
+import java.util.UUID
+
 import com.mogobiz.pay.model.Mogopay.ShippingAddress
 import org.json4s._
 
@@ -15,7 +17,7 @@ class NoShippingHandler extends ShippingService {
     val shippingContent : List[(Boolean, BigInt)] = extractChippingContent(cart)
 
     // aucun produit ne nécessite de livraison
-    if (shippingContent == Nil) Seq(createShippingPrice("NONE", "NONE", "NONE", 0, currencyCode))
+    if (shippingContent == Nil) Seq(createShippingPrice(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "NONE", "NONE", "NONE", 0, currencyCode))
     else Seq()
   }
 

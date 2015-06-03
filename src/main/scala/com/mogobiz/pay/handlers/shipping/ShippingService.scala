@@ -5,7 +5,7 @@ import com.mogobiz.pay.model.Mogopay._
 import org.json4s.JValue
 import org.json4s.JsonAST.{JInt, JBool, JField, JObject}
 
-case class ShippingPrice(provider: String, service: String, rateType: String, price: Long,
+case class ShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
                          currencyCode: String, currencyFractionDigits: Int)
 
 trait ShippingService {
@@ -19,8 +19,8 @@ trait ShippingService {
     } yield (free, amount)
   }
 
-  def createShippingPrice(provider: String, service: String, rateType: String, price: Long, currencyCode: String) : ShippingPrice = {
+  def createShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String) : ShippingPrice = {
     var rate : Option[Rate] = rateHandler.findByCurrencyCode(currencyCode)
-    ShippingPrice(provider, service, rateType, price, currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2)
+    ShippingPrice(shipmentId, rateId, provider, service, rateType, price, currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2)
   }
 }

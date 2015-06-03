@@ -300,11 +300,10 @@ class TransactionHandler {
     else Seq[ShippingPrice]()
   }
 
-  def shippingPrice(prices: Seq[ShippingPrice], provider: String,
-                    service: String, rateType: String): Option[ShippingPrice] = {
+  def shippingPrice(prices: Seq[ShippingPrice], shipmentId: String, rateId: String): Option[ShippingPrice] = {
     prices.find {
       price =>
-        price.provider.equals(provider) && price.service.equals(service) && price.rateType.equals(rateType)
+        price.shipmentId.equals(shipmentId) && price.rateId.equals(rateId)
     }
   }
 
@@ -392,7 +391,7 @@ class TransactionHandler {
         throw InvalidContextException("Shipping price cannot be empty")
       } else {
         val sp = sessionData.selectShippingPrice.get
-        selectedShippingPrice = shippingPrice(listShipping, sp.provider, sp.service, sp.rateType)
+        selectedShippingPrice = shippingPrice(listShipping, sp.shipmentId, sp.rateId)
 
         if (selectedShippingPrice.isEmpty)
           throw InvalidContextException("Shipping Price cannot be empty")
@@ -538,7 +537,7 @@ class TransactionHandler {
   }
 
   def computePrice(address: ShippingAddress, currencyCode: String, cart: JValue): Seq[ShippingPrice] = {
-    val servicesList: Seq[ShippingService] = Seq(noShippingHandler, kialaShippingHandler)
+    val servicesList: Seq[ShippingService] = Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
 
     servicesList.map {
       service =>

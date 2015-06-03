@@ -3,12 +3,34 @@ package com.mogobiz.pay.handlers.shipping
 import com.easypost.EasyPost
 import com.easypost.model.{Shipment, Parcel, Address, Rate}
 import com.mogobiz.json.JacksonConverter
-import com.mogobiz.pay.model.Mogopay.{AccountAddress, ShippingParcel}
+import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, ShippingAddress, AccountAddress, ShippingParcel}
+import org.json4s._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 
-class EasyPostHandler {
+class EasyPostHandler extends ShippingService {
   EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
+
+  override def calculatePrice(shippingAddress: ShippingAddress, currencyCode: String,
+                              cart: JValue): Seq[ShippingPrice] = {
+
+
+    val easyPostRates = rate(
+      AccountAddress(road = "164 Townsend Street", company= Some("Mogobiz"), city = "San Francisco", country = Some("US"), zipCode = Some("94107")),
+      AccountAddress(road = "Vandelay Industries", city = "Bronx", country = Some("US"), zipCode = Some("10451")),
+      ShippingParcel(9.0, 6.0, 2.0, 10.0)
+    )
+
+    easyPostRates.map {easyPostRate =>
+      var rate : Option[PayRate] = rateHandler.findByCurrencyCode(currencyCode)
+      val currencyFractionDigits : Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
+      val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
+      val finalPrice = rateHandler.convert(price.toLong, easyPostRate.getCurrency, currencyCode).getOrElse(price.toLong)
+
+      createShippingPrice(easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, currencyCode)
+    }
+  }
 
   private def accountAddressToMap(addr: AccountAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](

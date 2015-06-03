@@ -1,5 +1,7 @@
 package com.mogobiz.pay.handlers.shipping
 
+import java.util.UUID
+
 import com.mogobiz.pay.model.Mogopay.ShippingAddress
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -25,6 +27,6 @@ class KialaShippingHandler extends ShippingService {
     }
 
     if (shippingContent == Nil) Seq()
-    else Seq(createShippingPrice("KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), currencyCode))
+    else Seq(createShippingPrice(UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), currencyCode))
   }
 }

@@ -30,6 +30,7 @@ object  MogopayHandlers {
 
   val noShippingHandler = new NoShippingHandler
   val kialaShippingHandler = new KialaShippingHandler
+  val easyPostHander = new EasyPostHandler
   val systempayHandler = new SystempayHandler("systempay")
   val sipsHandler = new SipsHandler("sips")
   val payPalHandler = new PayPalHandler("paypal")
