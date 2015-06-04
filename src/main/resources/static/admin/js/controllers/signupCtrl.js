@@ -221,7 +221,9 @@ function SignupCtrl($scope, $location, $rootScope, $route) {
 		data += "&city=" + $("#profileCity").val();
 		data += "&road=" + $("#profileRoad").val();
 		data += "&zip_code=" + $("#profilePostalCode").val();
-		if(!rootScope.isMerchant)
+		if(rootScope.isMerchant)
+			data += "&withShippingAddress=true";
+		else
 			data += "&withShippingAddress=" + $("#profileWithShippingAddress").is(":checked");
 		data += "&validation_url=" + deployUrl + "validation.html";
 		return data;
