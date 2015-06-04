@@ -1,7 +1,6 @@
 <header ng-include src="'partials/header.html'"></header>
 
-<div class="tab-content container-fluid editProfile">
-<div class="tab-pane active" id="profileInfo">
+<div class="container-fluid">
     <fieldset>
         <legend>Sign up</legend>
         <form role="form" class="form-horizontal">
@@ -138,12 +137,15 @@
                 <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
                     <input type="text" class="form-control" id="profilePhoneNumber" placeholder="Phone number" required value="{{userProfile.account.address.telephone.lphone}}" ng-blur="profileCheckPhoneNumberForCountry()"/>
                 </div>
-                <div class="col-xs-4 col-sm-6 col-md-6 col-lg-6" style="padding:7px 3px 0px 0px;">
+            </div>
+            <div class="form-group" ng-if="!isMerchant">
+                <div style="padding:0px 3px;">
+                    <label for="profileWithShippingAddress">With Shipping Address</label>
+                    <input type="checkbox" id="profileWithShippingAddress"/>
                 </div>
             </div>
         </form>
     </fieldset>
-</div>
 </div>
 
 <!--
