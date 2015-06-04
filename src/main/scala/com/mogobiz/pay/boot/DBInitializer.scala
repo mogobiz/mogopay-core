@@ -184,7 +184,7 @@ object DBInitializer {
   private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig: PaymentConfig): Account = {
     val account = Account(uuid = uuid,
       email = email,
-      company = Some("acmesport"),
+      company = Some(email),
       password = new Sha256Hash("1234").toString,
       civility = Some(Civility.MR),
       firstName = Some(firstname),

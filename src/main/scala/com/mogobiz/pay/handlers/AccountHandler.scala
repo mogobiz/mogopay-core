@@ -329,12 +329,11 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def save(account: Account, refresh: Boolean = true): Try[Unit] = findByEmail(account.email, account.owner) match {
-    case Some(_) => Failure(AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}"))
+  def save(account: Account, refresh: Boolean = true) = findByEmail(account.email, account.owner) match {
+    case Some(_) => throw AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}")
     case None =>
       BOAccountDAO.upsert(account)
       EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
-      Success()
   }
 
   def update(account: Account, refresh: Boolean): Boolean = {
@@ -924,10 +923,12 @@ class AccountHandler {
       throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
     }
 
-    //TODO
-    //    if (alreadyExistCompany(signup.company.orNull, owner)) {
-    //      throw new AccountWithSameCompanyAlreadyExistsError(s"${signup.company}")
-    //    }
+    signup.company match {
+      case None if signup.isMerchant => throw new CompanyNotSpecifiedException()
+      case Some(c) if signup.isMerchant => if (alreadyExistCompany(c, owner))
+        throw new AccountWithSameCompanyAlreadyExistsError(c)
+      case _ =>
+    }
 
     val birthdate = getBirthDayDate(signup.birthDate)
     val civility = Civility.withName(signup.civility)
@@ -1006,16 +1007,18 @@ class AccountHandler {
     if (signup.isMerchant)
       transactionSequenceHandler.nextTransactionId(account.uuid)
 
-    val tryToSave = save(account, refresh = true)
-    tryToSave.foreach { _ =>
-      // We voluntarily use get explicitly because it should never ever be null
-      val merchant = getMerchant(owner.get)
-      val paymentConfig = merchant.get.paymentConfig.get
-      val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
-      val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
-      if (needEmailValidation) {
+    save(account, refresh = true)
+
+    if (needEmailValidation) owner match {
+      case None =>
+        sendConfirmationEmail(account, signup.validationUrl, token, Settings.EmailSenderName,
+          Settings.EmailSenderAddress, signup.locale)
+      case Some(acc) =>
+        val merchant = getMerchant(acc)
+        val paymentConfig = merchant.get.paymentConfig.get
+        val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
+        val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
         sendConfirmationEmail(account, signup.validationUrl, token, senderName, senderEmail, signup.locale)
-      }
     }
 
     (token, account)

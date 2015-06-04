@@ -22,13 +22,12 @@ object Settings {
   val AccountValidateCustomerEmail = config.getBoolean("account.validate.customeremail")
   val AccountValidateMerchantEmails = config.getString("account.validate.merchant.emails")
   val AccountValidateMerchantDefault = config.getString("account.validate.merchant.default")
-  val AccountValidateCustomershared = config.getBoolean("account.validate.customershared")
   val AccountValidatePasswordMaxattempts = config.getInt("account.validate.password.maxattempts")
   val AccountRecycleDuration = config.getInt("account.recycle.duration")
   val TransactionRequestDuration = config.getInt("transaction.request.duration")
   val TransactionDuration = config.getInt("transaction.duration")
   val MaxQueryResults = config.getInt("maxQueryResults")
-  val sharedCustomers = false
+  val sharedCustomers = config.getBoolean("account.validate.customershared")
   val EmailTemplatesDir = "emailtemplates/"
   val SecretKeysDir = "secretkeys/"
   val EmailSenderAddress = "noreply@mogobiz.com"
