@@ -704,64 +704,24 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
                   kwixoParams :: groupPaymentReturnURLforNextPayers ::
                   groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
-                  val validPassword: Option[(String, String)] = (password, password2) match {
-                    case (Some(p), Some(p2)) => Some((p, p2))
-                    case _ => None
-                  }
-
-                  val billingAddress = AccountAddress(
-                    road = road,
-                    road2 = road2,
-                    city = city,
-                    zipCode = Some(zipCode),
-                    country = Some(country),
-                    admin1 = Some(admin1),
-                    admin2 = Some(admin2)
-                  )
-
-                  // error handling for invalid cbProvider
-                  // error handling for invalid paymentMethod
-
-                  // error handling if a param isn't passed
-                  val applePayParam = (applePayAnetAPILoginID, applePayAnetTransactionKey) match {
-                    case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
-                    case _ => None
-                  }
-
-                  val profile = UpdateProfile(
-                    id = accountId,
-                    password = validPassword,
-                    company = None,
-                    website = None,
-                    lphone = lphone,
-                    civility = civility,
-                    firstName = firstname,
-                    lastName = lastname,
-                    birthDate = birthday,
-                    billingAddress = billingAddress,
-                    isMerchant = session.sessionData.isMerchant,
-                    vendor = vendor,
-                    senderName = senderName,
-                    senderEmail = senderEmail,
-                    emailField = None,
-                    passwordField = None,
-                    callbackPrefix = callbackPrefix,
-                    passwordPattern = passwordPattern,
-                    paymentMethod = None,
-                    cbProvider = None,
-                    payPalParam = None,
-                    applePayParam = applePayParam,
-                    kwixoParam = KwixoParam(kwixoParams),
-                    cbParam = None,
-                    groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
-                    groupPaymentSuccessURL = groupPaymentSuccessURL,
-                    groupPaymentFailureURL = groupPaymentFailureURL
-                  )
-
-                  import Implicits._
-
-                  handleCall(accountHandler.updateProfile(profile),
-                    (_: Unit) => complete(StatusCodes.OK -> Map()))
+                  ƒ(accountId, session.sessionData.isMerchant, password, password2, None,
+                    None, lphone, civility, firstname, lastname, birthday,
+                    road, road2, city, zipCode, country, admin1, admin2, vendor,
+                    None, None,
+                    paylineAccount, paylineKey, paylineContract, paylineCustomPaymentPageCode,
+                    paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank,
+                    payboxMerchantId, sipsMerchantId, sipsMerchantCountry,
+                    sipsMerchantCertificateFileName,
+                    sipsMerchantCertificateFileContent,
+                    sipsMerchantParcomFileName,
+                    sipsMerchantParcomFileContent, sipsMerchantLogoPath,
+                    systempayShopId, systempayContractNumber, systempayCertificate,
+                    anetAPILoginID, anetTransactionKey,
+                    senderName, senderEmail, passwordPattern, callbackPrefix,
+                    paypalUser, paypalPassword, paypalSignature,
+                    applePayAnetAPILoginID, applePayAnetTransactionKey,
+                    kwixoParams, None, None, groupPaymentReturnURLforNextPayers,
+                    groupPaymentSuccessURL, groupPaymentFailureURL)
               }
             case _ => complete {
               import Implicits._
@@ -816,80 +776,24 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
                   kwixoParams :: emailField :: passwordField :: groupPaymentReturnURLforNextPayers ::
                   groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
-                  val validPassword: Option[(String, String)] = (password, password2) match {
-                    case (Some(p), Some(p2)) => Some((p, p2))
-                    case _ => None
-                  }
-
-                  val billingAddress = AccountAddress(
-                    road = road,
-                    road2 = road2,
-                    city = city,
-                    zipCode = Some(zipCode),
-                    country = Some(country),
-                    admin1 = Some(admin1),
-                    admin2 = Some(admin2)
-                  )
-
-                  // error handling for invalid cbProvider
-                  // error handling for invalid paymentMethod
-
-                  // error handling if a param isn't passed
-                  val cbParam: CBParams = CBPaymentProvider.withName(cbProvider.toUpperCase) match {
-                    case CBPaymentProvider.NONE => NoCBParams()
-                    case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
-                      paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
-                    case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxMerchantId.get)
-                    case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
-                      sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
-                      sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
-                    case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
-                    case CBPaymentProvider.AUTHORIZENET => AuthorizeNetParams(anetAPILoginID.get, anetTransactionKey.get)
-                  }
-
-                  val applePayParam = (applePayAnetAPILoginID, applePayAnetTransactionKey) match {
-                    case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
-                    case _ => None
-                  }
-
-                  val profile = UpdateProfile(
-                    id = accountId,
-                    password = validPassword,
-                    company = Option(company),
-                    website = Option(website),
-                    lphone = lphone,
-                    civility = civility,
-                    firstName = firstname,
-                    lastName = lastname,
-                    birthDate = birthday,
-                    billingAddress = billingAddress,
-                    isMerchant = session.sessionData.isMerchant,
-                    vendor = vendor,
-                    senderName = senderName,
-                    senderEmail = senderEmail,
-                    emailField = Some(emailField),
-                    passwordField = Some(passwordField),
-                    callbackPrefix = callbackPrefix,
-                    passwordPattern = passwordPattern,
-                    paymentMethod = Option(paymentMethod),
-                    cbProvider = Option(cbProvider.toUpperCase),
-                    payPalParam = Option(PayPalParam(
-                      paypalUser = paypalUser,
-                      paypalPassword = paypalPassword,
-                      paypalSignature = paypalSignature
-                    )),
-                    applePayParam = applePayParam,
-                    kwixoParam = KwixoParam(kwixoParams),
-                    cbParam = Option(cbParam),
-                    groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
-                    groupPaymentSuccessURL = groupPaymentSuccessURL,
-                    groupPaymentFailureURL = groupPaymentFailureURL
-                  )
-
-                  import Implicits._
-
-                  handleCall(accountHandler.updateProfile(profile),
-                    (_: Unit) => complete(StatusCodes.OK -> Map()))
+                  ƒ(accountId, session.sessionData.isMerchant, password, password2, Option(company),
+                    Option(website), lphone, civility, firstname, lastname, birthday,
+                    road, road2, city, zipCode, country, admin1, admin2, vendor,
+                    Option(paymentMethod), Option(cbProvider),
+                    paylineAccount, paylineKey, paylineContract, paylineCustomPaymentPageCode,
+                    paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank,
+                    payboxMerchantId, sipsMerchantId, sipsMerchantCountry,
+                    sipsMerchantCertificateFileName,
+                    sipsMerchantCertificateFileContent,
+                    sipsMerchantParcomFileName,
+                    sipsMerchantParcomFileContent, sipsMerchantLogoPath,
+                    systempayShopId, systempayContractNumber, systempayCertificate,
+                    anetAPILoginID, anetTransactionKey,
+                    senderName, senderEmail, passwordPattern, callbackPrefix,
+                    paypalUser, paypalPassword, paypalSignature,
+                    applePayAnetAPILoginID, applePayAnetTransactionKey,
+                    kwixoParams, Option(emailField), Option(passwordField), groupPaymentReturnURLforNextPayers,
+                    groupPaymentSuccessURL, groupPaymentFailureURL)
               }
             case _ => complete {
               import Implicits._
@@ -899,6 +803,102 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
           }
       }
     }
+  }
+
+  def ƒ(accountId: String, isMerchant: Boolean, password: Option[String], password2: Option[String], company: Option[String],
+    website: Option[String], lphone: String, civility: String, firstname: String, lastname: String, birthday: String,
+    road: String, road2: Option[String], city: String, zipCode: String, country: String, admin1: String, admin2: String, vendor: Option[String],
+    paymentMethod: Option[String], cbProvider: Option[String],
+    paylineAccount: Option[String], paylineKey: Option[String], paylineContract: Option[String], paylineCustomPaymentPageCode: Option[String],
+    paylineCustomPaymentTemplateURL: Option[String], payboxSite: Option[String], payboxKey: Option[String], payboxRank: Option[String],
+    payboxMerchantId: Option[String], sipsMerchantId: Option[String], sipsMerchantCountry: Option[String],
+    sipsMerchantCertificateFileName: Option[String],
+    sipsMerchantCertificateFileContent: Option[String],
+    sipsMerchantParcomFileName: Option[String],
+    sipsMerchantParcomFileContent: Option[String], sipsMerchantLogoPath: Option[String],
+    systempayShopId: Option[String], systempayContractNumber: Option[String], systempayCertificate: Option[String],
+    anetAPILoginID: Option[String], anetTransactionKey: Option[String],
+    senderName: Option[String], senderEmail: Option[String], passwordPattern: Option[String], callbackPrefix: Option[String],
+    paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String],
+    applePayAnetAPILoginID: Option[String], applePayAnetTransactionKey: Option[String],
+    kwixoParams: Option[String], emailField: Option[String], passwordField: Option[String], groupPaymentReturnURLforNextPayers: Option[String],
+    groupPaymentSuccessURL: Option[String], groupPaymentFailureURL: Option[String]) = {
+    val validPassword: Option[(String, String)] = (password, password2) match {
+      case (Some(p), Some(p2)) => Some((p, p2))
+      case _ => None
+    }
+
+    val billingAddress = AccountAddress(
+      road = road,
+      road2 = road2,
+      city = city,
+      zipCode = Some(zipCode),
+      country = Some(country),
+      admin1 = Some(admin1),
+      admin2 = Some(admin2)
+    )
+
+    // error handling for invalid cbProvider
+    // error handling for invalid paymentMethod
+
+    // error handling if a param isn't passed
+    val cbParam: Option[CBParams] = cbProvider.map { cbProvider =>
+      CBPaymentProvider.withName(cbProvider.toUpperCase) match {
+        case CBPaymentProvider.NONE => NoCBParams()
+        case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
+          paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
+        case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxMerchantId.get)
+        case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
+          sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
+          sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
+        case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
+        case CBPaymentProvider.AUTHORIZENET => AuthorizeNetParams(anetAPILoginID.get, anetTransactionKey.get)
+      }
+    }
+
+    val applePayParam = (applePayAnetAPILoginID, applePayAnetTransactionKey) match {
+      case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
+      case _ => None
+    }
+
+    val profile = UpdateProfile(
+      id = accountId,
+      password = validPassword,
+      company = company,
+      website = website,
+      lphone = lphone,
+      civility = civility,
+      firstName = firstname,
+      lastName = lastname,
+      birthDate = birthday,
+      billingAddress = billingAddress,
+      isMerchant = isMerchant,
+      vendor = vendor,
+      senderName = senderName,
+      senderEmail = senderEmail,
+      emailField = emailField,
+      passwordField = passwordField,
+      callbackPrefix = callbackPrefix,
+      passwordPattern = passwordPattern,
+      paymentMethod = paymentMethod,
+      cbProvider = cbProvider.map(_.toUpperCase),
+      payPalParam = Option(PayPalParam(
+        paypalUser = paypalUser,
+        paypalPassword = paypalPassword,
+        paypalSignature = paypalSignature
+      )),
+      applePayParam = applePayParam,
+      kwixoParam = KwixoParam(kwixoParams),
+      cbParam = cbParam,
+      groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
+      groupPaymentSuccessURL = groupPaymentSuccessURL,
+      groupPaymentFailureURL = groupPaymentFailureURL
+    )
+
+    import Implicits._
+
+    handleCall(accountHandler.updateProfile(profile),
+      (_: Unit) => complete(StatusCodes.OK -> Map()))
   }
 
   lazy val updateProfileLight = path("update-profile-light") {
