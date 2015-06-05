@@ -29,7 +29,6 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
 		$("#mainContainer").show();
 			$rootScope.isMerchant = response.isMerchant;
 			$rootScope.userProfile = response;
-			$rootScope.createPage = false;
 			$rootScope.getAllStores();
 		};
 

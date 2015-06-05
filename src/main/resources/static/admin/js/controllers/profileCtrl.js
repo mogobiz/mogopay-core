@@ -7,20 +7,8 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.applePayParam)
 		$scope.applePayParam = JSON.parse($rootScope.userProfile.account.paymentConfig.applePayParam);
 
-	$("#applePayLogin").change(function(){
-		if($(this).val() != "")
-			$("#applePayTransactionKey").attr("required", "required");
-		else
-			$("#applePayTransactionKey").removeAttr("required");
-	});
-	$("#applePayTransactionKey").change(function(){
-		if($(this).val() != "")
-			$("#applePayLogin").attr("required", "required");
-		else
-			$("#applePayLogin").removeAttr("required");
-	});
-
 	//Main Variables
+	var profileCompanyNameChanged = false;
 	var minBirthDate = new Date();
 	var maxBirthDate = new Date();
 	minBirthDate.setFullYear(new Date().getFullYear() - 100);
@@ -167,6 +155,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
     };
 
 	setTimeout(function () {
+		$("#profileCompanyName").change(function(){profileCompanyNameChanged = true;});
 		$("#profileCity").autocomplete({
 			source: function (request, response) {
 				var valueContry = ($scope.profileCountriesModel && $scope.profileCountriesModel != "") ? $scope.profileCountriesModel.code : "";
@@ -181,7 +170,19 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			minLength: 3,
 			delay: 0
 		});
-	},1000);
+		$("#applePayLogin").change(function(){
+			if($(this).val() != "")
+				$("#applePayTransactionKey").attr("required", "required");
+			else
+				$("#applePayTransactionKey").removeAttr("required");
+		});
+		$("#applePayTransactionKey").change(function(){
+			if($(this).val() != "")
+				$("#applePayLogin").attr("required", "required");
+			else
+				$("#applePayLogin").removeAttr("required");
+		});
+	},250);
 
 	$scope.displayUserUUID = function () {$scope.showUserUUID = !$scope.showUserUUID;};
 	$scope.renewUserUUID = function () {profileRenewUserUUID($scope, $location, $rootScope, $route);};
@@ -190,12 +191,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	$scope.profileResendPhoneValidation = function () {profileResendPhoneValidation($scope, $location, $rootScope, $route)};
 
 	$scope.profileCheckPhoneNumberForCountry = function () {profileCheckPhoneNumberForCountry($scope, $location, $rootScope, $route);};
-	$scope.profileCheckPasswordConfrimation = function () {
-		$("#profileConfirmPassword")[0].setCustomValidity($("#profileConfirmPassword").val() != $("#profilePassword").val() ? "The two passwords must match !" : "");
-		if($("#profileConfirmPassword").val() != $("#profilePassword").val()) {
-			showAlertBootStrapMsg("warning", "The two passwords must match !");
-		}
-	};
 
 	$scope.profileCheckCreditCardNumber = function (index) {
 		var id = "personalCardNumber";
@@ -424,6 +419,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			$("#personalCardType").prop('selectedIndex', 0);
 
 			scope.creditCards.push(response);
+			scope.creditCards[scope.creditCards.length - 1].expiryDateVal = dateToMonthValue(new Date(scope.creditCards[scope.creditCards.length - 1].expiryDate));
 
 			var x = scope.creditCards.length - 1;
 			scope.personalCardsTypeOptions.push([
@@ -497,17 +493,14 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		if(!validateProfileForm(scope, location, rootScope, route))
 			return;
 		var dataToSend = getProfileFormData(scope, location, rootScope, route);
+		var action = rootScope.isMerchant ? "update-merchant-profile" : "update-customer-profile"
 		var success = function (response) {
-			if (rootScope.createPage) {
-				if(indexPage == true)
-					navigateToPage(scope, location, rootScope, route, "home");
-				if(merchantPage == true || customerPage == true)
-					navigateToPage(scope, location, rootScope, route, "login");
-			} else {
+			if(profileCompanyNameChanged)
+				rootScope.getAllStores();
+			else
 				navigateToPage(scope, location, rootScope, route, "listTransactions");
-			}
 		};
-		postOnServer("account/update-profile", dataToSend, success, function (response) {});
+		postOnServer("account/" + action, dataToSend, success, function (response) {});
 	}
 
 	function getProfileFormData(scope, location, rootScope, route) {
@@ -523,19 +516,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		data += "&city=" + $("#profileCity").val();
 		data += "&road=" + $("#profileRoad").val();
 		data += "&zip_code=" + $("#profilePostalCode").val();
-		if(rootScope.createPage) {
-			data += "&password=" + $("#profilePassword").val();
-			data += "&password2=" + $("#profileConfirmPassword").val();
-		}
-		if(rootScope.isMerchant) {
-			data += "&company=" + $("#profileCompanyName").val();
-			data += "&website=" + $("#profileWebsite").val();
-		}
-		else{ // TO BE DELETED
-			data += "&company=CustomerCompany"; // TO BE DELETED
-		} // TO BE DELETED
 
 		if (rootScope.isMerchant) {
+			data += "&company=" + $("#profileCompanyName").val();
+			data += "&website=" + $("#profileWebsite").val();
 			data += "&payment_method=" + scope.creditCardModeModel.value;
 			data += "&cb_provider=" + ((scope.creditCardProviderModel != null) ? scope.creditCardProviderModel.value : "");
 
@@ -600,43 +584,20 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&group_payment_failure_url=" + $("#groupPaymentFailureURL").val();
 
 //EMAIL INFO
-			if(!rootScope.createPage) {
-				data += "&sender_email=" + $("#emailInfoSenderMail").val();
-				data += "&sender_name=" + $("#emailInfoSenderName").val();
-			}
+			data += "&sender_email=" + $("#emailInfoSenderMail").val();
+			data += "&sender_name=" + $("#emailInfoSenderName").val();
 		}
 		return data;
 	}
 
 	function validateProfileForm(scope, location, rootScope, route) {
-		if($("#profileEmail").val() == "" || $("#profileCompanyName").val() == "" || $("#profileWebsite").val() == "" || $("#profilePhoneNumber").val() == ""
+		if($("#profileCompanyName").val() == "" || $("#profileWebsite").val() == "" || $("#profilePhoneNumber").val() == ""
 			|| $("#profileFirstName").val() == "" || $("#profileLastName").val() == "" || $("#profileBirthDate").val() == ""
 			|| !scope.profileCountriesModel || scope.profileCountriesModel == "" || $("#profileCity").val() == "" || $("#profileRoad").val() == ""
-			|| $("#profilePostalCode").val() == "") {
+			|| $("#profilePostalCode").val() == ""){
 			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
 			showAlertBootStrapMsg("warning", "Please fill all required fields");
 			return false;
-		}
-		if(rootScope.createPage) {
-			if($("#profilePassword").val() == "" || $("#profileConfirmPassword").val() == "" || $("#captchaText").val() == "") {
-				$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-				showAlertBootStrapMsg("warning", "Please fill all required fields");
-				return false;
-			}
-		}
-		if(!$("#profileEmail")[0].checkValidity()) {
-			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-			$("#profileEmail").focus();
-			showAlertBootStrapMsg("warning", "Invalid email !");
-			return false;
-		}
-		if(rootScope.createPage) {
-			if($("#profilePassword").val() != $("#profileConfirmPassword").val()) {
-				$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-				$("#profileConfirmPassword").focus();
-				showAlertBootStrapMsg("warning", "The two passwords must match !");
-				return false;
-			}
 		}
 		if(rootScope.isMerchant && !$("#profileCompanyName")[0].checkValidity()) {
 			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
@@ -737,10 +698,11 @@ function anetChangeLogin(){
 		$("#authorizeNetTransactionKey").attr("required", "required");
 	else
 		$("#authorizeNetTransactionKey").removeAttr("required");
-};
+}
+
 function anetChangeTransactionKey(){
 	if($("#authorizeNetTransactionKey").val() != "")
 		$("#authorizeNetLogin").attr("required", "required");
 	else
 		$("#authorizeNetLogin").removeAttr("required");
-};
+}

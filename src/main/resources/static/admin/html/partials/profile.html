@@ -8,12 +8,12 @@
     <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#applePay" data-toggle="tab">Apple Pay</a></li>
     <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#auth" data-toggle="tab">Auth</a></li>
     <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#groupPayment" data-toggle="tab">Group Payment</a></li>
-    <li ng-if="isMerchant==true && createPage==false"><a href="javascript:void(0)" data-target="#emailInfo" data-toggle="tab">Email info</a></li>
+    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#emailInfo" data-toggle="tab">Email info</a></li>
 </ul>
 
 <div class="tab-content container-fluid editProfile">
 	<div class="tab-pane active" id="profileInfo">
-		<div ng-if="createPage==false">
+		<div>
 			<fieldset>
 				<legend ng-if="isMerchant==true"> Merchant info </legend>
 				<legend ng-if="isMerchant==false"> Customer info </legend>
@@ -51,28 +51,12 @@
 						<label for="profileEmail">Email</label>
 					</div>
 					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="email" class="form-control" id="profileEmail" placeholder="Enter email" required autofocus value="{{userProfile.account.email}}" ng-disabled="createPage==false" pattern="[a-zA-Z0-9._-]+\@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}" />
+						<input type="email" class="form-control" id="profileEmail" value="{{userProfile.account.email}}" disabled />
 					</div>
 					<div class="col-xs-4 col-sm-6 col-md-6 col-lg-6" style="padding:7px 3px 0px 0px;">
 						<a href="javascript:void(0)" ng-if="userProfile.account.status.name == 'WAITING_ENROLLEMENT'" ng-click="profileResendMailConfirmation()">
 							Re-send Confirmation request
 						</a>
-					</div>
-				</div>
-				<div class="form-group" ng-if="createPage==true">
-					<div style="padding:0px 3px;">
-						<label for="profilePassword">Password</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="password" class="form-control" id="profilePassword" placeholder="Password" required/>
-					</div>
-				</div>
-				<div class="form-group" ng-if="createPage==true">
-					<div style="padding:0px 3px;">
-						<label for="profileConfirmPassword">Confirm Password</label>
-					</div>
-					<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="password" class="form-control" id="profileConfirmPassword" placeholder="Confirm Password" required ng-blur="profileCheckPasswordConfrimation()"/>
 					</div>
 				</div>
 				<div class="form-group" ng-if="isMerchant==true">
@@ -268,7 +252,7 @@
 					<label for="applePayLogin">API Login ID</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="applePayLogin" placeholder="API Login ID" value="{{applePayParam.apiLoginId}}"/>
+					<input type="text" class="form-control" id="applePayLogin" placeholder="API Login ID" value="{{applePayParam.apiLoginId}}" ng-required="applePayParam.transactionKey != ''"/>
 				</div>
 			</div>
 			<div class="form-group">
@@ -276,7 +260,7 @@
 					<label for="applePayTransactionKey">Transaction Key</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="applePayTransactionKey" placeholder="Transaction Key" value="{{applePayParam.transactionKey}}"/>
+					<input type="text" class="form-control" id="applePayTransactionKey" placeholder="Transaction Key" value="{{applePayParam.transactionKey}}" ng-required="applePayParam.apiLoginId != ''"/>
 				</div>
 			</div>
 		</form>
@@ -324,7 +308,7 @@
 					<label for="groupPaymentUrlNextPayer">Return URL for Next Payers</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="groupPaymentUrlNextPayer" placeholder="URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.group_payment_return_url_for_next_payers}}" />
+					<input type="text" class="form-control" id="groupPaymentUrlNextPayer" placeholder="URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.account.paymentConfig.groupPaymentInfo.returnURLforNextPayers}}" />
 				</div>
 			</div>
 			<div class="form-group">
@@ -332,7 +316,7 @@
 					<label for="groupPaymentSuccessURL">Success URL</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="groupPaymentSuccessURL" placeholder="Success URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.group_payment_success_url}}" />
+					<input type="text" class="form-control" id="groupPaymentSuccessURL" placeholder="Success URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.account.paymentConfig.groupPaymentInfo.successURL}}" />
 				</div>
 			</div>
 			<div class="form-group">
@@ -340,7 +324,7 @@
 					<label for="groupPaymentFailureURL">Failure URL</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="groupPaymentFailureURL" placeholder="Failure URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.group_payment_failure_url}}" />
+					<input type="text" class="form-control" id="groupPaymentFailureURL" placeholder="Failure URL" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" value="{{userProfile.account.paymentConfig.groupPaymentInfo.failureURL}}" />
 				</div>
 			</div>
 		</form>
@@ -367,27 +351,13 @@
 	</div>
 </div>
 
-<div ng-if="createPage==true">
-    <form role="form" class="form-horizontal">
-        <img src="{{serverUrl}}simpleCaptcha/captcha" style="margin-left: 3px;"/><br/>
-        <div class="form-group">
-            <div style="padding:0px 18px;">
-                <label for="captchaText">Type the letters above in the box below:</label>
-            </div>
-            <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 18px;">
-                <input type="text" class="form-control" id="captchaText" required />
-            </div>
-        </div>
-    </form>
-</div>
-
 <div class="row row-fluid" style="margin: 0px 0px 20px 0px;">
     <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6">
         <input type="button" class="btn btn-default pull-right" value="Update Profile" ng-click="saveProfile()"/>
     </div>
 </div>
 
-<div class="row-fluid" ng-show="createPage==false">
+<div class="row-fluid">
     <div class="panel panel-default">
         <div class="panel-heading"><h3 class="panel-title">Personal Card Management</h3></div>
         <div class="panel-body">

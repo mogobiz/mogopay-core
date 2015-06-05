@@ -5,7 +5,7 @@
 				<label for="authorizeNetLogin">API Login ID</label>
 			</div>
 			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-				<input type="text" class="form-control" id="authorizeNetLogin" placeholder="API Login ID" value="{{cbParam.anetAPILoginID}}" onchange="anetChangeLogin()" errorMessage="Authorize Net API Login ID and Transaction Key are related!"/>
+				<input type="text" class="form-control" id="authorizeNetLogin" placeholder="API Login ID" value="{{cbParam.anetAPILoginID}}" ng-required="cbParam.anetTransactionKey && cbParam.anetTransactionKey != ''" onchange="anetChangeLogin()" errorMessage="Authorize Net API Login ID and Transaction Key are related!"/>
 			</div>
 		</div>
 		<div class="form-group">
@@ -13,7 +13,7 @@
 				<label for="authorizeNetTransactionKey">Transaction Key</label>
 			</div>
 			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-				<input type="text" class="form-control" id="authorizeNetTransactionKey" placeholder="Transaction Key" value="{{cbParam.anetTransactionKey}}" onchange="anetChangeTransactionKey()" errorMessage="Authorize Net API Login ID and Transaction Key are related!"/>
+				<input type="text" class="form-control" id="authorizeNetTransactionKey" placeholder="Transaction Key" value="{{cbParam.anetTransactionKey}}" ng-required="cbParam.anetAPILoginID && cbParam.anetAPILoginID != ''" onchange="anetChangeTransactionKey()" errorMessage="Authorize Net API Login ID and Transaction Key are related!"/>
 			</div>
 		</div>
 	</form>

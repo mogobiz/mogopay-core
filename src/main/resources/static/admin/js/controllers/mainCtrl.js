@@ -1,12 +1,12 @@
 ﻿"use strict";
 
 function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $location, $route) {
-    webshim.polyfill('forms forms-ext');
-    $scope.$on('$viewContentLoaded', function() {
-        $('body').updatePolyfill();
-    });
-    $rootScope.location = $location.absUrl().split('#')[0];
-    $rootScope.serverUrl = serverUrl;
+	webshim.polyfill('forms forms-ext');
+	$scope.$on('$viewContentLoaded', function() {
+		$('body').updatePolyfill();
+	});
+	$rootScope.location = $location.absUrl().split('#')[0];
+	$rootScope.serverUrl = serverUrl;
 
 	$rootScope.returnItemStatusOptions = [{
 		value: "UNDEFINED",
@@ -30,7 +30,8 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		"RETURN_ACCEPTED": "Return Accepted"
 	};
 
-    $rootScope.mogopayGoToProfile = false;
+	$rootScope.createPage = false;
+	$rootScope.mogopayGoToProfile = false;
 	if(localStorage.getItem("mogopayGoToProfile") == "true"){
 		localStorage.removeItem("mogopayGoToProfile");
 		$rootScope.mogopayGoToProfile = true;
@@ -40,7 +41,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		window.location.href = $location.$$absUrl.split("?")[0];
 	}
 	if ($rootScope.userProfile == undefined || $rootScope.userProfile == null) {
-        if(indexPage == true && $location.$$path != "/home"){
+		if(indexPage == true && $location.$$path != "/home"){
 			navigateToPage($scope, $location, $rootScope, $route, "home");
 		}
 		if((merchantPage == true || customerPage == true) && $location.$$path != "/login"){
@@ -57,42 +58,42 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			}
 			validationConfirmSignUp($scope, $location, $rootScope, $route);
 		}
-    }
+	}
 
-    $rootScope.logout = function () {
-        callServer("account/logout", "", function (response) {}, function (response) {});
-        $rootScope.xtoken = null;
-        $rootScope.isMerchant = null;
-        $rootScope.userProfile = null;
-        $rootScope.transactions = null;
-        $rootScope.customers = null;
-        $rootScope.createPage = null;
+	$rootScope.logout = function () {
+		callServer("account/logout", "", function (response) {}, function (response) {});
+		$rootScope.xtoken = null;
+		$rootScope.isMerchant = null;
+		$rootScope.userProfile = null;
+		$rootScope.transactions = null;
+		$rootScope.customers = null;
 		if(indexPage == true)
 			navigateToPage($scope, $location, $rootScope, $route, "home");
 		if(merchantPage == true || customerPage == true)
 			navigateToPage($scope, $location, $rootScope, $route, "login");
-    };
+	};
 
-    $rootScope.isPageActive = function (route) {
-        return route === $location.path();
-    };
+	$rootScope.isPageActive = function (route) {
+		return route === $location.path();
+	};
 
 	$rootScope.getAllStores = function () {
-        var success = function (response) {
-            $scope.$apply(function () {
+		var success = function (response) {
+			$scope.$apply(function () {
 				$rootScope.allStores = response;
 				$rootScope.selectedStore = response[0];
 				$rootScope.transactions = null;
+				$rootScope.customers = null;
 				if($rootScope.mogopayGoToProfile){
 					$rootScope.mogopayGoToProfile = false;
 					navigateToPage($scope, $location, $rootScope, $route, "profile");
 				}
 				else
 					navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
-            });
-        };
-        callServer("account/list-compagnies", "", success, function (response) {}, "GET");
-    };
+			});
+		};
+		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
+	};
 	$scope.urlHistory = [];
 	$scope.$on("$routeChangeSuccess", function () {
 		if ($location.$$absUrl.split('#')[1] !== $scope.urlHistory[$scope.urlHistory.length - 1] && $location.$$absUrl.split('#')[1] !== "/") {

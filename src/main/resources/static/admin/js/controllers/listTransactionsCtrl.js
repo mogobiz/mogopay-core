@@ -24,7 +24,8 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 function listTransactionsSearch (scope, location, rootScope, route) {
 	var success = function (response) {
 		rootScope.transactions = response.list;
-		listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
+		if(rootScope.transactions.length > 0)
+			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
 	};
 	var dataToSend = "";
 

@@ -5,12 +5,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         navigateToPage($scope, $location, $rootScope, $route, "signup");
     };
 
-    $scope.goToProfile = function () {
-        $rootScope.createPage = true;
-        $rootScope.userProfile = null;
-        navigateToPage($scope, $location, $rootScope, $route, "profile");
-    };
-
     $scope.logInBykey = function (e) {
         if(e.keyCode==13) {
             $scope.Login();
@@ -23,7 +17,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
             return;
         }
         var success = function (response) {
-			$rootScope.createPage = false;
 			var infoSuccess = function(infoResponse){
 				$rootScope.userProfile = infoResponse;
 				$rootScope.getAllStores();
@@ -32,7 +25,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         };
 
         var error = function (response) {
-            $rootScope.createPage = false;
             showAlertBootStrapMsg("warning", "Invaild username or password.");
         };
 
@@ -73,7 +65,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			success = function (response) {
 			$("#mainContainer").show();
 				$rootScope.userProfile = response;
-				$rootScope.createPage = false;
 				$rootScope.getAllStores();
 			};
 
@@ -96,7 +87,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				}
 				else{
 					$rootScope.userProfile = response;
-					$rootScope.createPage = false;
 					$rootScope.getAllStores();
 				}
 			};
@@ -126,7 +116,6 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				}
 				else{
 					$rootScope.userProfile = response;
-					$rootScope.createPage = false;
 					$rootScope.getAllStores();
 				}
 			};
