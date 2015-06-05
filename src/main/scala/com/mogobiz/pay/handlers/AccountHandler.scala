@@ -803,7 +803,7 @@ class AccountHandler {
             paymentMethod = paymentMethod,
             cbProvider = cbProvider,
             kwixoParam = profile.kwixoParam.kwixoParams,
-            paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
+            paypalParam = profile.payPalParam.map(p => write(caseClassToMap(p))),
             applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
             cbParam = Some(write(updateCBParam)),
             emailField = profile.emailField.filter(_ != "").getOrElse("user_email"),
