@@ -137,11 +137,11 @@ case class UpdateProfile(id: String, password: Option[(String, String)],
                          company: Option[String], website: Option[String], lphone: String, civility: String,
                          firstName: String, lastName: String, birthDate: String,
                          billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
-                         emailField: String, passwordField: String,
+                         emailField: Option[String], passwordField: Option[String],
                          senderName: Option[String], senderEmail: Option[String],
                          passwordPattern: Option[String], callbackPrefix: Option[String],
-                         paymentMethod: String, cbProvider: String, cbParam: CBParams,
-                         payPalParam: PayPalParam, applePayParam: Option[AuthorizeNetParam],
+                         paymentMethod: Option[String], cbProvider: Option[String], cbParam: Option[CBParams],
+                         payPalParam: Option[PayPalParam], applePayParam: Option[AuthorizeNetParam],
                          kwixoParam: KwixoParam, groupPaymentReturnURLforNextPayers: Option[String],
                          groupPaymentSuccessURL: Option[String], groupPaymentFailureURL: Option[String])
 
@@ -690,7 +690,7 @@ class AccountHandler {
             else new Sha256Hash(p1).toHex
         } getOrElse account.password
 
-        val cbProvider = CBPaymentProvider.withName(profile.cbProvider)
+        val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
         val cbParam = profile.cbParam
 
         val updateCBParam = if (cbProvider == CBPaymentProvider.SIPS) {
@@ -795,20 +795,25 @@ class AccountHandler {
           case _ => throw new MissingGroupPaymentInfoValues
         }
 
-        val paymentConfig = PaymentConfig(
-          paymentMethod = CBPaymentMethod.withName(profile.paymentMethod),
-          cbProvider = CBPaymentProvider.withName(profile.cbProvider),
-          kwixoParam = profile.kwixoParam.kwixoParams,
-          paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
-          applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
-          cbParam = Some(write(updateCBParam)),
-          emailField = if (profile.emailField == "") "user_email" else profile.emailField,
-          passwordField = if (profile.passwordField == "") "user_password" else profile.passwordField,
-          senderEmail = profile.senderEmail,
-          senderName = profile.senderName,
-          callbackPrefix = profile.callbackPrefix,
-          passwordPattern = profile.passwordPattern,
-          groupPaymentInfo = newGroupPaymentInfo)
+        val paymentConfig = if (!profile.isMerchant) None else {
+          val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
+          val paymentMethod = CBPaymentMethod.withName(profile.paymentMethod.getOrElse(throw new NoCBPaymentMethodSpecified))
+
+          Some(PaymentConfig(
+            paymentMethod = paymentMethod,
+            cbProvider = cbProvider,
+            kwixoParam = profile.kwixoParam.kwixoParams,
+            paypalParam = Some(write(caseClassToMap(profile.payPalParam))),
+            applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
+            cbParam = Some(write(updateCBParam)),
+            emailField = profile.emailField.filter(_ != "").getOrElse("user_email"),
+            passwordField = profile.passwordField.filter(_ != "").getOrElse("user_password"),
+            senderEmail = profile.senderEmail,
+            senderName = profile.senderName,
+            callbackPrefix = profile.callbackPrefix,
+            passwordPattern = profile.passwordPattern,
+            groupPaymentInfo = newGroupPaymentInfo))
+        }
 
         val newAccount = account.copy(
           password = password,
@@ -819,7 +824,7 @@ class AccountHandler {
           lastName = Some(profile.lastName),
           birthDate = birthDate,
           address = address,
-          paymentConfig = Some(paymentConfig)
+          paymentConfig = paymentConfig
         )
 
         val validateMerchantPhone: Boolean = false

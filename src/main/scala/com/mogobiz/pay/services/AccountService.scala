@@ -566,7 +566,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   val route = {
     pathPrefix("account") {
       login ~
-        updateProfile ~
+        updateCustomerProfile ~
+        updateMerchantProfile ~
         updateProfileLight ~
         signup ~
         confirmSignup
@@ -663,14 +664,123 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     }
   }
 
-  lazy val updateProfile = path("update-profile") {
+  lazy val updateCustomerProfile = path("update-customer-profile") {
     post {
       session {
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              val fields = formFields(('password ?) :: ('password2 ?) :: ('company ?) ::
-                ('website ?) :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
+              val fields = formFields(('password ?) :: ('password2 ?) ::
+                'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
+                'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
+                ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
+                ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
+                ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
+                ('sips_merchant_certificate_file_name.?) ::
+                ('sips_merchant_certificate_file_content.?) ::
+                ('sips_merchant_parcom_file_name.?) ::
+                ('sips_merchant_parcom_file_content.?) :: ('sips_merchant_logo_path ?) ::
+                ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
+                ('anet_api_login_id ?) :: ('anet_transaction_key ?) ::
+                ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
+                ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
+                ('apple_pay_anet_api_login_id ?) :: ('apple_pay_anet_transaction_key ?) ::
+                ('kwixo_params ?) :: 'group_payment_return_url_for_next_payers.? ::
+                'group_payment_success_url.? :: 'group_payment_failure_url.? :: HNil)
+              fields.happly {
+                case password :: password2 :: lphone :: civility :: firstname :: lastname :: birthday ::
+                  road :: road2 :: city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
+                  paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode ::
+                  paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank ::
+                  payboxMerchantId :: sipsMerchantId :: sipsMerchantCountry ::
+                  sipsMerchantCertificateFileName ::
+                  sipsMerchantCertificateFileContent ::
+                  sipsMerchantParcomFileName ::
+                  sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
+                  systempayShopId :: systempayContractNumber :: systempayCertificate ::
+                  anetAPILoginID :: anetTransactionKey ::
+                  senderName :: senderEmail :: passwordPattern :: callbackPrefix ::
+                  paypalUser :: paypalPassword :: paypalSignature ::
+                  applePayAnetAPILoginID :: applePayAnetTransactionKey ::
+                  kwixoParams :: groupPaymentReturnURLforNextPayers ::
+                  groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
+                  val validPassword: Option[(String, String)] = (password, password2) match {
+                    case (Some(p), Some(p2)) => Some((p, p2))
+                    case _ => None
+                  }
+
+                  val billingAddress = AccountAddress(
+                    road = road,
+                    road2 = road2,
+                    city = city,
+                    zipCode = Some(zipCode),
+                    country = Some(country),
+                    admin1 = Some(admin1),
+                    admin2 = Some(admin2)
+                  )
+
+                  // error handling for invalid cbProvider
+                  // error handling for invalid paymentMethod
+
+                  // error handling if a param isn't passed
+                  val applePayParam = (applePayAnetAPILoginID, applePayAnetTransactionKey) match {
+                    case (Some(loginId), Some(txKey)) => Some(AuthorizeNetParam(loginId, txKey))
+                    case _ => None
+                  }
+
+                  val profile = UpdateProfile(
+                    id = accountId,
+                    password = validPassword,
+                    company = None,
+                    website = None,
+                    lphone = lphone,
+                    civility = civility,
+                    firstName = firstname,
+                    lastName = lastname,
+                    birthDate = birthday,
+                    billingAddress = billingAddress,
+                    isMerchant = session.sessionData.isMerchant,
+                    vendor = vendor,
+                    senderName = senderName,
+                    senderEmail = senderEmail,
+                    emailField = None,
+                    passwordField = None,
+                    callbackPrefix = callbackPrefix,
+                    passwordPattern = passwordPattern,
+                    paymentMethod = None,
+                    cbProvider = None,
+                    payPalParam = None,
+                    applePayParam = applePayParam,
+                    kwixoParam = KwixoParam(kwixoParams),
+                    cbParam = None,
+                    groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
+                    groupPaymentSuccessURL = groupPaymentSuccessURL,
+                    groupPaymentFailureURL = groupPaymentFailureURL
+                  )
+
+                  import Implicits._
+
+                  handleCall(accountHandler.updateProfile(profile),
+                    (_: Unit) => complete(StatusCodes.OK -> Map()))
+              }
+            case _ => complete {
+              import Implicits._
+              StatusCodes.Unauthorized ->
+                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+            }
+          }
+      }
+    }
+  }
+
+  lazy val updateMerchantProfile = path("update-merchant-profile") {
+    post {
+      session {
+        session =>
+          session.sessionData.accountId match {
+            case Some(accountId: String) =>
+              val fields = formFields(('password ?) :: ('password2 ?) :: 'company ::
+                'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
                 'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
                 'payment_method :: 'cb_provider ::
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
@@ -745,8 +855,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   val profile = UpdateProfile(
                     id = accountId,
                     password = validPassword,
-                    company = company,
-                    website = website,
+                    company = Option(company),
+                    website = Option(website),
                     lphone = lphone,
                     civility = civility,
                     firstName = firstname,
@@ -757,20 +867,20 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     vendor = vendor,
                     senderName = senderName,
                     senderEmail = senderEmail,
-                    emailField = emailField,
-                    passwordField = passwordField,
+                    emailField = Some(emailField),
+                    passwordField = Some(passwordField),
                     callbackPrefix = callbackPrefix,
                     passwordPattern = passwordPattern,
-                    paymentMethod = paymentMethod,
-                    cbProvider = cbProvider.toUpperCase,
-                    payPalParam = PayPalParam(
+                    paymentMethod = Option(paymentMethod),
+                    cbProvider = Option(cbProvider.toUpperCase),
+                    payPalParam = Option(PayPalParam(
                       paypalUser = paypalUser,
                       paypalPassword = paypalPassword,
                       paypalSignature = paypalSignature
-                    ),
+                    )),
                     applePayParam = applePayParam,
                     kwixoParam = KwixoParam(kwixoParams),
-                    cbParam = cbParam,
+                    cbParam = Option(cbParam),
                     groupPaymentReturnURLforNextPayers = groupPaymentReturnURLforNextPayers,
                     groupPaymentSuccessURL = groupPaymentSuccessURL,
                     groupPaymentFailureURL = groupPaymentFailureURL

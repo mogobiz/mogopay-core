@@ -170,4 +170,8 @@ object Exceptions {
   case class TheRefundAmountIsHigherThanTheInitialAmountException() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
   case class CompanyNotSpecifiedException() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class NoCBProviderSpecified() extends MogopayMessagelessException(StatusCodes.BadRequest)
+
+  case class NoCBPaymentMethodSpecified() extends MogopayMessagelessException(StatusCodes.BadRequest)
 }
