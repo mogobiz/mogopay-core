@@ -689,11 +689,11 @@ class AccountHandler {
             else new Sha256Hash(p1).toHex
         } getOrElse account.password
 
-        val updateCBParam = if (!profile.isMerchant) None else Some({
+        val updateCBParam: Option[CBParams] = if (!profile.isMerchant) None else {
           val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
           val cbParam = profile.cbParam
 
-          val updateCBParam = if (cbProvider == CBPaymentProvider.SIPS) {
+          if (cbProvider == CBPaymentProvider.SIPS) {
             var params = cbParam.asInstanceOf[SIPSParams]
             val dir = new File(Settings.Sips.CertifDir, account.uuid)
 
@@ -782,11 +782,11 @@ class AccountHandler {
               }
             }
 
-            params
+            Option(params)
           } else {
             cbParam
           }
-        })
+        }
 
         val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers,
           profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
