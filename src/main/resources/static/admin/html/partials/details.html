@@ -140,11 +140,11 @@
 								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
 							</td>
 							<td>
-								<div ng-if="item.secondary.length == 0">
+								<div ng-if="!item.secondary || item.secondary.length == 0">
 									<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
 									<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
 								</div>
-								<div ng-if="item.secondary.length > 0">
+								<div ng-if="item.secondary && item.secondary.length > 0">
 									<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
 									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
 										<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
