@@ -704,7 +704,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
                   kwixoParams :: groupPaymentReturnURLforNextPayers ::
                   groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
-                  ƒ(accountId, session.sessionData.isMerchant, password, password2, None,
+                  updateProfile(accountId, session.sessionData.isMerchant, password, password2, None,
                     None, lphone, civility, firstname, lastname, birthday,
                     road, road2, city, zipCode, country, admin1, admin2, vendor,
                     None, None,
@@ -776,7 +776,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
                   kwixoParams :: emailField :: passwordField :: groupPaymentReturnURLforNextPayers ::
                   groupPaymentSuccessURL :: groupPaymentFailureURL :: HNil =>
-                  ƒ(accountId, session.sessionData.isMerchant, password, password2, Option(company),
+                  updateProfile(accountId, session.sessionData.isMerchant, password, password2, Option(company),
                     Option(website), lphone, civility, firstname, lastname, birthday,
                     road, road2, city, zipCode, country, admin1, admin2, vendor,
                     Option(paymentMethod), Option(cbProvider),
@@ -805,7 +805,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     }
   }
 
-  def ƒ(accountId: String, isMerchant: Boolean, password: Option[String], password2: Option[String], company: Option[String],
+  def updateProfile(accountId: String, isMerchant: Boolean, password: Option[String], password2: Option[String], company: Option[String],
     website: Option[String], lphone: String, civility: String, firstname: String, lastname: String, birthday: String,
     road: String, road2: Option[String], city: String, zipCode: String, country: String, admin1: String, admin2: String, vendor: Option[String],
     paymentMethod: Option[String], cbProvider: Option[String],
