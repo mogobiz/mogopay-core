@@ -669,8 +669,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              val fields = formFields(('password ?) :: ('password2 ?) :: 'company ::
-                'website :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
+              val fields = formFields(('password ?) :: ('password2 ?) :: ('company ?) ::
+                ('website ?) :: 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
                 'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
                 'payment_method :: 'cb_provider ::
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::

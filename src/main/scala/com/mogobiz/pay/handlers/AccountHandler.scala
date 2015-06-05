@@ -134,7 +134,7 @@ case class Signup(email: String, password: String, password2: String,
                   website: Option[String], validationUrl: String, locale: Option[String])
 
 case class UpdateProfile(id: String, password: Option[(String, String)],
-                         company: String, website: String, lphone: String, civility: String,
+                         company: Option[String], website: Option[String], lphone: String, civility: String,
                          firstName: String, lastName: String, birthDate: String,
                          billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
                          emailField: String, passwordField: String,
@@ -812,8 +812,8 @@ class AccountHandler {
 
         val newAccount = account.copy(
           password = password,
-          company = Some(profile.company),
-          website = Some(profile.website),
+          company = profile.company,
+          website = profile.website,
           civility = Some(civility),
           firstName = Some(profile.firstName),
           lastName = Some(profile.lastName),
