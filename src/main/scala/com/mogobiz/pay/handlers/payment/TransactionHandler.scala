@@ -385,17 +385,9 @@ class TransactionHandler {
         shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
     } getOrElse Seq[ShippingPrice]()
 
-    var selectedShippingPrice: Option[ShippingPrice] = None
-    if (listShipping.length > 0) {
-      if (sessionData.selectShippingPrice.isEmpty) {
-        throw InvalidContextException("Shipping price cannot be empty")
-      } else {
-        val sp = sessionData.selectShippingPrice.get
-        selectedShippingPrice = shippingPrice(listShipping, sp.shipmentId, sp.rateId)
-
-        if (selectedShippingPrice.isEmpty)
-          throw InvalidContextException("Shipping Price cannot be empty")
-      }
+    var selectedShippingPrice: Option[ShippingPrice] = sessionData.selectShippingPrice
+    if (listShipping.length > 0 && sessionData.selectShippingPrice.isEmpty) {
+      throw InvalidContextException("Shipping price cannot be empty")
     }
 
     selectedShippingPrice.map { selectedShippingPrice =>
