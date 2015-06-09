@@ -83,8 +83,7 @@ case class AddressToUpdateFromGetParams(id: String, road: String,
 case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
                                      zipCode: String, extra: Option[String],
                                      civility: String, firstName: String,
-                                     company: Option[String],
-                                     lastName: String, country: String,
+                                     lastName: String, company: Option[String], country: String,
                                      admin1: String, admin2: String, lphone: String) {
   def getAddress = {
     val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
