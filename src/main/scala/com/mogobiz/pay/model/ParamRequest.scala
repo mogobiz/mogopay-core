@@ -9,7 +9,7 @@ object ParamRequest {
                              extra: Option[String], returnUrl: Option[String],
                              groupPaymentExpirationDate: Option[Long], groupPaymentRefundPercentage: Option[Int])
 
-  case class ListShippingPriceParam(currency_code: String, transaction_extra: String)
+  case class ListShippingPriceParam(cartProvider: String, cartKeys: String)
 
   case class SelectShippingPriceParam(currency_code: String, transaction_extra: String, shipmentId: String, rateId: String)
 }

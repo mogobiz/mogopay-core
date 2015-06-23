@@ -3,6 +3,7 @@ package com.mogobiz.pay.model
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.module.scala.{JsonScalaEnumeration, DefaultScalaModule}
+import com.mogobiz.pay.common.Cart
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.model.Mogopay._
 import java.util.{Date, Calendar}
@@ -500,7 +501,8 @@ object Mogopay {
                          var groupTxUUID: Option[String] = None,
                          var paymentRequest: Option[PaymentRequest] = None,
                          var locale : Option[String] = None,
-                         var ipAddress: Option[String] = None)
+                         var ipAddress: Option[String] = None,
+                         var cart: Option[Cart] = None)
 
   case class ShippingParcel(height:Double, width:Double, length:Double, weight:Double)
 

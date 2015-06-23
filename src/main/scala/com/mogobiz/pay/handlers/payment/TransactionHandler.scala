@@ -6,6 +6,7 @@ import java.util.{List => _, _}
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
+import com.mogobiz.pay.common.Cart
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
@@ -287,17 +288,14 @@ class TransactionHandler {
     }
   }
 
-  def shippingPrices(currencyCode: String, transactionExtra: String,
-                     accountId: String): Seq[ShippingPrice] = {
+  def shippingPrices(cart: Cart, accountId: String): Seq[ShippingPrice] = {
     val maybeCustomer = accountHandler.load(accountId)
 
     val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
 
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
-    if (transactionExtra != null)
-      address.map(addr => computePrice(addr, currencyCode, parse(transactionExtra))).getOrElse(Seq[ShippingPrice]())
-    else Seq[ShippingPrice]()
+    address.map(addr => computePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
   }
 
   def shippingPrice(prices: Seq[ShippingPrice], shipmentId: String, rateId: String): Option[ShippingPrice] = {
@@ -382,7 +380,7 @@ class TransactionHandler {
 
     val listShipping = sessionData.accountId.map {
       accountId =>
-        shippingPrices(transactionRequest.currency.code, transactionExtra, accountId)
+        shippingPrices(sessionData.cart.get, accountId)
     } getOrElse Seq[ShippingPrice]()
 
     var selectedShippingPrice: Option[ShippingPrice] = sessionData.selectShippingPrice
@@ -528,12 +526,12 @@ class TransactionHandler {
     }
   }
 
-  def computePrice(address: ShippingAddress, currencyCode: String, cart: JValue): Seq[ShippingPrice] = {
+  def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     val servicesList: Seq[ShippingService] = Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
 
     servicesList.map {
       service =>
-        service.calculatePrice(address, currencyCode, cart)
+        service.calculatePrice(address, cart)
     }.flatten
   }
 

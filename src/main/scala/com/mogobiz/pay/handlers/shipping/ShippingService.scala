@@ -1,22 +1,20 @@
 package com.mogobiz.pay.handlers.shipping
 
+import com.mogobiz.pay.common.{Cart, Shipping}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.model.Mogopay._
-import org.json4s.JValue
-import org.json4s.JsonAST.{JInt, JBool, JField, JObject}
 
 case class ShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
                          currencyCode: String, currencyFractionDigits: Int)
 
 trait ShippingService {
-  def calculatePrice(shippingAddress: ShippingAddress, currencyCode: String, cart: JValue): Seq[ShippingPrice]
+  def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice]
 
-  def extractChippingContent(cart: JValue) : List[(Boolean, BigInt)] = {
-    for {
-      JObject(shipping) <- cart \ "cartItemVOs" \ "shipping"
-      JField("free", JBool(free))  <- shipping
-      JField("amount", JInt(amount))  <- shipping
-    } yield (free, amount)
+  def extractShippingContent(cart: Cart) : List[Shipping] = {
+    (for {
+      cartItem <- cart.cartItems
+      shipping  <- cartItem.shipping
+    } yield shipping).toList
   }
 
   def createShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String) : ShippingPrice = {
