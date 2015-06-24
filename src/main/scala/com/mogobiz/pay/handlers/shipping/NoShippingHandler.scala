@@ -16,7 +16,7 @@ class NoShippingHandler extends ShippingService {
     val shippingContent = extractShippingContent(cart)
 
     // aucun produit ne nécessite de livraison
-    if (shippingContent.isEmpty) Seq(createShippingPrice(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "NONE", "NONE", "NONE", 0, cart.currencyCode))
+    if (shippingContent.isEmpty) Seq(createShippingPrice(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "NONE", "NONE", "NONE", 0, cart.rate.code))
     else Seq()
   }
 

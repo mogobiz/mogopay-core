@@ -12,7 +12,7 @@ import akka.util.Timeout
 import com.mogobiz.pay.common.{Cart, CartContentMessage}
 import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
+import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
@@ -73,13 +73,18 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long],
-        'currency_code, 'currency_rate.as[Double], 'extra ?, 'return_url ?,
+        'return_url ?,
         'group_payment_exp_date.?.as[Option[Long]],
         'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
-        import Implicits._
-        handleCall(transactionHandler.init(params),
-          (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-        )
+        session {
+          session => {
+            import Implicits._
+            val cart = session.sessionData.cart.getOrElse(throw InvalidContextException("Cart isn't set."))
+            handleCall(transactionHandler.init(params, cart),
+              (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+            )
+          }
+        }
       }
     }
   }
@@ -123,7 +128,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val selectShipping = path("select-shipping") {
     post {
-      formFields('currency_code, 'transaction_extra, 'shipmentId, 'rateId).as(SelectShippingPriceParam) {
+      formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
         params =>
           session {
             session =>

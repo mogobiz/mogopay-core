@@ -4,6 +4,7 @@ import java.io.File
 import java.util.{Calendar, Currency, Date, UUID}
 
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.common.CartRate
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Mapping, Settings}
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
@@ -271,7 +272,7 @@ object DBInitializer {
 
   private def createTransaction(uuid: String, transactionUuid: String, amount: Long, customer: Account, vendor: Account, extra: String) = {
     val transactionDate = randomDate()
-    val currency = TransactionCurrency("EUR", Currency.getInstance("EUR").getNumericCode, 0.01, 2)
+    val currency = CartRate("EUR", Currency.getInstance("EUR").getNumericCode, 0.01, 2)
     val creditCard = BOCreditCard("1234XXXXXXXXXXX9087", None, new Date(), CreditCardType.CB)
     val paymentData = BOPaymentData(PaymentType.CREDIT_CARD,
       CBPaymentProvider.SYSTEMPAY,

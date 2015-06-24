@@ -3,7 +3,7 @@ package com.mogobiz.pay.model
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.module.scala.{JsonScalaEnumeration, DefaultScalaModule}
-import com.mogobiz.pay.common.Cart
+import com.mogobiz.pay.common.{Coupon, CartItem, CartRate, Cart}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.model.Mogopay._
 import java.util.{Date, Calendar}
@@ -373,7 +373,7 @@ object Mogopay {
                            authorizationId: String,
                            transactionDate: Option[java.util.Date],
                            amount: Long,
-                           currency: TransactionCurrency,
+                           currency: CartRate,
                            @JsonScalaEnumeration(classOf[TransactionStatusRef]) status: TransactionStatus,
                            endDate: Option[java.util.Date],
                            paymentData: BOPaymentData,
@@ -393,19 +393,13 @@ object Mogopay {
                            var dateCreated: Date = Calendar.getInstance().getTime,
                            var lastUpdated: Date = Calendar.getInstance().getTime)
 
-  case class TransactionCurrency(code: String,
-                                 numericCode: Int,
-                                 rate: Double = 0.01,
-                                 fractionDigits: Int = 2)
-
   case class TransactionRequest(uuid: String,
                                 tid: Long,
                                 groupTransactionUUID: Option[String] = None,
                                 groupPaymentExpirationDate: Option[Long] = None,
                                 groupPaymentRefundPercentage: Int = 100,
                                 amount: Long,
-                                extra: Option[String],
-                                currency: TransactionCurrency,
+                                currency: CartRate,
                                 vendor: Document,
                                 var dateCreated: Date = Calendar.getInstance().getTime,
                                 var lastUpdated: Date = Calendar.getInstance().getTime)
@@ -423,7 +417,7 @@ object Mogopay {
                                  var dateCreated: Date = Calendar.getInstance().getTime,
                                  var lastUpdated: Date = Calendar.getInstance().getTime)
 
-  case class CancelRequest(id: String, currency: TransactionCurrency)
+  case class CancelRequest(id: String, currency: CartRate)
 
   case class CancelResult(id: String, status: PaymentStatus, errorCodeOrigin: String, errorMessageOrigin: Option[String])
 
@@ -460,11 +454,11 @@ object Mogopay {
                             paylineMd: String,
                             paylinePares: String,
                             transactionEmail: String,
-                            transactionExtra: String,
+                            transactionExtra: CartWithShipping,
                             transactionDesc: String,
                             gatewayData: String,
                             csrfToken: String,
-                            currency: TransactionCurrency,
+                            currency: CartRate,
                             groupPaymentExpirationDate: Option[Long] = None,
                             groupPaymentRefundPercentage: Int = 100,
                             var dateCreated: Date = Calendar.getInstance().getTime,
@@ -506,6 +500,15 @@ object Mogopay {
 
   case class ShippingParcel(height:Double, width:Double, length:Double, weight:Double)
 
+  case class CartWithShipping(shippingPrice: Long,
+                              rate: CartRate,
+                              price: Long = 0,
+                              endPrice: Long = 0,
+                              reduction: Long = 0,
+                              finalPrice: Long = 0,
+                              cartItems: Array[CartItem] = Array(),
+                              coupons: Array[Coupon] = Array(),
+                              customs: Map[String, Any])
 
 }
 

@@ -82,10 +82,9 @@ trait PaymentHandler {
       }
 
       val merchant = accountHandler.find(merchantId).get
-      val params = ParamRequest.TransactionInit(merchant.secret, amount, firstPayerBOTx.currency.code,
-        firstPayerBOTx.currency.rate, firstPayerBOTx.extra, None,
+      val params = ParamRequest.TransactionInit(merchant.secret, amount, None,
         firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
-      val txReq = transactionHandler.createTxReqForInit(merchant, params, Some(groupTxUUID),
+      val txReq = transactionHandler.createTxReqForInit(merchant, params, firstPayerBOTx.currency, Some(groupTxUUID),
         firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
       transactionRequestHandler.save(txReq, refresh = false)
 

@@ -23,12 +23,12 @@ class EasyPostHandler extends ShippingService {
     )
 
     easyPostRates.map {easyPostRate =>
-      var rate : Option[PayRate] = rateHandler.findByCurrencyCode(cart.currencyCode)
+      var rate : Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
       val currencyFractionDigits : Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
       val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
-      val finalPrice = rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.currencyCode).getOrElse(price.toLong)
+      val finalPrice = rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong)
 
-      createShippingPrice(easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.currencyCode)
+      createShippingPrice(easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
     }
   }
 

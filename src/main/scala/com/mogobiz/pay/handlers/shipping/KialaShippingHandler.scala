@@ -21,11 +21,11 @@ class KialaShippingHandler extends ShippingService {
         val elt = list.head;
         if (elt.free) calculatePrice(list.tail)
         else if (elt.amount > 0) elt.amount + calculatePrice(list.tail)
-        else rateHandler.convert(KIALA_PRICE, "EUR", cart.currencyCode).getOrElse(0)
+        else rateHandler.convert(KIALA_PRICE, "EUR", cart.rate.code).getOrElse(0)
       }
     }
 
     if (shippingContent == Nil) Seq()
-    else Seq(createShippingPrice(UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), cart.currencyCode))
+    else Seq(createShippingPrice(UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), cart.rate.code))
   }
 }
