@@ -500,7 +500,8 @@ object Mogopay {
 
   case class ShippingParcel(height:Double, width:Double, length:Double, weight:Double)
 
-  case class CartWithShipping(shippingPrice: Long,
+  case class CartWithShipping(count: Int,
+                              shippingPrice: Long,
                               rate: CartRate,
                               price: Long = 0,
                               endPrice: Long = 0,
