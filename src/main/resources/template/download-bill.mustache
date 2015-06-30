@@ -8,22 +8,22 @@ subject: ignore
 
 {{#cart}}
     <ul>
-        {{#cartItemVOs}}
+        {{#cartItems}}
             <li style="margin-bottom: 20px">
                 <h2 style="display: inline; line-height:30px">{{productName}} -&gt; {{skuName}}</h2>
                 <span style="float: right; line-height:30px">{{saleEndPrice}} x {{quantity}} = {{saleTotalEndPrice}}</span>
                 <ul>
-                    {{#registeredCartItemVOs}}
+                    {{#registeredCartItems}}
                         <li>{{email}}
                             {{firstname}}
                             {{lastname}}
                             {{phone}}
                             {{birthdate}}
                         </li>
-                    {{/registeredCartItemVOs}}
+                    {{/registeredCartItems}}
                 </ul>
             </li>
-        {{/cartItemVOs}}
+        {{/cartItems}}
     </ul>
     <br/>
     <h4 style="text-align:right;">

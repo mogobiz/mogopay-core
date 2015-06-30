@@ -9,9 +9,10 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import com.mogobiz.pay.common.{Cart, CartContentMessage}
 import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, UnauthorizedException}
+import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
@@ -72,20 +73,25 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long],
-        'currency_code, 'currency_rate.as[Double], 'extra ?, 'return_url ?,
+        'return_url ?,
         'group_payment_exp_date.?.as[Option[Long]],
         'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
-        import Implicits._
-        handleCall(transactionHandler.init(params),
-          (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-        )
+        session {
+          session => {
+            import Implicits._
+            val cart = session.sessionData.cart.getOrElse(throw InvalidContextException("Cart isn't set."))
+            handleCall(transactionHandler.init(params, cart),
+              (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+            )
+          }
+        }
       }
     }
   }
 
   lazy val listShipping = path("list-shipping") {
     post {
-      formFields('currency_code, 'transaction_extra).as(ListShippingPriceParam) {
+      formFields('cartProvider, 'cartKeys).as(ListShippingPriceParam) {
         params =>
           session {
             session =>
@@ -94,15 +100,26 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 case None => complete {
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
-                case Some(id) =>
-                  handleCall(transactionHandler.shippingPrices(params.currency_code, params.transaction_extra, id),
-                    (shippinggPrices: Seq[ShippingPrice]) => {
-                      session.sessionData.shippingPrices = Option(shippinggPrices.toList)
-                      setSession(session) {
-                        complete(StatusCodes.OK -> shippinggPrices)
-                      }
+                case Some(id) => {
+                  handleCall({
+                    // call the remote actor to retreive cart content
+                    val actor = system.actorSelection("akka.tcp://MogobizTransactionSystem@127.0.0.1:2560/user/TransactionActor")
+                    implicit val timeout = Timeout(5 seconds)
+                    val future = actor ? new CartContentMessage(params.cartProvider, params.cartKeys)
+                    Await.result(future, timeout.duration).asInstanceOf[Cart]
+                  }, (cart: Cart) => {
+                      session.sessionData.cart = Some(cart)
+                      handleCall(transactionHandler.shippingPrices(cart, id),
+                        (shippinggPrices: Seq[ShippingPrice]) => {
+                          session.sessionData.shippingPrices = Option(shippinggPrices.toList)
+                          setSession(session) {
+                            complete(StatusCodes.OK -> shippinggPrices)
+                          }
+                        }
+                      )
                     }
                   )
+                }
               }
           }
       }
@@ -111,7 +128,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val selectShipping = path("select-shipping") {
     post {
-      formFields('currency_code, 'transaction_extra, 'shipmentId, 'rateId).as(SelectShippingPriceParam) {
+      formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
         params =>
           session {
             session =>
