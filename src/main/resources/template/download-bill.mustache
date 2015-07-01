@@ -7,38 +7,44 @@ subject: ignore
 <h1>Votre facture n&deg; {{transactionUuid}} du {{transactionDate}}</h1>
 
 {{#cart}}
-    <ul>
-        {{#cartItems}}
-            <li style="margin-bottom: 20px">
-                <h2 style="display: inline; line-height:30px">{{productName}} -&gt; {{skuName}}</h2>
-                <span style="float: right; line-height:30px">{{saleEndPrice}} x {{quantity}} = {{saleTotalEndPrice}}</span>
-                <ul>
-                    {{#registeredCartItems}}
-                        <li>{{email}}
-                            {{firstname}}
-                            {{lastname}}
-                            {{phone}}
-                            {{birthdate}}
-                        </li>
-                    {{/registeredCartItems}}
-                </ul>
-            </li>
-        {{/cartItems}}
-    </ul>
-    <br/>
-    <h4 style="text-align:right;">
-        <p>
-            Reduction : {{reduction}}
-        </p>
-        <p>
-            Shipping : {{shipping}}
-        </p>
-    </h4>
-    <h3 style="text-align:right;">
-        <p>
-            Total : {{finalPrice}}
-        </p>
-    </h3>
+    <table>
+        <tr>
+            <th>Designation</th>
+            <th>Qty</th>
+            <th>Px Unit.</th>
+            <th>Tax</th>
+            <th>Px Unit. TTC</th>
+            <th>Px Total</th>
+        </tr>
+        <tr>
+            {{#cartItems}}
+                <td style="width: 50%">{{productName}} -&gt; {{skuName}}</td>
+                <td style="text-align: right;" nowrap="true">{{quantity}}</td>
+                <td style="text-align: right;" nowrap="true">{{salePrice}}</td>
+                <td style="text-align: right;" nowrap="true">{{tax}}%</td>
+                <td style="text-align: right;" nowrap="true">{{saleEndPrice}}</td>
+                <td style="text-align: right;" nowrap="true">{{saleTotalEndPrice}}</td>
+            {{/cartItems}}
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td style="text-align: right; width:75%">Total TVA</td>
+            <td style="text-align: right; width:25%">{{taxAmount}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Reduction</td>
+            <td style="text-align: right; width:25%">{{reduction}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Shipping</td>
+            <td style="text-align: right; width:25%">{{shipping}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Total</td>
+            <td style="text-align: right; width:25%">{{finalPrice}}</td>
+        </tr>
+    </table>
 {{/cart}}
 </body>
 </html>

@@ -387,6 +387,7 @@ class TransactionHandler {
                                             cart.rate,
                                             cart.price,
                                             cart.endPrice,
+                                            cart.taxAmount,
                                             cart.reduction,
                                             cart.finalPrice + shippingPrice,
                                             cart.cartItems,
@@ -749,6 +750,7 @@ object BOTransactionJsonTransform {
     JObject(
       JField("shipping", JString(formatPrice(locale, cart.shippingPrice, currencyCode, fractionDigits))),
       JField("price", JString(formatPrice(locale, cart.price, currencyCode, fractionDigits))),
+      JField("taxAmount", JString(formatPrice(locale, cart.taxAmount, currencyCode, fractionDigits))),
       JField("endPrice", JString(formatPrice(locale, cart.endPrice, currencyCode, fractionDigits))),
       JField("reduction", JString(formatPrice(locale, cart.reduction, currencyCode, fractionDigits))),
       JField("finalPrice", JString(formatPrice(locale, cart.finalPrice, currencyCode, fractionDigits))),
@@ -763,12 +765,16 @@ object BOTransactionJsonTransform {
       JField("price", JString(formatPrice(locale, cartItem.price, currencyCode, fractionDigits))),
       JField("endPrice", JString(formatPrice(locale, cartItem.endPrice, currencyCode, fractionDigits))),
       JField("tax", JDouble(cartItem.tax)),
+      JField("taxAmount", JString(formatPrice(locale, cartItem.taxAmount, currencyCode, fractionDigits))),
       JField("totalPrice", JString(formatPrice(locale, cartItem.totalPrice, currencyCode, fractionDigits))),
       JField("totalEndPrice", JString(formatPrice(locale, cartItem.totalEndPrice, currencyCode, fractionDigits))),
+      JField("totalTaxAmount", JString(formatPrice(locale, cartItem.totalTaxAmount, currencyCode, fractionDigits))),
       JField("salePrice", JString(formatPrice(locale, cartItem.salePrice, currencyCode, fractionDigits))),
       JField("saleEndPrice", JString(formatPrice(locale, cartItem.saleEndPrice, currencyCode, fractionDigits))),
+      JField("saleTaxAmount", JString(formatPrice(locale, cartItem.saleTaxAmount, currencyCode, fractionDigits))),
       JField("saleTotalPrice", JString(formatPrice(locale, cartItem.saleTotalPrice, currencyCode, fractionDigits))),
       JField("saleTotalEndPrice", JString(formatPrice(locale, cartItem.saleTotalEndPrice, currencyCode, fractionDigits))),
+      JField("saleTotalTaxAmount", JString(formatPrice(locale, cartItem.saleTotalTaxAmount, currencyCode, fractionDigits))),
       JField("registeredCartItems", JArray(cartItem.registeredCartItems.toList.map {registeredCartItem => transformRegisteredCartItem(registeredCartItem, locale, currencyCode, fractionDigits)})),
       JField("shipping", cartItem.shipping.map { shipping => transformShipping(shipping, locale, currencyCode, fractionDigits) }.getOrElse(JNothing))
     ).merge(Extraction.decompose(cartItem.customs))
