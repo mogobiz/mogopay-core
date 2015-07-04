@@ -7,7 +7,7 @@ import com.mogobiz.pay.sql.BOTransactionLogDAO
 
 class BOTransactionLogHandler {
   def save(transactionLog: BOTransactionLog, refresh: Boolean = false): String = {
-    BOTransactionLogDAO.create(transactionLog)
+    BOTransactionLogDAO.upsert(transactionLog, false)
     EsClient.index(Settings.Mogopay.EsIndex, transactionLog, refresh)
   }
 }

@@ -15,7 +15,7 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
   //    def apply(rs: ResultSet, index: Int): UUID = UUID.fromString(rs.getString(index))
   //  }
 
-  def apply(rn: ResultName[model.Mogopay.BOTransactionLog])(rs: WrappedResultSet): BOTransactionLog = BOTransactionLog(
+  def apply(rn: ResultName[BOTransactionLog])(rs: WrappedResultSet): BOTransactionLog = BOTransactionLog(
     rs.get(rn.id),
     UUID.fromString(rs.get(rn.uuid)),
     rs.get(rn.extra),
@@ -35,15 +35,21 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
         BOTransactionLogDAO.column.lastUpdated -> newBOTransactionLog.lastUpdated
       )
     }
-    BOTransactionLog
+    newBOTransactionLog
   }
 
-  def upsert(transactionLog: model.Mogopay.BOTransactionLog): Unit = {
+  def upsert(transactionLog: model.Mogopay.BOTransactionLog, tryUpdate:Boolean = true): Unit = {
     DB localTx { implicit session =>
-      val updateResult = update(transactionLog)
+      val updateResult = if (tryUpdate) update(transactionLog) else 0
       if (updateResult == 0) create(transactionLog)
     }
   }
+
+//  def insert(transactionLog: model.Mogopay.BOTransactionLog): Unit = {
+//    DB localTx { implicit session =>
+//      create(transactionLog)
+//    }
+//  }
 
   def update(transactionLog: model.Mogopay.BOTransactionLog): Int = {
     DB localTx { implicit session =>
