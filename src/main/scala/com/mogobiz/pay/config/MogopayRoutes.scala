@@ -4,7 +4,6 @@ import java.io.File
 import java.net.UnknownHostException
 
 import akka.actor.{Actor, ActorLogging, Props}
-import com.gettyimages.spray.swagger.SwaggerHttpService
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
 import com.mogobiz.pay.exceptions.Exceptions.MogopayException
@@ -12,7 +11,6 @@ import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.system.MogobizSystem
-import com.wordnik.swagger.model.ApiInfo
 import spray.http.StatusCodes._
 import spray.http.{HttpEntity, StatusCode, _}
 import spray.routing.{Directives, _}
