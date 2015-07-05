@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.common.{Cart, CartContentMessage}
+import com.mogobiz.pay.common.{CartRate, Cart, CartContentMessage}
 import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
@@ -79,7 +79,21 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         session {
           session => {
             import Implicits._
-            val cart = session.sessionData.cart.getOrElse(throw InvalidContextException("Cart isn't set."))
+            val cart: Cart = session.sessionData.cart.getOrElse {
+              if (Settings.Mogopay.Anonymous)
+                Cart(count = 0,
+                  rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
+                  price = 0,
+                  endPrice = 0,
+                  taxAmount = 0,
+                  reduction = 0,
+                  finalPrice = 0,
+                  cartItems = Array(),
+                  coupons = Array(),
+                  customs = Map[String, Any]())
+              else
+                throw InvalidContextException("Cart isn't set.")
+            }
             handleCall(transactionHandler.init(params, cart),
               (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
             )
@@ -108,16 +122,16 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                     val future = actor ? new CartContentMessage(params.cartProvider, params.cartKeys)
                     Await.result(future, timeout.duration).asInstanceOf[Cart]
                   }, (cart: Cart) => {
-                      session.sessionData.cart = Some(cart)
-                      handleCall(transactionHandler.shippingPrices(cart, id),
-                        (shippinggPrices: Seq[ShippingPrice]) => {
-                          session.sessionData.shippingPrices = Option(shippinggPrices.toList)
-                          setSession(session) {
-                            complete(StatusCodes.OK -> shippinggPrices)
-                          }
+                    session.sessionData.cart = Some(cart)
+                    handleCall(transactionHandler.shippingPrices(cart, id),
+                      (shippinggPrices: Seq[ShippingPrice]) => {
+                        session.sessionData.shippingPrices = Option(shippinggPrices.toList)
+                        setSession(session) {
+                          complete(StatusCodes.OK -> shippinggPrices)
                         }
-                      )
-                    }
+                      }
+                    )
+                  }
                   )
                 }
               }
@@ -269,7 +283,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         submitParams: SubmitParams =>
           val payersAmountsSum = submitParams.payers.values.sum
           if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
-            complete { 400 -> "The total amount and the payers amounts don't match." }
+            complete {
+              400 -> "The total amount and the payers amounts don't match."
+            }
           } else {
             session { session =>
               import Implicits._
@@ -277,15 +293,15 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
                 complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
               } else {
-                clientIP { ip =>
-                  session.sessionData.ipAddress   = Some(ip.toString)
-                  session.sessionData.payers      = submitParams.payers.toMap[String, Long]
-                  session.sessionData.groupTxUUID = submitParams.groupTxUUID
+                //clientIP { ip =>
+                session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
+                session.sessionData.payers = submitParams.payers.toMap[String, Long]
+                session.sessionData.groupTxUUID = submitParams.groupTxUUID
 
-                  setSession(session) {
-                    doSubmit(submitParams, session)
-                  }
+                setSession(session) {
+                  doSubmit(submitParams, session)
                 }
+                //}
               }
             }
           }
@@ -389,21 +405,21 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   }
 
   def buildFormForInitGroupPayment(account: Account, transaction: TransactionRequest, groupTxUUID: String,
-                        transactionType: String, successURL: String, failureURL: String,
-                        ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String) = {
+                                   transactionType: String, successURL: String, failureURL: String,
+                                   ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String) = {
     val submitParams = Map(
-      "callback_success"   -> successURL,
-      "callback_error"     -> failureURL,
-      "transaction_id"     -> transaction.uuid,
+      "callback_success" -> successURL,
+      "callback_error" -> failureURL,
+      "transaction_id" -> transaction.uuid,
       "transaction_amount" -> transaction.amount.toString,
-      "merchant_id"        -> account.owner.get,
-      "transaction_type"   -> transactionType,
-      "group_tx_uuid"      -> groupTxUUID,
-      "card_cvv"           -> ccCVV,
-      "card_month"         -> ccMonth,
-      "card_year"          -> ccYear,
-      "card_type"          -> ccType,
-      "card_number"        -> ccNumber
+      "merchant_id" -> account.owner.get,
+      "transaction_type" -> transactionType,
+      "group_tx_uuid" -> groupTxUUID,
+      "card_cvv" -> ccCVV,
+      "card_month" -> ccMonth,
+      "card_year" -> ccYear,
+      "card_type" -> ccType,
+      "card_number" -> ccNumber
     )
 
     val form =
@@ -414,7 +430,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       </form>
         <script>document.getElementById('form').submit();</script>
 
-    if (Settings.Env == Environment.DEV) { // Just `open /tmp/mogopay-submit-form.html` to start the payment
+    if (Settings.Env == Environment.DEV) {
+      // Just `open /tmp/mogopay-submit-form.html` to start the payment
       java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
         form.mkString.getBytes(StandardCharsets.UTF_8))
     }

@@ -48,12 +48,13 @@ class PayboxService extends Directives with DefaultComplete {
 
   def queryString: Directive1[String] = extract(_.request.uri.toString())
 
-  lazy val done = path("done") {
-    import Implicits._
-    get {
-      session { session =>
+  lazy val done = path("done" / Segment) {
+    xtoken =>
+      import Implicits._
+      get {
         parameterMap { params =>
           queryString { uri =>
+            val session = SessionESDirectives.load(xtoken).get
             handleCall(payboxHandler.donePayment(session.sessionData, params, uri),
               (data: Uri) =>
                 setSession(session) {
@@ -63,7 +64,6 @@ class PayboxService extends Directives with DefaultComplete {
           }
         }
       }
-    }
   }
 
   lazy val callbackPayment = path("callback" / Segment) {
@@ -82,31 +82,25 @@ class PayboxService extends Directives with DefaultComplete {
       }
   }
 
-  lazy val done3DSecureCheck = path("done-3ds") {
+  lazy val done3DSecureCheck = path("done-3ds" / Segment) { xtoken =>
     post {
       entity(as[FormData]) {
         formData =>
-          session {
-            session =>
-
-              import Implicits._
-
-              handleCall(payboxHandler.done3DSecureCheck(session.sessionData, formData.fields.toMap),
-                (data: Uri) =>
-                  setSession(session) {
-                    redirect(data, StatusCodes.TemporaryRedirect)
-                  }
-              )
-          }
+          import Implicits._
+          val session = SessionESDirectives.load(xtoken).get
+          handleCall(payboxHandler.done3DSecureCheck(session.sessionData, formData.fields.toMap),
+            (data: Uri) =>
+              setSession(session) {
+                redirect(data, StatusCodes.TemporaryRedirect)
+              }
+          )
       }
     }
   }
 
   lazy val callback3DSecureCheck = path("callback-3ds" / Segment) {
     xtoken =>
-
       import Implicits.MogopaySession
-
       get {
         parameterMap {
           params =>

@@ -41,36 +41,32 @@ class PayPalService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val fail = path("fail") {
+  lazy val fail = path("fail" / Segment) { xtoken =>
     get {
       parameters("token") {
         token =>
-          session {
-            session =>
-              handleCall(payPalHandler.fail(session.sessionData, token),
-                (url: Uri) => {
-                  setSession(session) {
-                    redirect(url, StatusCodes.TemporaryRedirect)
-                  }
-                })
-          }
+          val session = SessionESDirectives.load(xtoken).get
+          handleCall(payPalHandler.fail(session.sessionData, token),
+            (url: Uri) => {
+              setSession(session) {
+                redirect(url, StatusCodes.TemporaryRedirect)
+              }
+            })
       }
     }
   }
 
-  lazy val success = path("success") {
+  lazy val success = path("success" / Segment) { xtoken =>
     get {
       parameters("token") {
         token =>
-          session {
-            session =>
-              handleCall(payPalHandler.success(session.sessionData, token),
-                (url: Uri) => {
-                  setSession(session) {
-                    redirect(url, StatusCodes.TemporaryRedirect)
-                  }
-                })
-          }
+          val session = SessionESDirectives.load(xtoken).get
+          handleCall(payPalHandler.success(session.sessionData, token),
+            (url: Uri) => {
+              setSession(session) {
+                redirect(url, StatusCodes.TemporaryRedirect)
+              }
+            })
       }
     }
   }

@@ -1,40 +1,35 @@
 package com.mogobiz.pay.handlers.payment
 
 import java.io.StringReader
-import java.net.{URLDecoder}
+import java.net.URLDecoder
 import java.security.interfaces.RSAPublicKey
-import java.security.{Signature, NoSuchAlgorithmException, MessageDigest, Security}
+import java.security.{MessageDigest, NoSuchAlgorithmException, Security, Signature}
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import akka.actor.ActorSystem
 import akka.io.IO
+import akka.pattern.ask
 import akka.util.Timeout
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.{Environment, Settings}
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{RefundException, InvalidContextException, InvalidSignatureException}
+import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.Mogopay.TransactionStatus
-import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.utils.{CustomSslConfiguration, Sha512, GlobalUtil}
+import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
+import com.mogobiz.utils.GlobalUtil._
+import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil, Sha512}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.PEMReader
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
-import com.mogobiz.utils.GlobalUtil._
 import spray.can.Http
-import spray.http.{HttpResponse, Uri}
-import sun.misc.BASE64Decoder
-import akka.pattern.ask
-
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import spray.http._
 import spray.client.pipelining._
-import scala.concurrent.duration._
+import spray.http.{HttpResponse, Uri, _}
+import sun.misc.BASE64Decoder
 
+import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.{Await, Future}
 import scala.util._
 
 class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
@@ -290,8 +285,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val rank: String = parametres("payboxRank")
     val idMerchant: String = parametres("payboxMerchantId")
     val transDate: String = new SimpleDateFormat("yyyyMMddHHmmss").format(paymentRequest.orderDate)
-    //      val xx: String = URLEncoder.encode(Settings.MogopayEndPoint + "systempay/done/" + paymentRequest.csrfToken, "UTF-8")
-
 
     val action = Settings.Paybox.MPIEndPoint
     val IdMerchant = idMerchant
@@ -300,7 +293,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val XCurrency = currency.toString
     val CCNumber = paymentRequest.ccNumber
     val CVVCode = paymentRequest.cvv
-    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds"
+    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds/${sessionData.uuid}"
     val URLHttpDirect = s"${Settings.Mogopay.EndPoint}paybox/callback-3ds/${sessionData.uuid}"
     if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
       val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
@@ -449,9 +442,9 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
-        "PBX_EFFECTUE" -> s"${Settings.Mogopay.EndPoint}paybox/done",
-        "PBX_REFUSE" -> s"${Settings.Mogopay.EndPoint}paybox/done",
-        "PBX_ANNULE" -> s"${Settings.Mogopay.EndPoint}paybox/done",
+        "PBX_EFFECTUE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
+        "PBX_REFUSE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
+        "PBX_ANNULE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
         "PBX_REPONDRE_A" -> s"${Settings.Mogopay.EndPoint}paybox/callback/${sessionData.uuid}"
       )
 

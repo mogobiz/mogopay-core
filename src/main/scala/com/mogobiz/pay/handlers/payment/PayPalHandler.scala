@@ -46,8 +46,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val paymentRequest = sessionData.paymentRequest.get
     val vendorId = sessionData.merchantId.get
-    val successURL = Settings.Mogopay.EndPoint + "paypal/success"
-    val failureURL = Settings.Mogopay.EndPoint + "paypal/fail"
+    val successURL = Settings.Mogopay.EndPoint + s"paypal/success/${sessionData.uuid}"
+    val failureURL = Settings.Mogopay.EndPoint + s"paypal/fail/${sessionData.uuid}"
     val paymentConfig = sessionData.paymentConfig.get
     val amount = sessionData.amount.get
     val maybeToken = getToken(vendorId, successURL, failureURL, paymentConfig, amount, paymentRequest)

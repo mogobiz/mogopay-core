@@ -44,31 +44,29 @@ class SipsService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val done = path("done") {
+  lazy val done = path("done" / Segment) { xtoken =>
     import Implicits._
     get {
       parameterMap { params =>
-        session { session =>
-          handleCall(sipsHandler.done(session.sessionData, params),
-            (data: Uri) =>
-              setSession(session) {
-                redirect(data, StatusCodes.TemporaryRedirect)
-              }
-          )
-        }
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(sipsHandler.done(session.sessionData, params),
+          (data: Uri) =>
+            setSession(session) {
+              redirect(data, StatusCodes.TemporaryRedirect)
+            }
+        )
       }
     }
   }
 
 
-  lazy val callback = path("callback" / Segment) { vendorUuid =>
+  lazy val callback = path("callback" / Segment / Segment) { (vendorUuid, xtoken) =>
     get {
       parameterMap { params =>
-        session { session =>
-          import Implicits._
-          handleCall(sipsHandler.callbackPayment(session.sessionData, params, vendorUuid),
-            (pr: PaymentResult) => complete(StatusCodes.OK, pr))
-        }
+        import Implicits._
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(sipsHandler.callbackPayment(session.sessionData, params, vendorUuid),
+          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
       }
     }
   }

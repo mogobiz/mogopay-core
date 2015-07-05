@@ -96,7 +96,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     else {
       transactionHandler.startPayment(vendorUuid, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
       if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
+        val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
         if (resultat.data != null)
           Left(resultat.data)
         else
@@ -125,7 +125,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         }
         else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           // on lance un paiement classique
-          val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
+          val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
           Right(finishPayment(sessionData, resultat))
         }
         else {
@@ -134,7 +134,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         }
       }
       else {
-        val resultat = submit(vendorUuid, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
+        val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
         Right(finishPayment(sessionData, resultat))
       }
     }
@@ -446,8 +446,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     paymentResult
   }
 
-  private[payment] def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                              paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
+  private[payment] def submit(sessionData:SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+                              paymentRequest: PaymentRequest): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -470,9 +470,9 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       sipsRequest.setValue("data", "NO_RESPONSE_PAGE")
       sipsRequest.setValue("amount", "" + paymentRequest.amount)
       sipsRequest.setValue("order_id", transactionUuid.split("-").mkString(""))
-      sipsRequest.setValue("normal_return_url", Settings.Mogopay.EndPoint + "sips/done")
-      sipsRequest.setValue("cancel_return_url", Settings.Mogopay.EndPoint + "sips/done")
-      sipsRequest.setValue("automatic_response_url", Settings.Mogopay.EndPoint + "sips/callback/" + vendorUuid)
+      sipsRequest.setValue("normal_return_url", Settings.Mogopay.EndPoint + s"sips/done/${sessionData.uuid}")
+      sipsRequest.setValue("cancel_return_url", Settings.Mogopay.EndPoint + s"sips/done/${sessionData.uuid}")
+      sipsRequest.setValue("automatic_response_url", Settings.Mogopay.EndPoint + s"sips/callback/$vendorUuid/${sessionData.uuid}")
       val htmlToDsiplay = """\
 			<HTML><HEAD><TITLE>SIPS - Paiement Securise sur Internet</TITLE></HEAD>
 			<BODY bgcolor=#ffffff>
@@ -585,7 +585,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), refresh = false)
 
       transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
-        paymentResult, paymentResult.errorCodeOrigin, locale, Option(transaction_id))
+        paymentResult, paymentResult.errorCodeOrigin, sessionData.locale, Option(transaction_id))
       paymentResult
     }
   }
