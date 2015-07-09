@@ -284,7 +284,8 @@ object Mogopay {
                             telephone: Option[Telephone] = None,
                             country: Option[String] = None,
                             admin1: Option[String] = None,
-                            admin2: Option[String] = None)
+                            admin2: Option[String] = None,
+                            geoCoordinates: Option[String] = None)
 
   case class Account(uuid: String,
                      email: String,

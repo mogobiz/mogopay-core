@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import com.atosorigin.services.cad.common.util.FileParamReader
+import com.google.maps.{GeocodingApi, GeoApiContext}
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.handlers.EmailHandler.Mail
@@ -950,9 +951,9 @@ class AccountHandler {
       signup.address.country
     }"))
 
-    val country: Country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
+    val country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
 
-    def address(country: Country): AccountAddress = {
+    def address(): AccountAddress = {
       val phoneStatus = if ((signup.isMerchant && Settings.AccountValidateMerchantPhone) ||
         (!signup.isMerchant && Settings.AccountValidateCustomerPhone)) {
         TelephoneStatus.WAITING_ENROLLMENT
@@ -962,10 +963,27 @@ class AccountHandler {
 
       val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
 
-      signup.address.copy(telephone = Some(tel))
+      val coords = if (Settings.Dashboard.EnableGeoLocation) {
+        val addressQuery = s"""
+            |${signup.address.road} ${signup.address.zipCode.getOrElse("")} ${signup.address.city}
+            |${signup.address.country.getOrElse("")}
+         """.stripMargin
+        val context = new GeoApiContext().setApiKey(Settings.Dashboard.GoogleAPIKey)
+        val results =  GeocodingApi.geocode(context, addressQuery).await()
+        results.headOption
+          .map(x => (x.geometry.location.lat, x.geometry.location.lng))
+          .map(x => x._1.toString + "," + x._2.toString)
+      } else {
+        None
+      }
+
+      signup.address.copy(
+        telephone = Some(tel),
+        geoCoordinates = coords
+      )
     }
 
-    val addr = address(country)
+    val addr = address()
     val accountId = newUUID
 
     val needEmailValidation = (signup.isMerchant && Settings.AccountValidateMerchantEmail) ||

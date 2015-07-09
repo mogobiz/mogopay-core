@@ -48,7 +48,6 @@ object Settings {
   }
 
   object Mail {
-
     object Smtp {
       val Host = config.getString("mail.smtp.host")
       val Port = config.getInt("mail.smtp.port")
@@ -78,7 +77,6 @@ object Settings {
       }
     }
   }
-
 
   object Import {
     val rootDir = new File(config.getString("import.countries.dir"))
@@ -174,6 +172,12 @@ object Settings {
 
     require(Secret.nonEmpty, "mogopay.secret must be non-empty")
     require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
+  }
+
+  object Dashboard {
+    val GoogleAPIKey = "AIzaSyCwKQwcdpCHgs5t-tXxaAlPshpu4HsYKbU"
+    val EnableGeoLocation = true
+    val IndexName = "mogodashboard"
   }
 
   val NextVal = config getString s"$Env.db.default.nextval"
