@@ -154,7 +154,7 @@ function validateRetunItemsForms(scope, location, rootScope, route){
 			showAlertBootStrapMsg("warning", "Quantity is required!");
 			return false;
 		}
-		if(parseInt($("#toBeReturnedQuantity-" + i).val()) > rootScope.itemsToBeReturned[i].quantity){
+		if(parseInt($("#toBeReturnedQuantity-" + i).val()) > (rootScope.itemsToBeReturned[i].quantity - rootScope.itemsToBeReturned[i].sumReturnedItems)){
 			$("#toBeReturnedQuantity-" + i).focus();
 			showAlertBootStrapMsg("warning", "Invalid quantity!");
 			return false;
