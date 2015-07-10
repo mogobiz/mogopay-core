@@ -1,0 +1,43 @@
+<div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="payboxContractType">Contract Type</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<select class="form-control" id="payboxContractType" ng-model="payboxContractTypeModel" ng-options="obj.name for obj in payboxContractTypeOptions"></select>
+			<!-- <input type="text" name="paymentProviderParam.payboxContract" ng-model="payboxContractTypeModel.value"> -->
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="payboxSite">Site</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="payboxSite" name="paybox_site" placeholder="Site" value="{{cbParam.payboxSite}}"/>
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="payboxKey">Key</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="payboxKey" name="paybox_key" placeholder="Key" value="{{cbParam.payboxKey}}"/>
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="payboxContract">Contract</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="payboxContract" name="paybox_rank" placeholder="Contract" value="{{cbParam.payboxRank}}"/>
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="payboxMerchantId">Merchant Id / HMAC Key</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="payboxMerchantId" name="paybox_merchant_id" placeholder="Merchant Id / HMAC Key" value="{{cbParam.payboxMerchantId}}"/>
+		</div>
+	</div>
+</div>

@@ -675,7 +675,10 @@ class AccountHandler {
               zipCode = profile.billingAddress.zipCode,
               country = profile.billingAddress.country,
               admin1 = profile.billingAddress.admin1,
-              admin2 = profile.billingAddress.admin2
+              admin2 = profile.billingAddress.admin2,
+              geoCoordinates = UtilHandler.computeGeoCoords(profile.billingAddress.road, profile.billingAddress.zipCode,
+                profile.billingAddress.city, profile.billingAddress.country, Settings.Dashboard.EnableGeoLocation,
+                Settings.Dashboard.GoogleAPIKey)
             )
         }
 
@@ -963,19 +966,9 @@ class AccountHandler {
 
       val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
 
-      val coords = if (Settings.Dashboard.EnableGeoLocation) {
-        val addressQuery = s"""
-            |${signup.address.road} ${signup.address.zipCode.getOrElse("")} ${signup.address.city}
-            |${signup.address.country.getOrElse("")}
-         """.stripMargin
-        val context = new GeoApiContext().setApiKey(Settings.Dashboard.GoogleAPIKey)
-        val results =  GeocodingApi.geocode(context, addressQuery).await()
-        results.headOption
-          .map(x => (x.geometry.location.lat, x.geometry.location.lng))
-          .map(x => x._1.toString + "," + x._2.toString)
-      } else {
-        None
-      }
+      val coords = UtilHandler.computeGeoCoords(signup.address.road, signup.address.zipCode,
+        signup.address.city, signup.address.country,
+        Settings.Dashboard.EnableGeoLocation, Settings.Dashboard.GoogleAPIKey)
 
       signup.address.copy(
         telephone = Some(tel),
@@ -1046,6 +1039,7 @@ class AccountHandler {
 
     (token, account)
   }
+
 
   def listCompagnies(accountUuid: Option[String]): List[String] = {
     val account = accountUuid.map { uuid =>
