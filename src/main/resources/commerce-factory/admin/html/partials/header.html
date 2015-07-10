@@ -1,0 +1,15 @@
+<div id="header">
+    <a href="{{location}}"><img id="logo" alt="Ebiznext logo" src="../images/style/logo.png"/></a>
+    <div class="main" ng-if="createPage==false">
+        <div class="btn-group pull-right">
+			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Menu <span class="caret"></span></button>
+			<ul class="dropdown-menu" role="menu">
+				<li><a href="javascript:void(0);" ng-click="goToListTrasactions()">Transactions</a></li>
+				<li><a href="javascript:void(0);"ng-click="goToListCustomers()">Customers</a></li>
+				<li><a href="javascript:void(0);" ng-click="goToProfile()">Profile</a></li>
+				<li class="divider"></li>
+				<li><a href="javascript:void(0);" ng-click="logout()">Logout</a></li>
+			</ul>
+		</div>
+    </div>
+</div>

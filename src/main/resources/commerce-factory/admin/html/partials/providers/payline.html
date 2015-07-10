@@ -1,0 +1,42 @@
+<div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="paylineAccount">Account</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="paylineAccount" name="payline_account" placeholder="Account" value="{{cbParam.paylineAccount}}"/>
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="paylineKey">Key</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="paylineKey" name="payline_key" placeholder="Key" value="{{cbParam.paylineKey}}"/>
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="paylineContract">Contract</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="paylineContract" name="payline_contract" placeholder="Contract" value="{{cbParam.paylineContract}}"/>
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="paylineCustomPageCode">Custom Page Code</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="paylineCustomPageCode" name="payline_custom_payment_page_code" placeholder="Custom Page Code" value="{{cbParam.paylineCustomPaymentPageCode}}" />
+		</div>
+	</div>
+	<div class="form-group">
+		<div style="padding:0px 3px;">
+			<label for="paylineTemplateURL">Custom Template URL</label>
+		</div>
+		<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+			<input type="text" class="form-control" id="paylineTemplateURL" name="payline_custom_payment_template_url" placeholder="Custom Template URL" value="{{cbParam.paylineCustomPaymentTemplateURL}}" pattern="https?://.+" errorMessage="Invalid URL!"/>
+		</div>
+	</div>
+</div>

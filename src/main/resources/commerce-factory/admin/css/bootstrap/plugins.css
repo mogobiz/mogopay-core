@@ -1,0 +1,65 @@
+/******************************************************/
+/*  ALERT BOXES
+/******************************************************/
+
+.success, .warning, .attention, .information {
+	padding: 15px 40px;
+	margin-left: 10px;
+	margin-right: 10px;
+	margin-bottom: 20px;
+	color: #555555;
+	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+	position: fixed;
+	top: 60px;
+	right: 20px;
+	max-width: 300px;
+	z-index: 999999;
+	border: 1px solid #D0D0D0;
+	-border-radius:0.4em;
+	-webkit-border-radius:0.4em;
+}
+
+.success {
+	background: #EDFFF4 url('../../images/success.png') 10px center no-repeat;
+}
+
+.warning {
+	background: #FFE8E8 url('../../images/warning.png') 10px center no-repeat;
+	color: rgba(255, 0, 0, 0.5);
+}
+
+.attention {
+	background: #FFFFFF url('../../images/attention.png') 10px center no-repeat;
+}
+
+.success .close, .warning .close, .attention .close, .information .close {
+	float: right;
+	position: absolute;
+	top: 7px;
+	right: 7px;
+	padding-top: 4px;
+	padding-right: 4px;
+	cursor: pointer;
+}
+
+.required {
+	color: #FF0000;
+	font-weight: bold;
+}
+
+.error {
+	display: block;
+	color: #FF0000;
+}
+
+.help {
+	font-size: 10px;
+	font-weight: normal;
+	display: block;
+}
+
+@media (max-width: 767px) {
+	.success, .warning, .attention, .information {
+		margin-left: 0!important;
+	}
+}
