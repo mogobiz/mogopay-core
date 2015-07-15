@@ -5,7 +5,7 @@ import com.easypost.model.{Shipment, Parcel, Address, Rate}
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.common.{CompanyAddress, Shipping, Cart}
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, ShippingAddress, AccountAddress, ShippingParcel}
+import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
 import org.json4s._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -107,7 +107,6 @@ class EasyPostHandler extends ShippingService {
     shipment.getRates
   }
 
-
   private def accountAddressToMap(addr: AccountAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "company" -> addr.company.getOrElse(""),
@@ -128,7 +127,7 @@ class EasyPostHandler extends ShippingService {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "company" -> addr.company,
       "street1" -> addr.road,
-      "street2" -> addr.road2.getOrElse(""),
+      "street2" -> addr.road2,
       "city" -> addr.city,
       "state" -> addr.state.getOrElse("US"),
       "country" -> addr.country,
@@ -149,22 +148,30 @@ class EasyPostHandler extends ShippingService {
 
 object EasyPostHandler {
   def main(params: Array[String]) = {
-    /*
     val handler = new EasyPostHandler()
     val rates = handler.rate(
-//      AccountAddress(firstName =Some("Hayssam"), lastName = Some("Saleh"), road = "60 rue Emeriau", city = "Paris", country = Some("FR"), zipCode = Some("75015")),
-//      AccountAddress(firstName =Some("Hayssam"), lastName = Some("Saleh"), road = "23 rue Vernet", city = "Paris", country = Some("FR"), zipCode = Some("75008")),
-      AccountAddress(road = "164 Townsend Street", company= Some("Mogobiz"), city = "San Francisco", country = Some("US"), zipCode = Some("94107")),
-      AccountAddress(road = "Vandelay Industries", city = "Bronx", country = Some("US"), zipCode = Some("10451")),
-      ShippingParcel(9.0, 6.0, 2.0, 10.0)
+      //AccountAddress(road = "179 N Harbor Dr", city = "Redondo Beach", country = Some("US"), zipCode = Some("90277"), admin1 = Some("CA")),
+      //AccountAddress(road = "14 rue de la récré", city = "Saint Christophe des Bois", country = Some("FR"), zipCode = Some("35210")),
+      //ShippingParcel(5.0, 10.9, 20.2, 65.9)
+
+      CompanyAddress("acmesports", "179 N Harbor Dr", "", "Redondo Beach", "90277" , "US", Some("CA")),
+      AccountAddress(road = "14 rue de la récré", city = "Saint Christophe des Bois", country = Some("FR"), zipCode = Some("35210")),
+      ShippingParcel(5.0, 10.9, 20.2, 65.9)
+      /*
+        AccountAddress(firstName =Some("Hayssam"), lastName = Some("Saleh"), road = "60 rue Emeriau", city = "Paris", country = Some("FR"), zipCode = Some("75015"), admin1 = Some("")),
+        AccountAddress(firstName =Some("Hayssam"), lastName = Some("Saleh"), road = "23 rue Vernet", city = "Paris", country = Some("FR"), zipCode = Some("75008"), admin1 = Some("")),
+        //AccountAddress("14 rue de la récré", None, "Saint Christophe des bois",Some("35210"),None,Some(Civility.MR),Some("Yoann"),Some("Baudy"),None,Some(Telephone("+33 1234567890","1234567890","FR",Some("000"), TelephoneStatus.ACTIVE)),Some("FR"),Some("FR.A2"),Some("FR.A2.35"),None),
+        //AccountAddress("14 rue de la récré", None, "Saint Christophe des bois",Some("35210"),None,Some(Civility.MR),Some("Yoann"),Some("Baudy"),None,Some(Telephone("+33 1234567890","1234567890","FR",Some("000"), TelephoneStatus.ACTIVE)),Some("FR"),Some("FR.A2"),Some("FR.A2.35"),None),
+        //AccountAddress(road = "Vandelay Industries", city = "Bronx", country = Some("US"), zipCode = Some("10451")),
+        ShippingParcel(9.0, 6.0, 2.0, 10.0)
+        */
     )
 
     rates.foreach(rate => println(rate.getService + "=" + rate.getRate + " " + rate.getCurrency + ""))
 
-    val res : Shipment = handler.buy(rates(0).getShipmentId, rates(0).getId)
-    println(JacksonConverter.serialize(res))
+    //val res : Shipment = handler.buy(rates(0).getShipmentId, rates(0).getId)
+    //println(JacksonConverter.serialize(res))
 
-    println(res.getTrackingCode)
-*/
+    //println(res.getTrackingCode)
   }
 }
