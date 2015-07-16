@@ -116,7 +116,17 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[index].uuid, index)
 		}
 	}
-	callStoreServer("backoffice/cartDetails/" + transactionUUID, "", success, function (response) {}, rootScope.selectedStore, "GET");
+	var error = function(response){
+		rootScope.transactions[index].listRetunedStatus = [{value: "None"}];
+		if(index == rootScope.transactions.length - 1){
+			scope.$apply();
+		}
+		else{
+			index++;
+			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[index].uuid, index)
+		}
+	}
+	callStoreServer("backoffice/cartDetails/" + transactionUUID, "", success, error, rootScope.selectedStore, "GET");
 }
 
 function zerosAutoComplete(number, length){
