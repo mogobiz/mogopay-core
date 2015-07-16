@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 package com.mogobiz.pay.handlers.payment
 
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS

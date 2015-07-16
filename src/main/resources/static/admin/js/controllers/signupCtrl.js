@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 function SignupCtrl($scope, $location, $rootScope, $route) {
 	$scope.$on("$destroy", function (event, next, current) {
 		$rootScope.createPage = false;

@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 function PasswordChangeCtrl($scope, $rootScope, $location, $route){
     $scope.passwordChange = function (){
         if($("#emailForgotten") && ($("#emailForgotten").val().trim() == "" || ($("#emailForgotten").val().trim() != "" && !isEmail($("#emailForgotten").val())))){

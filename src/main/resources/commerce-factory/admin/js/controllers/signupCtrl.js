@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 function SignupCtrl($scope, $location, $rootScope, $route) {
 	var minBirthDate = new Date();
 	var maxBirthDate = new Date();

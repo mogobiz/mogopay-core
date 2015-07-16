@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 function LoginCtrl($scope, $location, $rootScope ,$route) {
     $scope.signup = function () {
         $rootScope.createPage = true;

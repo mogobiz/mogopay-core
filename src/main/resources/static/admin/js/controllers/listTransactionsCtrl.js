@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 	if(!isConnectedUser($scope, $location, $rootScope, $route))
 		return;
