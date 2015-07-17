@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 $(function() {
     var forms = document.getElementsByTagName("form");
     for (var j = 0; j < forms.length; j++) {

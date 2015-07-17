@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
 var clientUrl = "/pay-client/";

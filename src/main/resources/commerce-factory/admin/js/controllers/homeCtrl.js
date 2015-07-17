@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
 function HomeCtrl($scope, $location, $rootScope, $route) {
     $scope.customerLogin =  function () {
         callServer("account/customer-token", "", function (response) {

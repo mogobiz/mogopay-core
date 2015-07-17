@@ -1,4 +1,8 @@
-﻿"use strict";
+﻿/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
+
+"use strict";
 
 function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $location, $route) {
     webshim.polyfill('forms forms-ext');
