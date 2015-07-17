@@ -11,6 +11,9 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 
 class EasyPostHandler extends ShippingService {
+
+  val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
+
   EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
 
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
@@ -31,10 +34,20 @@ class EasyPostHandler extends ShippingService {
           val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
           val finalPrice = parcelAndFixAmountTail.amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong)
 
-          createShippingPrice(easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
+          createShippingPrice(EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
         }
       }.getOrElse(Seq())
     }.getOrElse(Seq())
+  }
+
+  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+
+  override def confirmShipmentId(shippingPrice: ShippingPrice): Long = {
+    val shipment = new Shipment()
+    shipment.setId(shippingPrice.shipmentId.substring(EASYPOST_SHIPPING_PREFIX.length))
+    val rate = Rate.retrieve(shippingPrice.rateId)
+    val s = shipment.buy(rate)
+    shippingPrice.price
   }
 
   private def computeShippingParcelAndFixAmount(shippingList: List[Shipping]) : ShippingParcelAndFixAmount = {
@@ -135,14 +148,6 @@ class EasyPostHandler extends ShippingService {
 
     Address.create(fromAddressMap)
 
-  }
-
-  def buy(shipmentId: String, rateId: String): Shipment = {
-    val shipment = new Shipment()
-    shipment.setId(shipmentId)
-    //val rate = mutable.HashMap[String, AnyRef]("id" -> rateId)
-    val rate = new Rate(rateId, "dum", "my", null, null, null, null, null, null, null, null, null, null)
-    shipment.buy(rate)
   }
 }
 

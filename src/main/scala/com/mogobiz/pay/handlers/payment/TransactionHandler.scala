@@ -50,6 +50,7 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
 }
 
 class TransactionHandler {
+
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       termFilter("customer.uuid", uuid)
@@ -293,7 +294,7 @@ class TransactionHandler {
 
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
-    address.map(addr => computePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
+    address.map(addr => ShippingService.calculatePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
   }
 
   def shippingPrice(prices: Seq[ShippingPrice], shipmentId: String, rateId: String): Option[ShippingPrice] = {
@@ -399,8 +400,7 @@ class TransactionHandler {
       }
     }
 
-    val shippingPrice =
-      sessionData.selectShippingPrice.map { selectedShippingPrice => selectedShippingPrice.price }.getOrElse(0L)
+    val shippingPrice = ShippingService.confirmShippingPrice(selectedShippingPrice)
 
     val cartWithShipping = CartWithShipping(cart.count,
       shippingPrice,
@@ -542,15 +542,6 @@ class TransactionHandler {
         sessionData.transactionType.get.toLowerCase
       }
       (handler, "start")
-    }
-  }
-
-  def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
-    val servicesList: Seq[ShippingService] = Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
-
-    servicesList.flatMap {
-      service =>
-        service.calculatePrice(address, cart)
     }
   }
 

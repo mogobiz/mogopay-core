@@ -11,13 +11,18 @@ import org.json4s._
  */
 class NoShippingHandler extends ShippingService {
 
+  val NO_SHIPPING_PREFIX = "NONE_"
+
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
 
     val shippingContent = extractShippingContent(cart)
 
     // aucun produit ne nécessite de livraison
-    if (shippingContent.isEmpty) Seq(createShippingPrice(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "NONE", "NONE", "NONE", 0, cart.rate.code))
+    if (shippingContent.isEmpty) Seq(createShippingPrice(NO_SHIPPING_PREFIX + UUID.randomUUID().toString(), UUID.randomUUID().toString(), "NONE", "NONE", "NONE", 0, cart.rate.code))
     else Seq()
   }
 
+  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(NO_SHIPPING_PREFIX)
+
+  override def confirmShipmentId(shippingPrice: ShippingPrice): Long = shippingPrice.price
 }

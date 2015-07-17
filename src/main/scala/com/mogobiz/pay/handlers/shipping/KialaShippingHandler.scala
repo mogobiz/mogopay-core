@@ -10,6 +10,7 @@ import com.mogobiz.pay.config.MogopayHandlers._
 class KialaShippingHandler extends ShippingService {
 
   val KIALA_PRICE = 400
+  val KIALA_SHIPPING_PREFIX = "KIALA_"
 
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
 
@@ -26,6 +27,10 @@ class KialaShippingHandler extends ShippingService {
     }
 
     if (shippingContent == Nil) Seq()
-    else Seq(createShippingPrice(UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), cart.rate.code))
+    else Seq(createShippingPrice(KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), cart.rate.code))
   }
+
+  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(KIALA_SHIPPING_PREFIX)
+
+  override def confirmShipmentId(shippingPrice: ShippingPrice): Long = shippingPrice.price
 }
