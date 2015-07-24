@@ -136,6 +136,10 @@ object Settings {
     val PathFile = config.getString("sips.pathfile")
   }
 
+  object EasyPost {
+    val apiKey = config.getString("easyPost.apiKey")
+  }
+
   object ApplePay {
     import net.authorize.{Environment => ANetEnv}
     val token = Try(Option(config.getString(s"applepay.$Env.token"))).getOrElse(None)

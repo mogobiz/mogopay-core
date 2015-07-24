@@ -9,6 +9,7 @@ import com.easypost.model._
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.common.{CompanyAddress, Shipping, Cart}
 import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
 import org.json4s._
 import scala.collection.JavaConversions._
@@ -18,7 +19,7 @@ class EasyPostHandler extends ShippingService {
 
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
 
-  EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
+  EasyPost.apiKey = Settings.EasyPost.apiKey
 
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     cart.compagnyAddress.map { compagnyAddress =>
@@ -164,12 +165,12 @@ class EasyPostHandler extends ShippingService {
 
   private def accountAddressToMap(addr: AccountAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
-      "name" -> (addr.civility.map {_.toString + " "}.getOrElse("") + addr.lastName + " " + addr.firstName),
+      "name" -> (addr.civility.map {_.toString + " "}.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
       "company" -> addr.company.getOrElse(""),
       "street1" -> addr.road,
       "street2" -> addr.road2.getOrElse(""),
       "city" -> addr.city,
-      "state" -> addr.admin1.getOrElse("US"),
+      "state" -> addr.admin1.getOrElse("CA"),
       "country" -> addr.country.getOrElse("US"),
       "zip" -> addr.zipCode.getOrElse(""),
       "phone" -> addr.telephone.map(_.lphone).getOrElse("")).filter(_._2.length > 0)
