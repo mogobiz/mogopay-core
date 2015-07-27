@@ -12,6 +12,7 @@ import com.mogobiz.pay.handlers.EmailHandler.Mail
  * From https://gist.github.com/mariussoutier/3436111
  */
 object EmailHandler {
+
   sealed abstract class MailType
 
   case object Plain extends MailType
@@ -66,12 +67,27 @@ object EmailHandler {
       mail.to foreach (commonsMail.addTo(_))
       mail.cc foreach (commonsMail.addCc(_))
       mail.bcc foreach (commonsMail.addBcc(_))
-
-      commonsMail.
-        setFrom(mail.from._1, mail.from._2).
-        setSubject(mail.subject).
-        send()
+      try {
+        commonsMail.
+          setFrom(mail.from._1, mail.from._2).
+          setSubject(mail.subject).
+          send()
+      }
+      catch {
+        case e: EmailException =>
+          e.printStackTrace()
+      }
     }
+  }
+
+  def main(args: Array[String]): Unit = {
+    EmailHandler.Send(
+      Mail(
+        from = ("hayssam@saleh.fr", "Hayssam Saleh"),
+        to = Seq("hayssam.saleh@ebiznext.com"),
+        subject = "coucou",
+        message = "Hello World"))
+
   }
 }
 
