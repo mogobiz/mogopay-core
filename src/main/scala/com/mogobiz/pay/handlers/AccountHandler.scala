@@ -408,7 +408,15 @@ class AccountHandler {
       val paymentConfig = vendor.get.paymentConfig.get
       val senderName = paymentConfig.senderName
       val senderEmail = paymentConfig.senderEmail
-      val data = s"""{"newPassword": "$newPassword"}"""
+      val data =
+        s"""
+            |{
+            |"newPassword": "$newPassword",
+            |"email" :"${account.email}",
+            |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}"
+            |}
+            |""".stripMargin
+
       val (subject, body) = templateHandler.mustache(template, data)
       EmailHandler.Send(
         Mail(
@@ -696,7 +704,8 @@ class AccountHandler {
             else new Sha256Hash(p1).toHex
         } getOrElse account.password
 
-        val updateCBParam: Option[CBParams] = if (!profile.isMerchant) None else {
+        val updateCBParam: Option[CBParams] = if (!profile.isMerchant) None
+        else {
           val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
           val cbParam = profile.cbParam
 
@@ -803,7 +812,8 @@ class AccountHandler {
           case _ => throw new MissingGroupPaymentInfoValues
         }
 
-        val paymentConfig = if (!profile.isMerchant) None else {
+        val paymentConfig = if (!profile.isMerchant) None
+        else {
           val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
           val paymentMethod = CBPaymentMethod.withName(profile.paymentMethod.getOrElse(throw new NoCBPaymentMethodSpecified))
 
@@ -1080,7 +1090,16 @@ class AccountHandler {
 
     val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
 
-    val (subject, body) = templateHandler.mustache(template, s"""{"url": "$url"}""")
+    val (subject, body) = templateHandler.mustache(template,
+      s"""
+         |{
+         |"url": "$url",
+         |"email" :"${account.email}",
+         |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
+         |}
+         |""".stripMargin)
+
     EmailHandler.Send(
       Mail(
         from = (fromEmail, fromName),
