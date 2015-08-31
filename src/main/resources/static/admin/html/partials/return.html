@@ -16,26 +16,26 @@
 				<form role="form" class="form-horizontal">
 					<div class="form-group" style="margin-bottom: 0px;">
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-							<label for="returnQuantity-{{$index}}">Quantity</label>
+							<label for="returnQuantity-{{$index}}">{{resourceBundle.return_quantity}}</label>
 							<input type="text" class="form-control" id="returnQuantity-{{$index}}" readonly value="{{item.quantity}}"/>
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-							<label for="returnItemStatus-{{$index}}">Return Item Status</label>
+							<label for="returnItemStatus-{{$index}}">{{resourceBundle.return_item_status}}</label>
 							<select class="form-control" id="returnItemStatus-{{$index}}" ng-model="returnItemStatusTab[$index]" ng-options="option.value as option.label for option in returnItemStatusOptions"></select>
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-							<label for="returnRefunded-{{$index}}">Refunded</label>
+							<label for="returnRefunded-{{$index}}">{{resourceBundle.return_refunded}}</label>
 							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnRefunded-{{$index}}" ng-model="refundedValue[$index]" pattern="\d+" ng-blur="checkTotalRefundedValidity($index)"/>
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-							<label for="returnTotalRefunded-{{$index}}">Total Refunded</label>
+							<label for="returnTotalRefunded-{{$index}}">{{resourceBundle.return_total_refunded}}</label>
 							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnTotalRefunded-{{$index}}" ng-model="totalRefundedValue[$index]" pattern="\d+" ng-blur="checkTotalRefundedValidity($index)"/>
 						</div>
 					</div>
 				</form>
 				<div class="form-group" style="margin-bottom: 0px;" ng-if="item.boReturns[0].status != 'RETURN_REFUSED' && item.boReturns[0].status != 'RETURN_ACCEPTED'">
 					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="returnMotivation-{{$index}}">Motivation</label>
+						<label for="returnMotivation-{{$index}}">{{resourceBundle.return_motivation}}</label>
 						<textarea class="form-control" id="returnMotivation-{{$index}}" rows="3"></textarea>
 					</div>
 				</div>
@@ -44,8 +44,8 @@
 					<table class="table table-bordered table-striped">
 						<thead>
 							<tr>
-								<th>Status</th>
-								<th>Motivation</th>
+								<th>{{resourceBundle.return_status}}</th>
+								<th>{{resourceBundle.return_motivation}}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -57,13 +57,13 @@
 					</table>
 				</div>
 				<button class="btn btn-success pull-right" ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED' || item.boReturns[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="acceptReturn($index)">
-					Accept Return<span ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED'"> Request</span>
+					{{resourceBundle.return_btn_accept}}<span ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED'"> {{resourceBundle.return_btn_request}}</span>
 				</button>
 				<button class="btn btn-danger pull-right" ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED' || item.boReturns[0].status == 'RETURN_RECEIVED'" style="margin-right: 10px;" ng-click="refuseReturn($index)">
-					Refuse Return<span ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED'"> Request</span>
+					{{resourceBundle.return_btn_refuse}}<span ng-if="item.boReturns[0].status == 'RETURN_SUBMITTED'"> {{resourceBundle.return_btn_request}}</span>
 				</button>
 				<button class="btn btn-primary pull-right" ng-if="item.boReturns[0].status == 'RETURN_TO_BE_RECEIVED'" style="margin-right: 10px;" ng-click="receiveReturn($index)">
-					Return Received
+					{{resourceBundle.return_btn_received}}
 				</button>
 			</div>
 		</div>
@@ -78,18 +78,18 @@
 				<form role="form" class="form-horizontal">
 					<div class="form-group" style="margin-bottom: 0px;">
 						<div class="col-xs-12 col-sm-3 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-							<label for="toBeReturnedQuantity-{{$index}}">Quantity</label>
+							<label for="toBeReturnedQuantity-{{$index}}">{{resourceBundle.return_quantity}}</label>
 							<input type="text" class="form-control" id="toBeReturnedQuantity-{{$index}}" pattern="[1-9]?\d+" required />
 						</div>
 						<div class="col-xs-12 col-sm-9 col-md-9 col-lg-9" style="padding:0px 5px; margin-bottom: 15px;">
-							<label for="toBeReturnedMotivation-{{$index}}">Motivation</label>
+							<label for="toBeReturnedMotivation-{{$index}}">{{resourceBundle.return_motivation}}</label>
 							<textarea class="form-control" id="toBeReturnedMotivation-{{$index}}" required></textarea>
 						</div>
 					</div>
 				</form>
 			</div>
 		</div>
-		<button class="btn btn-primary pull-right" style="margin-right: 10px;" ng-click="submitReturnItems()">Submit</button>
+		<button class="btn btn-primary pull-right" style="margin-right: 10px;" ng-click="submitReturnItems()">{{resourceBundle.btn_submit}}</button>
 	</div>
 <!-- End Of Customer Block -->
 </div>

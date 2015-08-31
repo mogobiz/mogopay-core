@@ -5,12 +5,12 @@
 <header ng-include src="'partials/header.html'"></header>
 <div>
 	<div class="panel panel-default">
-		<div class="panel-heading"><h3 class="panel-title">Enter Query</h3></div>
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.customers_title}}</h3></div>
 		<div class="panel-body">
 			<form role="form" class="form-horizontal">
 				<div class="form-group" style="padding:0px 3px;" ng-show="allStores.length > 1">
 					<div style="padding:0px 3px;">
-						<label for="listCustomersStore">Store</label>
+						<label for="listCustomersStore">{{resourceBundle.customers_store}}</label>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 						<select class="form-control" id="listCustomersStore" ng-model="customersSelectedStore" ng-options="comp as comp for comp in allStores" ng-change="customersChangeStore()"></select>
@@ -18,7 +18,7 @@
 				</div>
 				<div class="form-group" style="padding:0px 3px;" ng-show="allStores.length == 1">
 					<div style="padding:0px 3px;">
-						<label>Store</label>
+						<label>{{resourceBundle.customers_store}}</label>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 						<input type="text" disabled class="form-control" ng-model="customersSelectedStore"/>
@@ -26,7 +26,7 @@
 				</div>
 				<div class="form-group">
 					<div style="padding:0px 3px;">
-						<label for="listCustomersEmail">Email</label>
+						<label for="listCustomersEmail">{{resourceBundle.customers_email}}</label>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 						<input type="email" class="form-control" id="listCustomersEmail" autofocus/>
@@ -34,7 +34,7 @@
 				</div>
 				<div class="form-group" style="padding:0px 3px;">
 					<div style="padding:0px 3px;">
-						<label for="listCustomersLastName">Last Name</label>
+						<label for="listCustomersLastName">{{resourceBundle.customers_lName}}</label>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 						<input type="text" class="form-control" id="listCustomersLastName"/>
@@ -42,7 +42,7 @@
 				</div>
 				<div class="form-group" style="padding:0px 3px;">
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="button" class="btn btn-default pull-right" value="Search" ng-click="listCustomersSearch()"/>
+						<input type="button" class="btn btn-default pull-right" value="{{resourceBundle.btn_search}}" ng-click="listCustomersSearch()"/>
 					</div>
 				</div>
 			</form>
@@ -52,11 +52,11 @@
 		<table class="table table-bordered table-striped">
 			<thead>
 				<tr>
-					<th>First Name</th>
-					<th>Last Name</th>
-					<th>Email</th>
-					<th>Phone number</th>
-					<th>Birth date</th>
+					<th>{{resourceBundle.customers_fName}}</th>
+					<th>{{resourceBundle.customers_lName}}</th>
+					<th>{{resourceBundle.customers_email}}</th>
+					<th>{{resourceBundle.customers_phone_number}}</th>
+					<th>{{resourceBundle.customers_birthdate}}</th>
 				</tr>
 			</thead>
 			<tbody>

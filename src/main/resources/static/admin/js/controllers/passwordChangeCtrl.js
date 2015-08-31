@@ -5,7 +5,7 @@
 function PasswordChangeCtrl($scope, $rootScope, $location, $route){
     $scope.passwordChange = function (){
         if($("#emailForgotten") && ($("#emailForgotten").val().trim() == "" || ($("#emailForgotten").val().trim() != "" && !isEmail($("#emailForgotten").val())))){
-            showAlertBootStrapMsg("warning","Please enter a valid email");
+            showAlertBootStrapMsg("warning", $rootScope.resourceBundle.error_invalid_email);
             return;
         }
         var email = $("#emailForgotten").val();
@@ -16,7 +16,7 @@ PasswordChangeCtrl.$inject = ["$scope", "$rootScope", "$location", "$route"];
 
 function requestPass(rootScope, scope, location, route, email){
     var success = function(response) {
-        showAlertBootStrapMsg("success", "A link to choose a new password has been sent to you.");
+        showAlertBootStrapMsg("success", rootScope.resourceBundle.message_change_password);
 
         if(indexPage == true)
 			navigateToPage(scope, location, rootScope, route, "home");
@@ -24,7 +24,7 @@ function requestPass(rootScope, scope, location, route, email){
 			navigateToPage(scope, location, rootScope, route, "login");
     }
     var failure = function(status){
-        showAlertBootStrapMsg("warning","Error in request password change ");
+        showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_change_password);
     };
     var dataToSend = "email=" + email;// + "&xtoken=" + rootScope.xtoken;
     callClient("generate-lost-password", dataToSend, success, failure);

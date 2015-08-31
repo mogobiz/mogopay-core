@@ -4,23 +4,23 @@
 
 <div class="container">
     <div class="panel panel-primary center-block" style="max-width: 400px; position: relative; top: 100px;">
-        <div class="panel-heading"><h3 class="panel-title">Login</h3></div>
+        <div class="panel-heading"><h3 class="panel-title">{{resourceBundle.login_title}}</h3></div>
         <div class="panel-body">
             <form class="form-horizontal" role="form" >
                 <div class="form-group">
-                    <label for="user_email" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">Email</label>
+                    <label for="user_email" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">{{resourceBundle.login_email}}</label>
                     <div class="col-xs-12 col-sm-9 col-md-9 col-lg-9">
-                        <input type="email" class="form-control" id="user_email" name="user_email" placeholder="Enter your email" autofocus required value="" ng-keydown="logInBykey($event)"/>
+                        <input type="email" class="form-control" id="user_email" name="user_email" placeholder="{{resourceBundle.login_placeholder_email}}" autofocus required value="" ng-keydown="logInBykey($event)"/>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="user_password" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">Password</label>
+                    <label for="user_password" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">{{resourceBundle.login_password}}</label>
                     <div class="col-xs-12 col-sm-9 col-md-9 col-lg-9">
-                        <input type="password" class="form-control" id="user_password" name="user_password" placeholder="Enter the password" required value="" ng-keydown="logInBykey($event)" />
+                        <input type="password" class="form-control" id="user_password" name="user_password" placeholder="{{resourceBundle.login_placeholder_password}}" required value="" ng-keydown="logInBykey($event)" />
                     </div>
                 </div>
                 <div class="form-group" ng-show="!isMerchant">
-                    <label for="user_seller" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">Seller</label>
+                    <label for="user_seller" class="col-xs-12 col-sm-3 col-md-3 col-lg-3 control-label">{{resourceBundle.login_seller}}</label>
                     <div class="col-xs-12 col-sm-9 col-md-9 col-lg-9">
                         <select class="form-control" id="user_seller" ng-model="loginSelectedSeller" ng-options="seller.id as seller.name for seller in allSellers" ng-hide="allSellers.length == 1"></select>
 						<input type="text" disabled class="form-control" ng-model="loginSelectedSeller" ng-show="allSellers.length == 1"/>
@@ -28,14 +28,14 @@
                 </div>
                 <div class="form-group">
                     <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                        Don't have an account?<br/>
-                        <a href="javascript:void(0)" ng-click="signup()">Signup</a>
-                        <br/>Lost Password?<br/>
-                        <a href="javascript:void(0)" ng-click="requestPasswordChange()" >Request Password Change</a>
+                        {{resourceBundle.login_msg_account}}<br/>
+                        <a href="javascript:void(0)" ng-click="signup()">{{resourceBundle.login_signup}}</a>
+                        <br/>{{resourceBundle.login_msg_password}}<br/>
+                        <a href="javascript:void(0)" ng-click="requestPasswordChange()">{{resourceBundle.login_password_change}}</a>
                     </div>
                 </div>
                 <div>
-                    <input type="button" class="btn btn-primary pull-right" value="Login" ng-click="Login()"/>
+                    <input type="button" class="btn btn-primary pull-right" value="{{resourceBundle.btn_login}}" ng-click="Login()"/>
                 </div>
             </form>
         </div>

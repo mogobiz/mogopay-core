@@ -87,28 +87,28 @@ function validateRetunForm(scope, location, rootScope, route, index){
 	var item = rootScope.returnDetails.returnedItems[index];
 	if($("#returnMotivation-" + index).val() == ""){
 		$("#returnMotivation-" + index).focus();
-		showAlertBootStrapMsg("warning", "Motivation is required!");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_motivation_required);
 		return false;
 	}
 	if(item.boReturns[0].status == 'RETURN_RECEIVED'){
 		if($("#returnRefunded-" + index).val() == ""){
 			$("#returnRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Refunded is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_refunded_required);
 			return false;
 		}
 		if(!$("#returnRefunded-" + index)[0].checkValidity()){
 			$("#returnRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Invalid refunded!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_refunded);
 			return false;
 		}
 		if($("#returnTotalRefunded-" + index).val() == ""){
 			$("#returnTotalRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Refunded is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_refunded_required);
 			return false;
 		}
 		if(!$("#returnTotalRefunded-" + index)[0].checkValidity()){
 			$("#returnTotalRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Invalid refunded!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_refunded);
 			return false;
 		}
 	}
@@ -150,22 +150,22 @@ function validateRetunItemsForms(scope, location, rootScope, route){
 	for(var i = 0; i < rootScope.itemsToBeReturned.length; i++){
 		if($("#toBeReturnedQuantity-" + i).val() == ""){
 			$("#toBeReturnedQuantity-" + i).focus();
-			showAlertBootStrapMsg("warning", "Quantity is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_quantity_required);
 			return false;
 		}
 		if(!$("#toBeReturnedQuantity-" + i)[0].checkValidity()){
 			$("#toBeReturnedQuantity-" + i).focus();
-			showAlertBootStrapMsg("warning", "Quantity is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_quantity_required);
 			return false;
 		}
 		if(parseInt($("#toBeReturnedQuantity-" + i).val()) > (rootScope.itemsToBeReturned[i].quantity - rootScope.itemsToBeReturned[i].sumReturnedItems)){
 			$("#toBeReturnedQuantity-" + i).focus();
-			showAlertBootStrapMsg("warning", "Invalid quantity!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_quantity);
 			return false;
 		}
 		if($("#toBeReturnedMotivation-" + i).val() == ""){
 			$("#toBeReturnedMotivation-" + i).focus();
-			showAlertBootStrapMsg("warning", "Motivation is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_motivation_required);
 			return false;
 		}
 	}

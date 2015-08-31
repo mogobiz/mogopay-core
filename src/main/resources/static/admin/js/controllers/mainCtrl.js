@@ -12,27 +12,64 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 	$rootScope.location = $location.absUrl().split('#')[0];
 	$rootScope.serverUrl = serverUrl;
 
-	$rootScope.returnItemStatusOptions = [{
-		value: "UNDEFINED",
-		label: "Undefined"
-	},{
-		value: "NOT_AVAILABLE",
-		label: "Not Available"
-	},{
-		value: "BACK_TO_STOCK",
-		label: "Back To Stock"
-	},{
-		value: "DISCARDED",
-		label: "Discarded"
-	}];
+	var language = getHTTPParameter("lang") ? getHTTPParameter("lang").toLowerCase() : "en";
+	language = $.inArray(language, ngI18nConfig.supportedLocales) ? language : "en";
 
-	$rootScope.returnStatusValues = {
-		"RETURN_SUBMITTED": "Return Submitted",
-		"RETURN_TO_BE_RECEIVED": "Return To Be Received",
-		"RETURN_RECEIVED": "Return Received",
-		"RETURN_REFUSED": "Return Refused",
-		"RETURN_ACCEPTED": "Return Accepted"
-	};
+	$rootScope.i18n = {language: language};
+	$rootScope.$watch("i18n.language", function (language) {
+		ngI18nResourceBundle.get({locale: language}).success(function (resourceBundle) {
+			$rootScope.resourceBundle = resourceBundle;
+			$rootScope.returnItemStatusOptions = [{
+				value: "UNDEFINED",
+				label: $rootScope.resourceBundle.return_undefined
+			},{
+				value: "NOT_AVAILABLE",
+				label: $rootScope.resourceBundle.return_not_available
+			},{
+				value: "BACK_TO_STOCK",
+				label: $rootScope.resourceBundle.return_back_to_stock
+			},{
+				value: "DISCARDED",
+				label: $rootScope.resourceBundle.return_discarded
+			}];
+
+			$rootScope.returnStatusValues = {
+				"RETURN_SUBMITTED": $rootScope.resourceBundle.return_return_submitted,
+				"RETURN_TO_BE_RECEIVED": $rootScope.resourceBundle.return_return_to_be_received,
+				"RETURN_RECEIVED": $rootScope.resourceBundle.return_return_received,
+				"RETURN_REFUSED": $rootScope.resourceBundle.return_return_refused,
+				"RETURN_ACCEPTED": $rootScope.resourceBundle.return_return_accepted
+			};
+		}).error(function (resourceBundle) {
+			$rootScope.i18n = {language: "en"};
+			$rootScope.$watch("i18n.language", function (language) {
+				ngI18nResourceBundle.get({locale: language}).success(function (resourceBundle) {
+					$rootScope.resourceBundle = resourceBundle;
+					$rootScope.returnItemStatusOptions = [{
+						value: "UNDEFINED",
+						label: $rootScope.resourceBundle.return_undefined
+					},{
+						value: "NOT_AVAILABLE",
+						label: $rootScope.resourceBundle.return_not_available
+					},{
+						value: "BACK_TO_STOCK",
+						label: $rootScope.resourceBundle.return_back_to_stock
+					},{
+						value: "DISCARDED",
+						label: $rootScope.resourceBundle.return_discarded
+					}];
+
+					$rootScope.returnStatusValues = {
+						"RETURN_SUBMITTED": $rootScope.resourceBundle.return_return_submitted,
+						"RETURN_TO_BE_RECEIVED": $rootScope.resourceBundle.return_return_to_be_received,
+						"RETURN_RECEIVED": $rootScope.resourceBundle.return_return_received,
+						"RETURN_REFUSED": $rootScope.resourceBundle.return_return_refused,
+						"RETURN_ACCEPTED": $rootScope.resourceBundle.return_return_accepted
+					};
+				});
+			});
+		});
+	});
 
 	$rootScope.createPage = false;
 	$rootScope.mogopayGoToProfile = false;

@@ -67,9 +67,9 @@ function signupLoadCountries(scope, location, rootScope, route) {
 }
 
 function signupCheckPasswordConfrimation(scope, location, rootScope, route){
-	$("#signupConfirmPassword")[0].setCustomValidity($("#signupConfirmPassword").val() != $("#signupPassword").val() ? "The two passwords must match !" : "");
+	$("#signupConfirmPassword")[0].setCustomValidity($("#signupConfirmPassword").val() != $("#signupPassword").val() ? rootScope.resourceBundle.error_password_match : "");
 	if($("#signupConfirmPassword").val() != $("#signupPassword").val()) {
-		showAlertBootStrapMsg("warning", "The two passwords must match !");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_password_match);
 	}
 }
 
@@ -108,7 +108,7 @@ function signupLoadRegionsForState(scope, location, rootScope, route) {
 
 function signupCheckPhoneNumberForCountry(scope, location, rootScope, route) {
 	if(!scope.signupCountriesModel || scope.signupCountriesModel == "") {
-		showAlertBootStrapMsg("warning", "Please select your country first");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_select_country);
 		$("#signupPhoneNumber").val("");
 		return;
 	}
@@ -116,7 +116,7 @@ function signupCheckPhoneNumberForCountry(scope, location, rootScope, route) {
 		if (response['isValid'] == true) {
 			$("#signupPhoneNumber").val(response['nationalFormat']);
 		} else {
-			showAlertBootStrapMsg("warning", "Invalid phone number!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_phone);
 			$("#signupPhoneNumber").val("");
 		}
 	};
@@ -133,7 +133,7 @@ function signupCreateProfile(scope, location, rootScope, route) {
 		return;
 	var dataToSend = signupGetFormData(scope, location, rootScope, route);
 	var success = function (response) {
-		showAlertBootStrapMsg("success", "Sign up successful!");
+		showAlertBootStrapMsg("success", rootScope.resourceBundle.message_signup);
 
 		if(response.token == ""){
 			var success = function (response) {
@@ -151,7 +151,7 @@ function signupCreateProfile(scope, location, rootScope, route) {
 	};
 	var failure = function (response) {
 		if (response.status == 401) {
-			showAlertBootStrapMsg("warning", "Account already exists.");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_account_exist);
 		}
 	};
 	postOnServer("account/signup", dataToSend, success, failure);
@@ -195,36 +195,36 @@ function signupValidateForm(scope, location, rootScope, route) {
 		|| $("#signupFirstName").val() == "" || $("#signupLastName").val() == "" || $("#signupBirthDate").val() == ""
 		|| !scope.signupCountriesModel || scope.signupCountriesModel == "" || $("#signupCity").val() == "" || $("#signupRoad").val() == ""
 		|| $("#signupPostalCode").val() == "" || $("#signupPassword").val() == "" || $("#signupConfirmPassword").val() == "") {
-		showAlertBootStrapMsg("warning", "Please fill all required fields");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_required);
 		return false;
 	}
 	if (rootScope.isMerchant && $("#signupCompanyName").val() == "" || $("#signupWebsite").val() == "") {
-		showAlertBootStrapMsg("warning", "Please fill all required fields");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_required);
 		return false;
 	}
 	if(!$("#signupEmail")[0].checkValidity()) {
 		$("#signupEmail").focus();
-		showAlertBootStrapMsg("warning", "Invalid email !");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_email);
 		return false;
 	}
 	if($("#signupPassword").val() != $("#signupConfirmPassword").val()) {
 		$("#signupConfirmPassword").focus();
-		showAlertBootStrapMsg("warning", "The two passwords must match !");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_password_match);
 		return false;
 	}
 	if(rootScope.isMerchant && !$("#signupCompanyName")[0].checkValidity()) {
 		$("#signupCompanyName").focus();
-		showAlertBootStrapMsg("warning", "Invalid company name !");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_company_name);
 		return false;
 	}
 	if(rootScope.isMerchant && !$("#signupWebsite")[0].checkValidity()) {
 		$("#signupWebsite").focus();
-		showAlertBootStrapMsg("warning", "Invalid website !");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_website);
 		return false;
 	}
 	if(!$("#signupBirthDate")[0].checkValidity()) {
 		$("#signupBirthDate").focus();
-		showAlertBootStrapMsg("warning", "Invalid birth date !");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_birthdate);
 		return false;
 	}
 	return true;

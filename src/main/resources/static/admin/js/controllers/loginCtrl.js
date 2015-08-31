@@ -17,7 +17,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 
     $scope.Login =  function () {
         if($("#user_email").val() == "" || $("#user_password").val() == "") {
-            showAlertBootStrapMsg("warning", "Please fill all required fields.");
+            showAlertBootStrapMsg("warning", $rootScope.resourceBundle.error_required);
             return;
         }
         var success = function (response) {
@@ -29,7 +29,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         };
 
         var error = function (response) {
-            showAlertBootStrapMsg("warning", "Invaild username or password.");
+            showAlertBootStrapMsg("warning", $rootScope.resourceBundle.error_invalid_credentials);
         };
 
         var dataToSend = "";

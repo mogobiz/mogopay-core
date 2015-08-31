@@ -6,62 +6,62 @@
 
 <div class="container-fluid">
 	<fieldset>
-		<legend>Sign up</legend>
+		<legend>{{resourceBundle.signup_title}}</legend>
 		<form role="form" class="form-horizontal">
 			<div class="form-group" ng-show="!isMerchant">
 				<div style="padding:0px 3px;">
-					<label for="signupSeller">Seller</label>
+					<label for="signupSeller">{{resourceBundle.signup_seller}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 					<select class="form-control" id="signupSeller" ng-model="signupSelectedSeller" ng-options="seller.id as seller.name for seller in allSellers" ng-hide="allSellers.length == 1" required>
-						<option value="">None</option>
+						<option value="">{{resourceBundle.none}}</option>
 					</select>
 					<input type="text" disabled class="form-control" ng-model="signupSelectedSeller" ng-show="allSellers.length == 1"/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupEmail">Email</label>
+					<label for="signupEmail">{{resourceBundle.signup_email}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="email" class="form-control" id="signupEmail" placeholder="Enter email" required pattern="[a-zA-Z0-9._-]+\@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}"/>
+					<input type="email" class="form-control" id="signupEmail" placeholder="{{resourceBundle.signup_email}}" required pattern="[a-zA-Z0-9._-]+\@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}"/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupPassword">Password</label>
+					<label for="signupPassword">{{resourceBundle.signup_password}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="password" class="form-control" id="signupPassword" placeholder="Password" required/>
+					<input type="password" class="form-control" id="signupPassword" placeholder="{{resourceBundle.signup_password}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupConfirmPassword">Confirm Password</label>
+					<label for="signupConfirmPassword">{{resourceBundle.signup_confirm_pass}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="password" class="form-control" id="signupConfirmPassword" placeholder="Confirm Password" required ng-blur="signupCheckPasswordConfrimation()"/>
+					<input type="password" class="form-control" id="signupConfirmPassword" placeholder="{{resourceBundle.signup_confirm_pass}}" required ng-blur="signupCheckPasswordConfrimation()"/>
 				</div>
 			</div>
 			<div class="form-group" ng-if="isMerchant==true">
 				<div style="padding:0px 3px;">
-					<label for="signupCompanyName">Company Name</label>
+					<label for="signupCompanyName">{{resourceBundle.signup_compnay_name}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupCompanyName" placeholder="Company Name" pattern="[^<]+" required/>
+					<input type="text" class="form-control" id="signupCompanyName" placeholder="{{resourceBundle.signup_compnay_name}}" pattern="[^<]+" required/>
 				</div>
 			</div>
 			<div class="form-group" ng-if="isMerchant==true">
 				<div style="padding:0px 3px;">
-					<label for="signupWebsite">Website</label>
+					<label for="signupWebsite">{{resourceBundle.signup_website}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupWebsite" placeholder="Website" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" required value="http://"/>
+					<input type="text" class="form-control" id="signupWebsite" placeholder="{{resourceBundle.signup_website}}" pattern="https?://([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,4}((\/[^\/~,]+)+)?/?" required value="http://"/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupCivility">Civility</label>
+					<label for="signupCivility">{{resourceBundle.signup_civility}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 					<select id="signupCivility" class="form-control" ng-model="signupCivilityModel" ng-options="obj.name for obj in signupCivilityOptions"></select>
@@ -69,93 +69,93 @@
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupFirstName">First name</label>
+					<label for="signupFirstName">{{resourceBundle.signup_f_name}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupFirstName" placeholder="First name" required/>
+					<input type="text" class="form-control" id="signupFirstName" placeholder="{{resourceBundle.signup_f_name}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupLastName">Last name</label>
+					<label for="signupLastName">{{resourceBundle.signup_l_name}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupLastName" placeholder="Last name" required/>
+					<input type="text" class="form-control" id="signupLastName" placeholder="{{resourceBundle.signup_l_name}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupBirthDate">Birthdate</label>
+					<label for="signupBirthDate">{{resourceBundle.signup_birthdate}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="date" class="form-control" max="{{signupMaxBirthDate}}" min="{{signupMinBirthDate}}" id="signupBirthDate" placeholder="Birthdate" required/>
+					<input type="date" class="form-control" max="{{signupMaxBirthDate}}" min="{{signupMinBirthDate}}" id="signupBirthDate" placeholder="{{resourceBundle.signup_birthdate}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupCountry">Country</label>
+					<label for="signupCountry">{{resourceBundle.signup_country}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 					<select id="signupCountry" class="form-control" required ng-model="signupCountriesModel" ng-options="obj.name for obj in signupCountriesOptions" ng-change="signupLoadStatesForCountry()">
-						<option value="">None</option>
+						<option value="">{{resourceBundle.none}}</option>
 					</select>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupState">State</label>
+					<label for="signupState">{{resourceBundle.signup_state}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 					<select id="signupState" class="form-control" ng-model="signupStateModel" ng-options="obj.name for obj in signupStateOptions" ng-change="signupLoadRegionsForState()">
-						<option value="">None</option>
+						<option value="">{{resourceBundle.none}}</option>
 					</select>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupRegion">Region</label>
+					<label for="signupRegion">{{resourceBundle.signup_region}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 					<select id="signupRegion" class="form-control" ng-model="signupRegionModel" ng-options="obj.name for obj in signupRegionOptions" >
-						<option value="">None</option>
+						<option value="">{{resourceBundle.none}}</option>
 					</select>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupCity">City</label>
+					<label for="signupCity">{{resourceBundle.signup_city}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupCity" placeholder="City" required/>
+					<input type="text" class="form-control" id="signupCity" placeholder="{{resourceBundle.signup_city}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupRoad">Road</label>
+					<label for="signupRoad">{{resourceBundle.signup_road}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupRoad" placeholder="Road" required/>
+					<input type="text" class="form-control" id="signupRoad" placeholder="{{resourceBundle.signup_road}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupPostalCode">Postal Code</label>
+					<label for="signupPostalCode">{{resourceBundle.signup_postal_code}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupPostalCode" placeholder="Postal Code" required/>
+					<input type="text" class="form-control" id="signupPostalCode" placeholder="{{resourceBundle.signup_postal_code}}" required/>
 				</div>
 			</div>
 			<div class="form-group">
 				<div style="padding:0px 3px;">
-					<label for="signupPhoneNumber">Phone number</label>
+					<label for="signupPhoneNumber">{{resourceBundle.signup_phone_number}}</label>
 				</div>
 				<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-					<input type="text" class="form-control" id="signupPhoneNumber" placeholder="Phone number" required ng-blur="signupCheckPhoneNumberForCountry()"/>
+					<input type="text" class="form-control" id="signupPhoneNumber" placeholder="{{resourceBundle.signup_phone_number}}" required ng-blur="signupCheckPhoneNumberForCountry()"/>
 				</div>
 			</div>
 			<div class="form-group" ng-if="!isMerchant">
 				<div style="padding:0px 3px;">
-					<label for="signupWithShippingAddress">With Shipping Address</label>
+					<label for="signupWithShippingAddress">{{resourceBundle.signup_shipping}}</label>
 					<input type="checkbox" id="signupWithShippingAddress"/>
 				</div>
 			</div>
@@ -181,6 +181,6 @@
 
 <div class="row row-fluid" style="margin: 0px 0px 20px 0px;">
 	<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6">
-		<input type="button" class="btn btn-default pull-right" value="Sign up" ng-click="signupCreateProfile()"/>
+		<button class="btn btn-default pull-right" ng-click="signupCreateProfile()">{{resourceBundle.btn_sign_up}}</button>
 	</div>
 </div>
