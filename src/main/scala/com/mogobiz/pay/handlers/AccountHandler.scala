@@ -397,8 +397,13 @@ class AccountHandler {
     val account = findByEmail(req.email, Some(req.merchantId)).getOrElse(throw new UnauthorizedException(""))
 
     val newPassword: String = newUUID.split("-")(4)
-    update(account.copy(password = new Sha256Hash(newPassword).toHex), refresh = true)
+    // Since we are sending a new password,
+    // the user is no more waiting for enrollment since the only way to connect is through the newly sent password.
+    //We are juste waiting for him to connect.
+    val newStatus = if (account.status == AccountStatus.WAITING_ENROLLMENT) AccountStatus.ACTIVE else account.status
+    update(account.copy(status = newStatus, password = new Sha256Hash(newPassword).toHex), refresh = true)
     sendNewPasswordEmail(account, newPassword)
+
 
     def sendNewPasswordEmail(account: Account, newPassword: String) = {
 
