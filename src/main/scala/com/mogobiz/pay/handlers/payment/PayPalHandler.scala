@@ -34,6 +34,7 @@ import spray.client.pipelining._
 
 class PayPalHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
+
   import system.dispatcher
 
   // execution context for futures
@@ -54,7 +55,9 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     val failureURL = Settings.Mogopay.EndPoint + s"paypal/fail/${sessionData.uuid}"
     val paymentConfig = sessionData.paymentConfig.get
     val amount = sessionData.amount.get
-    val maybeToken = getToken(vendorId, successURL, failureURL, paymentConfig, amount, paymentRequest)
+    val transactionUUID = sessionData.transactionUuid.get
+    val ipAddress = sessionData.ipAddress
+    val maybeToken = getToken(transactionUUID, vendorId, ipAddress, successURL, failureURL, paymentConfig, amount, paymentRequest)
 
     maybeToken map { token =>
       sessionData.token = maybeToken
@@ -62,7 +65,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     } getOrElse (throw MogopayError(MogopayConstant.PaypalTokenError))
   }
 
-  private def getToken(vendorId: String, successURL: String, failureURL: String,
+  private def getToken(transactionUUID: String, vendorId: String, ipAddress: Option[String], successURL: String, failureURL: String,
                        paymentConfig: PaymentConfig, amount: Long,
                        paymentRequest: PaymentRequest): Option[String] = {
     accountHandler.load(vendorId) map { vendor =>
@@ -72,6 +75,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
       val user: String = parameters.getOrElse("paypalUser", "")
       val password: String = parameters.getOrElse("paypalPassword", "")
       val signature: String = parameters.getOrElse("paypalSignature", "")
+      transactionHandler.updateStatus(transactionUUID, ipAddress, TransactionStatus.PAYMENT_REQUESTED)
 
       val amount2 = amount.toDouble / 100.0
       val query = Query(
@@ -112,7 +116,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     } else {
       val pr = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
         "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
-      finishPayment (sessionData, pr)
+      finishPayment(sessionData, pr)
     }
   }
 
@@ -184,7 +188,6 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
           .getOrElse(Map())
-        transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
         val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUUID).orNull
         val user: String = parameters("paypalUser")
         val password = parameters("paypalPassword")
