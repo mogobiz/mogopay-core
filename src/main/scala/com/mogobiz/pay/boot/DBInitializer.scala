@@ -27,7 +27,7 @@ import scala.util.control.NonFatal
 import scala.util.parsing.json.JSONObject
 
 object DBInitializer {
-  def apply(fillWithFixtures: Boolean = false) = {
+  def apply(fillWithFixtures: Boolean) = {
     try {
       //EsClient().execute(delete index Settings.Mogopay.EsIndex).await
       EsClient().execute(create index Settings.Mogopay.EsIndex).await
@@ -522,5 +522,5 @@ object DbInitMain extends App {
   catch {
     case NonFatal(_) => println()
   }
-  DBInitializer()
+  DBInitializer(false)
 }
