@@ -16,6 +16,8 @@ object Settings {
 
   val Env = Environment.withName(if (config hasPath "dialect") config getString "dialect" else "DEV")
 
+  val Demo = config.getBoolean("demo")
+
   val ResourcesPath = config.getString("resources.path")
   val TemplatesPath = config.getString("templates.path")
   val IsResourcesLocal = ResourcesPath.isEmpty
