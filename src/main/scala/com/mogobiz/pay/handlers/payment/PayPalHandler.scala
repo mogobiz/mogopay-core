@@ -57,6 +57,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     val amount = sessionData.amount.get
     val transactionUUID = sessionData.transactionUuid.get
     val ipAddress = sessionData.ipAddress
+    transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
     val maybeToken = getToken(transactionUUID, vendorId, ipAddress, successURL, failureURL, paymentConfig, amount, paymentRequest)
 
     maybeToken map { token =>
@@ -114,9 +115,10 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     if (token != tokenFromParams) {
       throw InvalidContextException(s"$tokenFromParams unknown")
     } else {
-      val pr = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
+      val paymentResult = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
         "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
-      finishPayment(sessionData, pr)
+      transactionHandler.finishPayment(transactionUuid, TransactionStatus.PAYMENT_REFUSED, paymentResult, "Cancel", sessionData.locale)
+      finishPayment(sessionData, paymentResult)
     }
   }
 
@@ -139,8 +141,6 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
           if (paymentConfig == null) {
             throw MogopayError(MogopayConstant.InvalidPaypalConfig)
           } else {
-            transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest,
-              PaymentType.PAYPAL, CBPaymentProvider.NONE)
             val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, token, payerId,
               sessionData, TransactionStep.SUCCESS)
             finishPayment(sessionData, paymentResult)

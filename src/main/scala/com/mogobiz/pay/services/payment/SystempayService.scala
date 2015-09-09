@@ -29,7 +29,6 @@ class SystempayService extends Directives with DefaultComplete {
 
   lazy val startPayment = path("start" / Segment) {
     xtoken =>
-
       import Implicits._
 
       get {
@@ -51,37 +50,33 @@ class SystempayService extends Directives with DefaultComplete {
       }
   }
 
-  lazy val done = path("done") {
-
-    import Implicits._
-
-    get {
-      session {
-        session =>
-          println("done:" + session.sessionData.uuid)
-          parameterMap {
-            params =>
-              handleCall(systempayHandler.done(session.sessionData, params),
-                (data: Uri) =>
-                  setSession(session) {
-                    redirect(data, StatusCodes.TemporaryRedirect)
-                  }
-              )
-          }
+  lazy val done = path("done" / Segment) {
+    xtoken =>
+      import Implicits._
+      get {
+        println("done:" + xtoken)
+        parameterMap {
+          params =>
+            val session = SessionESDirectives.load(xtoken).get
+            handleCall(systempayHandler.done(session.sessionData, params),
+              (data: Uri) =>
+                setSession(session) {
+                  redirect(data, StatusCodes.TemporaryRedirect)
+                }
+            )
+        }
       }
-    }
   }
 
 
-  lazy val callback = path("callback") {
+  lazy val callback = path("callback" / Segment) {
+    xtoken =>
     get {
       parameterMap { params =>
-        session { session =>
-          import Implicits._
-
-          handleCall(systempayHandler.callbackPayment(session.sessionData, params),
-            (pr: PaymentResult) => complete(StatusCodes.OK, pr))
-        }
+        import Implicits._
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(systempayHandler.callbackPayment(session.sessionData, params),
+          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
       }
     }
   }

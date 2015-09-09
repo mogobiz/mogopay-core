@@ -246,7 +246,7 @@ class AccountHandler {
     res.getHits.totalHits() == 1
   }
 
-  def login(secret: String): Unit = {
+  def login(secret: String): Account = {
     val email = SymmetricCrypt.decrypt(secret, Settings.Mogopay.Secret, "AES")
     val userAccountRequest = search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
       and(
