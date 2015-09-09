@@ -506,7 +506,7 @@ class TransactionHandler {
         if (submit.params.customerCVV.nonEmpty) {
           val customer = accountHandler.load(sessionData.accountId.get).orNull
           val card = customer.creditCards.head
-          val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.Secret, "AES")
+          val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.CardSecret, "AES")
           val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)
           val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
           val paymentRequest = initPaymentRequest(vendor, transactionType, mogopay = true, transactionRequest.tid,

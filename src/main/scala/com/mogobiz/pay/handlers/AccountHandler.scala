@@ -246,6 +246,30 @@ class AccountHandler {
     res.getHits.totalHits() == 1
   }
 
+  def login(secret: String): Unit = {
+    val email = SymmetricCrypt.decrypt(secret, Settings.Mogopay.Secret, "AES")
+    val userAccountRequest = search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
+      and(
+        termFilter("email", email.toLowerCase),
+        missingFilter("owner") existence true includeNull true
+      )
+    }
+    EsClient.search[Account](userAccountRequest).map { userAccount =>
+      if (userAccount.loginFailedCount > MogopayConstant.MaxAttempts)
+        throw TooManyLoginAttemptsException(s"${userAccount.email}")
+      else if (userAccount.status == AccountStatus.WAITING_ENROLLMENT)
+        throw AccountNotConfirmedException(s"${userAccount.email}")
+      else if (userAccount.status == AccountStatus.INACTIVE)
+        throw InactiveAccountException(s"${userAccount.email}")
+      else {
+        val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
+        accountHandler.update(userAccountToIndex, true)
+        userAccountToIndex.copy(password = "")
+      }
+    }.getOrElse(throw AccountDoesNotExistException(""))
+
+  }
+
   def login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean): Account = {
     val lowerCaseEmail = email.toLowerCase
     val userAccountRequest =
@@ -415,12 +439,12 @@ class AccountHandler {
       val senderEmail = paymentConfig.senderEmail
       val data =
         s"""
-            |{
-            |"newPassword": "$newPassword",
-            |"email" :"${account.email}",
-            |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}"
-            |}
-            |""".stripMargin
+           |{
+           |"newPassword": "$newPassword",
+                                          |"email" :"${account.email}",
+                                                                       |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}"
+                                                                                                                                                       |}
+                                                                                                                                                       |""".stripMargin
 
       val (subject, body) = templateHandler.mustache(template, data)
       EmailHandler.Send(
@@ -517,7 +541,7 @@ class AccountHandler {
       if (!UtilHandler.checkLuhn(number)) {
         throw InvalidCardNumberException("")
       } else {
-        (UtilHandler.hideCardNumber(number, "X"), SymmetricCrypt.encrypt(number, Settings.Mogopay.Secret, "AES"))
+        (UtilHandler.hideCardNumber(number, "X"), SymmetricCrypt.encrypt(number, Settings.Mogopay.CardSecret, "AES"))
       }
 
     val expiryTime = new Timestamp(new SimpleDateFormat("yyyy-MM").parse(expiryDate).getTime)
@@ -1099,11 +1123,11 @@ class AccountHandler {
       s"""
          |{
          |"url": "$url",
-         |"email" :"${account.email}",
-         |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
-         |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
-         |}
-         |""".stripMargin)
+                        |"email" :"${account.email}",
+                                                     |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
+                                                                                                                                     |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
+                                                                                                                                                                                                      |}
+                                                                                                                                                                                                      |""".stripMargin)
 
     EmailHandler.Send(
       Mail(

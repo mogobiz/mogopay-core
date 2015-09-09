@@ -570,6 +570,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   val route = {
     pathPrefix("account") {
       login ~
+        loginWithSecret ~
         updateCustomerProfile ~
         updateMerchantProfile ~
         updateProfileLight ~
@@ -585,6 +586,24 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         session { session =>
           val login = Login(email, password, merchantId, isCustomer)
           handleCall(accountHandler.login(email, password, merchantId, isCustomer),
+            (account: Account) => {
+              ServicesUtil.authenticateSession(session, account)
+              setSession(session) {
+                import Implicits._
+                complete(StatusCodes.OK, account)
+              }
+            })
+        }
+      }
+    }
+  }
+
+  lazy val loginWithSecret = path("login-with-secret") {
+    post {
+      var fields = formFields('secret)
+      fields { (secret) =>
+        session { session =>
+          handleCall(accountHandler.login(secret),
             (account: Account) => {
               ServicesUtil.authenticateSession(session, account)
               setSession(session) {
@@ -810,23 +829,23 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
   }
 
   def updateProfile(accountId: String, isMerchant: Boolean, password: Option[String], password2: Option[String], company: Option[String],
-    website: Option[String], lphone: String, civility: String, firstname: String, lastname: String, birthday: String,
-    road: String, road2: Option[String], city: String, zipCode: String, country: String, admin1: String, admin2: String, vendor: Option[String],
-    paymentMethod: Option[String], cbProvider: Option[String],
-    paylineAccount: Option[String], paylineKey: Option[String], paylineContract: Option[String], paylineCustomPaymentPageCode: Option[String],
-    paylineCustomPaymentTemplateURL: Option[String], payboxSite: Option[String], payboxKey: Option[String], payboxRank: Option[String],
-    payboxMerchantId: Option[String], sipsMerchantId: Option[String], sipsMerchantCountry: Option[String],
-    sipsMerchantCertificateFileName: Option[String],
-    sipsMerchantCertificateFileContent: Option[String],
-    sipsMerchantParcomFileName: Option[String],
-    sipsMerchantParcomFileContent: Option[String], sipsMerchantLogoPath: Option[String],
-    systempayShopId: Option[String], systempayContractNumber: Option[String], systempayCertificate: Option[String],
-    anetAPILoginID: Option[String], anetTransactionKey: Option[String],
-    senderName: Option[String], senderEmail: Option[String], passwordPattern: Option[String], callbackPrefix: Option[String],
-    paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String],
-    applePayAnetAPILoginID: Option[String], applePayAnetTransactionKey: Option[String],
-    kwixoParams: Option[String], emailField: Option[String], passwordField: Option[String], groupPaymentReturnURLforNextPayers: Option[String],
-    groupPaymentSuccessURL: Option[String], groupPaymentFailureURL: Option[String]) = {
+                    website: Option[String], lphone: String, civility: String, firstname: String, lastname: String, birthday: String,
+                    road: String, road2: Option[String], city: String, zipCode: String, country: String, admin1: String, admin2: String, vendor: Option[String],
+                    paymentMethod: Option[String], cbProvider: Option[String],
+                    paylineAccount: Option[String], paylineKey: Option[String], paylineContract: Option[String], paylineCustomPaymentPageCode: Option[String],
+                    paylineCustomPaymentTemplateURL: Option[String], payboxSite: Option[String], payboxKey: Option[String], payboxRank: Option[String],
+                    payboxMerchantId: Option[String], sipsMerchantId: Option[String], sipsMerchantCountry: Option[String],
+                    sipsMerchantCertificateFileName: Option[String],
+                    sipsMerchantCertificateFileContent: Option[String],
+                    sipsMerchantParcomFileName: Option[String],
+                    sipsMerchantParcomFileContent: Option[String], sipsMerchantLogoPath: Option[String],
+                    systempayShopId: Option[String], systempayContractNumber: Option[String], systempayCertificate: Option[String],
+                    anetAPILoginID: Option[String], anetTransactionKey: Option[String],
+                    senderName: Option[String], senderEmail: Option[String], passwordPattern: Option[String], callbackPrefix: Option[String],
+                    paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String],
+                    applePayAnetAPILoginID: Option[String], applePayAnetTransactionKey: Option[String],
+                    kwixoParams: Option[String], emailField: Option[String], passwordField: Option[String], groupPaymentReturnURLforNextPayers: Option[String],
+                    groupPaymentSuccessURL: Option[String], groupPaymentFailureURL: Option[String]) = {
     val validPassword: Option[(String, String)] = (password, password2) match {
       case (Some(p), Some(p2)) => Some((p, p2))
       case _ => None

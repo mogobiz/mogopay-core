@@ -171,6 +171,7 @@ object Settings {
   object Mogopay {
     val EsIndex = config.getString("mogopay.esindex")
     val Secret = config getString "mogopay.secret"
+    val CardSecret = config getString "mogopay.card.secret"
     val Protocol = config getString "mogopay.protocol"
     val Host = config getString "mogopay.host"
     val Port = config getInt "mogopay.port"
