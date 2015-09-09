@@ -388,7 +388,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val assignBillingAddress = get {
     path("assign-billing-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2, 'lphone)
+        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2.?, 'lphone)
 
       params.as(AddressToAssignFromGetParams) {
         address =>
@@ -432,7 +432,7 @@ class AccountService extends Directives with DefaultComplete {
   lazy val addShippingAddress = get {
     path("add-shipping-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2, 'lphone)
+        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2.?, 'lphone)
 
       params.as(AddressToAddFromGetParams) {
         address =>
@@ -457,7 +457,7 @@ class AccountService extends Directives with DefaultComplete {
     path("update-shipping-address") {
       val params = parameters('address_id, 'road, 'city, 'road2.?,
         'zip_code, 'extra.?, 'civility, 'firstname, 'lastname, 'company.?, 'country,
-        'admin1, 'admin2, 'lphone)
+        'admin1, 'admin2.?, 'lphone)
 
       params.as(AddressToUpdateFromGetParams) {
         address =>
@@ -639,7 +639,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
 
       val fields = formFields('email :: 'password :: 'password2 ::
         'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
-        'road :: ('road2 ?) :: ('extra ?) :: 'city :: 'zip_code :: 'admin1 :: 'admin2 :: 'country ::
+        'road :: ('road2 ?) :: ('extra ?) :: 'city :: 'zip_code :: 'admin1 :: ('admin2 ?) :: 'country ::
         'is_merchant.as[Boolean] :: ('merchant_id ?) :: ('company ?) :: ('website ?) ::
         'validation_url :: 'withShippingAddress.as[Boolean] :: ('locale ?) :: HNil)
 
@@ -659,7 +659,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
             zipCode = Some(zipCode),
             country = Some(country),
             admin1 = Some(admin1),
-            admin2 = Some(admin2)
+            admin2 = admin2
           )
           val signup = Signup(
             email = email,

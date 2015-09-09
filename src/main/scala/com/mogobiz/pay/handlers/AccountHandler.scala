@@ -80,20 +80,20 @@ case class GetShippingAddress(accountId: String)
 
 case class AddressToUpdateFromGetParams(id: String, road: String,
                                         city: String, road2: Option[String],
-                                        zipCode: String, extra: String,
+                                        zipCode: String, extra: Option[String],
                                         civility: String, firstName: String,
                                         lastName: String, company: Option[String], country: String,
-                                        admin1: String, admin2: String, lphone: String)
+                                        admin1: String, admin2: Option[String], lphone: String)
 
 case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
                                      zipCode: String, extra: Option[String],
                                      civility: String, firstName: String,
                                      lastName: String, company: Option[String], country: String,
-                                     admin1: String, admin2: String, lphone: String) {
+                                     admin1: String, admin2: Option[String], lphone: String) {
   def getAddress = {
     val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
     AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
-      Option(lastName), company, Option(telephone), Option(country), Option(admin1), Option(admin2))
+      Option(lastName), company, Option(telephone), Option(country), Option(admin1), admin2)
   }
 }
 
@@ -102,11 +102,11 @@ case class AddressToAssignFromGetParams(road: String, city: String,
                                         extra: Option[String], civility: String,
                                         firstName: String, lastName: String, company: Option[String],
                                         country: String, admin1: String,
-                                        admin2: String, lphone: String) {
+                                        admin2: Option[String], lphone: String) {
   def getAddress = {
     val c = Civility.withName(civility)
     AccountAddress(road, road2, city, Some(zipCode), extra, Some(c), Some(firstName),
-      Some(lastName), company, None, Some(country), Some(admin1), Some(admin2))
+      Some(lastName), company, None, Some(country), Some(admin1), admin2)
   }
 }
 
@@ -584,7 +584,7 @@ class AccountHandler {
               lastName = Some(address.lastName),
               country = Some(address.country),
               admin1 = Some(address.admin1),
-              admin2 = Some(address.admin2),
+              admin2 = address.admin2,
               telephone = Some(telephone))
           }
         }
@@ -625,13 +625,13 @@ class AccountHandler {
                 road2 = address.road2,
                 city = address.city,
                 zipCode = Option(address.zipCode),
-                extra = Option(address.extra),
+                extra = address.extra,
                 civility = Option(Civility.withName(address.civility)),
                 firstName = Option(address.firstName),
                 lastName = Option(address.lastName),
                 country = Option(address.country),
                 admin1 = Option(address.admin1),
-                admin2 = Option(address.admin2),
+                admin2 = address.admin2,
                 telephone = Option(telephone)))
             accountHandler.update(account.copy(shippingAddresses = newAddrs), refresh = true)
         }
