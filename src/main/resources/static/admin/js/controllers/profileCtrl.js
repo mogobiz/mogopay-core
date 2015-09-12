@@ -536,7 +536,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 					data += "&payline_custom_payment_template_url=" + $("#paylineTemplateURL").val();
 					break;
 				case "paybox":
-					data += "&paymentProviderParam.payboxContract=" + ((scope.payboxContractTypeModel != "") ? scope.payboxContractTypeModel.value : "");
+					data += "&paybox_contract=" + ((scope.payboxContractTypeModel != "") ? scope.payboxContractTypeModel.value : "");
 					data += "&paybox_site=" + $("#payboxSite").val();
 					data += "&paybox_key=" + $("#payboxKey").val();
 					data += "&paybox_rank=" + $("#payboxContract").val();

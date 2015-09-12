@@ -697,7 +697,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 'lphone :: 'civility :: 'firstname :: 'lastname :: 'birthday ::
                 'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
-                ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
+                ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) :: ('paybox_contract ?) ::
                 ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
                 ('sips_merchant_certificate_file_name.?) ::
                 ('sips_merchant_certificate_file_content.?) ::
@@ -714,7 +714,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 case password :: password2 :: lphone :: civility :: firstname :: lastname :: birthday ::
                   road :: road2 :: city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
                   paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode ::
-                  paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank ::
+                  paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank :: payboxContract ::
                   payboxMerchantId :: sipsMerchantId :: sipsMerchantCountry ::
                   sipsMerchantCertificateFileName ::
                   sipsMerchantCertificateFileContent ::
@@ -732,7 +732,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     road, road2, city, zipCode, country, admin1, admin2, vendor,
                     None, None,
                     paylineAccount, paylineKey, paylineContract, paylineCustomPaymentPageCode,
-                    paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank,
+                    paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank, payboxContract,
                     payboxMerchantId, sipsMerchantId, sipsMerchantCountry,
                     sipsMerchantCertificateFileName,
                     sipsMerchantCertificateFileContent,
@@ -767,7 +767,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 'road :: ('road2 ?) :: ('city) :: 'zip_code :: 'country :: 'admin1 :: 'admin2 :: ('vendor ?) ::
                 'payment_method :: 'cb_provider ::
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
-                ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) ::
+                ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) :: ('paybox_contract ?) ::
                 ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
                 ('sips_merchant_certificate_file_name.?) ::
                 ('sips_merchant_certificate_file_content.?) ::
@@ -786,7 +786,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   road :: road2 :: city :: zipCode :: country :: admin1 :: admin2 :: vendor ::
                   paymentMethod :: cbProvider ::
                   paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode ::
-                  paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank ::
+                  paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank :: payboxContract ::
                   payboxMerchantId :: sipsMerchantId :: sipsMerchantCountry ::
                   sipsMerchantCertificateFileName ::
                   sipsMerchantCertificateFileContent ::
@@ -804,7 +804,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     road, road2, city, zipCode, country, admin1, admin2, vendor,
                     Option(paymentMethod), Option(cbProvider),
                     paylineAccount, paylineKey, paylineContract, paylineCustomPaymentPageCode,
-                    paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank,
+                    paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank, payboxContract,
                     payboxMerchantId, sipsMerchantId, sipsMerchantCountry,
                     sipsMerchantCertificateFileName,
                     sipsMerchantCertificateFileContent,
@@ -833,7 +833,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     road: String, road2: Option[String], city: String, zipCode: String, country: String, admin1: String, admin2: String, vendor: Option[String],
                     paymentMethod: Option[String], cbProvider: Option[String],
                     paylineAccount: Option[String], paylineKey: Option[String], paylineContract: Option[String], paylineCustomPaymentPageCode: Option[String],
-                    paylineCustomPaymentTemplateURL: Option[String], payboxSite: Option[String], payboxKey: Option[String], payboxRank: Option[String],
+                    paylineCustomPaymentTemplateURL: Option[String], payboxSite: Option[String], payboxKey: Option[String], payboxRank: Option[String], payboxContract: Option[String],
                     payboxMerchantId: Option[String], sipsMerchantId: Option[String], sipsMerchantCountry: Option[String],
                     sipsMerchantCertificateFileName: Option[String],
                     sipsMerchantCertificateFileContent: Option[String],
@@ -870,7 +870,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         case CBPaymentProvider.NONE => NoCBParams()
         case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
           paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
-        case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxMerchantId.get)
+        case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxContract.get, payboxMerchantId.get)
         case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
           sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
           sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
