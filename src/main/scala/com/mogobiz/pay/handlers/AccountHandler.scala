@@ -794,7 +794,7 @@ class AccountHandler {
                     Settings.Sips.CertifDir
                   }${
                     File.separator
-                  }parmcom.defaut!
+                  }parcom.default!
                      |F_PARAM!${
                     new File(dir, "parcom").getAbsolutePath
                   }!
