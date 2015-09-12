@@ -28,12 +28,13 @@ import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
 
 import scala.util._
+import scala.util.control.NonFatal
 
 
 /**
  * @see com.ebiznext.mogopay.payment.PaylinePaymentService
  */
-object PaylineHandler  {
+object PaylineHandler {
   val QUERY_STRING_SEP = "&"
   val QUERY_STRING_ELEMENTS_SEP = "="
 
@@ -86,7 +87,7 @@ object PaylineHandler  {
   val ServiceName: QName = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
 }
 
-class PaylineHandler(handlerName:String) extends PaymentHandler {
+class PaylineHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {
   }
@@ -126,7 +127,8 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
         if (threeDSResult != null && threeDSResult.code == ResponseCode3DS.APPROVED) {
           // 3DS approuve, redirection vers payline
           sessionData.waitFor3DS = true
-          val form = s"""
+          val form =
+            s"""
             <html>
               <head>
               </head>
@@ -637,21 +639,21 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
           token = result.getToken,
           data =
             s"""
-                |<html>
-                |<head>
-                |<meta http-equiv="refresh" content="0; URL=${result.getRedirectURL}">
-                |</head>
-                |<body>
-                |</body>
-                |</html>
+               |<html>
+               |<head>
+               |<meta http-equiv="refresh" content="0; URL=${result.getRedirectURL}">
+               |</head>
+               |<body>
+               |</body>
+               |</html>
               """.stripMargin)
       }
       else {
-        throw  NotAvailablePaymentGatewayException(result.getResult.getCode)
+        throw NotAvailablePaymentGatewayException(result.getResult.getCode)
       }
     }
     else {
-      throw  NotAvailablePaymentGatewayException("Unkown")
+      throw NotAvailablePaymentGatewayException("Unkown")
     }
   }
 
@@ -713,13 +715,35 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
       status = if (result.getResult.getCode == "00000") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = paymentRequest.orderDate,
-      amount = if (result.getPayment() != null) result.getPayment.getAmount.toLong else paymentRequest.amount,
+      amount =
+        try {
+          result.getPayment.getAmount.toLong
+        }
+        catch {
+          case NonFatal(e) =>
+            paymentRequest.amount
+        },
       ccNumber = if (result.getCard != null) result.getCard.getNumber else null,
       cardType = if (result.getCard != null) toCreditCardType(result.getCard.getType) else null,
-      expirationDate = if (result.getCard() != null && result.getCard().getExpirationDate != null) new SimpleDateFormat("MMyy").parse(result.getCard().getExpirationDate) else null,
+      expirationDate =
+        try {
+          new SimpleDateFormat("MMyy").parse(result.getCard().getExpirationDate)
+        }
+        catch {
+          case NonFatal(e) =>
+            null
+        },
       cvv = paymentRequest.cvv,
       transactionCertificate = null,
-      transactionDate = if (result.getTransaction() != null) new SimpleDateFormat("dd/MM/yy HH:mm").parse(result.getTransaction().getDate) else new Date,
+      transactionDate =
+        try {
+          new SimpleDateFormat("dd/MM/yy HH:mm").parse(result.getTransaction().getDate)
+        }
+        catch {
+          case NonFatal(e) =>
+            new Date
+        },
+
       authorizationId = if (result.getAuthorization() != null) result.getAuthorization().getNumber else null,
       gatewayTransactionId = if (result.getTransaction() != null) result.getTransaction().getId else null,
       errorCodeOrigin = result.getResult.getCode,
@@ -759,12 +783,12 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
     request.setPayment(payment)
 
     val queryOUT = Map(
-      "amount"        -> payment.getAmount,
-      "currency"      -> payment.getCurrency,
-      "action"        -> payment.getAction,
-      "mode"          -> payment.getMode,
+      "amount" -> payment.getAmount,
+      "currency" -> payment.getCurrency,
+      "action" -> payment.getAction,
+      "mode" -> payment.getMode,
       "contactNumber" -> payment.getContractNumber,
-      "version"       -> request.getVersion,
+      "version" -> request.getVersion,
       "transactionID" -> request.getTransactionID
     )
     val logOUT = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "OUT",
@@ -775,11 +799,11 @@ class PaylineHandler(handlerName:String) extends PaymentHandler {
 
     val responseMap = Map(
       "code" -> response.getResult.getCode,
-      "shortMessage"  -> response.getResult.getShortMessage,
-      "longMessage"   -> response.getResult.getLongMessage,
+      "shortMessage" -> response.getResult.getShortMessage,
+      "longMessage" -> response.getResult.getLongMessage,
       "transactionId" -> response.getTransaction.getId,
-      "date"          -> response.getTransaction.getDate,
-      "isDuplicated"  -> response.getTransaction.getIsDuplicated,
+      "date" -> response.getTransaction.getDate,
+      "isDuplicated" -> response.getTransaction.getIsDuplicated,
       "isPossibleFraud" -> response.getTransaction.getIsPossibleFraud
     )
     val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYLINE", direction = "IN",
