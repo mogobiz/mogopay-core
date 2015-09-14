@@ -19,7 +19,7 @@ class EasyPostHandler extends ShippingService {
 
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
 
-  EasyPost.apiKey = Settings.EasyPost.apiKey
+  EasyPost.apiKey = Settings.Shipping.EasyPost.apiKey
 
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     cart.compagnyAddress.map { compagnyAddress =>

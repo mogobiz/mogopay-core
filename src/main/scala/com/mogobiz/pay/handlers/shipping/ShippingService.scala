@@ -6,6 +6,7 @@ package com.mogobiz.pay.handlers.shipping
 
 import com.mogobiz.pay.common.{Cart, Shipping}
 import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
 
 import scala.collection.Seq
@@ -43,7 +44,8 @@ trait ShippingService {
 
 
 object ShippingService {
-  val servicesList: Seq[ShippingService] = Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
+  val servicesList: Seq[ShippingService] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHander)
+  else Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
 
   def calculatePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     servicesList.flatMap {

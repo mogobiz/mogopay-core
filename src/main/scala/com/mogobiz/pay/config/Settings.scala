@@ -138,8 +138,14 @@ object Settings {
     val PathFile = config.getString("sips.pathfile")
   }
 
-  object EasyPost {
-    val apiKey = config.getString("easyPost.apiKey")
+  object Shipping {
+    object Kiala {
+      val enable = config.getBoolean("shipping.kiala.enable")
+    }
+    object EasyPost {
+      val apiKey = config.getString("shipping.easyPost.apiKey")
+    }
+
   }
 
   object ApplePay {

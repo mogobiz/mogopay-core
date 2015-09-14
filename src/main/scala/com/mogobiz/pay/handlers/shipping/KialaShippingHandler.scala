@@ -20,18 +20,23 @@ class KialaShippingHandler extends ShippingService {
 
     val shippingContent = extractShippingContent(cart)
 
-    def calculatePrice(list: List[Shipping]) : Long = {
-      if (list.isEmpty) 0
+    def calculatePrice(list: List[Shipping]) : (Long, Long) = {
+      if (list.isEmpty) (0, 0)
       else {
+        val prixFixeAndKiala = calculatePrice(list.tail)
         val elt = list.head;
-        if (elt.free) calculatePrice(list.tail)
-        else if (elt.amount > 0) elt.amount + calculatePrice(list.tail)
-        else rateHandler.convert(KIALA_PRICE, "EUR", cart.rate.code).getOrElse(0)
+        if (elt.free) prixFixeAndKiala
+        else if (elt.amount > 0) (elt.amount + prixFixeAndKiala._1, prixFixeAndKiala._2)
+        else (prixFixeAndKiala._1, rateHandler.convert(KIALA_PRICE, "EUR", cart.rate.code).getOrElse(0))
       }
     }
 
     if (shippingContent == Nil) Seq()
-    else Seq(createShippingPrice(KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", calculatePrice(shippingContent), cart.rate.code))
+    else {
+      val prixFixeAndKiala = calculatePrice(shippingContent)
+      val prix = prixFixeAndKiala._1 + prixFixeAndKiala._2
+      Seq(createShippingPrice(KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", prix, cart.rate.code))
+    }
   }
 
   override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(KIALA_SHIPPING_PREFIX)
