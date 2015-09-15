@@ -398,7 +398,7 @@ class AccountHandler {
     result
   }
 
-  def updatePassword(password: String, vendorId: String, accountId: String): Unit = {
+  def updatePassword(oldPassword:String, password: String, vendorId: String, accountId: String): Unit = {
     def `match`(pattern: String, password: String): Boolean = {
       if (pattern.length == 0) {
         true
@@ -408,6 +408,8 @@ class AccountHandler {
     }
 
     val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistException(""))
+    if (account.password != new Sha256Hash(oldPassword).toHex)
+      throw new UnauthorizedException("Invalid actual password")
     val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException())
     val paymentConfig = merchant.paymentConfig.getOrElse(throw PaymentConfigNotFoundException())
     val pattern = paymentConfig.passwordPattern.getOrElse(throw PasswordPatternNotFoundException(""))
@@ -425,7 +427,7 @@ class AccountHandler {
     // the user is no more waiting for enrollment since the only way to connect is through the newly sent password.
     //We are juste waiting for him to connect.
     val newStatus = if (account.status == AccountStatus.WAITING_ENROLLMENT) AccountStatus.ACTIVE else account.status
-    update(account.copy(status = newStatus, password = new Sha256Hash(newPassword).toHex), refresh = true)
+    update(account.copy(loginFailedCount = 0, status = newStatus, password = new Sha256Hash(newPassword).toHex), refresh = true)
     sendNewPasswordEmail(account, newPassword)
 
 

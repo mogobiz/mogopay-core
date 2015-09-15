@@ -174,13 +174,13 @@ class AccountService extends Directives with DefaultComplete {
 
   lazy val updatePassword = path("update-password") {
     get {
-      parameters('password) { password =>
+      parameters('current_password, 'new_password) { (current_password, new_password) =>
         session { session =>
           session.sessionData.accountId match {
             case Some(accountId: String) =>
               session.sessionData.merchantId match {
                 case Some(vendorId: String) =>
-                  handleCall(accountHandler.updatePassword(password, vendorId, accountId),
+                  handleCall(accountHandler.updatePassword(current_password, new_password, vendorId, accountId),
                     (_: Unit) => complete(StatusCodes.OK))
                 case _ => complete {
                   complete(StatusCodes.BadRequest)
