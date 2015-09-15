@@ -4,20 +4,7 @@
 
 var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
-var clientUrl = "/pay-client/";
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
-
-function callClient(action, dataToSend, success, error){
-    $.ajax({
-        url :  clientUrl + action,
-        type : "GET",
-        data : dataToSend,
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
 
 function callServer(action, dataToSend, success, error){
     $.ajax({
@@ -43,7 +30,7 @@ function postOnServer(action, dataToSend, success, error){
     });
 }
 
-function callServerJson(action, dataToSend, success, error){
+function callServerJson(action, dataToSend, success, error, type){
     var afterCallingSuccess = function (response) {
         success(response);
     };
@@ -52,9 +39,8 @@ function callServerJson(action, dataToSend, success, error){
     };
     $.ajax({
         url :  serverUrl + action,
-        type : "PUT",
+        type : type,
         data : JSON.stringify(dataToSend),
-        dataType : "json",
         contentType: "application/json; charset=utf-8",
         cache : false,
         async : true,

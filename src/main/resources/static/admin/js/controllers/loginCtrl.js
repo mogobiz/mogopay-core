@@ -42,8 +42,8 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
         postOnServer("account/login", dataToSend, success, error);
     };
 
-    $scope.requestPasswordChange =  function () {
-        navigateToPage($scope, $location, $rootScope, $route, "passwordChange");
+    $scope.requestNewPassword =  function () {
+        navigateToPage($scope, $location, $rootScope, $route, "forgetPassword");
     }
 
 	if(merchantPage == true)

@@ -17,6 +17,14 @@
 	"btn_login": "Login",
 	"btn_submit": "Submit",
 	"btn_sign_up": "Sign up",
+	"btn_hide": "Hide",
+	"btn_display": "Display",
+	"btn_renew": "Renew",
+	"btn_update_profile": "Update Profile",
+	"btn_change_password": "Change Password",
+	"btn_add": "Add",
+	"btn_update": "Update",
+	"btn_delete": "Delete",
 
 	"card_managment": "Personal Card Management",
 	"card_number": "Card Number",
@@ -247,6 +255,11 @@
 	"signup_phone_number": "Phone Number",
 	"signup_shipping": "With Shipping Address",
 
+	"changePass_title": "Change Password",
+	"changePass_oldPass": "Current Password",
+	"changePass_newPass": "New Password",
+	"changePass_confirmPass": "Confirm Password",
+
 	"error_required": "Please fill all required fields",
 	"error_invalid_credentials": "Invalid username or password",
 	"error_invalid_email": "Invalid email !",
@@ -272,6 +285,7 @@
 	"error_password_match": "The two passwords must match !",
 	"error_account_exist": "Account already exists",
 
-	"message_change_password": "A link to choose a new password has been sent to you",
+	"message_new_password": "A link to choose a new password has been sent to you",
+	"message_change_password": "Your password has been updated successfully",
 	"message_signup": "Sign up successful"
 }

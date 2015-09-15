@@ -17,6 +17,14 @@
 	"btn_login": "Authentifier",
 	"btn_submit": "Soumettre",
 	"btn_sign_up": "Enregistrer",
+	"btn_hide": "Cacher",
+	"btn_display": "Afficher",
+	"btn_renew": "Changer",
+	"btn_update_profile": "Mettre à jour",
+	"btn_change_password": "Changer mot de passe",
+	"btn_add": "Ajouter",
+	"btn_update": "Mettre à jour",
+	"btn_delete": "Supprimer",
 
 	"card_managment": "Gestion des cartes de crédit",
 	"card_number": "Numéro de carte",
@@ -247,6 +255,11 @@
 	"signup_phone_number": "Téléphone",
 	"signup_shipping": "Avec l'adresse de livraison",
 
+	"changePass_title": "Changer mot de passe",
+	"changePass_oldPass": "Mot de passe courant",
+	"changePass_newPass": "Nouveau mot de passe",
+	"changePass_confirmPass": "Confirmer mot de passe",
+
 	"error_required": "Remplir les champs requis",
 	"error_invalid_credentials": "Nom d'utilisateur et/ou mot de passe invalide !",
 	"error_invalid_email": "Email invalide !",
@@ -272,6 +285,7 @@
 	"error_password_match": "Les deux mots de passe doivent être identiques !",
 	"error_account_exist": "Le compte existe déjà",
 
-	"message_change_password": "Un lien avec un un nouveau mot de passe a été envoyé",
+	"message_new_password": "Un lien avec un un nouveau mot de passe a été envoyé",
+	"message_change_password": "Votre mot de passe est modifié avec succès",
 	"message_signup": "Enregisrement avec succès"
 }

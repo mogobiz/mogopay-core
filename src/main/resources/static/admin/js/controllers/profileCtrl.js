@@ -157,6 +157,9 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	$scope.goToListCustomers = function () {
         navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
     };
+	$scope.profileChangePassword = function () {
+        navigateToPage($scope, $location, $rootScope, $route, "changePassword");
+    };
 
 	setTimeout(function () {
 		$("#profileCompanyName").change(function(){profileCompanyNameChanged = true;});
