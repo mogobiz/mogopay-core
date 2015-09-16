@@ -1,0 +1,366 @@
+# this is an example of the Uber API
+# as a demonstration of an API spec in YAML
+swagger: '2.0'
+info:
+  title: Mogopay API
+  description: Make payment easy with the Mogopay API
+  version: "1.0.0"
+# the domain of the service
+host: api.mogopay.com
+# array of all schemes that your API supports
+schemes:
+  - https
+# will be prefixed to all paths
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /is-pattern-valid:
+    get:
+      summary: Check password pattern validity
+      description: |
+        The merchant may impose some restrictions on the password format allowed for its customers.This service allows to check the password regex validity.
+      parameters:
+        - name: pattern
+          in: query
+          description: Pattern as a Java regular expression .
+          required: true
+          type: string
+          format: regex
+      tags:
+        - Account
+      responses:
+        200:
+          description: true if the pattern is valid, false otherwise.
+  /already-exist-email:
+    get:
+      summary: Check if the email is already used.
+      parameters:
+        - name: email
+          in: query
+          description: 
+          required: true
+          type: string
+          format: email
+        - name: merchant_id
+          in: query
+          description: 
+          required: false
+          type: string
+          format: uuid
+        - name: account_type
+          in: query
+          description: 
+          required: true
+          type: string
+          format: CUSTOMER|MERCHANT
+      tags:
+        - Account
+      responses:
+        200:
+          description: true if the pattern is valid, false otherwise.
+  /is-valid-account-id:
+    get:
+      summary: Check if the account is valid.
+      parameters:
+        - name: id
+          in: query
+          description:
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Account
+      responses:
+        200:
+          description: true if the pattern is valid, false otherwise.
+  /update-password:
+    get:
+      summary: Update account password.
+      parameters:
+        - name: password
+          in: query
+          description:
+          required: true
+          type: string
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK if password is successfully updated.
+        400:
+          description: Bad Request if password isn't updated.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /generate-new-phone-code:
+    get:
+      summary: Send code via sms.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK if code is successfully generated.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /enroll:
+    get:
+      summary: Update user phone number.
+      parameters:
+        - name: lphone
+          in: query
+          description:
+          required: true
+          type: string
+          format: int32
+        - name: pin_code
+          in: query
+          description:
+          required: true
+          type: string
+          format: int32
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK if phone number is successfully registered.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Unexpected Error.
+          schema:
+            $ref: '#/definitions/error'
+  /generate-new-secret:
+    get:
+      summary: Generate new secret code.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        404:
+          description: Not Found.
+          schema:
+            $ref: '#/definitions/error'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/error'
+  /add-credit-card:
+    get:
+      summary: Add or update credit card.
+      parameters:
+        - name: card_id
+          in: query
+          description:
+          required: false
+          type: string
+          format: uuid
+        - name: holder
+          in: query
+          description:
+          required: true
+          type: string
+        - name: number
+          in: query
+          description:
+          required: false
+          type: string
+          format: int32
+        - name: expiry_date
+          in: query
+          description:
+          required: true
+          type: string
+          format: date
+        - name: type
+          in: query
+          description:
+          required: true
+          type: string
+          format: CB|VISA|MASTER_CARD|DISCOVER|AMEX|SWITCH|SOLO|OTHER
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: '#/definitions/creditCard'
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/error'
+  /delete-credit-card:
+    get:
+      summary: Remove credit card.
+      parameters:
+        - name: card_id
+          in: query
+          description:
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK if card is successfully removed.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /logout:
+    get:
+      summary: Signing out.
+      tags:
+        - Account
+      responses:
+        200:
+          description: Empty response.
+  /billing-address:
+    get:
+      summary: Return the billing address.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: '#/definitions/accountAddress'
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+
+
+
+
+definitions:
+  creditCard:
+    type: object
+    required:
+      - uuid
+      - number
+      - holder
+      - expiryDate
+      - cardType
+      - hiddenNumber
+      - account
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      number:
+        type: string
+      holder:
+        type: string
+      expiryDate:
+        type: string
+        format: date
+      cardType:
+        type: object
+        required:
+          - name
+        properties:
+          name:
+            type: string
+      hiddenNumber:
+        type: string
+      account:
+        type: string
+        format: uuid
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+  accountAddress:
+    type: object
+    required:
+      - road
+      - city
+    properties:
+      road:
+        type: string
+      road2:
+        type: string
+      city:
+        type: string
+      zipCode:
+        type: string
+        format: int32
+      extra:
+        type: string
+      civility:
+        type: object
+        required:
+          - name
+        properties:
+          name:
+            type: string
+            format: MR|MRS
+      firstName:
+        type: string
+      lastName:
+        type: string
+      company:
+        type: string
+      telephone:
+        "$ref": "#/definitions/telephone"
+      country:
+        type: string
+      admin1:
+        type: string
+      admin2:
+        type: string
+      geoCoordinates:
+        type: string
+  telephone:
+    type: object
+    required:
+      - phone
+      - lphone
+      - isoCode
+      - status
+    properties:
+      phone:
+        type: string
+        format: phone
+      lphone:
+        type: string
+        format: int32
+      isoCode:
+        type: string
+        format: int32
+      pinCode3:
+        type: string
+        format: int32
+      status:
+        type: object
+        required:
+          - name
+        properties:
+          name:
+            type: string
+
+  error:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
