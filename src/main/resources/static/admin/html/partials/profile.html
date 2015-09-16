@@ -4,15 +4,33 @@
 
 <header ng-include src="'partials/header.html'"></header>
 <ul class="nav nav-tabs">
-    <li ng-if="isMerchant==false" class="active"><a href="javascript:void(0)" data-target="#profileInfo" data-toggle="tab">{{resourceBundle.profile_tab_customer_info}}</a></li>
-    <li ng-if="isMerchant==true" class="active"><a href="javascript:void(0)" data-target="#profileInfo" data-toggle="tab">{{resourceBundle.profile_tab_merchant_info}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#creditCard" data-toggle="tab">{{resourceBundle.profile_tab_credit_card}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#paypal" data-toggle="tab">{{resourceBundle.profile_tab_paypal}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#kwixo" data-toggle="tab">{{resourceBundle.profile_tab_kwixo}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#applePay" data-toggle="tab">{{resourceBundle.profile_tab_apple_pay}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#auth" data-toggle="tab">{{resourceBundle.profile_tab_auth}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#groupPayment" data-toggle="tab">{{resourceBundle.profile_tab_group_payment}}</a></li>
-    <li ng-if="isMerchant==true"><a href="javascript:void(0)" data-target="#emailInfo" data-toggle="tab">{{resourceBundle.profile_tab_email_info}}</a></li>
+    <li ng-if="isMerchant==false" class="active" id="profileInfoTab">
+		<a href="javascript:void(0)" data-target="#profileInfo" data-toggle="tab">{{resourceBundle.profile_tab_customer_info}}</a>
+	</li>
+    <li ng-if="isMerchant==true" class="active" id="profileInfoTab">
+		<a href="javascript:void(0)" data-target="#profileInfo" data-toggle="tab">{{resourceBundle.profile_tab_merchant_info}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="creditCardTab">
+		<a href="javascript:void(0)" data-target="#creditCard" data-toggle="tab">{{resourceBundle.profile_tab_credit_card}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="paypalTab">
+		<a href="javascript:void(0)" data-target="#paypal" data-toggle="tab">{{resourceBundle.profile_tab_paypal}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="kwixoTab">
+		<a href="javascript:void(0)" data-target="#kwixo" data-toggle="tab">{{resourceBundle.profile_tab_kwixo}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="applePayTab">
+		<a href="javascript:void(0)" data-target="#applePay" data-toggle="tab">{{resourceBundle.profile_tab_apple_pay}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="authTab">
+		<a href="javascript:void(0)" data-target="#auth" data-toggle="tab">{{resourceBundle.profile_tab_auth}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="groupPaymentTab">
+		<a href="javascript:void(0)" data-target="#groupPayment" data-toggle="tab">{{resourceBundle.profile_tab_group_payment}}</a>
+	</li>
+    <li ng-if="isMerchant==true" id="emailInfoTab">
+		<a href="javascript:void(0)" data-target="#emailInfo" data-toggle="tab">{{resourceBundle.profile_tab_email_info}}</a>
+	</li>
 </ul>
 
 <div class="tab-content container-fluid editProfile">
@@ -362,7 +380,7 @@
     </div>
 </div>
 
-<div class="row-fluid">
+<div class="row-fluid" id="profilePersonaleCards">
     <div class="panel panel-default">
         <div class="panel-heading"><h3 class="panel-title">{{resourceBundle.card_managment}}</h3></div>
         <div class="panel-body">
