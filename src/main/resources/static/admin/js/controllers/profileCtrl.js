@@ -572,9 +572,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&paypal_password=" + $("#paypalPassword").val();
 			data += "&paypal_signature=" + $("#paypalSignature").val();
 
-//KWIXO INFO
-			data += "&kwixo_params=" + $("#kwixoParams").val();
-
 //APPLE PAY INFO
 			data += "&apple_pay_anet_api_login_id=" + $("#applePayLogin").val();
 			data += "&apple_pay_anet_transaction_key=" + $("#applePayTransactionKey").val();

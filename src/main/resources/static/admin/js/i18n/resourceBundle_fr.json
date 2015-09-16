@@ -130,7 +130,6 @@
 	"profile_tab_merchant_info": "Info du marchand",
 	"profile_tab_credit_card": "Carte de crédit",
 	"profile_tab_paypal": "Paypal",
-	"profile_tab_kwixo": "Kwixo",
 	"profile_tab_apple_pay": "Apple Pay",
 	"profile_tab_auth": "Auth",
 	"profile_tab_group_payment": "Paiement groupé",
@@ -195,8 +194,6 @@
 	"paypal_user": "Utilisateur",
 	"paypal_password": "Mot de passe",
 	"paypal_signature": "Signature",
-
-	"kwixo_params": "Params",
 
 	"apple_pay_login": "API Login ID",
 	"apple_pay_key": "Clef de transaction",
