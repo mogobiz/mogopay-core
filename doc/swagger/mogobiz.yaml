@@ -1,5 +1,3 @@
-# this is an example of the Uber API
-# as a demonstration of an API spec in YAML
 swagger: '2.0'
 info:
   title: Mogopay API
@@ -38,19 +36,19 @@ paths:
       parameters:
         - name: email
           in: query
-          description: 
+          description: Email to be checked
           required: true
           type: string
           format: email
         - name: merchant_id
           in: query
-          description: 
+          description: Seller id
           required: false
           type: string
           format: uuid
         - name: account_type
           in: query
-          description: 
+          description: Account type
           required: true
           type: string
           format: CUSTOMER|MERCHANT
@@ -65,7 +63,7 @@ paths:
       parameters:
         - name: id
           in: query
-          description:
+          description: Account id
           required: true
           type: string
           format: uuid
@@ -78,9 +76,14 @@ paths:
     get:
       summary: Update account password.
       parameters:
-        - name: password
+        - name: current_password
           in: query
-          description:
+          description: Account current password
+          required: true
+          type: string
+        - name: new_password
+          in: query
+          description: New password to be set
           required: true
           type: string
       tags:
@@ -114,13 +117,13 @@ paths:
       parameters:
         - name: lphone
           in: query
-          description:
+          description: New phone number in local format
           required: true
           type: string
           format: int32
         - name: pin_code
           in: query
-          description:
+          description: Secret code
           required: true
           type: string
           format: int32
@@ -159,30 +162,30 @@ paths:
       parameters:
         - name: card_id
           in: query
-          description:
+          description: Credit card id in case of update
           required: false
           type: string
           format: uuid
         - name: holder
           in: query
-          description:
+          description: Credit card holder name
           required: true
           type: string
         - name: number
           in: query
-          description:
+          description: Credit card number
           required: false
           type: string
           format: int32
         - name: expiry_date
           in: query
-          description:
+          description: Credit card expiration date
           required: true
           type: string
           format: date
         - name: type
           in: query
-          description:
+          description: Credit card type
           required: true
           type: string
           format: CB|VISA|MASTER_CARD|DISCOVER|AMEX|SWITCH|SOLO|OTHER
@@ -203,7 +206,7 @@ paths:
       parameters:
         - name: card_id
           in: query
-          description:
+          description: Id of the credit card to be deleted
           required: true
           type: string
           format: uuid
@@ -238,11 +241,638 @@ paths:
           description: Unauthorized if user not connected or session expired.
           schema:
             $ref: '#/definitions/error'
+  /shipping-addresses:
+    get:
+      summary: Return a list of all shipping addresses for an account.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/shippingAddress'
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /shipping-address:
+    get:
+      summary: Return the current shipping address of an account.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: '#/definitions/shippingAddress'
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /profile-info:
+    get:
+      summary: Get the user profile info.
+      parameters:
+        - name: email
+          in: query
+          description: Requested account email
+          required: true
+          type: string
+          format: email
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: object
+            properties:
+              isMerchant:
+                type: boolean
+              passwordField:
+                type: string
+              emailField:
+                type: string
+              callbackPrefix:
+                type: string
+              passwordPattern:
+                type: string
+              cards:
+                type: array
+                items:
+                  $ref: '#/definitions/creditCard'
+              countries:
+                type: array
+                items:
+                  $ref: '#/definitions/country'
+              cbParam:
+                $ref: "#/definitions/cbParam"
+              paypalParam:
+                $ref: "#/definitions/paypalParam"
+              account:
+                $ref: "#/definitions/account"
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /assign-billing-address:
+    get:
+      summary: Change current billing address.
+      parameters:
+        - name: firstname
+          in: query
+          description: First name
+          required: true
+          type: string
+        - name: lastname
+          in: query
+          description: Last name
+          required: true
+          type: string
+        - name: civility
+          in: query
+          description: Civility
+          required: true
+          type: string
+          format: MR|MRS
+        - name: company
+          in: query
+          description: Company name
+          required: false
+          type: string
+        - name: country
+          in: query
+          description: Country
+          required: true
+          type: string
+        - name: admin1
+          in: query
+          description: State
+          required: true
+          type: string
+        - name: admin2
+          in: query
+          description: Region
+          required: true
+          type: string
+        - name: city
+          in: query
+          description: City name
+          required: true
+          type: string
+        - name: road
+          in: query
+          description: Road name
+          required: true
+          type: string
+        - name: road2
+          in: query
+          description: Supplementary road
+          required: false
+          type: string
+        - name: lphone
+          in: query
+          description: Phone number in local format
+          required: true
+          type: string
+        - name: zip_code
+          in: query
+          description: Zip code
+          required: true
+          type: string
+        - name: extra
+          in: query
+          description: Extra information about the address
+          required: false
+          type: string
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /add-shipping-address:
+    get:
+      summary: Add a billing address.
+      parameters:
+        - name: firstname
+          in: query
+          description: First name
+          required: true
+          type: string
+        - name: lastname
+          in: query
+          description: Last name
+          required: true
+          type: string
+        - name: civility
+          in: query
+          description: Civility
+          required: true
+          type: string
+          format: MR|MRS
+        - name: company
+          in: query
+          description: Company name
+          required: false
+          type: string
+        - name: country
+          in: query
+          description: Country
+          required: true
+          type: string
+        - name: admin1
+          in: query
+          description: State
+          required: true
+          type: string
+        - name: admin2
+          in: query
+          description: Region
+          required: true
+          type: string
+        - name: city
+          in: query
+          description: City name
+          required: true
+          type: string
+        - name: road
+          in: query
+          description: Road name
+          required: true
+          type: string
+        - name: road2
+          in: query
+          description: Supplementary road
+          required: false
+          type: string
+        - name: lphone
+          in: query
+          description: Phone number in local format
+          required: true
+          type: string
+        - name: zip_code
+          in: query
+          description: Zip code
+          required: true
+          type: string
+        - name: extra
+          in: query
+          description: Extra information about the address
+          required: false
+          type: string
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /update-shipping-address:
+    get:
+      summary: Update an existing billing address.
+      parameters:
+        - name: firstname
+          in: query
+          description: First name
+          required: true
+          type: string
+        - name: lastname
+          in: query
+          description: Last name
+          required: true
+          type: string
+        - name: civility
+          in: query
+          description: Civility
+          required: true
+          type: string
+          format: MR|MRS
+        - name: company
+          in: query
+          description: Company name
+          required: false
+          type: string
+        - name: country
+          in: query
+          description: Country
+          required: true
+          type: string
+        - name: admin1
+          in: query
+          description: State
+          required: true
+          type: string
+        - name: admin2
+          in: query
+          description: Region
+          required: true
+          type: string
+        - name: city
+          in: query
+          description: City name
+          required: true
+          type: string
+        - name: road
+          in: query
+          description: Road name
+          required: true
+          type: string
+        - name: road2
+          in: query
+          description: Supplementary road
+          required: false
+          type: string
+        - name: lphone
+          in: query
+          description: Phone number in local format
+          required: true
+          type: string
+        - name: zip_code
+          in: query
+          description: Zip code
+          required: true
+          type: string
+        - name: extra
+          in: query
+          description: Extra information about the address
+          required: false
+          type: string
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /delete-shipping-address:
+    get:
+      summary: Delete specified billing address.
+      parameters:
+        - name: address_id
+          in: query
+          description: Id of billing address to be deleted
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /active-country-state-shipping:
+    get:
+      summary: Get the country and state of tha active shipping address.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: object
+            properties:
+              countryCode:
+                type: string
+              stateCode:
+                type: string
+              shippingAddress:
+                type: string
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /list-compagnies:
+    get:
+      summary: Get the list of companies.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              type: string
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+  /list-merchant:
+    get:
+      summary: Get the list of companies.
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                merchant compnay or email:
+                  type: string
+                merchant uuid:
+                  type: string
+                  format: uuid
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: '#/definitions/error'
+
+
+
+
+
+
+
+
 
 
 
 
 definitions:
+  account:
+    type: object
+    required:
+      - uuid
+      - email
+      - password
+      - status
+      - loginFailedCount
+      - waitingPhoneSince
+      - waitingEmailSince
+      - roles
+      - shippingAddresses
+      - secret
+      - creditCards
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      firstName:
+        type: string
+      lastName:
+        type: string
+      civility:
+        $ref: "#/definitions/civility"
+      birthDate:
+        type: string
+        format: date
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+      company:
+        type: string
+      website:
+        type: string
+        format: url
+      owner:
+        type: string
+        format: uuid
+      secret:
+        type: string
+        format: uuid
+      loginFailedCount:
+        type: integer
+        format: int32
+      waitingPhoneSince:
+        type: integer
+        format: int64
+      waitingEmailSince:
+        type: integer
+        format: int64
+      extra:
+        type: string
+        format: date
+      lastLogin:
+        type: string
+      emailingToken:
+        type: string
+      walletId:
+        type: string
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+      address:
+        $ref: "#/definitions/accountAddress"
+      status:
+        $ref: "#/definitions/accountStatus"
+      paymentConfig:
+        $ref: "#/definitions/paymentConfig"
+      roles:
+        type: array
+        items:
+          $ref: "#/definitions/roles"
+      shippingAddresses:
+        type: array
+        items:
+          $ref: '#/definitions/shippingAddress'
+      creditCards:
+        type: array
+        items:
+          $ref: '#/definitions/creditCard'
+
+  paymentConfig:
+    type: object
+    required:
+      - cbProvider
+      - paymentMethod
+      - emailField
+      - passwordField
+      - dateCreated
+      - lastUpdated
+    properties:
+      kwixoParam:
+        type: string
+      paypalParam:
+        type: string
+      applePayParam:
+        type: string
+      cbParam:
+        type: string
+      cbProvider:
+        $ref: "#/definitions/cbProvider"
+      paymentMethod:
+        $ref: "#/definitions/paymentMethod"
+      emailField:
+        type: string
+      passwordField:
+        type: string
+      senderName:
+        type: string
+      senderEmail:
+        type: string
+      callbackPrefix:
+        type: string
+      passwordPattern:
+        type: string
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+      pwdEmailContent:
+        type: string
+      pwdEmailSubject:
+        type: string
+      groupPaymentInfo:
+        $ref: "#/definitions/groupPaymentInfo"
+
+  cbProvider:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: NONE|AUTHORIZENET|PAYLINE|PAYBOX|SIPS|SYSTEMPAY
+
+  cbParam:
+    type: object
+    properties:
+      systempayShopId:
+        type: string
+      systempayContractNumber:
+        type: string
+      systempayCertificate:
+        type: string
+
+  paypalParam:
+    type: object
+    properties:
+      paypalUser:
+        type: string
+      paypalPassword:
+        type: string
+      paypalSignature:
+        type: string
+
+  paymentMethod:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: EXTERNAL|THREEDS_NO|THREEDS_IF_AVAILABLE|THREEDS_REQUIRED
+
+  groupPaymentInfo:
+    type: object
+    required:
+      - returnURLforNextPayers
+      - successURL
+      - failureURL
+    properties:
+      returnURLforNextPayers:
+        type: string
+      successURL:
+        type: string
+      failureURL:
+        type: string
+
+  country:
+    type: object
+    required:
+      - uuid
+      - code
+      - name
+      - shipping
+      - billing
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      code:
+        type: string
+      name:
+        type: string
+      shipping:
+        type: boolean
+      billing:
+        type: boolean
+      zipCodeRegex:
+        type: string
+      currencyCode:
+        type: string
+      currencyNumericCode:
+        type: string
+        format: int32
+      currencyName:
+        type: string
+      phoneCode:
+        type: string
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
   creditCard:
     type: object
     required:
@@ -267,12 +897,7 @@ definitions:
         type: string
         format: date
       cardType:
-        type: object
-        required:
-          - name
-        properties:
-          name:
-            type: string
+        $ref: "#/definitions/creditCardType"
       hiddenNumber:
         type: string
       account:
@@ -284,6 +909,22 @@ definitions:
       lastUpdated:
         type: string
         format: date
+
+  shippingAddress:
+    type: object
+    required:
+      - uuid
+      - active
+      - address
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      active:
+        type: boolean
+      address:
+        $ref: "#/definitions/accountAddress"
+
   accountAddress:
     type: object
     required:
@@ -302,13 +943,7 @@ definitions:
       extra:
         type: string
       civility:
-        type: object
-        required:
-          - name
-        properties:
-          name:
-            type: string
-            format: MR|MRS
+        $ref: "#/definitions/civility"
       firstName:
         type: string
       lastName:
@@ -316,7 +951,7 @@ definitions:
       company:
         type: string
       telephone:
-        "$ref": "#/definitions/telephone"
+        $ref: "#/definitions/telephone"
       country:
         type: string
       admin1:
@@ -325,6 +960,16 @@ definitions:
         type: string
       geoCoordinates:
         type: string
+
+  civility:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: MR|MRS
+
   telephone:
     type: object
     required:
@@ -346,12 +991,43 @@ definitions:
         type: string
         format: int32
       status:
-        type: object
-        required:
-          - name
-        properties:
-          name:
-            type: string
+        $ref: "#/definitions/telephoneStatus"
+
+  accountStatus:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: ACTIVE|INACTIVE|WAITING_ENROLLMENT
+
+  telephoneStatus:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: ACTIVE|INACTIVE|WAITING_ENROLLMENT
+
+  creditCardType:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: CB|VISA|MASTER_CARD|DISCOVER|AMEX|SWITCH|SOLO|OTHER
+
+  roles:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: ANONYMOUS|ADMINISTRATOR|CUSTOMER|MERCHANT
 
   error:
     type: object
