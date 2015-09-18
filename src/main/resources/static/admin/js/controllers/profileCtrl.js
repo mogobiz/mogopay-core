@@ -370,7 +370,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			var r = new FileReader();
 			r.onload = function (e) {
 				scope.sipsCetificateFileName = f.name;
-				scope.sipsCetificateFileContent = e.target.result;
+				scope.sipsCetificateFileContent = encodeURIComponent(e.target.result);
 				scope.sipsCetificateFileLabel = rootScope.resourceBundle.sips_current_cetificate + " : " + f.name;
 				scope.$apply();
 			}
@@ -384,7 +384,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			var r = new FileReader();
 			r.onload = function (e) {
 				scope.sipsParcomFileName = f.name;
-				scope.sipsParcomFileContent = e.target.result;
+				scope.sipsParcomFileContent = encodeURIComponent(e.target.result);
 				scope.sipsParcomFileLabel = rootScope.resourceBundle.sips_current_parcom + " : " + f.name;
 				scope.$apply();
 			}
