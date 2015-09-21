@@ -788,7 +788,7 @@ class AccountHandler {
                 scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
                   s"""
                      |D_LOGO!${
-                    Settings.Mogopay.EndPoint
+                    Settings.Mogopay.BaseEndPoint
                   }${
                     Settings.ImagesPath
                   }sips/logo/!

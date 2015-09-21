@@ -113,11 +113,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
         "amount" -> amount,
         "apiLoginID" -> apiLoginID,
         "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
-        "currency" -> currency,
-        "cc_holder" -> paymentRequest.holder,
-        "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
-        "cc_cvv" -> paymentRequest.cvv,
-        "cc_expirationDate" -> paymentRequest.expirationDate
+        "currency" -> currency
       )
 
       val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
