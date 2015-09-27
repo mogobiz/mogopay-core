@@ -410,7 +410,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   def buildFormForInitGroupPayment(account: Account, transaction: TransactionRequest, groupTxUUID: String,
                                    transactionType: String, successURL: String, failureURL: String,
-                                   ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String) = {
+                                   ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String): String = {
     val submitParams = Map(
       "callback_success" -> successURL,
       "callback_error" -> failureURL,
@@ -427,7 +427,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     )
 
     val form =
-      <form id="form" action={s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/transaction/submit"} method="POST">
+      <form id="form" action={s"${Settings.Mogopay.EndPoint}transaction/submit"} method="POST">
         {submitParams.map { case (key, value) =>
           <input type="hidden" name={key} value={value}/>
       }}

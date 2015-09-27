@@ -68,11 +68,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val apiLoginID = cbParam("apiLoginID")
     val transactionKey = cbParam("transactionKey")
-
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
 
-    val relayURL = s"${Settings.Mogopay.EndPointWithoutPort}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
-    val cancelURL = s"${Settings.Mogopay.EndPointWithoutPort}authorizenet/cancel"
+    val relayURL = s"${Settings.Mogopay.EndPoint}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
+    val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel"
     val formAction = Settings.AuthorizeNet.formAction
 
     if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
@@ -82,7 +81,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       val form = {
         <form name="authorizenet" id="authorizenet" action={formAction} method="post">
-          <input type="text" name="x_amount" value={(amount.toFloat / 100).toString}/>
+          <input type="hidden" name="x_amount" value={(amount.toFloat / 100).toString}/>
           <input type="hidden" name="x_login" value={apiLoginID}/>
           <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString}/>
           <input type="hidden" name="x_fp_timestamp" value={x_fp_timestamp.toString}/>
@@ -149,7 +148,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={amount}/>
           <input type="hidden" name="x_invoice_num" value={System.currentTimeMillis.toString}/>
           <input type="hidden" name="x_relay_url" value={relayURL}/>
-          <input type="hidden" name="x_login" value={apiLoginID}/>
+          <input type="hidden" name="x_bInin" value={apiLoginID}/>
           <input type="hidden" name="x_fp_sequence" value={fingerprint.getSequence.toString}/>
           <input type="hidden" name="x_fp_timestamp" value={fingerprint.getTimeStamp.toString}/>
           <input type="hidden" name="x_fp_hash" value={fingerprint.getFingerprintHash}/>
@@ -185,7 +184,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   }
 
   def relay(sessionData: SessionData, params: Map[String, String]) = {
-    val action = s"${Settings.Mogopay.BaseEndPointWithoutPort}/pay/authorizenet/finish/${sessionData.uuid}"
+    val action = s"${Settings.Mogopay.EndPoint}authorizenet/finish/${sessionData.uuid}"
     val form = {
       <form action={action} id="redirectForm" method="GET">
         {params.map { case (name, value) =>
