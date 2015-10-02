@@ -28,5 +28,5 @@ class NoShippingHandler extends ShippingService {
 
   override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(NO_SHIPPING_PREFIX)
 
-  override def confirmShipmentId(shippingPrice: ShippingPrice): Long = shippingPrice.price
+  override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = shippingPrice.copy(confirm = true)
 }

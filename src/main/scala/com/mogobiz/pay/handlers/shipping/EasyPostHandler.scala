@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers.shipping
 import com.easypost.EasyPost
 import com.easypost.model._
 import com.mogobiz.json.JacksonConverter
-import com.mogobiz.pay.common.{CompanyAddress, Shipping, Cart}
+import com.mogobiz.pay.common.{ShippingWithQuantity, CompanyAddress, Shipping, Cart}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
@@ -24,52 +24,64 @@ class EasyPostHandler extends ShippingService {
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     cart.compagnyAddress.map { compagnyAddress =>
       val shippingContent = extractShippingContent(cart)
-      val parcelAndFixAmountTail = computeShippingParcelAndFixAmount(shippingContent)
+      computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
 
-      parcelAndFixAmountTail.parcel.map { shippingParcel =>
-        val easyPostRates = rate(
-          compagnyAddress,
-          shippingAddress.address,
-          shippingParcel,
-          cart
-        )
+        val fixPrice = cart.shippingRulePrice.map{price => Some(convertStorePrice(price, cart))}.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
+        val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
+        val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
 
-        easyPostRates.map {easyPostRate =>
-          var rate : Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
-          val currencyFractionDigits : Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
-          val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
-          val finalPrice = parcelAndFixAmountTail.amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong)
-
-          createShippingPrice(EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
-        }
+        computeRate(compagnyAddress, shippingAddress, cart, parcel, fixPrice, amount)
       }.getOrElse(Seq())
     }.getOrElse(Seq())
   }
 
-  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+  private def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long) : Seq[ShippingPrice] = {
+    val easyPostRates = rate(
+      compagnyAddress,
+      shippingAddress.address,
+      parcel,
+      cart
+    )
 
-  override def confirmShipmentId(shippingPrice: ShippingPrice): Long = {
-    val shipment = Shipment.retrieve(shippingPrice.shipmentId.substring(EASYPOST_SHIPPING_PREFIX.length))
-    val rate = Rate.retrieve(shippingPrice.rateId)
-    val s = shipment.buy(rate)
-    shippingPrice.price
+    easyPostRates.map {easyPostRate =>
+      var rate : Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
+      val currencyFractionDigits : Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
+      val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
+      val finalPrice = fixPrice.getOrElse(amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
+
+      createShippingPrice(EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
+    }
   }
 
-  private def computeShippingParcelAndFixAmount(shippingList: List[Shipping]) : ShippingParcelAndFixAmount = {
-    if (shippingList.isEmpty) ShippingParcelAndFixAmount(0, None)
+  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+
+  override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = {
+    if (shippingPrice.confirm) shippingPrice
     else {
-      val parcelAndFixAmountTail = computeShippingParcelAndFixAmount(shippingList.tail)
-      val shipping = shippingList.head;
-      if (shipping.free) parcelAndFixAmountTail
-      else if (shipping.amount > 0) ShippingParcelAndFixAmount(parcelAndFixAmountTail.amount + shipping.amount, parcelAndFixAmountTail.parcel)
-      else {
-        val parcelTail = parcelAndFixAmountTail.parcel
-        val height = Math.max(convertLinear(shipping.height, shipping.linearUnit), parcelTail.map{_.height}.getOrElse(0.0))
-        val width = Math.max(convertLinear(shipping.width, shipping.linearUnit), parcelTail.map{_.width}.getOrElse(0.0))
-        val length = Math.max(convertLinear(shipping.depth, shipping.linearUnit), parcelTail.map{_.length}.getOrElse(0.0))
-        val weight = Math.max(convertWeight(shipping.weight, shipping.weightUnit), parcelTail.map{_.weight}.getOrElse(0.0))
-        ShippingParcelAndFixAmount(parcelAndFixAmountTail.amount, Some(ShippingParcel(height, width, length, weight)))
-      }
+      val shipment = Shipment.retrieve(shippingPrice.shipmentId.substring(EASYPOST_SHIPPING_PREFIX.length))
+      val rate = Rate.retrieve(shippingPrice.rateId)
+      val s = shipment.buy(rate)
+      shippingPrice.copy(confirm = true)
+    }
+  }
+
+  private def computeShippingParcelAndFixAmount(cart: Cart, shippingList: List[ShippingWithQuantity]) : Option[ShippingParcelAndFixAmount] = {
+    if (shippingList.isEmpty) None
+    else {
+      val parcelPriceTail = computeShippingParcelAndFixAmount(cart, shippingList.tail).getOrElse(ShippingParcelAndFixAmount(0, None, None))
+      val quantity = shippingList.head.quantity;
+      val shipping = shippingList.head.shipping;
+
+      val parcelTail = parcelPriceTail.parcel
+      val height = convertLinear(shipping.height, shipping.linearUnit) * quantity + parcelTail.map{_.height}.getOrElse(0.0)
+      val width = Math.max(convertLinear(shipping.width, shipping.linearUnit), parcelTail.map{_.width}.getOrElse(0.0))
+      val length = Math.max(convertLinear(shipping.depth, shipping.linearUnit), parcelTail.map{_.length}.getOrElse(0.0))
+      val weight = convertWeight(shipping.weight, shipping.weightUnit) * quantity + parcelTail.map{_.weight}.getOrElse(0.0)
+      val parcel = ShippingParcel(height, width, length, weight)
+
+      if (shipping.free) Some(ShippingParcelAndFixAmount(parcelPriceTail.amount, Some(parcelPriceTail.fixParcel.getOrElse(parcel)), parcelPriceTail.parcel))
+      else if (shipping.amount > 0) Some(ShippingParcelAndFixAmount(parcelPriceTail.amount + convertStorePrice(shipping.amount, cart) * quantity, Some(parcelPriceTail.fixParcel.getOrElse(parcel)), parcelPriceTail.parcel))
+      else Some(ShippingParcelAndFixAmount(parcelPriceTail.amount, parcelPriceTail.fixParcel, Some(parcel)))
     }
   }
 
@@ -105,7 +117,7 @@ class EasyPostHandler extends ShippingService {
     }
   }
 
-  case class ShippingParcelAndFixAmount(amount: Long, parcel: Option[ShippingParcel])
+  case class ShippingParcelAndFixAmount(amount: Long, fixParcel: Option[ShippingParcel], parcel: Option[ShippingParcel])
 
   def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Seq[Rate] = {
     val parcelMap = mutable.HashMap[String, AnyRef](

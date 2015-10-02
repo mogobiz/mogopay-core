@@ -404,7 +404,8 @@ class TransactionHandler {
       }
     }
 
-    val shippingPrice = ShippingService.confirmShippingPrice(selectedShippingPrice)
+    sessionData.selectShippingPrice = ShippingService.confirmShippingPrice(selectedShippingPrice)
+    val shippingPrice = sessionData.selectShippingPrice.map { _.price }.getOrElse(0L)
 
     val cartWithShipping = CartWithShipping(cart.count,
       shippingPrice,
