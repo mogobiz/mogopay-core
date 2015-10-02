@@ -11,7 +11,8 @@ import javax.xml.namespace.QName
 import javax.xml.ws.{Binding, BindingProvider}
 
 import com.experian.payline.ws.impl._
-import com.experian.payline.ws.obj.{Authentication3DSecure, Authorization, Card, Order, Payment, Result, Transaction}
+import com.experian.payline.ws.obj._
+
 import com.experian.payline.ws.wrapper.WebPayment
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -116,7 +117,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         Right(finishPayment(sessionData, paymentResult))
       } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
         val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
-        sessionData.token = Option(paymentResult.token)
+        sessionData.token = scala.Option(paymentResult.token)
         if (paymentResult.data != null && paymentResult.data.nonEmpty) {
           Left(paymentResult.data)
         } else {
@@ -219,7 +220,6 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     var logdata: String = null
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val paiement: Payment = new Payment
-
     paiement.setAmount(paymentRequest.amount.toString)
     paiement.setCurrency(paymentRequest.currency.numericCode.toString)
     paiement.setAction(ACTION_AUTHORISATION_VALIDATION)
@@ -306,7 +306,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                     infosPaiement: PaymentRequest, mogopay: Boolean, locale: Option[String],
+                     infosPaiement: PaymentRequest, mogopay: Boolean, locale: scala.Option[String],
                      step: TransactionStep): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
@@ -449,9 +449,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     else {
       paymentResult.copy(
         errorCodeOrigin = code,
-        errorMessageOrigin = Option(result.getLongMessage),
+        errorMessageOrigin = scala.Option(result.getLongMessage),
         bankErrorCode = "",
-        bankErrorMessage = Option(BankErrorCodes.getErrorMessage("")),
+        bankErrorMessage = scala.Option(BankErrorCodes.getErrorMessage("")),
         status = PaymentStatus.FAILED)
     }
     transactionHandler.finishPayment(transactionUuid,
@@ -496,7 +496,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     CancelResult(id = infosPaiement.id,
       status = if ("00000" == result.getCode) PaymentStatus.CANCELED else PaymentStatus.CANCEL_FAILED,
       errorCodeOrigin = result.getCode,
-      errorMessageOrigin = Option(result.getLongMessage))
+      errorMessageOrigin = scala.Option(result.getLongMessage))
   }
 
   private def createProxy(parametres: Map[String, String]): DirectPaymentAPI = {
@@ -547,6 +547,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val parameters: DoWebPaymentRequest = new DoWebPaymentRequest
     parameters.setVersion(Settings.Payline.Version)
     parameters.setPayment(payment)
+    val contractList = new SelectedContractList()
+    contractList.getSelectedContract.add(payment.getContractNumber)
+    parameters.setSelectedContractList(contractList)
     parameters.setReturnURL(Settings.Mogopay.EndPoint + "payline/done/" + sessionId)
     parameters.setCancelURL(Settings.Mogopay.EndPoint + "payline/done/" + sessionId)
     parameters.setNotificationURL(Settings.Mogopay.EndPoint + "payline/callback/" + sessionId)
@@ -610,10 +613,10 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
                                authorizationId: String,
                                status: PaymentStatus,
                                errorCodeOrigin: String,
-                               errorMessageOrigin: Option[String],
+                               errorMessageOrigin: scala.Option[String],
                                data: String,
                                bankErrorCode: String,
-                               bankErrorMessage: Option[String],
+                               bankErrorMessage: scala.Option[String],
                                token: String)
 
      */
@@ -633,9 +636,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
           authorizationId = null,
           gatewayTransactionId = transactionUuid,
           errorCodeOrigin = result.getResult.getCode,
-          errorMessageOrigin = Option(result.getResult.getLongMessage),
+          errorMessageOrigin = scala.Option(result.getResult.getLongMessage),
           bankErrorCode = "",
-          bankErrorMessage = Option(BankErrorCodes.getErrorMessage("")),
+          bankErrorMessage = scala.Option(BankErrorCodes.getErrorMessage("")),
           token = result.getToken,
           data =
             s"""
@@ -658,7 +661,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   def getWebPaymentDetails(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                           paymentRequest: PaymentRequest, token: String, locale: Option[String]): PaymentResult = {
+                           paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -747,9 +750,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       authorizationId = if (result.getAuthorization() != null) result.getAuthorization().getNumber else null,
       gatewayTransactionId = if (result.getTransaction() != null) result.getTransaction().getId else null,
       errorCodeOrigin = result.getResult.getCode,
-      errorMessageOrigin = Option(result.getResult.getLongMessage),
+      errorMessageOrigin = scala.Option(result.getResult.getLongMessage),
       bankErrorCode = "",
-      bankErrorMessage = Option(BankErrorCodes.getErrorMessage("")),
+      bankErrorMessage = scala.Option(BankErrorCodes.getErrorMessage("")),
       token = null,
       data = null)
 
@@ -813,6 +816,6 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val status = if (response.getResult.getCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     val code = response.getResult.getCode
     val longMessage = response.getResult.getLongMessage
-    RefundResult(status, code, Option(longMessage))
+    RefundResult(status, code, scala.Option(longMessage))
   }
 }

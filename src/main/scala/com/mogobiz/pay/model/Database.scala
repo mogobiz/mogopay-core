@@ -567,5 +567,6 @@ object TestApp extends App {
   val json = mapperSingleton.writerWithDefaultPrettyPrinter().asInstanceOf[ObjectWriter].writeValueAsString(account)
   println(json)
   val acc = mapperSingleton.readValue(json, classOf[Account])
+
   println(acc)
 }
