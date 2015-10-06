@@ -37,6 +37,7 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
 		};
 
 		failure = function (response) {
+			$("#homeContainer").show();
 			$("#mainContainer").show();
 		};
 	}

@@ -43,6 +43,135 @@
 			</form>
 		</div>
 	</div>
+	<div id="detailsOrderBlock" class="panel panel-default" ng-if="selectedTransaction != null">
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_order_title}}</h3></div>
+		<div class="panel-body">
+			<div class="form-group" style="margin-bottom: 0px;">
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+					<label for="cartDetailsStatus">{{resourceBundle.details_order_status}}</label>
+					<input type="text" class="form-control" id="cartDetailsStatus" autofocus readonly value="{{cartDetails.status}}"/>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+					<label for="cartDetailsPrice">{{resourceBundle.details_order_price}}</label>
+					<input type="text" class="form-control" id="cartDetailsPrice" autofocus readonly value="{{cartDetails.price * cartDetails.currencyRate}}"/>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+					<label for="cartDetailsCurrency">{{resourceBundle.details_order_currency}}</label>
+					<input type="text" class="form-control" id="cartDetailsCurrency" readonly value="{{cartDetails.currencyCode}}"/>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+					<label for="cartDetailsDate">{{resourceBundle.details_order_date}}</label>
+					<input type="text" class="form-control" id="cartDetailsDate" readonly value="{{cartDetails.lastUpdated | date:'dd/MM/yyyy'}}"/>
+				</div>
+			</div>
+			<div class="clearfix"></div>
+			<div class="table-responsive" ng-show="cartDetails.cartItems.length > 0">
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr>
+							<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
+							<th>{{resourceBundle.details_order_name}}</th>
+							<th>{{resourceBundle.details_order_basic_price}}</th>
+							<th>{{resourceBundle.details_order_end_price}}</th>
+							<th>{{resourceBundle.details_order_quantity}}</th>
+							<th>{{resourceBundle.details_order_date}}</th>
+							<th>{{resourceBundle.details_order_time}}</th>
+							<th>{{resourceBundle.details_order_returned_items}}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in cartDetails.cartItems">
+							<td  ng-if="!isMerchant">
+								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
+							</td>
+							<td>
+								<div ng-if="!item.secondary || item.secondary.length == 0">
+									<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+									<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
+								</div>
+								<div ng-if="item.secondary && item.secondary.length > 0">
+									<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
+										<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
+											<span>{{productSec.product.name}}/({{item.sku.sku}})</span>
+										</div>
+										<a href="{{item.url}}" ng-if="item.url" class="pull-right" target="_blank">{{resourceBundle.details_order_details}}>></a>
+									</div>
+								</div>
+								<div ng-if="item.principal.product.xtype == 'SERVICE'" ng-repeat="card in item.principal.registeredCartItem">
+									<a href="mailto:{{card.email}}" title="mailto:{{card.email}}">{{card.firstname}} {{card.lastname}}</a>
+								</div>
+							</td>
+							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
+							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
+							<td>{{item.quantity}}</td>
+							<td>
+								<span ng-if="item.principal.product.calendarType != NO_DATE">
+									{{item.startDate | date:'dd/MM/yyyy'}}
+								</span>
+							</td>
+							<td>
+								<span ng-if="item.principal.product.calendarType == 'DATE_TIME'">
+									{{item.startDate | date:'HH:mm'}}
+								</span>
+							</td>
+							<td>
+								<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">
+									{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}
+								</a>
+								<span ng-if="item.bOReturnedItems.length == 0">{{resourceBundle.none}}</span>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<div ng-if="!isMerchant">
+					<button class="btn btn-default pull-right" ng-disabled="detailsDisableReturn" ng-click="detailsReturnSelectedItems()">
+						{{resourceBundle.details_order_return_selected_items}}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+<!-- Customer Block -->
+	<div class="panel panel-default" ng-if="!isMerchant && returnDetails != null">
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_return_title}}</h3></div>
+		<div class="panel-body">
+			<div class="form-group" style="margin-bottom: 0px;">
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+					<label for="returnDetailsName">{{resourceBundle.details_return_name}}</label>
+					<input type="text" class="form-control" id="returnDetailsName" autofocus readonly value="{{returnDetails.name}}"/>
+				</div>
+			</div>
+			<div class="clearfix"></div>
+			<div class="table-responsive" ng-show="returnDetails.returnedItems.length > 0">
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr>
+							<th>{{resourceBundle.details_return_quantity}}</th>
+							<th>{{resourceBundle.details_return_refunded}}</th>
+							<th>{{resourceBundle.details_return_total_refunded}}</th>
+							<th>{{resourceBundle.details_return_status}}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in returnDetails.returnedItems">
+							<td>{{item.quantity}}</td>
+							<td>{{item.refunded}}</td>
+							<td>{{item.totalRefunded}}</td>
+							<td ng-if="item.boReturns.length == 1">{{returnStatusValues[item.boReturns[0].status]}}</td>
+							<td ng-if="item.boReturns.length > 1">
+								<a href="javascript:void(0)" rel="popoverBoRetun">{{returnStatusValues[item.boReturns[0].status]}}</a>
+								<div class="dialog" style="display:none;" ng-init="refreshBoRetunPopover()">
+									<div ng-repeat="return in item.boReturns" style="padding: 5px;">{{returnStatusValues[return.status]}}: {{return.motivation}}</div>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+<!-- End Of Customer Block -->
 	<div ng-if="selectedCustomer != null" class="history panel panel-default">
 		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_history_title}}</h3></div>
 		<div class="panel-body">
@@ -104,76 +233,6 @@
 			</div>
 		</div>
 	</div>
-	<div class="panel panel-default" ng-if="selectedTransaction != null">
-		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_order_title}}</h3></div>
-		<div class="panel-body">
-			<div class="form-group" style="margin-bottom: 0px;">
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsStatus">{{resourceBundle.details_order_status}}</label>
-					<input type="text" class="form-control" id="cartDetailsStatus" autofocus readonly value="{{cartDetails.status}}"/>
-				</div>
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsPrice">{{resourceBundle.details_order_price}}</label>
-					<input type="text" class="form-control" id="cartDetailsPrice" autofocus readonly value="{{cartDetails.price * cartDetails.currencyRate}}"/>
-				</div>
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsCurrency">{{resourceBundle.details_order_currency}}</label>
-					<input type="text" class="form-control" id="cartDetailsCurrency" readonly value="{{cartDetails.currencyCode}}"/>
-				</div>
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsDate">{{resourceBundle.details_order_date}}</label>
-					<input type="text" class="form-control" id="cartDetailsDate" readonly value="{{cartDetails.lastUpdated | date:'dd/MM/yyyy'}}"/>
-				</div>
-			</div>
-			<div class="clearfix"></div>
-			<div class="table-responsive" ng-show="cartDetails.cartItems.length > 0">
-				<table class="table table-bordered table-striped">
-					<thead>
-						<tr>
-							<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
-							<th>{{resourceBundle.details_order_name}}</th>
-							<th>{{resourceBundle.details_order_basic_price}}</th>
-							<th>{{resourceBundle.details_order_end_price}}</th>
-							<th>{{resourceBundle.details_order_quantity}}</th>
-							<th>{{resourceBundle.details_order_returned_items}}</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="item in cartDetails.cartItems">
-							<td  ng-if="!isMerchant">
-								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
-							</td>
-							<td>
-								<div ng-if="!item.secondary || item.secondary.length == 0">
-									<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
-									<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
-								</div>
-								<div ng-if="item.secondary && item.secondary.length > 0">
-									<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
-									<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
-										<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
-											<span>{{productSec.product.name}}/({{item.sku.sku}})</span>
-										</div>
-										<a href="{{item.url}}" ng-if="item.url" class="pull-right" target="_blank">{{resourceBundle.details_order_details}}>></a>
-									</div>
-								</div>
-							</td>
-							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
-							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
-							<td>{{item.quantity}}</td>
-							<td>
-								<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}</a>
-								<span ng-if="item.bOReturnedItems.length == 0">{{resourceBundle.none}}</span>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-				<div ng-if="!isMerchant">
-					<button class="btn btn-default pull-right" ng-click="detailsReturnSelectedItems()">{{resourceBundle.details_order_return_selected_items}}</button>
-				</div>
-			</div>
-		</div>
-	</div>
 
 <!-- Merchant Block -->
 	<div class="panel panel-default" ng-if="isMerchant && logsDetails != null">
@@ -204,45 +263,4 @@
 		</div>
 	</div>
 <!-- End Of Merchant Block -->
-
-<!-- Customer Block -->
-	<div class="panel panel-default" ng-if="!isMerchant && returnDetails != null">
-		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_return_title}}</h3></div>
-		<div class="panel-body">
-			<div class="form-group" style="margin-bottom: 0px;">
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="returnDetailsName">{{resourceBundle.details_return_name}}</label>
-					<input type="text" class="form-control" id="returnDetailsName" autofocus readonly value="{{returnDetails.name}}"/>
-				</div>
-			</div>
-			<div class="clearfix"></div>
-			<div class="table-responsive" ng-show="returnDetails.returnedItems.length > 0">
-				<table class="table table-bordered table-striped">
-					<thead>
-						<tr>
-							<th>{{resourceBundle.details_return_quantity}}</th>
-							<th>{{resourceBundle.details_return_refunded}}</th>
-							<th>{{resourceBundle.details_return_total_refunded}}</th>
-							<th>{{resourceBundle.details_return_status}}</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="item in returnDetails.returnedItems">
-							<td>{{item.quantity}}</td>
-							<td>{{item.refunded}}</td>
-							<td>{{item.totalRefunded}}</td>
-							<td ng-if="item.boReturns.length == 1">{{returnStatusValues[item.boReturns[0].status]}}</td>
-							<td ng-if="item.boReturns.length > 1">
-								<a href="javascript:void(0)" rel="popoverBoRetun">{{returnStatusValues[item.boReturns[0].status]}}</a>
-								<div class="dialog" style="display:none;" ng-init="refreshBoRetunPopover()">
-									<div ng-repeat="return in item.boReturns" style="padding: 5px;">{{returnStatusValues[return.status]}}: {{return.motivation}}</div>
-								</div>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-<!-- End Of Customer Block -->
 </div>

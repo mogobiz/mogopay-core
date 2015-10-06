@@ -34,11 +34,11 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			}];
 
 			$rootScope.returnStatusValues = {
-				"RETURN_SUBMITTED": $rootScope.resourceBundle.return_return_submitted,
-				"RETURN_TO_BE_RECEIVED": $rootScope.resourceBundle.return_return_to_be_received,
-				"RETURN_RECEIVED": $rootScope.resourceBundle.return_return_received,
-				"RETURN_REFUSED": $rootScope.resourceBundle.return_return_refused,
-				"RETURN_ACCEPTED": $rootScope.resourceBundle.return_return_accepted
+				"RETURN_SUBMITTED": $rootScope.resourceBundle.return_submitted,
+				"RETURN_TO_BE_RECEIVED": $rootScope.resourceBundle.return_to_be_received,
+				"RETURN_RECEIVED": $rootScope.resourceBundle.return_received,
+				"RETURN_REFUSED": $rootScope.resourceBundle.return_refused,
+				"RETURN_ACCEPTED": $rootScope.resourceBundle.return_accepted
 			};
 		}).error(function (resourceBundle) {
 			$rootScope.i18n = {language: "en"};
@@ -60,11 +60,11 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 					}];
 
 					$rootScope.returnStatusValues = {
-						"RETURN_SUBMITTED": $rootScope.resourceBundle.return_return_submitted,
-						"RETURN_TO_BE_RECEIVED": $rootScope.resourceBundle.return_return_to_be_received,
-						"RETURN_RECEIVED": $rootScope.resourceBundle.return_return_received,
-						"RETURN_REFUSED": $rootScope.resourceBundle.return_return_refused,
-						"RETURN_ACCEPTED": $rootScope.resourceBundle.return_return_accepted
+						"RETURN_SUBMITTED": $rootScope.resourceBundle.return_submitted,
+						"RETURN_TO_BE_RECEIVED": $rootScope.resourceBundle.return_to_be_received,
+						"RETURN_RECEIVED": $rootScope.resourceBundle.return_received,
+						"RETURN_REFUSED": $rootScope.resourceBundle.return_refused,
+						"RETURN_ACCEPTED": $rootScope.resourceBundle.return_accepted
 					};
 				});
 			});

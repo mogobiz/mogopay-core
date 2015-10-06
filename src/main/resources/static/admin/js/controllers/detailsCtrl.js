@@ -23,6 +23,7 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 	$rootScope.returnDetails = null;
 	$rootScope.logsDetails = null;
 	$rootScope.itemsToBeReturned = [];
+	$scope.detailsDisableReturn = true;
 	if($rootScope.selectedCustomer != null){
 		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
 	}
@@ -52,12 +53,17 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 }
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
+	$("input[name='detailsRefundAll']").prop("checked", false);
+	scope.detailsDisableReturn = true;
 	rootScope.returnDetails = null;
 	rootScope.logsDetails = null;
 	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
 	if(rootScope.isMerchant)
-		detailsGetOrderLogs(scope, location, rootScope, route)
+		detailsGetOrderLogs(scope, location, rootScope, route);
+	$("html,body").animate({
+		scrollTop: $("#detailsOrderBlock").offset().top
+	}, 500);
 }
 
 function detailsGetOrderDetails(scope, location, rootScope, route){
@@ -93,16 +99,20 @@ function detailsGetOrderLogs(scope, location, rootScope, route){
 }
 
 function detailsRefundCheckAll(scope, location, rootScope, route){
+	scope.detailsDisableReturn = !$("input[name='detailsRefundAll']").is(":checked") && $("input[name='detailsRefundOne']:not([disabled])").length > 0;
 	$("input[name='detailsRefundOne']:not([disabled])").prop("checked", $("input[name='detailsRefundAll']").is(":checked"));
 }
 
 function detailsRefundCheckOne(scope, location, rootScope, route){
 	var allchecked = true;
+	scope.detailsDisableReturn = true;
 	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
 	for(var i = 0; i < checkBoxes.length; i++){
 		if(!$(checkBoxes[i]).is(":checked")){
 			allchecked = false;
-			break;
+		}
+		else{
+			scope.detailsDisableReturn = false;
 		}
 	}
 	$("input[name='detailsRefundAll']").prop("checked", allchecked);

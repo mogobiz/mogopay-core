@@ -67,12 +67,13 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 		var failure = function (){};
 		if(indexPage == true){
 			success = function (response) {
-			$("#mainContainer").show();
+				$("#mainContainer").show();
 				$rootScope.userProfile = response;
 				$rootScope.getAllStores();
 			};
 
 			failure = function (response) {
+				$("#loginContainer").show();
 				$("#mainContainer").show();
 			};
 		}
@@ -97,6 +98,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 
 			failure = function (response) {
 				$("#mainContainer").show();
+				$("#loginContainer").show();
 				callServer("account/merchant-token", "",
 					function (response) {
 						$rootScope.xtoken = response;
@@ -125,6 +127,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			};
 			failure = function (response) {
 				$("#mainContainer").show();
+				$("#loginContainer").show();
 				callServer("account/customer-token", "",
 					function (response) {
 						$rootScope.xtoken = response;

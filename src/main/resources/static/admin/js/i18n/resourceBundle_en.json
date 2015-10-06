@@ -88,6 +88,7 @@
 	"details_history_name": "Name",
 	"details_history_email": "Email",
 	"details_history_date": "Date",
+	"details_order_time": "Time",
 	"details_history_price": "Price",
 	"details_history_card": "Card",
 	"details_history_transaction_status": "Transaction Status",
