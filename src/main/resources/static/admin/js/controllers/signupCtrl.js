@@ -54,7 +54,7 @@ function signupGetCitiesForAutoComplete(country, state, region, city, response) 
 		}));
 	};
 	var dataToSend = "country=" + country + "&parent_admin1_code=" + state + "&parent_admin2_code=" + region + "&name=" + city;
-	callServer("country/cities", dataToSend, success, function (response) {});
+	callServer("country/cities", dataToSend, success, function (response) {}, "GET", false, false, false);
 }
 
 function signupLoadCountries(scope, location, rootScope, route) {
@@ -63,7 +63,7 @@ function signupLoadCountries(scope, location, rootScope, route) {
 		scope.signupCountriesModel = "";
 		scope.$apply();
 	}
-	callServer("country/countries-for-billing", "", success, function (response) {});
+	callServer("country/countries-for-billing", "", success, function (response) {}, "GET", true, true, true);
 }
 
 function signupCheckPasswordConfrimation(scope, location, rootScope, route){
@@ -88,7 +88,7 @@ function signupLoadStatesForCountry(scope, location, rootScope, route) {
 		scope.signupRegionModel = "";
 		scope.$apply();
 	};
-	callServer("country/admins1/" + scope.signupCountriesModel.code, "", success, function (response) {});
+	callServer("country/admins1/" + scope.signupCountriesModel.code, "", success, function (response) {}, "GET", true, true, true);
 }
 
 function signupLoadRegionsForState(scope, location, rootScope, route) {
@@ -103,7 +103,7 @@ function signupLoadRegionsForState(scope, location, rootScope, route) {
 		scope.$apply();
 	};
 	var dataToSend = "country=" + scope.signupCountriesModel.code + "&state=" + scope.signupStateModel.code;
-	callServer("country/admins2/" + scope.signupStateModel.code, "", success, function (response) {});
+	callServer("country/admins2/" + scope.signupStateModel.code, "", success, function (response) {}, "GET", true, true, true);
 }
 
 function signupCheckPhoneNumberForCountry(scope, location, rootScope, route) {
@@ -120,12 +120,8 @@ function signupCheckPhoneNumberForCountry(scope, location, rootScope, route) {
 			$("#signupPhoneNumber").val("");
 		}
 	};
-	callServer(
-		"country/" + scope.signupCountriesModel.code + "/check-phone-number/" + $("#signupPhoneNumber").val(),
-		"",
-		success,
-		function (response) {}
-	);
+	var action = "country/" + scope.signupCountriesModel.code + "/check-phone-number/" + $("#signupPhoneNumber").val();
+	callServer(action, "", success, function (response) {}, "GET", false, false, false);
 }
 
 function signupCreateProfile(scope, location, rootScope, route) {
@@ -143,9 +139,10 @@ function signupCreateProfile(scope, location, rootScope, route) {
 			data += "email=" + $("#signupEmail").val();
 			data += "&password=" + $("#signupPassword").val();
 			data += "&is_customer=" + !rootScope.isMerchant;
-			postOnServer("account/login", data, success, function (response) {});
+			callServer("account/login", data, success, function (response) {}, "POST", false, true, true);
 		}
 		else{
+			$("body").removeClass("loading");
 			navigateToPage(scope, location, rootScope, route, "validation");
 		}
 	};
@@ -154,7 +151,7 @@ function signupCreateProfile(scope, location, rootScope, route) {
 			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_account_exist);
 		}
 	};
-	postOnServer("account/signup", dataToSend, success, failure);
+	callServer("account/signup", dataToSend, success, failure, "POST", true, false, true);
 }
 
 function signupGetFormData(scope, location, rootScope, route) {

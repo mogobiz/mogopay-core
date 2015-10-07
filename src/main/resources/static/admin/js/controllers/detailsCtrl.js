@@ -17,7 +17,7 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
             $scope.$apply();
             navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
-        callServer("account/profile-info", "", success, function (response) {});
+        callServer("account/profile-info", "", success, function (response) {}, "GET", true, false, true);
     };
 	$scope.historyDetails = null;
 	$rootScope.returnDetails = null;
@@ -29,8 +29,6 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 	}
 	if($rootScope.selectedTransaction != null){
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
-		if($rootScope.isMerchant)
-			detailsGetOrderLogs($scope, $location, $rootScope, $route)
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
 	$scope.detailsRefundCheckAll = function () {detailsRefundCheckAll($scope, $location, $rootScope, $route);};
@@ -49,7 +47,7 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 			scope.historyDetails = response.list;
 		});
 	};
-	callStoreServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, function (response) {}, rootScope.selectedStore, "GET");
+	callStoreServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, function (response) {}, rootScope.selectedStore, "GET", true, true, true);
 }
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
@@ -59,8 +57,6 @@ function detailsSelectOrder(scope, location, rootScope, route, index){
 	rootScope.logsDetails = null;
 	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
-	if(rootScope.isMerchant)
-		detailsGetOrderLogs(scope, location, rootScope, route);
 	$("html,body").animate({
 		scrollTop: $("#detailsOrderBlock").offset().top
 	}, 500);
@@ -68,6 +64,8 @@ function detailsSelectOrder(scope, location, rootScope, route, index){
 
 function detailsGetOrderDetails(scope, location, rootScope, route){
 	var success = function (response) {
+		if(rootScope.isMerchant)
+			detailsGetOrderLogs(scope, location, rootScope, route);
 		scope.$apply(function () {
 			scope.cartDetails = response;
 			for(var  i = 0; i < scope.cartDetails.cartItems.length; i++){
@@ -79,7 +77,7 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			}
 		});
 	};
-	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
+	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET", true, true, true);
 }
 
 function detailsGetOrderLogs(scope, location, rootScope, route){
@@ -95,11 +93,11 @@ function detailsGetOrderLogs(scope, location, rootScope, route){
 			rootScope.logsDetails = response;
 		});
 	};
-	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, function (response) {});
+	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, function (response) {}, "GET", false, false, false);
 }
 
 function detailsRefundCheckAll(scope, location, rootScope, route){
-	scope.detailsDisableReturn = !$("input[name='detailsRefundAll']").is(":checked") && $("input[name='detailsRefundOne']:not([disabled])").length > 0;
+	scope.detailsDisableReturn = !($("input[name='detailsRefundAll']").is(":checked") && $("input[name='detailsRefundOne']:not([disabled])").length > 0);
 	$("input[name='detailsRefundOne']:not([disabled])").prop("checked", $("input[name='detailsRefundAll']").is(":checked"));
 }
 

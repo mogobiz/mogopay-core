@@ -6,7 +6,7 @@ function ChangePasswordCtrl($scope, $location, $rootScope, $route){
 	$scope.changePasswordSave = function (){changePasswordSave($scope, $location, $rootScope, $route)};
 }
 
-function changePasswordSave(scope, location, rootScope ,route, email){
+function changePasswordSave(scope, location, rootScope, route, email){
 	if($("#changePasswordCurrent").val().trim() == "" || $("#changePasswordNew").val().trim() == "" || $("#changePasswordConfirm").val().trim() == ""){
 		showAlertBootStrapMsg("warning", $rootScope.resourceBundle.error_required);
 		return;
@@ -24,5 +24,5 @@ function changePasswordSave(scope, location, rootScope ,route, email){
 		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_change_password);
 	};
 	var dataToSend = "current_password=" + $("#changePasswordCurrent").val() + "&new_password=" + $("#changePasswordNew").val();
-	callServer("account/update-password", dataToSend, success, failure);
+	callServer("account/update-password", dataToSend, success, failure, "GET", true, false, true);
 }

@@ -6,35 +6,48 @@ var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
 
-function callServer(action, dataToSend, success, error){
-    $.ajax({
-        url :  serverUrl + action,
-        type : "GET",
-        data : dataToSend,
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
-
-function postOnServer(action, dataToSend, success, error){
-    $.ajax({
-        url :  serverUrl + action,
-        type : "POST",
-        data : encodeURI(dataToSend),
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
-
-function callServerJson(action, dataToSend, success, error, type){
-    var afterCallingSuccess = function (response) {
+function callServer(action, dataToSend, success, error, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
+    var data = type != "POST" ? dataToSend : encodeURI(dataToSend);
+	if(showLoading){
+		$("body").addClass("loading");
+	}
+	var afterCallingSuccess = function (response) {
+		if(hideLoadingOnSuccess){
+			$("body").removeClass("loading");
+		}
         success(response);
     };
     var afterCallingError = function (response) {
+		if(hideLoadingOnError){
+			$("body").removeClass("loading");
+		}
+        error(response);
+    };
+	$.ajax({
+        url :  serverUrl + action,
+        type : type,
+        data : data,
+        cache : false,
+        async : true,
+        success : afterCallingSuccess,
+        error: afterCallingError
+    });
+}
+
+function callServerJson(action, dataToSend, success, error, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
+	if(showLoading){
+		$("body").addClass("loading");
+	}
+	var afterCallingSuccess = function (response) {
+		if(hideLoadingOnSuccess){
+			$("body").removeClass("loading");
+		}
+        success(response);
+    };
+    var afterCallingError = function (response) {
+		if(hideLoadingOnError){
+			$("body").removeClass("loading");
+		}
         error(response);
     };
     $.ajax({
@@ -49,23 +62,47 @@ function callServerJson(action, dataToSend, success, error, type){
     });
 }
 
-function callStoreServer(action, dataToSend, success, error, storeCode, type){
+function callStoreServer(action, dataToSend, success, error, storeCode, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
+	if(showLoading){
+		$("body").addClass("loading");
+	}
+	var afterCallingSuccess = function (response) {
+		if(hideLoadingOnSuccess){
+			$("body").removeClass("loading");
+		}
+        success(response);
+    };
+    var afterCallingError = function (response) {
+		if(hideLoadingOnError){
+			$("body").removeClass("loading");
+		}
+        error(response);
+    };
     $.ajax({
         url :  storeUrl + storeCode + "/" + action,
         type : type,
         data : dataToSend,
         cache : false,
         async : true,
-        success : success,
-        error: error
+        success : afterCallingSuccess,
+        error: afterCallingError
     });
 }
 
-function callStoreServerJson(action, dataToSend, success, error, storeCode, type){
-    var afterCallingSuccess = function (response) {
+function callStoreServerJson(action, dataToSend, success, error, storeCode, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
+	if(showLoading){
+		$("body").addClass("loading");
+	}
+	var afterCallingSuccess = function (response) {
+		if(hideLoadingOnSuccess){
+			$("body").removeClass("loading");
+		}
         success(response);
     };
     var afterCallingError = function (response) {
+		if(hideLoadingOnError){
+			$("body").removeClass("loading");
+		}
         error(response);
     };
     $.ajax({

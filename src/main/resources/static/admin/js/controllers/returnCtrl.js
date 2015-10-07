@@ -20,7 +20,7 @@ function ReturnCtrl($scope, $location, $rootScope, $route) {
             $scope.$apply();
             navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
-        callServer("account/profile-info", "", success, function (response) {});
+        callServer("account/profile-info", "", success, function (response) {}, "GET", true, false, true);
     };
 // Merchant Functions
 	$scope.refundedValue = [];
@@ -73,14 +73,8 @@ function updateReturnItem(scope, location, rootScope, route, index, returnStatus
 		returnStatus: returnStatus,
 		motivation: $("#returnMotivation-" + index).val()
 	}
-	callStoreServerJson(
-		"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.returnDetails.cartItem.uuid + "/" + rootScope.returnDetails.returnedItems[index].uuid,
-		data,
-		function () {scope.goToDetails();scope.$apply();},
-		function () {},
-		rootScope.selectedStore,
-		"PUT"
-	);
+	var action = "backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.returnDetails.cartItem.uuid + "/" + rootScope.returnDetails.returnedItems[index].uuid;
+	callStoreServerJson(action, data, function () {scope.goToDetails();scope.$apply();}, function () {}, rootScope.selectedStore, "PUT", true, true, true);
 }
 
 function validateRetunForm(scope, location, rootScope, route, index){
@@ -134,14 +128,8 @@ function submitReturnItems(scope, location, rootScope, route){
 				quantity: parseInt(parseFloat($("#toBeReturnedQuantity-" + i).val())),
 				motivation: $("#toBeReturnedMotivation-" + i).val()
 			}
-			callStoreServerJson(
-				"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.itemsToBeReturned[i].uuid,
-				data,
-				function () {scope.goToDetails();scope.$apply();},
-				function () {},
-				rootScope.selectedStore,
-				"POST"
-			);
+			var action = "backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.itemsToBeReturned[i].uuid;
+			callStoreServerJson(action, data, function () {scope.goToDetails();scope.$apply();}, function () {}, rootScope.selectedStore, "POST", true, true, true);
 		}
 	}
 }

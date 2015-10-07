@@ -409,7 +409,7 @@
                     <input type="text" id="personalCardHolderName-{{$index}}" class="form-control" pattern="[0-9a-zA-Z]+" required value="{{card.holder}}"/>
                 </div>
                 <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardExpiryDate-{{$index}}">{{resourceBundle.card_expiry_date}}}}</label>
+                    <label for="personalCardExpiryDate-{{$index}}">{{resourceBundle.card_expiry_date}}</label>
                     <input type="month" id="personalCardExpiryDate-{{$index}}" class="form-control" required ng-model="card.expiryDateVal" min="{{minEpiryDate}}" />
                 </div>
             </div>

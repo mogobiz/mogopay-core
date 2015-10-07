@@ -237,15 +237,15 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.userUUID = response.uuid;
 			scope.$apply();
 		}
-		callServer("account/generate-new-secret", "", success, function () {})
+		callServer("account/generate-new-secret", "", success, function () {}, "GET", true, true, true);
 	}
 
 	function profileResendMailConfirmation(scope, location, rootScope, route) {
-		callServer("account/generateNewEmailCode", "", function (response) {}, function (response) {});
+		callServer("account/generateNewEmailCode", "", function (response) {}, function (response) {}, "GET", true, true, true);
 	}
 
 	function profileResendPhoneValidation(scope, location, rootScope, route) {
-		callServer("account/generateNewPhoneCode", "", function (response) {}, function (response) {});
+		callServer("account/generateNewPhoneCode", "", function (response) {}, function (response) {}, "GET", true, true, true);
 	}
 
 	function profileCheckPhoneNumberForCountry(scope, location, rootScope, route) {
@@ -262,12 +262,8 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				$("#profilePhoneNumber").val("");
 			}
 		};
-		callServer(
-				"country/" + scope.profileCountriesModel.code + "/check-phone-number/" + $("#profilePhoneNumber").val(),
-			"",
-			success,
-			function (response) {}
-		);
+		var action = "country/" + scope.profileCountriesModel.code + "/check-phone-number/" + $("#profilePhoneNumber").val();
+		callServer(action, "", success, function (response) {}, "GET", false, false, false);
 	}
 
 	function profileCheckPasswordRegExValidity(scope, location, rootScope, route) {
@@ -279,7 +275,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}
 		};
 		var pattern = encodeURIComponent($("#authPasswordRegex").val());
-		callServer("account/is-pattern-valid/" + pattern, "", success, function (response) {});
+		callServer("account/is-pattern-valid/" + pattern, "", success, function (response) {}, "GET", false, false, false);
 	}
 
 	function profileGetCitiesForAutoComplete(country, state, region, city, response) {
@@ -291,7 +287,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}));
 		};
 		var dataToSend = "country=" + country + "&parent_admin1_code=" + state + "&parent_admin2_code=" + region + "&name=" + city;
-		callServer("country/cities", dataToSend, success, function (response) {});
+		callServer("country/cities", dataToSend, success, function (response) {}, "GET", false, false, false);
 	}
 
 	function profileLoadCountries(scope, location, rootScope, route) {
@@ -310,7 +306,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}
 			scope.$apply();
 		}
-		callServer("country/countries-for-billing", "", success, function (response) {});
+		callServer("country/countries-for-billing", "", success, function (response) {}, "GET", false, true, true);
 	}
 
 	function profileLoadStatesForCountry(scope, location, rootScope, route) {
@@ -338,7 +334,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}
 			scope.$apply();
 		};
-		callServer("country/admins1/" + scope.profileCountriesModel.code, "", success, function (response) {});
+		callServer("country/admins1/" + scope.profileCountriesModel.code, "", success, function (response) {}, "GET", true, true, true);
 	}
 
 	function profileLoadRegionsForState(scope, location, rootScope, route) {
@@ -361,7 +357,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.$apply();
 		};
 		var dataToSend = "country=" + scope.profileCountriesModel.code + "&state=" + scope.profileStateModel.code;
-		callServer("country/admins2/" + scope.profileStateModel.code, "", success, function (response) {});
+		callServer("country/admins2/" + scope.profileStateModel.code, "", success, function (response) {}, "GET", true, true, true);
 	}
 
 	function sipsCetificateFileChangeContent(evt, scope, location, rootScope, route) {
@@ -456,7 +452,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		dataToSend += "&number=" + $("#personalCardNumber").val();
 		dataToSend += "&holder=" + $("#personalCardHolderName").val();
 		dataToSend += "&expiry_date=" + $("#personalCardExpiryDate").val();
-		callServer("account/add-credit-card", dataToSend, success, function (response) {});
+		callServer("account/add-credit-card", dataToSend, success, function (response) {}, "GET", true, true, true);
 	}
 
 	function profileUpdateCreditCard(scope, location, rootScope, route, index) {
@@ -480,7 +476,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		dataToSend += "&type=" + scope.personalCardsTypeModel[index].value;
 		dataToSend += "&holder=" + $("#personalCardHolderName-" + index).val();
 		dataToSend += "&expiry_date=" + $("#personalCardExpiryDate-" + index).val();
-		callServer("account/add-credit-card", dataToSend, success, function (response) {});
+		callServer("account/add-credit-card", dataToSend, success, function (response) {}, "GET", true, true, true);
 	}
 
 	function profileDeleteCreditCard(scope, location, rootScope, route, index) {
@@ -492,7 +488,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		};
 		var dataToSend = "";
 		dataToSend += "&card_id=" + scope.creditCards[index].uuid;
-		callServer("account/delete-credit-card", dataToSend, success, function (response) {});
+		callServer("account/delete-credit-card", dataToSend, success, function (response) {}, "GET", true, true, true);
 	}
 
 // PROFILE FUNCTIONS
@@ -507,7 +503,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			else
 				navigateToPage(scope, location, rootScope, route, "listTransactions");
 		};
-		postOnServer("account/" + action, dataToSend, success, function (response) {});
+		callServer("account/" + action, dataToSend, success, function (response) {}, "POST", true, true, true);
 	}
 
 	function getProfileFormData(scope, location, rootScope, route) {

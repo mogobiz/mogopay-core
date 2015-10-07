@@ -2,7 +2,7 @@
  * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
  */
 
-function ForgetPasswordCtrl($scope, $location, $rootScope ,$route){
+function ForgetPasswordCtrl($scope, $location, $rootScope, $route){
 	$scope.forgettenSelectedSeller = $rootScope.allSellers[0].id;
     $scope.sendNewPassword = function (){sendNewPassword($scope, $location, $rootScope, $route)};
 }
@@ -25,5 +25,5 @@ function sendNewPassword(scope, location, rootScope, route){
     var data = {email: $("#emailForgotten").val()};
 		if(!rootScope.isMerchant)
 			data.merchantId = scope.forgettenSelectedSeller;
-    callServerJson("account/send-new-password", data, success, failure, "POST");
+    callServer("account/send-new-password", data, success, failure, "POST", true, true, true);
 }

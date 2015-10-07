@@ -102,7 +102,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 	}
 
 	$rootScope.logout = function () {
-		callServer("account/logout", "", function (response) {}, function (response) {});
+		callServer("account/logout", "", function (response) {}, function (response) {}, "GET", true, true, true);
 		$rootScope.xtoken = null;
 		$rootScope.isMerchant = null;
 		$rootScope.userProfile = null;
@@ -133,7 +133,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 					navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
 			});
 		};
-		callServer("account/list-compagnies", "", success, function (response) {}, "GET");
+		callServer("account/list-compagnies", "", success, function (response) {}, "GET", false, false, false);
 	};
 	$scope.urlHistory = [];
 	$scope.$on("$routeChangeSuccess", function () {
@@ -190,7 +190,7 @@ function validationConfirmSignUp(scope, location, rootScope, route){
 		scope.validationError = true;
 		scope.$apply();
 	}
-	callServer("account/confirm-signup", dataToSend, success, error);
+	callServer("account/confirm-signup", dataToSend, success, error, "GET", true, false, true);
 }
 
 function validationGetUserProfile(scope, location, rootScope, route){
@@ -201,5 +201,5 @@ function validationGetUserProfile(scope, location, rootScope, route){
 			window.location.href = deployUrl + "customer.html";
 	}
 	var error = function(response){}
-	callServer("account/profile-info", "", success, error);
+	callServer("account/profile-info", "", success, error, "GET", true, true, true);
 }

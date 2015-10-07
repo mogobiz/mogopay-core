@@ -2,7 +2,7 @@
  * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
  */
 
-function LoginCtrl($scope, $location, $rootScope ,$route) {
+function LoginCtrl($scope, $location, $rootScope, $route) {
     $scope.signup = function () {
         $rootScope.createPage = true;
         $rootScope.userProfile = null;
@@ -25,7 +25,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 				$rootScope.userProfile = infoResponse;
 				$rootScope.getAllStores();
 			}
-			callServer("account/profile-info", "", infoSuccess, function(){});
+			callServer("account/profile-info", "", infoSuccess, function(){}, "GET", false, true, true);
         };
 
         var error = function (response) {
@@ -39,7 +39,7 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 		if(!$rootScope.isMerchant)
 			dataToSend += "&merchant_id=" + $scope.loginSelectedSeller;
 
-        postOnServer("account/login", dataToSend, success, error);
+        callServer("account/login", dataToSend, success, error, "POST", true, false, true);
     };
 
     $scope.requestNewPassword =  function () {
@@ -50,8 +50,11 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 		$rootScope.isMerchant = true;
 	if(customerPage == true)
 		$rootScope.isMerchant = false;
-	$("#mainContainer").hide();
 
+	if($rootScope.allSellers && $rootScope.allSellers.length > 0){
+		loginGetProfileInfo($scope, $location, $rootScope, $route);
+		return;
+	}
 	var listSuccess = function(response){
 		$scope.$apply(function () {
 			var allSellers = [];
@@ -63,80 +66,60 @@ function LoginCtrl($scope, $location, $rootScope ,$route) {
 			$rootScope.allSellers = allSellers;
 			$scope.loginSelectedSeller = $rootScope.allSellers[0].id;
 		});
-		var success = function (){};
-		var failure = function (){};
-		if(indexPage == true){
-			success = function (response) {
-				$("#mainContainer").show();
-				$rootScope.userProfile = response;
-				$rootScope.getAllStores();
-			};
-
-			failure = function (response) {
-				$("#loginContainer").show();
-				$("#mainContainer").show();
-			};
-		}
-		if(merchantPage == true){
-			success = function (response) {
-				$("#mainContainer").show();
-				if(!response.isMerchant){
-					callServer("account/logout", "", function (response) {
-						callServer("account/merchant-token", "",
-						function (response) {
-							$rootScope.xtoken = response;
-						},
-							function (response) {
-						});
-					}, function (response) {});
-				}
-				else{
-					$rootScope.userProfile = response;
-					$rootScope.getAllStores();
-				}
-			};
-
-			failure = function (response) {
-				$("#mainContainer").show();
-				$("#loginContainer").show();
-				callServer("account/merchant-token", "",
-					function (response) {
-						$rootScope.xtoken = response;
-					},
-					function (response) {
-				});
-			};
-		}
-		if(customerPage == true){
-			success = function (response) {
-				$("#mainContainer").show();
-				if(response.isMerchant){
-					callServer("account/logout", "", function (response) {
-						callServer("account/customer-token", "",
-						function (response) {
-							$rootScope.xtoken = response;
-						},
-							function (response) {
-						});
-					}, function (response) {});
-				}
-				else{
-					$rootScope.userProfile = response;
-					$rootScope.getAllStores();
-				}
-			};
-			failure = function (response) {
-				$("#mainContainer").show();
-				$("#loginContainer").show();
-				callServer("account/customer-token", "",
-					function (response) {
-						$rootScope.xtoken = response;
-					},
-					function (response) {
-				});
-			};
-		}
-		callServer("account/profile-info", "", success, failure);
+		loginGetProfileInfo($scope, $location, $rootScope, $route);
 	}
-	callServer("account/list-merchants", "", listSuccess, function (response) {}, "GET");
+	callServer("account/list-merchants", "", listSuccess, function (response) {}, "GET", true, true, true);
+}
+
+function loginGetProfileInfo(scope, location, rootScope, route){
+	var success = function (){};
+	var failure = function (){};
+	if(indexPage == true){
+		success = function (response) {
+			rootScope.userProfile = response;
+			rootScope.getAllStores();
+		};
+
+		failure = function (response) {
+			$("#loginContainer").show();
+		};
+	}
+	if(merchantPage == true){
+		success = function (response) {
+			if(!response.isMerchant){
+				var logoutSuccess = function (response) {
+					callServer("account/merchant-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+				}
+				callServer("account/logout", "", logoutSuccess, function (response) {}, "GET", false, false, false);
+			}
+			else{
+				rootScope.userProfile = response;
+				rootScope.getAllStores();
+			}
+		};
+
+		failure = function (response) {
+			$("#loginContainer").show();
+			callServer("account/merchant-token", "", function (response){rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+		};
+	}
+	if(customerPage == true){
+		success = function (response) {
+			if(response.isMerchant){
+				var logoutSuccess = function (response) {
+					callServer("account/customer-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+				}
+				callServer("account/logout", "", logoutSuccess, function (response) {}, "GET", false, false, false);
+			}
+			else{
+				rootScope.userProfile = response;
+				rootScope.getAllStores();
+			}
+		};
+		failure = function (response) {
+			$("#loginContainer").show();
+			callServer("account/customer-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+		};
+	}
+	callServer("account/profile-info", "", success, failure, "GET", false, false, false);
 }

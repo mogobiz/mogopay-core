@@ -13,7 +13,7 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 			$scope.$apply();
 			navigateToPage($scope, $location, $rootScope, $route, "profile");
 		};
-		callServer("account/profile-info", "", success, function (response) {});
+		callServer("account/profile-info", "", success, function (response) {}, "GET", true, false, true);
 	};
 	$scope.goToListCustomers = function () {
 		navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
@@ -30,6 +30,8 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		rootScope.transactions = response.list;
 		if(rootScope.transactions.length > 0)
 			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
+		else
+			$("body").removeClass("loading");
 	};
 	var dataToSend = "";
 
@@ -90,7 +92,7 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		dataToSend += "endDate=" + encodeURIComponent(endDate);
 	}
 
-	callStoreServer("backoffice/listOrders", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET");
+	callStoreServer("backoffice/listOrders", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET", true, false, true);
 }
 
 function listTransactionsGetCartItems(scope, location, rootScope, route, transactionUUID, index){
@@ -109,7 +111,8 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 			listRetunedStatus = [{value: "None"}];
 		rootScope.transactions[index].listRetunedStatus = listRetunedStatus;
 		if(index == rootScope.transactions.length - 1){
-			scope.$apply();
+			scope.$apply()
+			$("body").removeClass("loading");
 		}
 		else{
 			index++;
@@ -120,13 +123,14 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 		rootScope.transactions[index].listRetunedStatus = [{value: "None"}];
 		if(index == rootScope.transactions.length - 1){
 			scope.$apply();
+			$("body").removeClass("loading");
 		}
 		else{
 			index++;
 			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[index].uuid, index)
 		}
 	}
-	callStoreServer("backoffice/cartDetails/" + transactionUUID, "", success, error, rootScope.selectedStore, "GET");
+	callStoreServer("backoffice/cartDetails/" + transactionUUID, "", success, error, rootScope.selectedStore, "GET", false, false, false);
 }
 
 function zerosAutoComplete(number, length){
