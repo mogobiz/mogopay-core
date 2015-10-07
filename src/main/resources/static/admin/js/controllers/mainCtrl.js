@@ -102,16 +102,18 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 	}
 
 	$rootScope.logout = function () {
-		callServer("account/logout", "", function (response) {}, function (response) {}, "GET", true, true, true);
-		$rootScope.xtoken = null;
-		$rootScope.isMerchant = null;
-		$rootScope.userProfile = null;
-		$rootScope.transactions = null;
-		$rootScope.customers = null;
-		if(indexPage == true)
-			navigateToPage($scope, $location, $rootScope, $route, "home");
-		if(merchantPage == true || customerPage == true)
-			navigateToPage($scope, $location, $rootScope, $route, "login");
+		var success = function(response) {
+			$rootScope.xtoken = null;
+			$rootScope.isMerchant = null;
+			$rootScope.userProfile = null;
+			$rootScope.transactions = null;
+			$rootScope.customers = null;
+			if(indexPage == true)
+				navigateToPage($scope, $location, $rootScope, $route, "home");
+			if(merchantPage == true || customerPage == true)
+				navigateToPage($scope, $location, $rootScope, $route, "login");
+		}
+		callServer("account/logout", "", success, function (response) {}, "GET", true, true, true);
 	};
 
 	$rootScope.isPageActive = function (route) {

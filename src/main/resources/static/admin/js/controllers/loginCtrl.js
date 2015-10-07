@@ -52,6 +52,7 @@ function LoginCtrl($scope, $location, $rootScope, $route) {
 		$rootScope.isMerchant = false;
 
 	if($rootScope.allSellers && $rootScope.allSellers.length > 0){
+		$scope.loginSelectedSeller = $rootScope.allSellers[0].id;
 		loginGetProfileInfo($scope, $location, $rootScope, $route);
 		return;
 	}
@@ -88,6 +89,7 @@ function loginGetProfileInfo(scope, location, rootScope, route){
 		success = function (response) {
 			if(!response.isMerchant){
 				var logoutSuccess = function (response) {
+					$("#loginContainer").show();
 					callServer("account/merchant-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
 				}
 				callServer("account/logout", "", logoutSuccess, function (response) {}, "GET", false, false, false);
@@ -107,6 +109,7 @@ function loginGetProfileInfo(scope, location, rootScope, route){
 		success = function (response) {
 			if(response.isMerchant){
 				var logoutSuccess = function (response) {
+					$("#loginContainer").show();
 					callServer("account/customer-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
 				}
 				callServer("account/logout", "", logoutSuccess, function (response) {}, "GET", false, false, false);

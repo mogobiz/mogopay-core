@@ -4,28 +4,28 @@
 
 <header ng-include src="'partials/header.html'"></header>
 <ul class="nav nav-tabs">
-    <li ng-if="isMerchant==false" class="active" id="profileInfoTab">
+	<li ng-if="isMerchant==false" class="active" id="profileInfoTab">
 		<a href="javascript:void(0)" data-target="#profileInfo" data-toggle="tab">{{resourceBundle.profile_tab_customer_info}}</a>
 	</li>
-    <li ng-if="isMerchant==true" class="active" id="profileInfoTab">
+	<li ng-if="isMerchant==true" class="active" id="profileInfoTab">
 		<a href="javascript:void(0)" data-target="#profileInfo" data-toggle="tab">{{resourceBundle.profile_tab_merchant_info}}</a>
 	</li>
-    <li ng-if="isMerchant==true" id="creditCardTab">
+	<li ng-if="isMerchant==true" id="creditCardTab">
 		<a href="javascript:void(0)" data-target="#creditCard" data-toggle="tab">{{resourceBundle.profile_tab_credit_card}}</a>
 	</li>
-    <li ng-if="isMerchant==true" id="paypalTab">
+	<li ng-if="isMerchant==true" id="paypalTab">
 		<a href="javascript:void(0)" data-target="#paypal" data-toggle="tab">{{resourceBundle.profile_tab_paypal}}</a>
 	</li>
-    <li ng-if="isMerchant==true" id="applePayTab">
+	<li ng-if="isMerchant==true" id="applePayTab">
 		<a href="javascript:void(0)" data-target="#applePay" data-toggle="tab">{{resourceBundle.profile_tab_apple_pay}}</a>
 	</li>
-    <li ng-if="isMerchant==true" id="authTab">
+	<li ng-if="isMerchant==true" id="authTab">
 		<a href="javascript:void(0)" data-target="#auth" data-toggle="tab">{{resourceBundle.profile_tab_auth}}</a>
 	</li>
-    <li ng-if="isMerchant==true" id="groupPaymentTab">
+	<li ng-if="isMerchant==true" id="groupPaymentTab">
 		<a href="javascript:void(0)" data-target="#groupPayment" data-toggle="tab">{{resourceBundle.profile_tab_group_payment}}</a>
 	</li>
-    <li ng-if="isMerchant==true" id="emailInfoTab">
+	<li ng-if="isMerchant==true" id="emailInfoTab">
 		<a href="javascript:void(0)" data-target="#emailInfo" data-toggle="tab">{{resourceBundle.profile_tab_email_info}}</a>
 	</li>
 </ul>
@@ -359,64 +359,64 @@
 </div>
 
 <div class="row row-fluid" style="margin: 0px 0px 20px 0px;">
-    <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6">
-        <input type="button" class="btn btn-default pull-right" value="{{resourceBundle.btn_update_profile}}" ng-click="saveProfile()"/>
-        <input type="button" class="btn btn-primary pull-right" style="margin-right: 5px" value="{{resourceBundle.btn_change_password}}" ng-click="profileChangePassword()"/>
-    </div>
+	<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6">
+		<input type="button" class="btn btn-default pull-right" value="{{resourceBundle.btn_update_profile}}" ng-click="saveProfile()"/>
+		<input type="button" class="btn btn-primary pull-right" style="margin-right: 5px" value="{{resourceBundle.btn_change_password}}" ng-click="profileChangePassword()"/>
+	</div>
 </div>
 
 <div class="row-fluid" id="profilePersonaleCards">
-    <div class="panel panel-default">
-        <div class="panel-heading"><h3 class="panel-title">{{resourceBundle.card_managment}}</h3></div>
-        <div class="panel-body">
-            <div class="row row-fluid">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardType">{{resourceBundle.card_type}}</label>
-                    <select id="personalCardType" class="form-control" ng-model="personalCardTypeModel" ng-options="obj.name for obj in personalCardTypeOptions"></select>
-                </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardNumber">{{resourceBundle.card_number}}</label>
-                    <input type="text" id="personalCardNumber" class="form-control" required ng-blur="profileCheckCreditCardNumber()"/>
-                </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardHolderName">{{resourceBundle.card_holder_name}}</label>
-                    <input type="text" id="personalCardHolderName" class="form-control" pattern="[0-9a-zA-Z]+" required />
-                </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardExpiryDate">{{resourceBundle.card_expiry_date}}</label>
-                    <input type="month" id="personalCardExpiryDate" class="form-control" required min="{{minEpiryDate}}" />
-                </div>
-            </div>
-            <div style="margin-top: 10px;">
-                <input type="button" class="btn btn-default pull-right" value="{{resourceBundle.btn_add}}" ng-click="addCard()"/>
-            </div>
-        </div>
-    </div>
-    <div class="panel panel-default" ng-repeat="card in creditCards">
-        <div class="panel-heading"><h3 class="panel-title">Card #{{$index + 1}}</h3></div>
-        <div class="panel-body">
-            <div class="row row-fluid">
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardType-{{$index}}">{{resourceBundle.card_type}}</label>
-                    <select id="personalCardType-{{$index}}" name="creditCardNumer" class="form-control" ng-model="personalCardsTypeModel[$index]" ng-options="obj.name for obj in personalCardsTypeOptions[$index]"></select>
-                </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardNumber-{{$index}}">{{resourceBundle.card_number}}</label>
-                    <input type="text" id="personalCardNumber-{{$index}}" class="form-control" value="{{card.hiddenNumber}}" readonly />
-                </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardHolderName-{{$index}}">{{resourceBundle.card_hoder_name}}</label>
-                    <input type="text" id="personalCardHolderName-{{$index}}" class="form-control" pattern="[0-9a-zA-Z]+" required value="{{card.holder}}"/>
-                </div>
-                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
-                    <label for="personalCardExpiryDate-{{$index}}">{{resourceBundle.card_expiry_date}}</label>
-                    <input type="month" id="personalCardExpiryDate-{{$index}}" class="form-control" required ng-model="card.expiryDateVal" min="{{minEpiryDate}}" />
-                </div>
-            </div>
-            <div style="margin-top: 10px;">
-                <input type="button" class="btn btn-danger pull-right" value="{{resourceBundle.btn_delete}}" ng-click="deleteCard($index)"/>
-                <input type="button" class="btn btn-info pull-right" value="{{resourceBundle.btn_update}}" ng-click="updateCard($index)" style="margin-right: 10px;"/>
-            </div>
-        </div>
-    </div>
+	<div class="panel panel-default">
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.card_managment}}</h3></div>
+		<div class="panel-body">
+			<div class="row row-fluid">
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardType">{{resourceBundle.card_type}}</label>
+					<select id="personalCardType" class="form-control" ng-model="personalCardTypeModel" ng-options="obj.name for obj in personalCardTypeOptions"></select>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardNumber">{{resourceBundle.card_number}}</label>
+					<input type="text" id="personalCardNumber" class="form-control" required ng-blur="profileCheckCreditCardNumber()"/>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardHolderName">{{resourceBundle.card_holder_name}}</label>
+					<input type="text" id="personalCardHolderName" class="form-control" pattern="[0-9a-zA-Z]+" required />
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardExpiryDate">{{resourceBundle.card_expiry_date}}</label>
+					<input type="month" id="personalCardExpiryDate" class="form-control" required min="{{minEpiryDate}}" />
+				</div>
+			</div>
+			<div style="margin-top: 10px;">
+				<input type="button" class="btn btn-default pull-right" value="{{resourceBundle.btn_add}}" ng-click="addCard()"/>
+			</div>
+		</div>
+	</div>
+	<div class="panel panel-default" ng-repeat="card in creditCards">
+		<div class="panel-heading"><h3 class="panel-title">Card #{{$index + 1}}</h3></div>
+		<div class="panel-body">
+			<div class="row row-fluid">
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardType-{{$index}}">{{resourceBundle.card_type}}</label>
+					<select id="personalCardType-{{$index}}" name="creditCardNumer" class="form-control" ng-model="personalCardsTypeModel[$index]" ng-options="obj.name for obj in personalCardsTypeOptions[$index]"></select>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardNumber-{{$index}}">{{resourceBundle.card_number}}</label>
+					<input type="text" id="personalCardNumber-{{$index}}" class="form-control" value="{{card.hiddenNumber}}" readonly />
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardHolderName-{{$index}}">{{resourceBundle.card_hoder_name}}</label>
+					<input type="text" id="personalCardHolderName-{{$index}}" class="form-control" pattern="[0-9a-zA-Z]+" required value="{{card.holder}}"/>
+				</div>
+				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding-top: 8px;">
+					<label for="personalCardExpiryDate-{{$index}}">{{resourceBundle.card_expiry_date}}</label>
+					<input type="month" id="personalCardExpiryDate-{{$index}}" class="form-control" required ng-model="card.expiryDateVal" min="{{minEpiryDate}}" />
+				</div>
+			</div>
+			<div style="margin-top: 10px;">
+				<input type="button" class="btn btn-danger pull-right" value="{{resourceBundle.btn_delete}}" ng-click="deleteCard($index)"/>
+				<input type="button" class="btn btn-info pull-right" value="{{resourceBundle.btn_update}}" ng-click="updateCard($index)" style="margin-right: 10px;"/>
+			</div>
+		</div>
+	</div>
 </div>
