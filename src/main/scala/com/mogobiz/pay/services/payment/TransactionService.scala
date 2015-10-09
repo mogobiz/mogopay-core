@@ -29,7 +29,6 @@ import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
 import spray.routing._
-import spray.routing.directives.RouteDirectives
 
 import scala.concurrent.duration._
 import scala.concurrent._

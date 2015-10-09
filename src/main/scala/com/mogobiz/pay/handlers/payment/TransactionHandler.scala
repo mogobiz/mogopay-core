@@ -17,7 +17,6 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.shipping.{ShippingPrice, ShippingService}
 import com.mogobiz.pay.handlers.{EmailHandler, UtilHandler}
-import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
@@ -32,8 +31,10 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.commons.lang.LocaleUtils
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
+
 import org.json4s.JsonAST.{JField, JObject}
 import org.json4s._
+import org.json4s.ext.JodaTimeSerializers
 import org.json4s.jackson.JsonMethods._
 
 import scala.collection.{Map, _}
