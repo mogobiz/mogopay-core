@@ -1,4 +1,4 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
   title: Mogopay API
   description: Make payment easy with the Mogopay API
@@ -13,6 +13,7 @@ basePath: /v1
 produces:
   - application/json
 paths:
+#Account Services
   /is-pattern-valid:
     get:
       summary: Check password pattern validity
@@ -94,11 +95,11 @@ paths:
         400:
           description: Bad Request if password isn't updated.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /generate-new-phone-code:
     get:
       summary: Send code via sms.
@@ -110,7 +111,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /enroll:
     get:
       summary: Update user phone number.
@@ -135,11 +136,11 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
         500:
           description: Unexpected Error.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /generate-new-secret:
     get:
       summary: Generate new secret code.
@@ -151,11 +152,11 @@ paths:
         404:
           description: Not Found.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /add-credit-card:
     get:
       summary: Add or update credit card.
@@ -195,11 +196,11 @@ paths:
         200:
           description: OK.
           schema:
-            $ref: '#/definitions/creditCard'
+            $ref: "#/definitions/creditCard"
         401:
           description: Unauthorized.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /delete-credit-card:
     get:
       summary: Remove credit card.
@@ -218,7 +219,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /logout:
     get:
       summary: Signing out.
@@ -236,11 +237,11 @@ paths:
         200:
           description: OK.
           schema:
-            $ref: '#/definitions/accountAddress'
+            $ref: "#/definitions/accountAddress"
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /shipping-addresses:
     get:
       summary: Return a list of all shipping addresses for an account.
@@ -252,11 +253,11 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/shippingAddress'
+              $ref: "#/definitions/shippingAddress"
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /shipping-address:
     get:
       summary: Return the current shipping address of an account.
@@ -266,11 +267,11 @@ paths:
         200:
           description: OK.
           schema:
-            $ref: '#/definitions/shippingAddress'
+            $ref: "#/definitions/shippingAddress"
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /profile-info:
     get:
       summary: Get the user profile info.
@@ -302,11 +303,11 @@ paths:
               cards:
                 type: array
                 items:
-                  $ref: '#/definitions/creditCard'
+                  $ref: "#/definitions/creditCard"
               countries:
                 type: array
                 items:
-                  $ref: '#/definitions/country'
+                  $ref: "#/definitions/country"
               cbParam:
                 $ref: "#/definitions/cbParam"
               paypalParam:
@@ -316,7 +317,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /assign-billing-address:
     get:
       summary: Change current billing address.
@@ -395,7 +396,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /add-shipping-address:
     get:
       summary: Add a billing address.
@@ -474,7 +475,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /update-shipping-address:
     get:
       summary: Update an existing billing address.
@@ -553,7 +554,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /delete-shipping-address:
     get:
       summary: Delete specified billing address.
@@ -572,7 +573,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /active-country-state-shipping:
     get:
       summary: Get the country and state of tha active shipping address.
@@ -593,7 +594,7 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
   /list-compagnies:
     get:
       summary: Get the list of companies.
@@ -609,10 +610,10 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
-  /list-merchant:
+            $ref: "#/definitions/error"
+  /list-merchants:
     get:
-      summary: Get the list of companies.
+      summary: Get the list of all merchants.
       tags:
         - Account
       responses:
@@ -631,20 +632,579 @@ paths:
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
-            $ref: '#/definitions/error'
+            $ref: "#/definitions/error"
+  /select-shipping-address:
+    get:
+      summary: Update account shipping address.
+      parameters:
+        - name: address_id
+          in: query
+          description: Id of the selected address
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: "#/definitions/error"
+  /confirm-signup:
+    get:
+      summary: Confirm account signing up via token.
+      parameters:
+        - name: token
+          in: query
+          description: Secret token send it via email
+          required: true
+          type: string
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: "#/definitions/account"
+        500:
+          description: Invalid token.
+          schema:
+            $ref: "#/definitions/error"
 
+#Backoffice Tag
+  /customers:
+    get:
+      summary: Get list of all customers.
+      parameters:
+        - name: page
+          in: query
+          required: true
+          description: Page number to display
+          type: string
+          format: int32
+        - name: max
+          in: query
+          description: Maximum customers in page
+          required: true
+          type: string
+          format: int32
+      tags:
+        - Backoffice
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/account"
+  /transactions:
+    get:
+      summary: Get list of all transactions.
+      parameters:
+        - name: transaction_uuid
+          in: query
+          required: false
+          description: Transaction id
+          type: string
+          format: uuid
+        - name: email
+          in: query
+          description: Customer email
+          required: false
+          type: string
+          format: email
+        - name: transaction_status
+          in: query
+          required: false
+          description: Transaction status
+          type: string
+        - name: delivery_status
+          in: query
+          required: false
+          description: Delivery status
+          type: string
+        - name: amount
+          in: query
+          required: false
+          description: Transaction amount
+          type: string
+          format: float
+        - name: start_date
+          in: query
+          required: false
+          description: Transaction start date
+          type: string
+          format: date
+        - name: start_time
+          in: query
+          required: false
+          description: Transaction start time
+          type: string
+          format: date-time
+        - name: end_date
+          in: query
+          required: false
+          description: Transaction end date
+          type: string
+          format: date
+        - name: end_time
+          in: query
+          required: false
+          description: Transaction end time
+          type: string
+          format: date-time
+      tags:
+        - Backoffice
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/transaction"
+  /transactions/{transactionId}/logs:
+    get:
+      summary: Get list of all log for a transaction.
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          description: Transaction id
+          type: string
+          format: uuid
+      tags:
+        - Backoffice
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/transactionLog"
+  /transaction/{uuid}:
+    get:
+      summary: Get transaction details.
+      parameters:
+        - name: uuid
+          in: path
+          description: Transaction id
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Backoffice
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: "#/definitions/transaction"
 
-
-
-
-
-
+#Country Tag
+  /countries-for-shipping:
+    get:
+      summary: Get list of all countries we can ship for.
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/country"
+  /countries-for-billing:
+    get:
+      summary: Get list of all countries we can bill for.
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/country"
+  /country/{code}:
+    get:
+      summary: Get country by code.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Country code
+          type: string
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: "#/definitions/country"
+  /admins1/{countryCode}:
+    get:
+      summary: Get country states.
+      parameters:
+        - name: countryCode
+          in: path
+          description: Country code
+          required: true
+          type: string
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/countryAdmin"
+  /admins2/{admin1}:
+    get:
+      summary: Get state regions.
+      parameters:
+        - name: admin1
+          in: path
+          description: State code
+          required: true
+          type: string
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/countryAdmin"
+  /cities:
+    get:
+      summary: Get a list of cities.
+      parameters:
+        - name: country
+          in: query
+          description: Country code
+          required: false
+          type: string
+        - name: parent_admin1_code
+          in: query
+          description: State code
+          required: false
+          type: string
+        - name: parent_admin2_code
+          in: query
+          description: Region code
+          required: false
+          type: string
+        - name: name
+          in: query
+          description: A part or full city name
+          required: false
+          type: string
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/countryAdmin"
+  /{countryCode}/check-phone-number/{phone}:
+    get:
+      summary: Get a list of cities.
+      parameters:
+        - name: countryCode
+          in: path
+          description: Country code
+          required: true
+          type: string
+        - name: phone
+          in: path
+          description: Phone number to be checked
+          required: true
+          type: string
+      tags:
+        - Country
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/phoneVerification"
+#Rate Tag
+  /list:
+    get:
+      summary: Get list of all rates.
+      tags:
+        - Rate
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/rate"
+  /format:
+    get:
+      summary: Get formatted rate.
+      parameters:
+        - name: amout
+          in: query
+          description: Amount to be formatted
+          required: true
+          type: integer
+          format: int32
+        - name: currency
+          in: query
+          description: Currency in use
+          required: true
+          type: string
+        - name: country
+          in: query
+          description: Country code
+          required: true
+          type: string
+      tags:
+        - Rate
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: string
+#User Tag
+  /register:
+    get:
+      summary: Register a new user.
+      parameters:
+        - name: callback_success
+          in: query
+          description: A URL to be called in case of success
+          required: true
+          type: string
+          format: url
+        - name: callback_error
+          in: query
+          description: A URL to be called in case of error
+          required: true
+          type: string
+          format: url
+        - name: merchant_id
+          in: query
+          description: Merchant id owner of the new user
+          required: true
+          type: string
+          format: uuid
+        - name: email
+          in: query
+          description: User email
+          required: true
+          type: string
+          format: email
+        - name: password
+          in: query
+          description: User password
+          required: true
+          type: string
+      tags:
+        - User
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: "#/definitions/registerdUser"
 
 
 
 
 
 definitions:
+# General Definitions
+  country:
+    type: object
+    required:
+      - uuid
+      - code
+      - name
+      - shipping
+      - billing
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      code:
+        type: string
+      name:
+        type: string
+      shipping:
+        type: boolean
+      billing:
+        type: boolean
+      zipCodeRegex:
+        type: string
+      currencyCode:
+        type: string
+      currencyNumericCode:
+        type: string
+        format: int32
+      currencyName:
+        type: string
+      phoneCode:
+        type: string
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+  countryAdmin:
+    type: object
+    required:
+      - uuid
+      - level
+      - country
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      code:
+        type: string
+      name:
+        type: string
+      level:
+        type: integer
+        format: int32
+      country:
+        $ref: "#/definitions/countryRef"
+      parentCountryAdmin1:
+        $ref: "#/definitions/countryAdminRef"
+      parentCountryAdmin2:
+        $ref: "#/definitions/countryAdminRef"
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+  countryRef:
+    type: object
+    required:
+      - uuid
+      - code
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      code:
+        type: string
+
+  countryAdminRef:
+    type: object
+    required:
+      - uuid
+      - code
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      code:
+        type: string
+
+  phoneVerification:
+    type: object
+    required:
+      - isValid
+    properties:
+      isValid:
+        type: boolean
+      nationalFormat:
+        type: string
+      internationalFormat:
+        type: string
+      phoneType:
+        $ref: "#/definitions/phoneType"
+
+
+  rate:
+    type: object
+    required:
+      - uuid
+      - currencyCode
+      - activationDate
+      - currencyRate
+      - currencyFractionDigits
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      currencyCode:
+        type: string
+      activationDate:
+        type: string
+        format: date
+      currencyRate:
+        type: number
+        format: double
+      currencyFractionDigits:
+        type: integer
+        format: int32
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+  registerdUser:
+    type: object
+    required:
+      - mogopay_token
+      - callback_success
+      - callback_error
+      - merchant_id
+      - userEmail
+      - userPassword
+    properties:
+      mogopay_token:
+        type: string
+      callback_success:
+        type: string
+        format: url
+      callback_error:
+        type: string
+        format: url
+      merchant_id:
+        type: string
+        format: uuid
+      userEmail:
+        type: string
+        format: email
+      userPassword:
+        type: string
+
+  error:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+
+# Account Definitions
   account:
     type: object
     required:
@@ -728,187 +1288,11 @@ definitions:
       shippingAddresses:
         type: array
         items:
-          $ref: '#/definitions/shippingAddress'
+          $ref: "#/definitions/shippingAddress"
       creditCards:
         type: array
         items:
-          $ref: '#/definitions/creditCard'
-
-  paymentConfig:
-    type: object
-    required:
-      - cbProvider
-      - paymentMethod
-      - emailField
-      - passwordField
-      - dateCreated
-      - lastUpdated
-    properties:
-      kwixoParam:
-        type: string
-      paypalParam:
-        type: string
-      applePayParam:
-        type: string
-      cbParam:
-        type: string
-      cbProvider:
-        $ref: "#/definitions/cbProvider"
-      paymentMethod:
-        $ref: "#/definitions/paymentMethod"
-      emailField:
-        type: string
-      passwordField:
-        type: string
-      senderName:
-        type: string
-      senderEmail:
-        type: string
-      callbackPrefix:
-        type: string
-      passwordPattern:
-        type: string
-      dateCreated:
-        type: string
-        format: date
-      lastUpdated:
-        type: string
-        format: date
-      pwdEmailContent:
-        type: string
-      pwdEmailSubject:
-        type: string
-      groupPaymentInfo:
-        $ref: "#/definitions/groupPaymentInfo"
-
-  cbProvider:
-    type: object
-    required:
-      - name
-    properties:
-      name:
-        type: string
-        format: NONE|AUTHORIZENET|PAYLINE|PAYBOX|SIPS|SYSTEMPAY
-
-  cbParam:
-    type: object
-    properties:
-      systempayShopId:
-        type: string
-      systempayContractNumber:
-        type: string
-      systempayCertificate:
-        type: string
-
-  paypalParam:
-    type: object
-    properties:
-      paypalUser:
-        type: string
-      paypalPassword:
-        type: string
-      paypalSignature:
-        type: string
-
-  paymentMethod:
-    type: object
-    required:
-      - name
-    properties:
-      name:
-        type: string
-        format: EXTERNAL|THREEDS_NO|THREEDS_IF_AVAILABLE|THREEDS_REQUIRED
-
-  groupPaymentInfo:
-    type: object
-    required:
-      - returnURLforNextPayers
-      - successURL
-      - failureURL
-    properties:
-      returnURLforNextPayers:
-        type: string
-      successURL:
-        type: string
-      failureURL:
-        type: string
-
-  country:
-    type: object
-    required:
-      - uuid
-      - code
-      - name
-      - shipping
-      - billing
-      - dateCreated
-      - lastUpdated
-    properties:
-      uuid:
-        type: string
-        format: uuid
-      code:
-        type: string
-      name:
-        type: string
-      shipping:
-        type: boolean
-      billing:
-        type: boolean
-      zipCodeRegex:
-        type: string
-      currencyCode:
-        type: string
-      currencyNumericCode:
-        type: string
-        format: int32
-      currencyName:
-        type: string
-      phoneCode:
-        type: string
-      dateCreated:
-        type: string
-        format: date
-      lastUpdated:
-        type: string
-        format: date
-
-  creditCard:
-    type: object
-    required:
-      - uuid
-      - number
-      - holder
-      - expiryDate
-      - cardType
-      - hiddenNumber
-      - account
-      - dateCreated
-      - lastUpdated
-    properties:
-      uuid:
-        type: string
-        format: uuid
-      number:
-        type: string
-      holder:
-        type: string
-      expiryDate:
-        type: string
-        format: date
-      cardType:
-        $ref: "#/definitions/creditCardType"
-      hiddenNumber:
-        type: string
-      account:
-        type: string
-        format: uuid
-      dateCreated:
-        type: string
-        format: date
-      lastUpdated:
-        type: string
-        format: date
+          $ref: "#/definitions/creditCard"
 
   shippingAddress:
     type: object
@@ -961,15 +1345,6 @@ definitions:
       geoCoordinates:
         type: string
 
-  civility:
-    type: object
-    required:
-      - name
-    properties:
-      name:
-        type: string
-        format: MR|MRS
-
   telephone:
     type: object
     required:
@@ -992,6 +1367,346 @@ definitions:
         format: int32
       status:
         $ref: "#/definitions/telephoneStatus"
+
+  creditCard:
+    type: object
+    required:
+      - uuid
+      - number
+      - holder
+      - expiryDate
+      - cardType
+      - hiddenNumber
+      - account
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      number:
+        type: string
+      holder:
+        type: string
+      expiryDate:
+        type: string
+        format: date
+      cardType:
+        $ref: "#/definitions/creditCardType"
+      hiddenNumber:
+        type: string
+      account:
+        type: string
+        format: uuid
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+#Payment Definitions
+  paymentConfig:
+    type: object
+    required:
+      - cbProvider
+      - paymentMethod
+      - emailField
+      - passwordField
+      - dateCreated
+      - lastUpdated
+    properties:
+      kwixoParam:
+        type: string
+      paypalParam:
+        type: string
+      applePayParam:
+        type: string
+      cbParam:
+        type: string
+      cbProvider:
+        $ref: "#/definitions/cbProvider"
+      paymentMethod:
+        $ref: "#/definitions/paymentMethod"
+      emailField:
+        type: string
+      passwordField:
+        type: string
+      senderName:
+        type: string
+      senderEmail:
+        type: string
+      callbackPrefix:
+        type: string
+      passwordPattern:
+        type: string
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+      pwdEmailContent:
+        type: string
+      pwdEmailSubject:
+        type: string
+      groupPaymentInfo:
+        $ref: "#/definitions/groupPaymentInfo"
+
+  groupPaymentInfo:
+    type: object
+    required:
+      - returnURLforNextPayers
+      - successURL
+      - failureURL
+    properties:
+      returnURLforNextPayers:
+        type: string
+      successURL:
+        type: string
+        format: url
+      failureURL:
+        type: string
+        format: url
+
+  cbParam:
+    type: object
+    properties:
+      systempayShopId:
+        type: string
+      systempayContractNumber:
+        type: string
+      systempayCertificate:
+        type: string
+
+  paypalParam:
+    type: object
+    properties:
+      paypalUser:
+        type: string
+      paypalPassword:
+        type: string
+      paypalSignature:
+        type: string
+
+#Transaction Definitions
+  transaction:
+    type: object
+    required:
+      - uuid
+      - transactionUUID
+      - groupPaymentRefundPercentage
+      - authorizationId
+      - amount
+      - currency
+      - status
+      - paymentData
+      - merchantConfirmation
+      - modifications
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      transactionUUID:
+        type: string
+        format: uuid
+      groupTransactionUUID:
+        type: string
+        format: uuid
+      groupPaymentExpirationDate:
+        type: integer
+        format: int64
+      groupPaymentRefundPercentage:
+        type: integer
+        format: int32
+      authorizationId:
+        type: strnig
+      transactionDate:
+        type: strnig
+        format: date
+      amount:
+        type: integer
+        format: int32
+      currency:
+        $ref: "#/definitions/cartRate"
+      status:
+        $ref: "#/definitions/transactionStatus"
+      endDate:
+        type: strnig
+        format: date
+      paymentData:
+        $ref: "#/definitions/paymentData"
+      merchantConfirmation:
+        type: boolean
+      email:
+        type: strnig
+        format: email
+      errorCodeOrigin:
+        type: strnig
+      errorMessageOrigin:
+        type: strnig
+      extra:
+        type: strnig
+      description:
+        type: strnig
+      gatewayData:
+        type: strnig
+      creditCard:
+        $ref: "#/definitions/creditCard"
+      shipping:
+        type: strnig
+      shippingTrackingNumber:
+        type: strnig
+      vendor:
+        $ref: "#/definitions/account"
+      customer:
+        $ref: "#/definitions/account"
+      modifications:
+        type: array
+        items:
+          $ref: "#/definitions/modificationStatus"
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+  paymentData:
+    type: object
+    required:
+      - paymentType
+      - cbProvider
+    properties:
+      paymentType:
+        $ref: "#/definitions/paymentType"
+      cbProvider:
+        $ref: "#/definitions/cbProvider"
+      transactionSequence:
+        type: string
+      orderDate:
+        type: string
+        format: date
+      status3DS:
+        $ref: "#/definitions/status3DS"
+      transactionId:
+        type: string
+      authorizationId:
+        type: string
+
+  modificationStatus:
+    type: object
+    required:
+      - uuid
+      - xdate
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      xdate:
+        type: string
+        format: date
+      ipAddr:
+        type: string
+      oldStatus:
+        $ref: "#/definitions/transactionStatus"
+      newStatus:
+        $ref: "#/definitions/transactionStatus"
+      comment:
+        type: string
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+		
+  transactionLog:
+    type: object
+    required:
+      - uuid
+      - direction
+      - provider
+      - transaction
+      - step
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      direction:
+        type: string
+        format: IN|OUT
+      provider:
+        type: string
+        format: NONE|AUTHORIZENET|PAYLINE|PAYBOX|SIPS|SYSTEMPAY
+      transaction:
+        type: string
+        format: uuid
+      step:
+          $ref: "#/definitions/transactionStep"
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+  cartRate:
+    type: object
+    required:
+      - code
+      - numericCode
+      - rate
+      - fractionDigits
+    properties:
+      code:
+        type: string
+      numericCode:
+        type: integer
+        format: int32
+      rate:
+        type: number
+        format: double
+      fractionDigits:
+        type: integer
+        format: int32
+
+
+
+
+# Defined Value Objects
+  cbProvider:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: NONE|AUTHORIZENET|PAYLINE|PAYBOX|SIPS|SYSTEMPAY
+
+  paymentMethod:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: EXTERNAL|THREEDS_NO|THREEDS_IF_AVAILABLE|THREEDS_REQUIRED
+
+  civility:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: MR|MRS
 
   accountStatus:
     type: object
@@ -1029,14 +1744,47 @@ definitions:
         type: string
         format: ANONYMOUS|ADMINISTRATOR|CUSTOMER|MERCHANT
 
-  error:
+  paymentType:
     type: object
     required:
-      - code
-      - message
+      - name
     properties:
-      code:
-        type: integer
-        format: int32
-      message:
+      name:
         type: string
+        format: NONE|CREDIT_CARD|PAYPAL
+
+  status3DS:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: APPROVED|REFUSED|INVALID|ERROR
+
+  transactionStatus:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: INITIATED|VERIFICATION_THREEDS|THREEDS_TESTED|PAYMENT_REQUESTED|PAYMENT_CONFIRMED|PAYMENT_REFUSED|CANCEL_REQUESTED|CANCEL_FAILED|CANCEL_CONFIRMED|CUSTOMER_REFUNDED
+
+  transactionStep:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: PAYMENT|FINISH|CANCEL|REFUND|SUBMIT|DONE|CHECK_THREEDS|THREEDS_CALLBACK|SUCCESS|DO_WEB_PAYMENT|GET_WEB_PAYMENT_DETAILS|CALLBACK_PAYMENT|ORDER_THREEDS
+
+  phoneType:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        format: FIXED_LINE|MOBILE|FIXED_LINE_OR_MOBILE|TOLL_FREE|PREMIUM_RATE|SHARED_COST|VOIP|PERSONAL_NUMBER|PAGER|UAN|VOICEMAIL|UNKNOWN
