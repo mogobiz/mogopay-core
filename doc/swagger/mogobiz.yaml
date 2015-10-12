@@ -14,6 +14,51 @@ produces:
   - application/json
 paths:
 #Account Services
+  /customer-token:
+    get:
+      summary: Get a new customer token
+      tags:
+        - Account
+      responses:
+        200:
+          description: Ok.
+          schema:
+            type: string
+  /merchant-token:
+    get:
+      summary: Get a new merchant token
+      tags:
+        - Account
+      responses:
+        200:
+          description: Ok.
+          schema:
+            type: string
+  /check-token-validity:
+    get:
+      summary: Check token validity
+      parameters:
+        - name: token
+          in: query
+          description: Token to be verified.
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Account
+      responses:
+        200:
+          description: Ok.
+          schema:
+            $ref: "#/definitions/account"
+        404:
+          description: Not found if token is invalid.
+          schema:
+            $ref: "#/definitions/error"
+        401:
+          description: Unauthorized if user not connected or session expired.
+          schema:
+            $ref: "#/definitions/error"
   /is-pattern-valid:
     get:
       summary: Check password pattern validity
@@ -58,6 +103,10 @@ paths:
       responses:
         200:
           description: true if the pattern is valid, false otherwise.
+        400:
+          description: If customer mail and merchant id not specified.
+          schema:
+            $ref: "#/definitions/error"
   /is-valid-account-id:
     get:
       summary: Check if the account is valid.
@@ -72,7 +121,18 @@ paths:
         - Account
       responses:
         200:
-          description: true if the pattern is valid, false otherwise.
+          description: Ok.
+          schema:
+            type: object
+            required:
+              - result
+            properties:
+              result:
+                type: boolean
+        404:
+          description: If account not found.
+          schema:
+            $ref: "#/definitions/error"
   /update-password:
     get:
       summary: Update account password.
@@ -97,7 +157,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found or merchant not found or password didn't match the pattern.
           schema:
             $ref: "#/definitions/error"
   /generate-new-phone-code:
@@ -109,7 +169,7 @@ paths:
         200:
           description: OK if code is successfully generated.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or phone number not found.
           schema:
             $ref: "#/definitions/error"
   /enroll:
@@ -134,7 +194,7 @@ paths:
         200:
           description: OK if phone number is successfully registered.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account does not exist.
           schema:
             $ref: "#/definitions/error"
         500:
@@ -150,11 +210,11 @@ paths:
         200:
           description: OK.
         404:
-          description: Not Found.
+          description: If account not found.
           schema:
             $ref: "#/definitions/error"
         401:
-          description: Unauthorized.
+          description: Unauthorized if user not connected or session expired.
           schema:
             $ref: "#/definitions/error"
   /add-credit-card:
@@ -198,7 +258,7 @@ paths:
           schema:
             $ref: "#/definitions/creditCard"
         401:
-          description: Unauthorized.
+          description: Unauthorized if user not connected or session expired or account not found or credit card not found in case of update.
           schema:
             $ref: "#/definitions/error"
   /delete-credit-card:
@@ -217,7 +277,7 @@ paths:
         200:
           description: OK if card is successfully removed.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found or credit card not found.
           schema:
             $ref: "#/definitions/error"
   /logout:
@@ -238,6 +298,10 @@ paths:
           description: OK.
           schema:
             $ref: "#/definitions/accountAddress"
+        404:
+          description: If no address found.
+          schema:
+            $ref: "#/definitions/error"
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
@@ -268,6 +332,10 @@ paths:
           description: OK.
           schema:
             $ref: "#/definitions/shippingAddress"
+        404:
+          description: If no address found.
+          schema:
+            $ref: "#/definitions/error"
         401:
           description: Unauthorized if user not connected or session expired.
           schema:
@@ -315,7 +383,7 @@ paths:
               account:
                 $ref: "#/definitions/account"
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found.
           schema:
             $ref: "#/definitions/error"
   /assign-billing-address:
@@ -394,7 +462,7 @@ paths:
         200:
           description: OK.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found.
           schema:
             $ref: "#/definitions/error"
   /add-shipping-address:
@@ -473,7 +541,7 @@ paths:
         200:
           description: OK.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found.
           schema:
             $ref: "#/definitions/error"
   /update-shipping-address:
@@ -552,7 +620,7 @@ paths:
         200:
           description: OK.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found.
           schema:
             $ref: "#/definitions/error"
   /delete-shipping-address:
@@ -591,8 +659,12 @@ paths:
                 type: string
               shippingAddress:
                 type: string
+        404:
+          description: If no result found.
+          schema:
+            $ref: "#/definitions/error"
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found.
           schema:
             $ref: "#/definitions/error"
   /list-compagnies:
@@ -629,10 +701,6 @@ paths:
                 merchant uuid:
                   type: string
                   format: uuid
-        401:
-          description: Unauthorized if user not connected or session expired.
-          schema:
-            $ref: "#/definitions/error"
   /select-shipping-address:
     get:
       summary: Update account shipping address.
@@ -649,7 +717,7 @@ paths:
         200:
           description: OK.
         401:
-          description: Unauthorized if user not connected or session expired.
+          description: Unauthorized if user not connected or session expired or account not found.
           schema:
             $ref: "#/definitions/error"
   /confirm-signup:
@@ -668,7 +736,11 @@ paths:
           description: OK.
           schema:
             $ref: "#/definitions/account"
-        500:
+        410:
+          description: Token expired.
+          schema:
+            $ref: "#/definitions/error"
+        400:
           description: Invalid token.
           schema:
             $ref: "#/definitions/error"
@@ -699,6 +771,10 @@ paths:
             type: array
             items:
               $ref: "#/definitions/account"
+        401:
+          description: Unauthorized if user not connected or connected user isn't a merchant.
+          schema:
+            $ref: "#/definitions/error"
   /transactions:
     get:
       summary: Get list of all transactions.
@@ -764,6 +840,10 @@ paths:
             type: array
             items:
               $ref: "#/definitions/transaction"
+        401:
+          description: Unauthorized if user not connected.
+          schema:
+            $ref: "#/definitions/error"
   /transactions/{transactionId}/logs:
     get:
       summary: Get list of all log for a transaction.
@@ -1015,6 +1095,189 @@ paths:
           description: OK.
           schema:
             $ref: "#/definitions/registerdUser"
+        401:
+          description: Unauthorized if account does not exist or not a vendor account or account already exist.
+          schema:
+            $ref: "#/definitions/error"
+#Transaction
+  /customer/{uuid}:
+    get:
+      summary: Get all customer transactions.
+      parameters:
+        - name: uuid
+          in: path
+          description: Customer id
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/transaction"
+  /verify:
+    get:
+      summary: Verify a transaction.
+      parameters:
+        - name: merchant_secret
+          in: query
+          description: Merchant secret code
+          required: true
+          type: string
+          format: uuid
+        - name: transaction_amount
+          in: query
+          description: Transaction amount
+          required: false
+          type: integer
+          format: int64
+        - name: transaction_id
+          in: query
+          description: Transaction id
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/transactionVerfification"
+        401:
+          description: Unauthorized if transaction not found or invalid merchant account or unexpected amount or too late to verify or payment not confirmed or transaction already confirmed.
+          schema:
+            $ref: "#/definitions/error"
+  /init-group-payment:
+    get:
+      summary: Initialise a new groupo payment.
+      parameters:
+        - name: token
+          in: query
+          description: Secret code
+          required: true
+          type: string
+        - name: transaction_type
+          in: query
+          description: Transaction type
+          required: true
+          type: string
+        - name: card_type
+          in: query
+          description: Credit card type
+          required: true
+          type: string
+        - name: card_number
+          in: query
+          description: Credit card number
+          required: true
+          type: string
+        - name: card_cvv
+          in: query
+          description: Credit card secret code
+          required: true
+          type: string
+        - name: card_month
+          in: query
+          description: Credit card expiration month
+          required: true
+          type: string
+        - name: card_year
+          in: query
+          description: Credit card expiration month
+          required: true
+          type: string
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: string
+        410:
+          description: If token has been expired.
+          schema:
+            $ref: "#/definitions/error"
+        401:
+          description: If invalid token or transaction not found or account not found.
+          schema:
+            $ref: "#/definitions/error"
+  /refund:
+    get:
+      summary: Refund a transaction amount.
+      parameters:
+        - name: merchant_secret
+          in: query
+          description: Merchant secret code
+          required: true
+          type: string
+          format: uuid
+        - name: amount
+          in: query
+          description: Amount to be refunded
+          required: true
+          type: integer
+          format: int32
+        - name: bo_transaction_uuid
+          in: query
+          description: Transaction uuid
+          required: true
+          type: string
+          format: uuid
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+        400:
+          description: If vendor not found or payment config not found or transaction not found or the refund amount is higher than the initial amount or payment already refunded.
+          schema:
+            $ref: "#/definitions/error"
+        404:
+          description: If refund not supported or cbProvider refund not found.
+          schema:
+            $ref: "#/definitions/error"
+        400:
+          description: If client does not refund items.
+          schema:
+            $ref: "#/definitions/error"
+  /download/{transactionUuid}:
+    get:
+      summary: Refund a transaction amount.
+      parameters:
+        - name: transactionUuid
+          in: path
+          description: Merchant secret code
+          required: true
+          type: string
+          format: uuid
+        - name: page
+          in: query
+          description: Page size
+          required: false
+          type: string
+        - name: langCountry
+          in: query
+          description: Country language
+          required: true
+          type: string
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: file
+        401:
+          description: Unauthorized if user not connected or session expired or payment not confir yet or transaction not found.
+          schema:
+            $ref: "#/definitions/error"
 
 
 
@@ -1573,6 +1836,94 @@ definitions:
       lastUpdated:
         type: string
         format: date
+
+  transactionRequest:
+    type: object
+    required:
+      - uuid
+      - tid
+      - groupPaymentRefundPercentage
+      - amount
+      - currency
+      - vendor
+      - dateCreated
+      - lastUpdated
+    properties:
+      uuid:
+        type: string
+        format: uuid
+      tid:
+        type: string
+        format: uuid
+      groupTransactionUUID:
+        type: string
+        format: uuid
+      groupPaymentExpirationDate:
+        type: integer
+        format: int64
+      groupPaymentRefundPercentage:
+        type: integer
+        format: int32
+      transactionDate:
+        type: strnig
+        format: date
+      currency:
+        $ref: "#/definitions/cartRate"
+      vendor:
+        type: string
+        format: uuid
+      dateCreated:
+        type: string
+        format: date
+      lastUpdated:
+        type: string
+        format: date
+
+  transactionVerfification:
+    type: object
+    required:
+      - result
+      - transaction_id
+      - transaction_amount
+      - transaction_email
+      - transaction_sequence
+      - transaction_status
+      - transaction_start
+      - transaction_end
+      - transaction_providerid
+      - transaction_type
+      - group_transactions
+    properties:
+      result:
+        type: string
+        format: success|error
+      transaction_id:
+        type: string
+        format: uuid
+      transaction_amount:
+        type: string
+      transaction_email:
+        type: string
+        format: email
+      transaction_sequence:
+        type: string
+      transaction_status:
+        type: strnig
+        format: INITIATED|VERIFICATION_THREEDS|THREEDS_TESTED|PAYMENT_REQUESTED|PAYMENT_CONFIRMED|PAYMENT_REFUSED|CANCEL_REQUESTED|CANCEL_FAILED|CANCEL_CONFIRMED|CUSTOMER_REFUNDED
+      transaction_start:
+        type: strnig
+      transaction_end:
+        type: strnig
+      transaction_providerid:
+        type: string
+        format: uuid
+      transaction_type:
+        type: string
+        format: NONE|CREDIT_CARD|PAYPAL
+      group_transactions:
+        type: array
+        items:
+          $ref: "#/definitions/transactionRequest"
 
   paymentData:
     type: object
