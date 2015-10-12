@@ -16,6 +16,7 @@ import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
 import org.json4s._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.util.control.NonFatal
 
 class EasyPostHandler extends ShippingService {
 
@@ -28,7 +29,7 @@ class EasyPostHandler extends ShippingService {
       val shippingContent = extractShippingContent(cart)
       computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
 
-        val fixPrice = cart.shippingRulePrice.map{price => Some(convertStorePrice(price, cart))}.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
+        val fixPrice = cart.shippingRulePrice.map { price => Some(convertStorePrice(price, cart)) }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
         val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
         val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
 
@@ -37,7 +38,7 @@ class EasyPostHandler extends ShippingService {
     }.getOrElse(Seq())
   }
 
-  private def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long) : Seq[ShippingPrice] = {
+  private def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingPrice] = {
     val easyPostRates = rate(
       compagnyAddress,
       shippingAddress.address,
@@ -45,9 +46,11 @@ class EasyPostHandler extends ShippingService {
       cart
     )
 
-    easyPostRates.map {easyPostRate =>
-      var rate : Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
-      val currencyFractionDigits : Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
+    easyPostRates.map { easyPostRate =>
+      var rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
+      val currencyFractionDigits: Integer = rate.map {
+        _.currencyFractionDigits
+      }.getOrElse(2)
       val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
       val finalPrice = fixPrice.getOrElse(amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
 
@@ -67,7 +70,7 @@ class EasyPostHandler extends ShippingService {
     }
   }
 
-  private def computeShippingParcelAndFixAmount(cart: Cart, shippingList: List[ShippingWithQuantity]) : Option[ShippingParcelAndFixAmount] = {
+  private def computeShippingParcelAndFixAmount(cart: Cart, shippingList: List[ShippingWithQuantity]): Option[ShippingParcelAndFixAmount] = {
     if (shippingList.isEmpty) None
     else {
       val parcelPriceTail = computeShippingParcelAndFixAmount(cart, shippingList.tail).getOrElse(ShippingParcelAndFixAmount(0, None, None))
@@ -75,10 +78,18 @@ class EasyPostHandler extends ShippingService {
       val shipping = shippingList.head.shipping;
 
       val parcelTail = parcelPriceTail.parcel
-      val height = convertLinear(shipping.height, shipping.linearUnit) * quantity + parcelTail.map{_.height}.getOrElse(0.0)
-      val width = Math.max(convertLinear(shipping.width, shipping.linearUnit), parcelTail.map{_.width}.getOrElse(0.0))
-      val length = Math.max(convertLinear(shipping.depth, shipping.linearUnit), parcelTail.map{_.length}.getOrElse(0.0))
-      val weight = convertWeight(shipping.weight, shipping.weightUnit) * quantity + parcelTail.map{_.weight}.getOrElse(0.0)
+      val height = convertLinear(shipping.height, shipping.linearUnit) * quantity + parcelTail.map {
+        _.height
+      }.getOrElse(0.0)
+      val width = Math.max(convertLinear(shipping.width, shipping.linearUnit), parcelTail.map {
+        _.width
+      }.getOrElse(0.0))
+      val length = Math.max(convertLinear(shipping.depth, shipping.linearUnit), parcelTail.map {
+        _.length
+      }.getOrElse(0.0))
+      val weight = convertWeight(shipping.weight, shipping.weightUnit) * quantity + parcelTail.map {
+        _.weight
+      }.getOrElse(0.0)
       val parcel = ShippingParcel(height, width, length, weight)
 
       if (shipping.free) Some(ShippingParcelAndFixAmount(parcelPriceTail.amount, Some(parcelPriceTail.fixParcel.getOrElse(parcel)), parcelPriceTail.parcel))
@@ -94,7 +105,7 @@ class EasyPostHandler extends ShippingService {
    * @param unit
    * @return
    */
-  private def convertLinear(linear: Long, unit: String) : Double = {
+  private def convertLinear(linear: Long, unit: String): Double = {
     unit match {
       case "CM" => linear / 2.54d
       case _ => linear
@@ -110,7 +121,7 @@ class EasyPostHandler extends ShippingService {
    * @param unit
    * @return
    */
-  private def convertWeight(weight: Long, unit: String) : Double = {
+  private def convertWeight(weight: Long, unit: String): Double = {
     unit match {
       case "KG" => weight * 1000 / 28.3495231d
       case "G" => weight / 28.3495231d
@@ -141,14 +152,18 @@ class EasyPostHandler extends ShippingService {
   }
 
   private def cartToMap(cart: Cart): CustomsInfo = {
-    val originCountry = cart.compagnyAddress.map { _.country }.getOrElse("US")
-    val rate : Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
-    val currencyFractionDigits : Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
+    val originCountry = cart.compagnyAddress.map {
+      _.country
+    }.getOrElse("US")
+    val rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
+    val currencyFractionDigits: Integer = rate.map {
+      _.currencyFractionDigits
+    }.getOrElse(2)
 
-    val customsItemsList : java.util.List[AnyRef] = (cart.cartItems.map { cartItem =>
+    val customsItemsList: java.util.List[AnyRef] = cart.cartItems.flatMap { cartItem =>
       cartItem.shipping.map { shipping =>
         val price = cartItem.saleTotalEndPrice
-        val p : Double = Math.pow(10, currencyFractionDigits.doubleValue());
+        val p: Double = Math.pow(10, currencyFractionDigits.doubleValue());
         val priceUSD = rateHandler.convert(price, cart.rate.code, "USD").getOrElse(price) / p
 
         val map = mutable.HashMap[String, AnyRef](
@@ -160,11 +175,11 @@ class EasyPostHandler extends ShippingService {
         )
         CustomsItem.create(map)
       }
-    }.flatten).toList
+    }.toList
 
     //eel_pfc 	string 	EEL or PFC
-//value less than $2500: "NOEEI 30.37(a)"; value greater than $2500: see Customs Guide
-//customs_items 	array 	CustomsItems included
+    //value less than $2500: "NOEEI 30.37(a)"; value greater than $2500: see Customs Guide
+    //customs_items 	array 	CustomsItems included
 
     val map: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
       "customs_certify" -> false.asInstanceOf[AnyRef],
@@ -193,10 +208,17 @@ class EasyPostHandler extends ShippingService {
   }
 
   lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
-  private def formatPhone(phone:String): String = {
-    phoneUtil.format(phone, PhoneNumberFormat.NATIONAL) //.replaceAll("\\s","")
 
+  private def formatPhone(phone: String): String = {
+    try {
+      phoneUtil.format(phoneUtil.parse(phone, null), PhoneNumberFormat.NATIONAL) //.replaceAll("\\s","")
+    }
+    catch {
+      case NonFatal(e) =>
+        phone
+    }
   }
+
   private def companyAddressToMap(addr: CompanyAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "company" -> addr.company,
@@ -215,9 +237,9 @@ class EasyPostHandler extends ShippingService {
 
 object EasyPostHandler extends App {
 
-    EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
+  EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
 
-    val customsItemMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
+  val customsItemMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "description" -> "T-shirt",
     "quantity" -> 1.asInstanceOf[AnyRef],
     "value" -> 11.asInstanceOf[AnyRef],
@@ -225,20 +247,20 @@ object EasyPostHandler extends App {
     "origin_country" -> "US",
     "hs_tariff_number" -> "610910")
 
-    val customsItem1 = CustomsItem.create(customsItemMap);
+  val customsItem1 = CustomsItem.create(customsItemMap);
 
-    var customsItemsList : java.util.List[AnyRef] = Array(customsItem1).toList;
+  var customsItemsList: java.util.List[AnyRef] = Array(customsItem1).toList;
 
-    val customsInfoMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
+  val customsInfoMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "customs_certify" -> false.asInstanceOf[AnyRef],
     //"customs_signer" -> "Jarrett Streebin",
     "contents_type" -> "gift",
     "eel_pfc" -> "NOEEI 30.37(a)",
     "customs_items" -> customsItemsList)
 
-    val customsInfo = CustomsInfo.create(customsInfoMap);
+  val customsInfo = CustomsInfo.create(customsInfoMap);
 
-    val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
+  val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "name" -> "acmesports",
     "company" -> "acmesports",
       "street1" -> "179 N Harbor Dr",
@@ -264,16 +286,16 @@ object EasyPostHandler extends App {
     "length" -> 9.asInstanceOf[AnyRef],
     "weight" -> 20.asInstanceOf[AnyRef])
 
-    val shipmentMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
+  val shipmentMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "to_address" -> toAddress,
     "from_address" -> fromAddress,
     "parcel" -> Parcel.create(parcelMap),
     "customs_info" -> customsInfo)
 
-    val shipment = Shipment.create(shipmentMap)
+  val shipment = Shipment.create(shipmentMap)
 
-    val rate: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
+  val rate: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "id" -> shipment.getRates.get(0).getId())
-    val newShipment = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()))
+  val newShipment = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()))
   println(newShipment.getStatus)
 }
