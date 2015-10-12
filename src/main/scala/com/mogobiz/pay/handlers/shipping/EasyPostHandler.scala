@@ -6,6 +6,8 @@ package com.mogobiz.pay.handlers.shipping
 
 import com.easypost.EasyPost
 import com.easypost.model._
+import com.google.i18n.phonenumbers.PhoneNumberUtil
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.common.{ShippingWithQuantity, CompanyAddress, Shipping, Cart}
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -185,12 +187,16 @@ class EasyPostHandler extends ShippingService {
       "state" -> addr.admin1.getOrElse("CA"),
       "country" -> addr.country.getOrElse("US"),
       "zip" -> addr.zipCode.getOrElse(""),
-      "phone" -> addr.telephone.map(_.lphone).getOrElse("")).filter(_._2.length > 0)
+      "phone" -> formatPhone(addr.telephone.map(_.lphone).getOrElse("")).filter(_._2.length > 0))
 
     Address.create(fromAddressMap)
   }
 
+  lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
+  private def formatPhone(phone:String): String = {
+    phoneUtil.format(phone, PhoneNumberFormat.NATIONAL) //.replaceAll("\\s","")
 
+  }
   private def companyAddressToMap(addr: CompanyAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "company" -> addr.company,
@@ -201,7 +207,7 @@ class EasyPostHandler extends ShippingService {
       "state" -> addr.state.getOrElse("CA"),
       "country" -> addr.country,
       "zip" -> addr.zipCode,
-      "phone" -> addr.phone.getOrElse("")).filter(_._2.length > 0)
+      "phone" -> formatPhone(addr.phone.getOrElse("")).filter(_._2.length > 0))
 
     Address.create(fromAddressMap)
   }
@@ -249,25 +255,25 @@ object EasyPostHandler extends App {
     "street1" -> "14 rue de la récré",
     "city" -> "Saint Christophe des Bois",
     "country" -> "FR",
-    "zip" -> "35210");
+    "zip" -> "35210")
   val toAddress = Address.create(toAddressMap)
 
   val parcelMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "height" -> 3.asInstanceOf[AnyRef],
     "width" -> 6.asInstanceOf[AnyRef],
     "length" -> 9.asInstanceOf[AnyRef],
-    "weight" -> 20.asInstanceOf[AnyRef]);
+    "weight" -> 20.asInstanceOf[AnyRef])
 
     val shipmentMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "to_address" -> toAddress,
     "from_address" -> fromAddress,
     "parcel" -> Parcel.create(parcelMap),
-    "customs_info" -> customsInfo);
+    "customs_info" -> customsInfo)
 
-    val shipment = Shipment.create(shipmentMap);
+    val shipment = Shipment.create(shipmentMap)
 
     val rate: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "id" -> shipment.getRates.get(0).getId())
-    val newShipment = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()));
+    val newShipment = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()))
   println(newShipment.getStatus)
 }
