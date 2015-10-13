@@ -13,7 +13,7 @@ basePath: /v1
 produces:
   - application/json
 paths:
-#Account Services
+# Account Services
   /customer-token:
     get:
       summary: Get a new customer token
@@ -744,8 +744,119 @@ paths:
           description: Invalid token.
           schema:
             $ref: "#/definitions/error"
+  /send-new-password:
+    post:
+      summary: Send new password to email.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to send a new password
+          required: true
+          schema:
+            $ref: '#/definitions/sendNewPasswordParams'
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+  /login:
+    post:
+      summary: Login.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to login
+          required: true
+          schema:
+            $ref: '#/definitions/loginParams'
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: "#/definitions/account"
+        401:
+          description: Unauthorized if invalid credentials or invalid merchant or too many login attempts or inactive account.
+          schema:
+            $ref: "#/definitions/error"
+  /signup:
+    post:
+      summary: Register a new account.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to register
+          required: true
+          schema:
+            $ref: '#/definitions/signupParams'
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: object
+            required:
+              - token
+              - account
+            properties:
+              uuid:
+                token: string
+              account:
+                $ref: "#/definitions/account"
+        401:
+          description: Unauthorized if invalid informations or an other account with the same email already exist.
+          schema:
+            $ref: "#/definitions/error"
+  /update-customer-profile:
+    post:
+      summary: Update profile for a customer.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to update all profile info.
+          required: true
+          schema:
+            $ref: '#/definitions/updateProfileParams'
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        400:
+          description: if password didn't match or no payment provider specified or no payment methode specified or missing group payment.
+          schema:
+            $ref: "#/definitions/error"
+        401:
+          description: Unauthorized if user not connected or session expired or invalid informations.
+          schema:
+            $ref: "#/definitions/error"
+  /update-profile-light:
+    post:
+      summary: Update some profile info.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to update info.
+          required: true
+          schema:
+            $ref: '#/definitions/updateProfileLightParams'
+      tags:
+        - Account
+      responses:
+        200:
+          description: OK.
+        400:
+          description: if password didn't match.
+          schema:
+            $ref: "#/definitions/error"
+        401:
+          description: Unauthorized if user not connected or session expired or password didn't match.
+          schema:
+            $ref: "#/definitions/error"
 
-#Backoffice Tag
+# Backoffice Tag
   /customers:
     get:
       summary: Get list of all customers.
@@ -881,7 +992,7 @@ paths:
           schema:
             $ref: "#/definitions/transaction"
 
-#Country Tag
+# Country Tag
   /countries-for-shipping:
     get:
       summary: Get list of all countries we can ship for.
@@ -1014,7 +1125,27 @@ paths:
             type: array
             items:
               $ref: "#/definitions/phoneVerification"
-#Rate Tag
+
+# PDF Tag
+  /html-to-pdf:
+    post:
+      summary: Convert an html file to pdf.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to register.
+          required: true
+          schema:
+            $ref: '#/definitions/pdfParams'
+      tags:
+        - PDF
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: file
+
+# Rate Tag
   /list:
     get:
       summary: Get list of all rates.
@@ -1054,7 +1185,7 @@ paths:
           description: OK.
           schema:
             type: string
-#User Tag
+# User Tag
   /register:
     get:
       summary: Register a new user.
@@ -1099,7 +1230,7 @@ paths:
           description: Unauthorized if account does not exist or not a vendor account or account already exist.
           schema:
             $ref: "#/definitions/error"
-#Transaction
+# Transaction Tag
   /customer/{uuid}:
     get:
       summary: Get all customer transactions.
@@ -1278,9 +1409,145 @@ paths:
           description: Unauthorized if user not connected or session expired or payment not confir yet or transaction not found.
           schema:
             $ref: "#/definitions/error"
-
-
-
+  /init:
+    post:
+      summary: Initialise transaction payment.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to initialise payment.
+          required: true
+          schema:
+            $ref: '#/definitions/initPayParams'
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: object
+            required:
+              - transaction_id
+            properties:
+              transaction_id:
+                type: string
+                format: uuid
+        401:
+          description: Unauthorized if merchant not found.
+          schema:
+            $ref: "#/definitions/error"
+  /list-shipping:
+    post:
+      summary: Get all shipping prices.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to get the list.
+          required: true
+          schema:
+            $ref: '#/definitions/listShippingParams'
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/shppingPrice"
+        401:
+          description: Unauthorized account does not exist.
+          schema:
+            $ref: "#/definitions/error"
+        403:
+          description: Forbidden if user not connected or session expired.
+          schema:
+            $ref: "#/definitions/error"
+  /select-shipping:
+    post:
+      summary: Get a shipping price.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to get shipping price.
+          required: true
+          schema:
+            $ref: '#/definitions/selectShippingParams'
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            $ref: "#/definitions/shppingPrice"
+        404:
+          description: If shipping is not fount or not computed.
+          schema:
+            $ref: "#/definitions/error"
+  /submit:
+    post:
+      summary: Submit payment.
+      parameters:
+        - name: params
+          in: body
+          description: Parameters needed to submit the payment.
+          required: true
+          schema:
+            $ref: '#/definitions/submitPayParams'
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: string
+        400:
+          description: If the payers list does not contain the current user or the payers amount and the total amout does not match.
+          schema:
+            $ref: "#/definitions/error"
+        401:
+          description: If invalid merchant id.
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: If failed to pay.
+          schema:
+            $ref: "#/definitions/error"
+  /submit/{sessionUuid}:
+    post:
+      summary: Submit payment via session id.
+      parameters:
+        - name: sessionUuid
+          in: path
+          description: Session id.
+          required: true
+          type: string
+          format: uuid
+        - name: params
+          in: body
+          description: Parameters needed to submit the payment.
+          required: true
+          schema:
+            $ref: '#/definitions/submitPayParams'
+      tags:
+        - Transaction
+      responses:
+        200:
+          description: OK.
+          schema:
+            type: string
+        400:
+          description: If the payers list does not contain the current user or the payers amount and the total amout does not match.
+          schema:
+            $ref: "#/definitions/error"
+        401:
+          description: If invalid merchant id.
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: If failed to pay.
+          schema:
+            $ref: "#/definitions/error"
 
 
 definitions:
@@ -1454,6 +1721,42 @@ definitions:
         format: email
       userPassword:
         type: string
+
+  shppingPrice:
+    type: object
+    required:
+      - shipmentId
+      - rateId
+      - provider
+      - service
+      - rateType
+      - price
+      - currencyCode
+      - currencyFractionDigits
+      - confirm
+    properties:
+      shipmentId:
+        type: string
+        format: uuid
+      rateId:
+        type: string
+        format: uuid
+      provider:
+        type: string
+      service:
+        type: string
+      rateType:
+        type: string
+      price:
+        type: integer
+        format: int64
+      currencyCode:
+        type: string
+      currencyFractionDigits:
+        type: integer
+        format: int32
+      confirm:
+        type: boolean
 
   error:
     type: object
@@ -1668,7 +1971,7 @@ definitions:
         type: string
         format: date
 
-#Payment Definitions
+# Payment Definitions
   paymentConfig:
     type: object
     required:
@@ -1752,7 +2055,7 @@ definitions:
       paypalSignature:
         type: string
 
-#Transaction Definitions
+# Transaction Definitions
   transaction:
     type: object
     required:
@@ -2139,3 +2442,391 @@ definitions:
       name:
         type: string
         format: FIXED_LINE|MOBILE|FIXED_LINE_OR_MOBILE|TOLL_FREE|PREMIUM_RATE|SHARED_COST|VOIP|PERSONAL_NUMBER|PAGER|UAN|VOICEMAIL|UNKNOWN
+# Post Parameters Definitions
+  sendNewPasswordParams:
+    type: object
+    required:
+      - email
+    properties:
+      merchant_id:
+        type: string
+        format: uuid
+      email:
+        type: string
+        format: email
+      locale:
+        type: string
+
+  loginParams:
+    type: object
+    required:
+      - email
+      - password
+      - is_customer
+    properties:
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+      merchant_id:
+        type: string
+        format: uuid
+      is_customer:
+        type: boolean
+
+  signupParams:
+    type: object
+    required:
+      - email
+      - password
+      - password2
+      - lphone
+      - civility
+      - firstname
+      - lastname
+      - birthday
+      - road
+      - city
+      - zip_code
+      - admin1
+      - admin2
+      - country
+      - is_merchant
+      - validation_url
+      - withShippingAddress
+    properties:
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+      password2:
+        type: string
+        format: password
+      lphone:
+        type: string
+      civility:
+        type: string
+        format: MR|MRS
+      firstname:
+        type: string
+      lastname:
+        type: string
+      birthday:
+        type: string
+        format: date
+      road:
+        type: string
+      road2:
+        type: string
+      extra:
+        type: string
+      city:
+        type: string
+      zip_code:
+        type: string
+      admin1:
+        type: string
+      admin2:
+        type: string
+      country:
+        type: string
+      is_merchant:
+        type: boolean
+      merchant_id:
+        type: string
+        format: uuid
+      company:
+        type: string
+      website:
+        type: string
+        format: url
+      validation_url:
+        type: string
+        format: url
+      withShippingAddress:
+        type: boolean
+      locale:
+        type: string
+
+  updateProfileParams:
+    type: object
+    required:
+      - lphone
+      - civility
+      - firstname
+      - lastname
+      - birthday
+      - road
+      - city
+      - zip_code
+      - admin1
+      - admin2
+      - country
+    properties:
+      password:
+        type: string
+        format: password
+      password2:
+        type: string
+        format: password
+      lphone:
+        type: string
+      civility:
+        type: string
+        format: MR|MRS
+      firstname:
+        type: string
+      lastname:
+        type: string
+      birthday:
+        type: string
+        format: date
+      road:
+        type: string
+      road2:
+        type: string
+      city:
+        type: string
+      zip_code:
+        type: string
+      admin1:
+        type: string
+      admin2:
+        type: string
+      country:
+        type: string
+      is_merchant:
+        type: boolean
+      vendor:
+        type: string
+        format: uuid
+      vendor:
+        type: string
+        format: uuid
+      payline_account:
+        type: string
+      payline_key:
+        type: string
+      payline_contract:
+        type: string
+      payline_custom_payment_page_code:
+        type: string
+      payline_custom_payment_template_url:
+        type: string
+        format: url
+      paybox_site:
+        type: string
+      paybox_key:
+        type: string
+      paybox_rank:
+        type: string
+      paybox_merchant_id:
+        type: string
+      sips_merchant_id:
+        type: string
+      sips_merchant_country:
+        type: string
+      sips_merchant_certificate_file_name:
+        type: string
+      sips_merchant_certificate_file_content:
+        type: string
+      sips_merchant_parcom_file_name:
+        type: string
+      sips_merchant_parcom_file_content:
+        type: string
+      sips_merchant_logo_path:
+        type: string
+      systempay_shop_id:
+        type: string
+      systempay_contract_number:
+        type: string
+      systempay_certificate:
+        type: string
+      anet_api_login_id:
+        type: string
+      anet_transaction_key:
+        type: string
+      sender_name:
+        type: string
+      sender_email:
+        type: string
+        format: email
+      password_pattern:
+        type: string
+        format: regex
+      callback_prefix:
+        type: string
+      paypal_user:
+        type: string
+      paypal_password:
+        type: string
+      paypal_signature:
+        type: string
+      apple_pay_anet_api_login_id:
+        type: string
+      apple_pay_anet_transaction_key:
+        type: string
+      kwixo_params:
+        type: string
+      group_payment_return_url_for_next_payers:
+        type: string
+        format: url
+      group_payment_success_url:
+        type: string
+        format: url
+      group_payment_failure_url:
+        type: string
+        format: url
+
+  updateProfileLightParams:
+    type: object
+    required:
+      - password
+      - password2
+      - civility
+      - firstname
+      - lastname
+      - birthday
+    properties:
+      password:
+        type: string
+        format: password
+      password2:
+        type: string
+        format: password
+      civility:
+        type: string
+        format: MR|MRS
+      firstname:
+        type: string
+      lastname:
+        type: string
+      birthday:
+        type: string
+        format: date
+
+  pdfParams:
+    type: object
+    required:
+      - page
+      - xhtml
+    properties:
+      page:
+        type: string
+      xhtml:
+        type: string
+
+  initPayParams:
+    type: object
+    required:
+      - merchant_secret
+      - transaction_amount
+    properties:
+      merchant_secret:
+        type: string
+        format: uuid
+      transaction_amount:
+        type: integer
+        format: int64
+      return_url:
+        type: string
+        format: url
+      group_payment_exp_date:
+        type: integer
+        format: int64
+      group_payment_refund_percentage:
+        type: integer
+        format: int32
+
+  listShippingParams:
+    type: object
+    required:
+      - cartProvider
+      - cartKeys
+    properties:
+      cartProvider:
+        type: string
+      cartKeys:
+        type: string
+
+  selectShippingParams:
+    type: object
+    required:
+      - shipmentId
+      - rateId
+    properties:
+      shipmentId:
+        type: string
+        format: uuid
+      rateId:
+        type: string
+        format: uuid
+
+  submitPayParams:
+    type: object
+    required:
+      - callback_success
+      - callback_error
+      - transaction_id
+      - transaction_amount
+      - merchant_id
+      - transaction_type
+    properties:
+      callback_success: 
+        type: string
+        format: url
+      callback_error: 
+        type: string
+        format: url
+      callback_cardinfo: 
+        type: string
+        format: url
+      callback_auth: 
+        type: string
+        format: url
+      callback_cvv: 
+        type: string
+        format: url
+      transaction_id: 
+        type: string
+        format: uuid
+      transaction_amount: 
+        type: integer
+        format: int64
+      merchant_id: 
+        type: string
+        format: uuid
+      transaction_type:
+        type: string
+      card_cvv: 
+        type: string
+      card_number: 
+        type: string
+      user_email: 
+        type: string
+        format: email
+      user_password: 
+        type: string
+        format: password
+      transaction_desc: 
+        type: string
+      gateway_data: 
+        type: string
+      card_month: 
+        type: string
+      card_year: 
+        type: string
+      card_type:
+        type: string
+      card_store: 
+        type: string
+      payers: 
+        type: string
+      group_tx_uuid: 
+        type: string
+      locale: 
+        type: string
