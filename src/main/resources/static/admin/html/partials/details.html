@@ -100,6 +100,8 @@
 								</div>
 								<div ng-if="item.principal.product.xtype == 'SERVICE'" ng-repeat="card in item.principal.registeredCartItem">
 									<a href="mailto:{{card.email}}" title="mailto:{{card.email}}">{{card.firstname}} {{card.lastname}}</a>
+									<span style="padding-left: 10px;"><i class="glyphicon glyphicon-earphone"></i>{{card.phone}}</span>
+									<span style="padding-left: 10px;"><i class="glyphicon glyphicon-calendar"></i>{{card.birthdate | date:'dd/MM/yyyy'}}</span>
 								</div>
 							</td>
 							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
