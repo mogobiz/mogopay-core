@@ -30,7 +30,6 @@ object DBInitializer {
   def apply(fillWithFixtures: Boolean) = {
     try {
       //EsClient().execute(delete index Settings.Mogopay.EsIndex).await
-      EsClient().execute(create index Settings.Mogopay.EsIndex).await
       if (Settings.DerbySequence.length > 0) {
         import scalikejdbc._
         DB autoCommit { implicit session =>
@@ -44,6 +43,7 @@ object DBInitializer {
           }
         }
       }
+      EsClient().execute(create index Settings.Mogopay.EsIndex).await
       Mapping.set
       if (fillWithFixtures) fillDB()
     } catch {

@@ -8,12 +8,11 @@ import com.easypost.EasyPost
 import com.easypost.model._
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
-import com.mogobiz.json.JacksonConverter
-import com.mogobiz.pay.common.{ShippingWithQuantity, CompanyAddress, Shipping, Cart}
+import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
-import org.json4s._
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.control.NonFatal
@@ -202,7 +201,7 @@ class EasyPostHandler extends ShippingService {
       "state" -> addr.admin1.getOrElse("CA"),
       "country" -> addr.country.getOrElse("US"),
       "zip" -> addr.zipCode.getOrElse(""),
-      "phone" -> formatPhone(addr.telephone.map(_.lphone).getOrElse("")).filter(_._2.length > 0))
+      "phone" -> formatPhone(addr.telephone.map(_.lphone).getOrElse(""))).filter(_._2.length > 0)
 
     Address.create(fromAddressMap)
   }
@@ -229,7 +228,7 @@ class EasyPostHandler extends ShippingService {
       "state" -> addr.state.getOrElse("CA"),
       "country" -> addr.country,
       "zip" -> addr.zipCode,
-      "phone" -> formatPhone(addr.phone.getOrElse("")).filter(_._2.length > 0))
+      "phone" -> formatPhone(addr.phone.getOrElse(""))).filter(_._2.length > 0)
 
     Address.create(fromAddressMap)
   }
