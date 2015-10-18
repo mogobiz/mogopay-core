@@ -45,12 +45,26 @@ class CountryService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val countryPath = path("country" / Segment) { code =>
+  lazy val countryPath =
     get {
-      handleCall(countryHandler.findByCode(code),
-        (country: Option[Country]) => complete(StatusCodes.OK -> country))
-    }
-  }
+      path("country" / Segment / "admin1" / Segment) { (countryCode, admin1Code) =>
+        handleCall(countryAdminHandler.getAdmin1ByCode(countryCode, admin1Code),
+          (country: Option[CountryAdmin]) => complete(StatusCodes.OK -> country))
+      }
+    } ~
+      get {
+        path("country" / Segment / "admin2" / Segment) { (countryCode, admin2Code) =>
+
+          handleCall(countryAdminHandler.getAdmin2ByCode(countryCode, admin2Code),
+            (country: Option[CountryAdmin]) => complete(StatusCodes.OK -> country))
+        }
+      } ~
+      get {
+        path("country"  / Segment) { countryCode =>
+          handleCall(countryHandler.findByCode(countryCode),
+            (country: Option[Country]) => complete(StatusCodes.OK -> country))
+        }
+      }
 
   lazy val admins1 = path("admins1" / Segment) { countryCode =>
     get {

@@ -11,6 +11,24 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
 
 class CountryAdminHandler {
+  def getAdmin1ByCode(countryCode: String, admin1Code: String): Option[CountryAdmin] = {
+    val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter and(
+      termFilter("level" -> 1),
+      termFilter("country.code" -> countryCode),
+      termFilter("code" -> admin1Code)
+    ) size Integer.MAX_VALUE
+    EsClient.search[CountryAdmin](req)
+  }
+
+  def getAdmin2ByCode(countryCode: String, admin2Code: String): Option[CountryAdmin] = {
+    val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter and(
+      termFilter("level" -> 2),
+      termFilter("country.code" -> countryCode),
+      termFilter("code" -> admin2Code)
+    ) size Integer.MAX_VALUE
+    EsClient.search[CountryAdmin](req)
+  }
+
   def admins1(countryCode: String): Seq[CountryAdmin] = {
     val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter and(
       termFilter("level" -> 1),
