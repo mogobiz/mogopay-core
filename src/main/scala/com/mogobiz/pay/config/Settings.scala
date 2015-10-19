@@ -189,11 +189,8 @@ object Settings {
     require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
   }
 
-  object Dashboard {
-    val GoogleAPIKey = "AIzaSyCwKQwcdpCHgs5t-tXxaAlPshpu4HsYKbU"
-    val EnableGeoLocation = true
-    val IndexName = "mogodashboard"
-  }
+  val GoogleAPIKey = config.getString("mogopay.googleApi.key") //"AIzaSyCwKQwcdpCHgs5t-tXxaAlPshpu4HsYKbU"
+  val EnableGeoLocation = config.getBoolean("mogopay.googleApi.enable")
 
   val NextVal = config getString s"$Env.db.default.nextval"
   val DerbySequence = config getString s"$Env.db.default.sequence"

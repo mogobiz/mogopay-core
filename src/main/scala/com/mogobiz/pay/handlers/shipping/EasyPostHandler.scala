@@ -73,8 +73,8 @@ class EasyPostHandler extends ShippingService {
     if (shippingList.isEmpty) None
     else {
       val parcelPriceTail = computeShippingParcelAndFixAmount(cart, shippingList.tail).getOrElse(ShippingParcelAndFixAmount(0, None, None))
-      val quantity = shippingList.head.quantity;
-      val shipping = shippingList.head.shipping;
+      val quantity = shippingList.head.quantity
+      val shipping = shippingList.head.shipping
 
       val parcelTail = parcelPriceTail.parcel
       val height = convertLinear(shipping.height, shipping.linearUnit) * quantity + parcelTail.map {

@@ -720,8 +720,8 @@ class AccountHandler {
               admin1 = profile.billingAddress.admin1,
               admin2 = profile.billingAddress.admin2,
               geoCoordinates = UtilHandler.computeGeoCoords(profile.billingAddress.road, profile.billingAddress.zipCode,
-                profile.billingAddress.city, profile.billingAddress.country, Settings.Dashboard.EnableGeoLocation,
-                Settings.Dashboard.GoogleAPIKey)
+                profile.billingAddress.city, profile.billingAddress.country, Settings.EnableGeoLocation,
+                Settings.GoogleAPIKey)
             )
         }
 
@@ -1015,7 +1015,7 @@ class AccountHandler {
 
       val coords = UtilHandler.computeGeoCoords(signup.address.road, signup.address.zipCode,
         signup.address.city, signup.address.country,
-        Settings.Dashboard.EnableGeoLocation, Settings.Dashboard.GoogleAPIKey)
+        Settings.EnableGeoLocation, Settings.GoogleAPIKey)
 
       signup.address.copy(
         telephone = Some(tel),
