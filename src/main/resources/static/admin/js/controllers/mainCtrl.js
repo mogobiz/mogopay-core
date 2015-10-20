@@ -12,9 +12,25 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 	$rootScope.location = $location.absUrl().split('#')[0];
 	$rootScope.serverUrl = serverUrl;
 
-	var language = getHTTPParameter("lang") ? getHTTPParameter("lang").toLowerCase() : "en";
-	language = $.inArray(language, ngI18nConfig.supportedLocales) ? language : "en";
+	$rootScope.mogopayGoToProfile = false;
+	if(localStorage.getItem("mogopayGoToProfile") == "true"){
+		localStorage.removeItem("mogopayGoToProfile");
+		$rootScope.mogopayGoToProfile = true;
+	}
+	var language = "en";
+	if(localStorage.getItem("mogopayDisplayLang") && localStorage.getItem("mogopayDisplayLang") != ""){
+		language = localStorage.getItem("mogopayDisplayLang");
+		localStorage.removeItem("mogopayDisplayLang");
+	}
+	if(getHTTPParameter("profile") == "true" || getHTTPParameter("lang") != ""){
+		if(getHTTPParameter("profile") == "true")
+			localStorage.setItem("mogopayGoToProfile", "true");
+		if(getHTTPParameter("lang") != "")
+			localStorage.setItem("mogopayDisplayLang", getHTTPParameter("lang").toLowerCase());
+		window.location.href = $location.$$absUrl.split("?")[0];
+	}
 
+	language = $.inArray(language, ngI18nConfig.supportedLocales) ? language : "en";
 	$rootScope.i18n = {language: language};
 	$rootScope.$watch("i18n.language", function (language) {
 		ngI18nResourceBundle.get({locale: language}).success(function (resourceBundle) {
@@ -72,15 +88,6 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 	});
 
 	$rootScope.createPage = false;
-	$rootScope.mogopayGoToProfile = false;
-	if(localStorage.getItem("mogopayGoToProfile") == "true"){
-		localStorage.removeItem("mogopayGoToProfile");
-		$rootScope.mogopayGoToProfile = true;
-	}
-	if(getHTTPParameter("profile") == "true"){
-		localStorage.setItem("mogopayGoToProfile", "true");
-		window.location.href = $location.$$absUrl.split("?")[0];
-	}
 	if ($rootScope.userProfile == undefined || $rootScope.userProfile == null) {
 		if(indexPage == true && $location.$$path != "/home"){
 			navigateToPage($scope, $location, $rootScope, $route, "home");
