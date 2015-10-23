@@ -20,7 +20,7 @@ class TransactionRequestHandler {
   def find(uuid: String) = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, uuid)
 
   def findByGroupTxUUID(uuid: String): Seq[TransactionRequest] = {
-    val req = search in Settings.Mogopay.EsIndex -> "TransactionRequest" postFilter termFilter("groupTransactionUUID", uuid)
+    val req = search in Settings.Mogopay.EsIndex -> "TransactionRequest" postFilter termFilter("groupTransactionUUID", uuid) from 0 size EsClient.MAX_SIZE
     EsClient.searchAll[TransactionRequest](req)
   }
 

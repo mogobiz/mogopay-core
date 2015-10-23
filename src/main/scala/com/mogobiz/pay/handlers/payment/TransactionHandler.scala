@@ -59,7 +59,7 @@ class TransactionHandler {
   def searchByCustomer(uuid: String): Seq[BOTransaction] = {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       termFilter("customer.uuid", uuid)
-    }
+    } from 0 size EsClient.MAX_SIZE
     EsClient.searchAll[BOTransaction](req)
   }
 

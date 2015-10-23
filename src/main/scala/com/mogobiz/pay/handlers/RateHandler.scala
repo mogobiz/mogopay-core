@@ -13,7 +13,7 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay.Rate
 
 class RateHandler {
-  def list = EsClient.searchAll[Rate](search in Settings.Mogopay.EsIndex -> "Rate")
+  def list = EsClient.searchAll[Rate](search in Settings.Mogopay.EsIndex -> "Rate" from 0 size EsClient.MAX_SIZE)
 
   def format(amount: Long, currency: String, country: String): Option[String] =
     format(amount.toFloat, currency, country)

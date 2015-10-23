@@ -17,7 +17,7 @@ class BOTransactionHandler {
   }
 
   def findByGroupTxUUID(uuid: String): Seq[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter termFilter("groupTransactionUUID", uuid)
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter termFilter("groupTransactionUUID", uuid) from 0 size EsClient.MAX_SIZE
     EsClient.searchAll[BOTransaction](req)
   }
 
@@ -33,7 +33,7 @@ class BOTransactionHandler {
   def findAllGroupTransactions(): Seq[BOTransaction] = {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       existsFilter("groupTransactionUUID")
-    }
+    } from 0 size EsClient.MAX_SIZE
     EsClient.searchAll[BOTransaction](req)
   }
 
