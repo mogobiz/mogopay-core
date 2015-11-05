@@ -77,7 +77,11 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			}
 		});
 	};
-	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET", true, true, true);
+	var error = function (response) {
+		if(rootScope.isMerchant)
+			detailsGetOrderLogs(scope, location, rootScope, route);
+	};
+	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, error, rootScope.selectedStore, "GET", true, true, true);
 }
 
 function detailsGetOrderLogs(scope, location, rootScope, route){
