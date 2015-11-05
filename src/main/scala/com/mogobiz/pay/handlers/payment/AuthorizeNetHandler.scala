@@ -33,6 +33,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   PaymentHandler.register(handlerName, this)
 
   implicit val timeout: Timeout = 40.seconds
+
   import system.dispatcher
 
   val paymentType = PaymentType.CREDIT_CARD
@@ -40,9 +41,9 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   implicit val formats = new org.json4s.DefaultFormats {}
 
   val VENDOR_UUID = "vendor_uuid"
-  val BOTX_UUID   = "botx_uuid"
-  val PAYREQ_UUID   = "payreq_uuid"
-  val SESSION_UUID   = "session_uuid"
+  val BOTX_UUID = "botx_uuid"
+  val PAYREQ_UUID = "payreq_uuid"
+  val SESSION_UUID = "session_uuid"
 
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val transactionRequestUUID = sessionData.transactionUuid.get
@@ -64,14 +65,15 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     paymentRequestHandler.save(paymentRequest, refresh = false)
 
     val amount = paymentRequest.amount.toString
+    val amountFloat = (paymentRequest.amount.toFloat / 100).toString
     val currency: Int = paymentRequest.currency.numericCode
     val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val apiLoginID = cbParam("apiLoginID")
     val transactionKey = cbParam("transactionKey")
-    val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amount)
+    val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amountFloat)
 
     val relayURL = s"${Settings.Mogopay.EndPoint}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
-    val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel"
+    val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel/${sessionData.uuid}"
     val formAction = Settings.AuthorizeNet.formAction
 
     if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
@@ -81,11 +83,11 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       val form = {
         <form name="authorizenet" id="authorizenet" action={formAction} method="post">
-          <input type="hidden" name="x_amount" value={(amount.toFloat / 100).toString}/>
-          <input type="hidden" name="x_login" value={apiLoginID}/>
-          <input type="hidden" name="x_fp_sequence" value={x_fp_sequence.toString}/>
-          <input type="hidden" name="x_fp_timestamp" value={x_fp_timestamp.toString}/>
-          <input type="hidden" name="x_fp_hash" value={x_fp_hash}/>
+          <input type="hidden" name="x_amount" value={amountFloat}/>
+          <input type="hidden" name="x_login" value={net.authorize.util.StringUtils.sanitizeString(apiLoginID)}/>
+          <input type="hidden" name="x_fp_sequence" value={net.authorize.util.StringUtils.sanitizeString(x_fp_sequence.toString)}/>
+          <input type="hidden" name="x_fp_timestamp" value={net.authorize.util.StringUtils.sanitizeString(x_fp_timestamp.toString)}/>
+          <input type="hidden" name="x_fp_hash" value={net.authorize.util.StringUtils.sanitizeString(x_fp_hash)}/>
           <input type="hidden" name="x_version" value="3.1"/>
           <input type="hidden" name="x_method" value="CC"/>
           <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
@@ -100,10 +102,11 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
           <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
         </form>
-        <script>document.getElementById('authorizenet').submit();</script>
+          <script>document.getElementById('authorizenet').submit();</script>
       }
 
-      if (Settings.Env == Environment.DEV) { // Just `open /tmp/authorizenet-form.html` to start the payment
+      if (Settings.Env == Environment.DEV) {
+        // Just `open /tmp/authorizenet-form.html` to start the payment
         java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/authorizenet-form.html"),
           form.mkString.getBytes(StandardCharsets.UTF_8))
       }
@@ -155,20 +158,20 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name="x_version" value="3.1"/>
           <input type="hidden" name="x_method" value="CC"/>
           <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
-          <input type="hidden" name="x_amount" value={amount}/>
+          <input type="hidden" name="x_amount" value={amountFloat}/>
           <input type="hidden" name="x_test_request" value="FALSE"/>
           <input type="hidden" name={VENDOR_UUID} value={vendorId}/>
           <input type="hidden" name={BOTX_UUID} value={transaction.uuid}/>
           <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
           <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
-          <input type="submit" name="buy_button" value="BUY"/>
-          {if (Settings.Env == Environment.DEV) {
-            <script>document.getElementById('authorizenet').submit();</script>
-          }}
+          <input type="submit" name="buy_button" value="BUY"/>{if (Settings.Env == Environment.DEV) {
+          <script>document.getElementById('authorizenet').submit();</script>
+        }}
         </form>
       }
 
-      if (Settings.Env == Environment.DEV) { // Just `open /tmp/authorizenet-form.html` to start the payment
+      if (Settings.Env == Environment.DEV) {
+        // Just `open /tmp/authorizenet-form.html` to start the payment
         java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/authorizenet-form.html"),
           form.mkString.getBytes(StandardCharsets.UTF_8))
       }
@@ -184,20 +187,20 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   }
 
   def relay(sessionData: SessionData, params: Map[String, String]) = {
-    val action = s"${Settings.Mogopay.EndPoint}authorizenet/finish/${sessionData.uuid}"
+    val action = s"${Settings.Mogopay.EndPoint}authorizenet/done/${sessionData.uuid}"
     val form = {
       <form action={action} id="redirectForm" method="GET">
         {params.map { case (name, value) =>
           <input type="hidden" name={name} value={value}/>
-        }}
+      }}
       </form>
-      <script>document.getElementById('redirectForm').submit();</script>
+        <script>document.getElementById('redirectForm').submit();</script>
     }.mkString
 
     form // TODO Sanitize the values?
   }
 
-  def finish(sessionData: SessionData, params: Map[String, String]) = {
+  def done(sessionData: SessionData, params: Map[String, String]) = {
     val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
       transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params), step = TransactionStep.FINISH)
     EsClient.index(Settings.Mogopay.EsIndex, log, false)
@@ -212,19 +215,19 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     val apiLoginID: String = cbParam("apiLoginID")
     val transactionKey: String = cbParam("transactionKey")
 
-//    val query = Map(
-//      "amount" -> amount,
-//      "apiLoginID" -> apiLoginID,
-//      "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
-//      "currency" -> currency,
-//      "cc_holder" -> paymentRequest.holder,
-//      "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
-//      "cc_cvv" -> paymentRequest.cvv,
-//      "cc_expirationDate" -> paymentRequest.expirationDate
-//    )
-//    val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-//      transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
-//    EsClient.index(Settings.Mogopay.EsIndex, log1, false)
+    //    val query = Map(
+    //      "amount" -> amount,
+    //      "apiLoginID" -> apiLoginID,
+    //      "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
+    //      "currency" -> currency,
+    //      "cc_holder" -> paymentRequest.holder,
+    //      "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
+    //      "cc_cvv" -> paymentRequest.cvv,
+    //      "cc_expirationDate" -> paymentRequest.expirationDate
+    //    )
+    //    val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
+    //      transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
+    //    EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
     val transaction: BOTransaction = sessionData.transactionUuid.flatMap { txUUID =>
       EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, txUUID)
@@ -238,7 +241,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       orderDate = paymentRequest.orderDate,
       amount = paymentRequest.amount,
       ccNumber = hideStringExceptLastN("X" * 8 + params("x_account_number"), 4, "X"),
-      cardType = AuthorizeNetHandler.toCardType(params.getOrElse("CARTE", CreditCardType.CB.toString)),
+      cardType = AuthorizeNetHandler.toCardType(params.getOrElse("UNKNOWN", CreditCardType.CB.toString)),
       expirationDate = paymentRequest.expirationDate,
       cvv = "",
       gatewayTransactionId = transaction.uuid,
@@ -264,19 +267,19 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
     finishPayment(sessionData, paymentResult)
   }
 
-  def cancel(sessionData: SessionData) = {
+  def cancel(sessionData: SessionData): Uri = {
     val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
       transaction = sessionData.transactionUuid.getOrElse("None"), log = "", step = TransactionStep.CANCEL)
     EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
     val transaction: BOTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, sessionData.transactionUuid.getOrElse("???")).orNull
     val paymentResult = PaymentResult(
-      newUUID, null, -1L, "", null, null, "", "", null, "", "", PaymentStatus.FAILED,
+      newUUID, null, -1L, "", null, null, "", "", null, "", "", PaymentStatus.CANCELED,
       transaction.errorCodeOrigin.getOrElse(""),
       transaction.errorMessageOrigin, "", "", Some(""), "")
 
     transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
-      TransactionStatus.PAYMENT_REFUSED, paymentResult, "", sessionData.locale)
+      TransactionStatus.CANCEL_CONFIRMED, paymentResult, "", sessionData.locale)
     finishPayment(sessionData, paymentResult)
   }
 
@@ -356,3 +359,4 @@ object AuthorizeNetHandler {
     }
   }
 }
+

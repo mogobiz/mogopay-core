@@ -28,8 +28,8 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
   val route = {
     pathPrefix("authorizenet") {
       startPayment ~
+        cancel ~
         done ~
-        finish ~
         relay
       //      callbackPayment ~
       //      callback3DSecureCheck ~
@@ -59,23 +59,6 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
   }
 
   def queryString: Directive1[String] = extract(_.request.uri.toString())
-
-  lazy val done = path("done" / Segment) { xtoken =>
-    import Implicits._
-    get {
-      parameterMap { params =>
-        queryString { uri =>
-          val session = SessionESDirectives.load(xtoken).get
-          handleCall(???, //authorizeNetHandler.done(session.sessionData, params, uri),
-            (data: Uri) =>
-              setSession(session) {
-                redirect(data, StatusCodes.TemporaryRedirect)
-              }
-          )
-        }
-      }
-    }
-  }
 
   /*
   lazy val callbackPayment = path("callback" / Segment) {
@@ -155,26 +138,23 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     }
   }
 
-  /*
-  lazy val cancel = path("cancel") {
+  lazy val cancel = path("cancel" / Segment) { xtoken =>
     import Implicits._
     get {
-      session { session =>
-        parameterMap { params =>
-          handleCall(authorizeNetHandler.cancel(session.sessionData),
-            (_: Any) => complete(StatusCodes.OK))
-        }
+      val session = SessionESDirectives.load(xtoken).get
+      parameterMap { params =>
+        handleCall(authorizeNetHandler.cancel(session.sessionData),
+          (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
       }
     }
   }
-  */
 
-  lazy val finish = path("finish" / Segment) { xtoken =>
+  lazy val done = path("done" / Segment) { xtoken =>
     import Implicits._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(authorizeNetHandler.finish(session.sessionData, params),
+        handleCall(authorizeNetHandler.done(session.sessionData, params),
           (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
       }
     }
