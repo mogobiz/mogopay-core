@@ -49,8 +49,20 @@ class SipsService extends Directives with DefaultComplete {
   }
 
   lazy val done = path("done" / Segment) { xtoken =>
-    import Implicits._
+    post {
+      entity(as[FormData]) { formData =>
+        import Implicits._
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(sipsHandler.done(session.sessionData, formData.fields.toMap),
+          (data: Uri) =>
+            setSession(session) {
+              redirect(data, StatusCodes.TemporaryRedirect)
+            }
+        )
+      }
+    } ~
     get {
+      import Implicits._
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
         handleCall(sipsHandler.done(session.sessionData, params),

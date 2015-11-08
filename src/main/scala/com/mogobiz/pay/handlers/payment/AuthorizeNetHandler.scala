@@ -82,7 +82,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       val x_fp_hash = fingerprint.getFingerprintHash
 
       val form = {
-        <form name="authorizenet" id="authorizenet" action={formAction} method="post">
+        <div style="display:none">
+        <form name="authorizenet" id="authorizenet" action={formAction} method="post" >
           <input type="hidden" name="x_amount" value={amountFloat}/>
           <input type="hidden" name="x_login" value={net.authorize.util.StringUtils.sanitizeString(apiLoginID)}/>
           <input type="hidden" name="x_fp_sequence" value={net.authorize.util.StringUtils.sanitizeString(x_fp_sequence.toString)}/>
@@ -102,6 +103,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
           <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
         </form>
+        </div>
           <script>document.getElementById('authorizenet').submit();</script>
       }
 
@@ -142,6 +144,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
       }
 
       val form = {
+        <div style="display:none">
         <form id="authorizenet" action={formAction} method="post">
           <label>CreditCardNumber</label>
           <input type="text" class="text" name="x_card_num" size="15" value={cardNumberDefaultValue}/>
@@ -168,6 +171,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
           <script>document.getElementById('authorizenet').submit();</script>
         }}
         </form>
+        </div>
       }
 
       if (Settings.Env == Environment.DEV) {

@@ -18,6 +18,7 @@ class TemplateHandler {
     val mailContent = Mustache(template, jsonString)
     val eol = mailContent.indexOf('\n')
     require(eol > 0, "No new line found in mustache file to distinguish subject from body")
+    println(mailContent)
     val subject = mailContent.substring(0, eol)
     val body = mailContent.substring(eol + 1)
     (subject, body)
