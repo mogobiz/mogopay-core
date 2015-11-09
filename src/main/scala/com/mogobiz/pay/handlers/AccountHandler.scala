@@ -428,13 +428,13 @@ class AccountHandler {
     //We are juste waiting for him to connect.
     val newStatus = if (account.status == AccountStatus.WAITING_ENROLLMENT) AccountStatus.ACTIVE else account.status
     update(account.copy(loginFailedCount = 0, status = newStatus, password = new Sha256Hash(newPassword).toHex), refresh = true)
-    notifyNewPassword(account, newPassword)
+    notifyNewPassword(account, newPassword, req.locale)
   }
 
-  def notifyNewPassword(account: Account, newPassword: String) = {
+  def notifyNewPassword(account: Account, newPassword: String, locale :Option[String]) = {
 
     val vendor = if (account.owner.isDefined) load(account.owner.get) else None
-    val template = templateHandler.loadTemplateByVendor(vendor, "mail-new-password", req.locale)
+    val template = templateHandler.loadTemplateByVendor(vendor, "mail-new-password", locale)
 
     val paymentConfig = vendor.get.paymentConfig.get
     val senderName = paymentConfig.senderName
@@ -1128,7 +1128,7 @@ class AccountHandler {
     val (subject, body) = templateHandler.mustache(template,
       s"""
          |{
-         |"url": "$url",
+         |"url": "$validationUrl",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
          |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
