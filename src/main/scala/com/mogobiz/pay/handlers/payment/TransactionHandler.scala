@@ -211,19 +211,19 @@ class TransactionHandler {
     val tx = if (paymentResult.transactionDate != null) {
       val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
       boTransactionHandler.update(finalTrans, refresh = false)
-      notify(finalTrans.copy(extra = None), finalTrans.extra.getOrElse("{}"), locale)
+      notifyPaymentFinished(finalTrans.copy(extra = None), finalTrans.extra.getOrElse("{}"), locale)
       finalTrans
     }
     else {
       boTransactionHandler.update(newTx, false)
-      notify(newTx.copy(extra = None), newTx.extra.getOrElse("{}"), locale)
+      notifyPaymentFinished(newTx.copy(extra = None), newTx.extra.getOrElse("{}"), locale)
       newTx
     }
 
     Success()
   }
 
-  def notify(transaction: BOTransaction, jsonCart: String, locale: Option[String]): Unit = {
+  def notifyPaymentFinished(transaction: BOTransaction, jsonCart: String, locale: Option[String]): Unit = {
     try {
       val jcart = parse(jsonCart)
       val jtransaction = Extraction.decompose(transaction)
@@ -559,13 +559,14 @@ class TransactionHandler {
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(langCountry))
           val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill", Some(langCountry))
           val (subject, body) = templateHandler.mustache(template, jsonString)
-          pdfHandler.convertToPdf(pageFormat, body);
+          pdfHandler.convertToPdf(pageFormat, body)
         }
         else throw new PaymentNotConfirmedException(transactionUuid)
       }
       case None => throw new BOTransactionNotFoundException(transactionUuid)
     }
   }
+
 
   private def initPaymentRequest(vendor: Account, transactionType: Option[String], mogopay: Boolean,
                                  transactionSequence: Long, cart: CartWithShipping, sessionData: SessionData,

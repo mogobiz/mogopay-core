@@ -335,18 +335,18 @@ class AccountHandler {
   }
 
   /**
-   * For debugging purposes. Works only for merchant.com - so no risk :)
-   * @return
-   */
+    * For debugging purposes. Works only for merchant.com - so no risk :)
+    * @return
+    */
   def id(seller: String): String = {
     val email = seller + "@merchant.com"
     this.findByEmail(email, None).map(_.uuid).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
   /**
-   * For debugging purposes. Works only for merchant.com - so no risk :)
-   * @return
-   */
+    * For debugging purposes. Works only for merchant.com - so no risk :)
+    * @return
+    */
   def secret(seller: String): String = {
     val email = seller + "@merchant.com"
     this.findByEmail(email, None).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
@@ -398,7 +398,7 @@ class AccountHandler {
     result
   }
 
-  def updatePassword(oldPassword:String, password: String, vendorId: String, accountId: String): Unit = {
+  def updatePassword(oldPassword: String, password: String, vendorId: String, accountId: String): Unit = {
     def `match`(pattern: String, password: String): Boolean = {
       if (pattern.length == 0) {
         true
@@ -428,41 +428,41 @@ class AccountHandler {
     //We are juste waiting for him to connect.
     val newStatus = if (account.status == AccountStatus.WAITING_ENROLLMENT) AccountStatus.ACTIVE else account.status
     update(account.copy(loginFailedCount = 0, status = newStatus, password = new Sha256Hash(newPassword).toHex), refresh = true)
-    sendNewPasswordEmail(account, newPassword)
+    notifyNewPassword(account, newPassword)
+  }
 
+  def notifyNewPassword(account: Account, newPassword: String) = {
 
-    def sendNewPasswordEmail(account: Account, newPassword: String) = {
+    val vendor = if (account.owner.isDefined) load(account.owner.get) else None
+    val template = templateHandler.loadTemplateByVendor(vendor, "mail-new-password", req.locale)
 
-      val vendor = if (account.owner.isDefined) load(account.owner.get) else None
-      val template = templateHandler.loadTemplateByVendor(vendor, "new-password", req.locale)
+    val paymentConfig = vendor.get.paymentConfig.get
+    val senderName = paymentConfig.senderName
+    val senderEmail = paymentConfig.senderEmail
+    val data =
+      s"""
+         |{
+         |"newPassword": "$newPassword",
+         |"email" :"${account.email}",
+         |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
+         |}
+         |""".stripMargin
 
-      val paymentConfig = vendor.get.paymentConfig.get
-      val senderName = paymentConfig.senderName
-      val senderEmail = paymentConfig.senderEmail
-      val data =
-        s"""
-           |{
-           |"newPassword": "$newPassword",
-           |"email" :"${account.email}",
-           |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}"
-           |}
-           |""".stripMargin
-
-      val (subject, body) = templateHandler.mustache(template, data)
-      EmailHandler.Send(
-        Mail(
-          from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
-          to = Seq(account.email),
-          subject = subject,
-          message = body))
-    }
+    val (subject, body) = templateHandler.mustache(template, data)
+    EmailHandler.Send(
+      Mail(
+        from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
+        to = Seq(account.email),
+        subject = subject,
+        message = body))
   }
 
   def isMerchant(account: Account) = account.roles.contains(RoleName.MERCHANT)
 
   /**
-   * Generates, saves and sends a pin code
-   */
+    * Generates, saves and sends a pin code
+    */
   def generateAndSendPincode3(uuid: String): Unit = {
     val acc = accountHandler.load(uuid) getOrElse (throw AccountDoesNotExistException(""))
     val phoneNumber: Telephone =
@@ -701,7 +701,7 @@ class AccountHandler {
         'isMerchant -> account.owner.isEmpty)
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
-  def load(uuid: String) = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
+  def load(uuid: String): Option[Account] = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
 
   def updateProfile(profile: UpdateProfile): Unit = {
     load(profile.id) match {
@@ -1072,16 +1072,21 @@ class AccountHandler {
 
     save(account, refresh = true)
 
-    if (needEmailValidation) owner match {
-      case None =>
-        sendConfirmationEmail(account, signup.validationUrl, token, Settings.EmailSenderName,
-          Settings.EmailSenderAddress, signup.locale)
-      case Some(acc) =>
-        val merchant = getMerchant(acc)
-        val paymentConfig = merchant.get.paymentConfig.get
-        val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
-        val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
-        sendConfirmationEmail(account, signup.validationUrl, token, senderName, senderEmail, signup.locale)
+
+    if (needEmailValidation) {
+      val validationUrl = signup.validationUrl + (if (signup.validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
+      val vendor = account.owner.flatMap(load)
+      owner match {
+        case None =>
+          notifyNewAccount(account, vendor, validationUrl, token, Settings.EmailSenderName,
+            Settings.EmailSenderAddress, signup.locale)
+        case Some(acc) =>
+          val merchant = getMerchant(acc)
+          val paymentConfig = merchant.get.paymentConfig.get
+          val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
+          val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
+          notifyNewAccount(account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
+      }
     }
 
     (token, account)
@@ -1116,12 +1121,9 @@ class AccountHandler {
     EsClient.searchAll[Account](req).map(merchant => (merchant.company.getOrElse(merchant.email), merchant.uuid)).sortWith((x1, x2) => x1._1.compareTo(x2._1) < 0)
   }
 
-  private def sendConfirmationEmail(account: Account, validationUrl: String, token: String,
-                                    fromName: String, fromEmail: String, locale: Option[String]): Unit = {
-    val vendor = if (account.owner.isDefined) load(account.owner.get) else None
-    val template = templateHandler.loadTemplateByVendor(vendor, "signup-confirmation", locale)
-
-    val url = validationUrl + (if (validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
+  def notifyNewAccount(account: Account, vendor: Option[Account], validationUrl: String, token: String,
+                       fromName: String, fromEmail: String, locale: Option[String]): Unit = {
+    val template = templateHandler.loadTemplateByVendor(vendor, "mail-signup-confirmation", locale)
 
     val (subject, body) = templateHandler.mustache(template,
       s"""

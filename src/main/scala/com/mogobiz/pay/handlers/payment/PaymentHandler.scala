@@ -110,7 +110,7 @@ trait PaymentHandler {
         val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
         val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
 
-        val template = templateHandler.loadTemplateByVendor(Option(merchant), "group-payment", locale)
+        val template = templateHandler.loadTemplateByVendor(Option(merchant), "mail-group-payment", locale)
 
         val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
         val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
