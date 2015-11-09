@@ -39,6 +39,13 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 	$scope.refreshProductsPopover = function () {refreshProductsPopover();};
 	$scope.refreshReturnPopover = function () {refreshReturnPopover();};
 	$scope.refreshBoRetunPopover = function () {refreshBoRetunPopover();};
+	$scope.toUTCDate = function(dateValue){return toUTCDate(dateValue);};
+}
+
+function toUTCDate(dateValue){
+	var date = new Date(dateValue);
+	var newDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),  date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds());
+	return newDate.getTime();
 }
 
 function detailsGetCustomerHistory(scope, location, rootScope, route){
@@ -58,7 +65,7 @@ function detailsSelectOrder(scope, location, rootScope, route, index){
 	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
 	$("html,body").animate({
-		scrollTop: $("#detailsOrderBlock").offset().top
+		scrollTop: $(".detailsOrderBlock").offset().top
 	}, 500);
 }
 
