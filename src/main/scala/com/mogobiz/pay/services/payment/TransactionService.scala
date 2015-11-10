@@ -155,25 +155,13 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  session.sessionData.shippingPrices.map { shippingPrices: List[ShippingPrice] =>
-                    val shippingPriceOpt = transactionHandler.shippingPrice(shippingPrices, params.shipmentId, params.rateId)
-                    session.sessionData.selectShippingPrice = shippingPriceOpt
-                    shippingPriceOpt.map { shippingPrice =>
+                  handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shipmentId, params.rateId),
+                    (shippingPrice: ShippingPrice) => {
                       setSession(session) {
-                        complete {
-                          StatusCodes.OK -> shippingPrice
-                        }
-                      }
-                    }.getOrElse {
-                      complete {
-                        StatusCodes.NotFound -> Map('error -> "Shipping is not found")
+                        complete(StatusCodes.OK -> shippingPrice)
                       }
                     }
-                  }.getOrElse {
-                    complete {
-                      StatusCodes.NotFound -> Map('error -> "Shipping is not computed")
-                    }
-                  }
+                  )
               }
           }
       }

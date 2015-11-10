@@ -60,7 +60,13 @@ object Exceptions {
 
   case class NoPasswordProvidedError(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NoActiveShippingAddressFound(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class ShippingInternationalUnauthorized() extends MogopayMessagelessException(StatusCodes.Unauthorized)
+
+  case class NoShippingPriceFound() extends MogopayMessagelessException(StatusCodes.Unauthorized)
+
+  case class SelectedShippingPriceNotFound() extends MogopayMessagelessException(StatusCodes.Unauthorized)
+
+  case class NoActiveShippingAddressFound() extends MogopayMessagelessException(StatusCodes.Unauthorized)
 
   case class CountryDoesNotExistException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 

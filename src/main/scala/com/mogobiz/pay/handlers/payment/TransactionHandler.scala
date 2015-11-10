@@ -25,6 +25,7 @@ import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
+import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{GlobalUtil, SymmetricCrypt}
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -36,6 +37,7 @@ import org.json4s.JsonAST.{JField, JObject}
 import org.json4s._
 import org.json4s.ext.JodaTimeSerializers
 import org.json4s.jackson.JsonMethods._
+import spray.http.StatusCodes
 
 import scala.collection.{Map, _}
 import scala.util._
@@ -300,6 +302,25 @@ class TransactionHandler {
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
     address.map(addr => ShippingService.calculatePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
+  }
+
+  def selectShippingPrice(sessionData: SessionData, accountId: String, shipmentId: String, rateId: String) : ShippingPrice = {
+    shippingAddressHandler.findByAccount(accountId).find(_.active).map { clientAddress =>
+      sessionData.shippingPrices.map { shippingPrices: List[ShippingPrice] =>
+        val shippingPriceOpt = transactionHandler.shippingPrice(shippingPrices, shipmentId, rateId)
+        sessionData.selectShippingPrice = shippingPriceOpt
+        shippingPriceOpt.map { shippingPrice =>
+          sessionData.cart.map { cart =>
+            cart.compagnyAddress.map { companyAddress =>
+              if (!companyAddress.shippingInternational && companyAddress.country != clientAddress.address.country.getOrElse("")) {
+                throw ShippingInternationalUnauthorized()
+              }
+            }
+          }
+          shippingPrice
+        }.getOrElse { throw SelectedShippingPriceNotFound() }
+      }.getOrElse {throw NoShippingPriceFound()}
+    }.getOrElse(throw NoActiveShippingAddressFound())
   }
 
   def shippingPrice(prices: Seq[ShippingPrice], shipmentId: String, rateId: String): Option[ShippingPrice] = {
