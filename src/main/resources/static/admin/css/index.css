@@ -17,7 +17,7 @@
 #header img#logo {
     float: left;
     max-width: 240px;
-    width: 100%;
+    /* width: 100%; */
     margin: 20px 10px 10px 20px;
 }
 
