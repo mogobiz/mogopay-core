@@ -9,6 +9,7 @@ import java.text.{DateFormat, NumberFormat, SimpleDateFormat}
 import java.util.{List => _, _}
 
 import com.mogobiz.es.EsClient
+import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.common._
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -98,6 +99,7 @@ class TransactionHandler {
                    paymentRequest: PaymentRequest, paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
     accountHandler.load(vendorId).map { account =>
       val customer = sessionData.accountId.map { uuid => accountHandler.load(uuid) }.getOrElse(None)
+      val extra = serializeCart(paymentRequest.transactionExtra)
       var transaction = BOTransaction(
         transactionRequestUUID,
         transactionRequestUUID,
@@ -115,7 +117,7 @@ class TransactionHandler {
         Option(paymentRequest.transactionEmail),
         None,
         None,
-        Option(serializeCart(paymentRequest.transactionExtra)),
+        Option(extra),
         Option(paymentRequest.transactionDesc),
         Option(paymentRequest.gatewayData),
         None,
@@ -738,7 +740,7 @@ class TransactionHandler {
   }
 
   private def serializeCart(cart: CartWithShipping): String = {
-    compact(render(Extraction.decompose(cart)))
+    JacksonConverter.serialize(cart)
   }
 }
 
