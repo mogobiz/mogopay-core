@@ -5,7 +5,6 @@
 package com.mogobiz.pay.model
 
 /**
- * Created by yoannbaudy on 01/12/2014.
  */
 object ParamRequest {
   case class TransactionInit(merchantSecret: String, transactionAmount: Long,
