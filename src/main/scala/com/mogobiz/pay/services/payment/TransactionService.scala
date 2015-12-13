@@ -13,7 +13,7 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.common.{CartRate, Cart, CartContentMessage}
+import com.mogobiz.pay.common.{CartRate, Cart}
 import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
@@ -54,7 +54,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     pathPrefix(serviceName) {
       searchByCustomer ~
         init ~
-        listShipping ~
         selectShipping ~
         verify ~
         submit ~
