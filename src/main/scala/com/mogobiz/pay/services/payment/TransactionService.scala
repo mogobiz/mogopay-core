@@ -106,43 +106,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
   }
 
-  lazy val listShipping = path("list-shipping") {
-    post {
-      formFields('cartProvider, 'cartKeys).as(ListShippingPriceParam) {
-        params =>
-          session {
-            session =>
-              import Implicits._
-              session.sessionData.accountId.map(_.toString) match {
-                case None => complete {
-                  StatusCodes.Forbidden -> Map('error -> "Not logged in")
-                }
-                case Some(id) => {
-                  handleCall({
-                    // call the remote actor to retreive cart content
-                    val actor = system.actorSelection("akka.tcp://MogobizTransactionSystem@127.0.0.1:2560/user/TransactionActor")
-                    implicit val timeout = Timeout(5 seconds)
-                    val future = actor ? new CartContentMessage(params.cartProvider, params.cartKeys)
-                    Await.result(future, timeout.duration).asInstanceOf[Cart]
-                  }, (cart: Cart) => {
-                    session.sessionData.cart = Some(cart)
-                    handleCall(transactionHandler.shippingPrices(cart, id),
-                      (shippinggPrices: Seq[ShippingPrice]) => {
-                        session.sessionData.shippingPrices = Option(shippinggPrices.toList)
-                        setSession(session) {
-                          complete(StatusCodes.OK -> shippinggPrices)
-                        }
-                      }
-                    )
-                  }
-                  )
-                }
-              }
-          }
-      }
-    }
-  }
-
   lazy val selectShipping = path("select-shipping") {
     post {
       formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
