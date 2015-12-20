@@ -68,17 +68,16 @@ class SystempayService extends Directives with DefaultComplete {
       }
   }
 
-
   lazy val callback = path("callback" / Segment) {
     xtoken =>
-    get {
-      parameterMap { params =>
-        import Implicits._
-        val session = SessionESDirectives.load(xtoken).get
-        handleCall(systempayHandler.callbackPayment(session.sessionData, params),
-          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+      get {
+        parameterMap { params =>
+          import Implicits._
+          val session = SessionESDirectives.load(xtoken).get
+          handleCall(systempayHandler.callbackPayment(session.sessionData, params),
+            (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+        }
       }
-    }
   }
 
   lazy val threeDSCallback = path("3ds-callback" / Segment) {

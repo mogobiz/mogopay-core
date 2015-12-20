@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.jobs
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{ Actor, ActorSystem, Props }
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,8 +46,7 @@ class ImportCountriesJob extends Actor {
         countryImportHandler.importAdmins2(admins2)
         countryImportHandler.importCities(cities)
         println(" == ImportCountriesJob: done.")
-      }
-      else {
+      } else {
         println(" == ImportCountriesJob: skipped.")
       }
     } catch {

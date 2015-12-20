@@ -8,7 +8,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.xml.namespace.QName
-import javax.xml.ws.{Binding, BindingProvider}
+import javax.xml.ws.{ Binding, BindingProvider }
 
 import com.experian.payline.ws.impl._
 import com.experian.payline.ws.obj._
@@ -22,15 +22,14 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
-import com.mogobiz.utils.{GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory}
+import com.mogobiz.pay.model.Mogopay.{ ResponseCode3DS, TransactionStatus, _ }
+import com.mogobiz.utils.{ GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory }
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
 
 import scala.util._
 import scala.util.control.NonFatal
-
 
 /**
  * @see com.ebiznext.mogopay.payment.PaylinePaymentService
@@ -43,23 +42,17 @@ object PaylineHandler {
     var retour: String = "CB"
     if (CreditCardType.CB == `type`) {
       retour = "CB"
-    }
-    else if (CreditCardType.VISA == `type`) {
+    } else if (CreditCardType.VISA == `type`) {
       retour = "CB"
-    }
-    else if (CreditCardType.MASTER_CARD == `type`) {
+    } else if (CreditCardType.MASTER_CARD == `type`) {
       retour = "MASTERCARD"
-    }
-    else if (CreditCardType.DISCOVER == `type`) {
+    } else if (CreditCardType.DISCOVER == `type`) {
       retour = "CB"
-    }
-    else if (CreditCardType.AMEX == `type`) {
+    } else if (CreditCardType.AMEX == `type`) {
       retour = "AMEX"
-    }
-    else if (CreditCardType.SWITCH == `type`) {
+    } else if (CreditCardType.SWITCH == `type`) {
       retour = "SWITCH"
-    }
-    else if (CreditCardType.SOLO == `type`) {
+    } else if (CreditCardType.SOLO == `type`) {
       retour = "CB"
     }
     return retour
@@ -69,14 +62,11 @@ object PaylineHandler {
     var retour: CreditCardType = CreditCardType.CB
     if ("CB" == `type`) {
       retour = CreditCardType.VISA
-    }
-    else if ("MASTERCARD" == `type`) {
+    } else if ("MASTERCARD" == `type`) {
       retour = CreditCardType.MASTER_CARD
-    }
-    else if ("AMEX" == `type`) {
+    } else if ("AMEX" == `type`) {
       retour = CreditCardType.AMEX
-    }
-    else if ("SWITCH" == `type`) {
+    } else if ("SWITCH" == `type`) {
       retour = CreditCardType.SWITCH
     }
     return retour
@@ -144,14 +134,12 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
               </body>
             </html>"""
           Left(form)
-        }
-        else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
+        } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
           // on lance un paiement classique
           val paymentResult = submit(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
             sessionData.locale, TransactionStep.START_PAYMENT)
           Right(finishPayment(sessionData, paymentResult))
-        }
-        else {
+        } else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
           Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
         }
@@ -188,8 +176,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     if (!sessionData.waitFor3DS) {
       // invalid call
       throw InvalidContextException("Not expecting 3DSecure callback")
-    }
-    else {
+    } else {
       val errorURL = sessionData.errorURL.getOrElse("")
       val transactionUUID = sessionData.transactionUuid.get
       val vendorId = sessionData.merchantId.get
@@ -201,8 +188,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         val result = submit(vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2,
           sessionData.mogopay, sessionData.locale, TransactionStep.THREEDS_CALLBACK)
         finishPayment(sessionData, result)
-      }
-      catch {
+      } catch {
         case ex: Exception =>
           ex.printStackTrace()
           Uri(errorURL)
@@ -210,9 +196,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-
   def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document,
-                    paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
+    paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -289,14 +274,11 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         termUrlValue = s"${Settings.Mogopay.EndPoint}payline/3ds-callback/${sessionData.uuid}" //response.getTermUrlValue
       )
 
-    }
-    else if (code != null && code.startsWith("023")) {
+    } else if (code != null && code.startsWith("023")) {
       default3DS.copy(code = ResponseCode3DS.INVALID)
-    }
-    else if (code != null && (code.startsWith("01") || code.startsWith("03"))) {
+    } else if (code != null && (code.startsWith("01") || code.startsWith("03"))) {
       default3DS.copy(code = ResponseCode3DS.REFUSED)
-    }
-    else {
+    } else {
       default3DS.copy(code = ResponseCode3DS.ERROR)
     }
     val botlogIn = BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, step = TransactionStep.CHECK_THREEDS)
@@ -306,8 +288,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def submit(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                     infosPaiement: PaymentRequest, mogopay: Boolean, locale: scala.Option[String],
-                     step: TransactionStep): PaymentResult = {
+    infosPaiement: PaymentRequest, mogopay: Boolean, locale: scala.Option[String],
+    step: TransactionStep): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -445,8 +427,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         authorizationId = authorisation.getNumber,
         status = PaymentStatus.COMPLETE)
 
-    }
-    else {
+    } else {
       paymentResult.copy(
         errorCodeOrigin = code,
         errorMessageOrigin = scala.Option(result.getLongMessage),
@@ -516,7 +497,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   def doWebPayment(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                   paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
+    paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -650,18 +631,16 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
                |</body>
                |</html>
               """.stripMargin)
-      }
-      else {
+      } else {
         throw NotAvailablePaymentGatewayException(result.getResult.getCode)
       }
-    }
-    else {
+    } else {
       throw NotAvailablePaymentGatewayException("Unkown")
     }
   }
 
   def getWebPaymentDetails(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-                           paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResult = {
+    paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -721,8 +700,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       amount =
         try {
           result.getPayment.getAmount.toLong
-        }
-        catch {
+        } catch {
           case NonFatal(e) =>
             paymentRequest.amount
         },
@@ -731,8 +709,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       expirationDate =
         try {
           new SimpleDateFormat("MMyy").parse(result.getCard().getExpirationDate)
-        }
-        catch {
+        } catch {
           case NonFatal(e) =>
             null
         },
@@ -741,8 +718,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       transactionDate =
         try {
           new SimpleDateFormat("dd/MM/yy HH:mm").parse(result.getTransaction().getDate)
-        }
-        catch {
+        } catch {
           case NonFatal(e) =>
             new Date
         },

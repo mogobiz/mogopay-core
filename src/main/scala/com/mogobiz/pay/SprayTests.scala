@@ -10,7 +10,6 @@ object SprayTestsNoMagnet {
 
   trait Route
 
-
   def host[T](hostnames: T)(implicit ev: T => String): Route => Route = (route: Route) => route
 
   implicit def stringToString(input: String): String = ???
@@ -71,7 +70,6 @@ object SprayTests2 {
   implicit def stringToString(input: String): String = ???
 
   type StatusCode = Int
-
 
   // En commentaire ci-dessous ce que l'on cherche à faire avec les magnet
   // Car impossible sans magnet car complete(Future[T]) de vient complete(Future) dans la JVM

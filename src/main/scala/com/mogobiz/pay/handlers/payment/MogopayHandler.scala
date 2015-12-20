@@ -11,7 +11,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
-import com.mogobiz.pay.model.Mogopay.{PaymentType, Account, AccountStatus, SessionData}
+import com.mogobiz.pay.model.Mogopay.{ PaymentType, Account, AccountStatus, SessionData }
 import org.apache.shiro.crypto.hash.Sha256Hash
 import spray.http.Uri
 import scala.util.Left
@@ -27,7 +27,6 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
       } getOrElse {
         missingFilter("owner") existence true includeNull true
       }
-
 
     val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter {
       and(
@@ -59,8 +58,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
               </body>
             </html>"""
         Left(form)
-      }
-      else {
+      } else {
         val card = cards(0)
         val form = s"""
             <html>
@@ -107,8 +105,7 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
     if (sessionData.transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
       val cbProvider = sessionData.paymentConfig.get.cbProvider.toString.toLowerCase()
       PaymentHandler(cbProvider).startPayment(sessionData)
-    }
-    else {
+    } else {
       throw new InvalidTransactionTypeException(sessionData.transactionType.get)
     }
   }

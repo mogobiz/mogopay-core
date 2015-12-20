@@ -25,7 +25,7 @@ class CountryImportHandler {
     EsClient.search[CountryAdmin](req)
   }
 
-  def importCountries(countriesFile: File, currenciesFile: File) : Boolean = {
+  def importCountries(countriesFile: File, currenciesFile: File): Boolean = {
     assert(currenciesFile.exists(), s"${currenciesFile.getAbsolutePath} does not exist.")
     assert(countriesFile.exists(), s"${countriesFile.getAbsolutePath} does not exist.")
 
@@ -47,7 +47,7 @@ class CountryImportHandler {
               val field = line.trim.split('\t')
               Some((field(0).trim, field(1).trim))
             case _ => None
-          }.collect { case Some(x) => x}.toMap[String, String]
+          }.collect { case Some(x) => x }.toMap[String, String]
 
         scala.io.Source.fromFile(countriesFile, "utf-8").getLines().foreach { line =>
           val field = line.split('\t')
@@ -76,8 +76,7 @@ class CountryImportHandler {
           }
         }
         true
-      }
-      else {
+      } else {
         false
       }
     } get
@@ -179,7 +178,6 @@ class CountryImportHandler {
       }
     }
   }
-
 
   def importCities(citiesFile: File) {
     assert(citiesFile.exists(), s"${citiesFile.getAbsolutePath} does not exist.")

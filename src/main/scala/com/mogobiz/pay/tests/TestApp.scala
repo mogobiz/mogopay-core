@@ -4,12 +4,12 @@
 
 package com.mogobiz.pay.tests
 
-import java.util.{Calendar, UUID}
+import java.util.{ Calendar, UUID }
 
-import com.mogobiz.es.{EsClient}
+import com.mogobiz.es.{ EsClient }
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.session.{ESBackend, Session}
+import com.mogobiz.session.{ ESBackend, Session }
 import com.sksamuel.elastic4s.ElasticDsl._
 
 // Small Unit Test
@@ -20,8 +20,8 @@ object TestApp extends App {
   val be = new ESBackend {}
   //val session = be.load("8cba4b06-e09e-4450-920a-670669187b6a").get
   val session = Session()
-  session +=("hello", "coucou")
-  session +=("hello2", XXX())
+  session += ("hello", "coucou")
+  session += ("hello2", XXX())
   be.store(session)
   //println(be.load("8cba4b06-e09e-4450-920a-670669187b6a").get)
 

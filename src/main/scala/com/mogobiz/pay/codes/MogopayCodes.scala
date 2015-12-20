@@ -6,7 +6,6 @@ package com.mogobiz.pay.codes
 
 import com.mogobiz.pay.config.Settings
 
-
 object MogopayConstant {
   val UserOrPasswordIsNull = "user.or.password.is.null"
   val UserUnknown = "user.unknown"
@@ -35,7 +34,6 @@ object MogopayConstant {
 
   // TIMEOUT paiement
   val Timeout = 300
-
 
   val CreditCardExpired = "expired"
 

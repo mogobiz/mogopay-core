@@ -6,7 +6,7 @@ package com.mogobiz.pay.implicits
 
 import com.mogobiz.pay.model.Mogopay.SessionData
 import com.mogobiz.session.Session
-import org.json4s.{Formats, DefaultFormats}
+import org.json4s.{ Formats, DefaultFormats }
 import org.json4s.ext.JodaTimeSerializers
 import spray.httpx.Json4sJacksonSupport
 

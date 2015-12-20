@@ -4,16 +4,16 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.net.{URLDecoder}
-import java.util.{Date, Locale}
-import javax.xml.datatype.{DatatypeFactory, XMLGregorianCalendar}
+import java.net.{ URLDecoder }
+import java.util.{ Date, Locale }
+import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 
 import akka.actor.ActorSystem
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidInputException, InvalidContextException, AccountDoesNotExistException, MogopayError}
+import com.mogobiz.pay.exceptions.Exceptions.{ InvalidInputException, InvalidContextException, AccountDoesNotExistException, MogopayError }
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.utils.GlobalUtil
@@ -26,11 +26,10 @@ import spray.http.Uri
 import spray.http.Uri.Query
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.util._
 import spray.http._
 import spray.client.pipelining._
-
 
 class PayPalHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
@@ -67,8 +66,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def getToken(transactionUUID: String, vendorId: String, ipAddress: Option[String], successURL: String, failureURL: String,
-                       paymentConfig: PaymentConfig, amount: Long,
-                       paymentRequest: PaymentRequest): Option[String] = {
+    paymentConfig: PaymentConfig, amount: Long,
+    paymentRequest: PaymentRequest): Option[String] = {
     accountHandler.load(vendorId) map { vendor =>
       val parameters: Map[String, String] = paymentConfig.paypalParam
         .map(parse(_).extract[Map[String, String]])
@@ -149,7 +148,6 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-
   private def getPayerId(token: String, paymentConfig: PaymentConfig): Option[String] = {
     val parameters: Map[String, String] =
       paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -182,8 +180,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-                     paymentRequest: PaymentRequest, token: String, payerId: String,
-                     sessionData: SessionData, step: TransactionStep): PaymentResult = {
+    paymentRequest: PaymentRequest, token: String, payerId: String,
+    sessionData: SessionData, step: TransactionStep): PaymentResult = {
     accountHandler.load(vendorId).map {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])

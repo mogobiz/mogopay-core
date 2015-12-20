@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.exceptions
 
-import spray.http.{StatusCode, StatusCodes}
+import spray.http.{ StatusCode, StatusCodes }
 
 object Exceptions {
 

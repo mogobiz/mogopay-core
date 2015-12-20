@@ -8,10 +8,10 @@ import com.easypost.EasyPost
 import com.easypost.model._
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
-import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity}
+import com.mogobiz.pay.common.{ Cart, CompanyAddress, ShippingWithQuantity }
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
+import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -193,7 +193,7 @@ class EasyPostHandler extends ShippingService {
 
   private def accountAddressToMap(addr: AccountAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
-      "name" -> (addr.civility.map {_.toString + " "}.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
+      "name" -> (addr.civility.map { _.toString + " " }.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
       "company" -> addr.company.getOrElse(""),
       "street1" -> addr.road,
       "street2" -> addr.road2.getOrElse(""),
@@ -211,8 +211,7 @@ class EasyPostHandler extends ShippingService {
   private def formatPhone(phone: String): String = {
     try {
       phoneUtil.format(phoneUtil.parse(phone, null), PhoneNumberFormat.NATIONAL) //.replaceAll("\\s","")
-    }
-    catch {
+    } catch {
       case NonFatal(e) =>
         phone
     }
@@ -262,12 +261,12 @@ object EasyPostHandler extends App {
   val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "name" -> "acmesports",
     "company" -> "acmesports",
-      "street1" -> "179 N Harbor Dr",
-      "city" -> "Redondo Beach",
-      "country" -> "US",
-      "state" -> "CA",
-      "zip" -> "90277",
-      "phone" -> "(248) 123-7654");
+    "street1" -> "179 N Harbor Dr",
+    "city" -> "Redondo Beach",
+    "country" -> "US",
+    "state" -> "CA",
+    "zip" -> "90277",
+    "phone" -> "(248) 123-7654");
   val fromAddress = Address.create(fromAddressMap)
 
   val toAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](

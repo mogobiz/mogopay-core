@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers.shipping
 
 import java.util.UUID
 
-import com.mogobiz.pay.common.{ShippingWithQuantity, Shipping, Cart}
+import com.mogobiz.pay.common.{ ShippingWithQuantity, Shipping, Cart }
 import com.mogobiz.pay.model.Mogopay.ShippingAddress
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers._
@@ -16,7 +16,7 @@ class KialaShippingHandler extends ShippingService {
   val KIALA_PRICE = 400
   val KIALA_SHIPPING_PREFIX = "KIALA_"
 
-  def computeFixPrice(price: Long, currencyCode: String) : Seq[ShippingPrice]= {
+  def computeFixPrice(price: Long, currencyCode: String): Seq[ShippingPrice] = {
     Seq(createShippingPrice(KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", price, currencyCode))
   }
 
@@ -24,7 +24,7 @@ class KialaShippingHandler extends ShippingService {
 
     val shippingContent = extractShippingContent(cart)
 
-    def calculatePrice(list: List[ShippingWithQuantity]) : Option[(Long, Long)] = {
+    def calculatePrice(list: List[ShippingWithQuantity]): Option[(Long, Long)] = {
       if (list.isEmpty) None
       else {
         val prixFixeAndKiala = calculatePrice(list.tail).getOrElse((0L, 0L))

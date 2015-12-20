@@ -7,7 +7,7 @@ package com.mogobiz.pay.config
 import java.io.File
 import java.net.UnknownHostException
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{ Actor, ActorLogging, Props }
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
 import com.mogobiz.pay.exceptions.Exceptions.MogopayException
@@ -16,13 +16,13 @@ import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.system.MogobizSystem
 import spray.http.StatusCodes._
-import spray.http.{HttpEntity, StatusCode, _}
-import spray.routing.{Directives, _}
+import spray.http.{ HttpEntity, StatusCode, _ }
+import spray.routing.{ Directives, _ }
 import spray.util.LoggingContext
 import com.mogobiz.system.RoutedHttpService
 
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 trait MogopayRoutes extends Directives {
   this: MogobizSystem =>
@@ -46,8 +46,7 @@ trait MogopayRoutes extends Directives {
           //compressResponse() {
           if (Settings.IsResourcesLocal) {
             getFromResourceDirectory("static")
-          }
-          else {
+          } else {
             getFromBrowseableDirectory(Settings.ResourcesPath)
           }
           //}
@@ -90,7 +89,7 @@ trait DefaultComplete {
     }
   }
 
-  def completeException(t: Throwable) : Route = {
+  def completeException(t: Throwable): Route = {
     import Implicits._
     t match {
       case (ex: MogopayException) =>

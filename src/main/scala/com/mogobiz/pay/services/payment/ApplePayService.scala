@@ -11,7 +11,7 @@ import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
 import spray.http.HttpHeaders.`Content-Type`
-import spray.http.{HttpResponse, MediaTypes, StatusCodes, Uri}
+import spray.http.{ HttpResponse, MediaTypes, StatusCodes, Uri }
 import spray.routing.Directives
 
 import scala.util._

@@ -35,17 +35,14 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
     val soapReq: ByteArrayOutputStream = new ByteArrayOutputStream
     try {
       message.writeTo(soapReq)
-    }
-    catch {
+    } catch {
       case e: Exception => {
         //        getProperty("log").invokeMethod("error", Array[AnyRef]("write soap stream", e))
       }
-    }
-    finally {
+    } finally {
       try {
         soapReq.close()
-      }
-      catch {
+      } catch {
         case e: IOException => {
           //          getProperty("log").invokeMethod("info", Array[AnyRef]("close soap stream", e))
         }
@@ -83,17 +80,14 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
         }
       }
       message.writeTo(soapReq)
-    }
-    catch {
+    } catch {
       case e: Exception => {
         //        getProperty("log").invokeMethod("error", Array[AnyRef]("write soap stream", e))
       }
-    }
-    finally {
+    } finally {
       try {
         soapReq.close()
-      }
-      catch {
+      } catch {
         case e: IOException => {
           //          getProperty("log").invokeMethod("info", Array[AnyRef]("close soap stream", e))
         }
@@ -109,8 +103,7 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
           step = null
         )
         boTransactionLogHandler.save(log)
-      }
-      catch {
+      } catch {
         case e: Exception => {
           e.printStackTrace
         }

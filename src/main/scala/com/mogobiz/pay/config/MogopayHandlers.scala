@@ -9,7 +9,7 @@ import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.handlers.payment._
 import com.mogobiz.pay.handlers.shipping._
 
-object  MogopayHandlers {
+object MogopayHandlers {
   val authorizeNetHandler = new AuthorizeNetHandler("authorizenet")
   val accountAddressHandler = new AccountAddressHandler
   val accountHandler = new AccountHandler

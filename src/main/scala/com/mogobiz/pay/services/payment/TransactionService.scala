@@ -13,17 +13,17 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.common.{CartRate, Cart}
-import com.mogobiz.pay.config.{Environment, Settings, DefaultComplete}
+import com.mogobiz.pay.common.{ CartRate, Cart }
+import com.mogobiz.pay.config.{ Environment, Settings, DefaultComplete }
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
-import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
+import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayException, UnauthorizedException }
+import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{TransactionRequest, Account, BOTransaction, TransactionStatus}
-import com.mogobiz.pay.model.ParamRequest.{TransactionInit, SelectShippingPriceParam, ListShippingPriceParam}
+import com.mogobiz.pay.model.Mogopay.{ TransactionRequest, Account, BOTransaction, TransactionStatus }
+import com.mogobiz.pay.model.ParamRequest.{ TransactionInit, SelectShippingPriceParam, ListShippingPriceParam }
 import com.mogobiz.pay.services.ServicesUtil
-import com.mogobiz.session.{SessionESDirectives, Session}
+import com.mogobiz.session.{ SessionESDirectives, Session }
 import com.mogobiz.session.SessionESDirectives._
 import spray.can.Http
 import spray.client.pipelining._
@@ -32,8 +32,7 @@ import spray.routing._
 
 import scala.concurrent.duration._
 import scala.concurrent._
-import scala.util.{Failure, Success}
-
+import scala.util.{ Failure, Success }
 
 class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
   implicit val timeout = Timeout(40 seconds)
@@ -46,7 +45,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   implicit val system = ActorSystem()
 
   // execution context for futures
-
 
   val serviceName = "transaction"
 
@@ -78,30 +76,31 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         'return_url ?,
         'group_payment_exp_date.?.as[Option[Long]],
         'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
-        session {
-          session => {
-            import Implicits._
-            val cart: Cart = session.sessionData.cart.getOrElse {
-              if (Settings.Mogopay.Anonymous)
-                Cart(count = 0,
-                  rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
-                  price = 0,
-                  endPrice = 0,
-                  taxAmount = 0,
-                  reduction = 0,
-                  finalPrice = 0,
-                  cartItems = Array(),
-                  coupons = Array(),
-                  customs = Map[String, Any]())
-              else
-                throw InvalidContextException("Cart isn't set.")
-            }
-            handleCall(transactionHandler.init(params, cart),
-              (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-            )
+          session {
+            session =>
+              {
+                import Implicits._
+                val cart: Cart = session.sessionData.cart.getOrElse {
+                  if (Settings.Mogopay.Anonymous)
+                    Cart(count = 0,
+                      rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
+                      price = 0,
+                      endPrice = 0,
+                      taxAmount = 0,
+                      reduction = 0,
+                      finalPrice = 0,
+                      cartItems = Array(),
+                      coupons = Array(),
+                      customs = Map[String, Any]())
+                  else
+                    throw InvalidContextException("Cart isn't set.")
+                }
+                handleCall(transactionHandler.init(params, cart),
+                  (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+                )
+              }
           }
         }
-      }
     }
   }
 
@@ -233,32 +232,32 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
         'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?, 'card_month.?, 'card_year.?,
         'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
-        submitParams: SubmitParams =>
-          val payersAmountsSum = submitParams.payers.values.sum
-          if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
-            complete {
-              400 -> "The total amount and the payers amounts don't match."
-            }
-          } else {
-            session { session =>
-              import Implicits._
+          submitParams: SubmitParams =>
+            val payersAmountsSum = submitParams.payers.values.sum
+            if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
+              complete {
+                400 -> "The total amount and the payers amounts don't match."
+              }
+            } else {
+              session { session =>
+                import Implicits._
 
-              if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
-                complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
-              } else {
-                //clientIP { ip =>
-                session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
-                session.sessionData.payers = submitParams.payers.toMap[String, Long]
-                session.sessionData.groupTxUUID = submitParams.groupTxUUID
+                if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
+                  complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
+                } else {
+                  //clientIP { ip =>
+                  session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
+                  session.sessionData.payers = submitParams.payers.toMap[String, Long]
+                  session.sessionData.groupTxUUID = submitParams.groupTxUUID
 
-                setSession(session) {
-                  doSubmit(submitParams, session)
+                  setSession(session) {
+                    doSubmit(submitParams, session)
+                  }
+                  //}
                 }
-                //}
               }
             }
-          }
-      }
+        }
     }
   }
 
@@ -268,10 +267,10 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
         'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
-        submitParams =>
-          val session = SessionESDirectives.load(sessionUuid).get
-          doSubmit(submitParams, session)
-      }
+          submitParams =>
+            val session = SessionESDirectives.load(sessionUuid).get
+            doSubmit(submitParams, session)
+        }
     }
   }
 
@@ -305,8 +304,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       complete {
         StatusCodes.Unauthorized -> "Invalid Merchant id"
       }
-    }
-    else {
+    } else {
       // is he authenticated (mogopay payment) or is it his first attempt
       if (!session.sessionData.authenticated && isNewSession) {
         session.clear()
@@ -319,8 +317,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
             val sessionId = session.id
             val pipeline: Future[SendReceive] =
               for (
-                Http.HostConnectorInfo(connector, _) <-
-                IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
+                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
 
               ) yield sendReceive(connector)
             val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
@@ -358,8 +355,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   }
 
   def buildFormForInitGroupPayment(account: Account, transaction: TransactionRequest, groupTxUUID: String,
-                                   transactionType: String, successURL: String, failureURL: String,
-                                   ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String): String = {
+    transactionType: String, successURL: String, failureURL: String,
+    ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String): String = {
     val submitParams = Map(
       "callback_success" -> successURL,
       "callback_error" -> failureURL,
@@ -376,12 +373,15 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     )
 
     val form =
-      <form id="form" action={s"${Settings.Mogopay.EndPoint}transaction/submit"} method="POST">
-        {submitParams.map { case (key, value) =>
-          <input type="hidden" name={key} value={value}/>
-      }}
+      <form id="form" action={ s"${Settings.Mogopay.EndPoint}transaction/submit" } method="POST">
+        {
+          submitParams.map {
+            case (key, value) =>
+              <input type="hidden" name={ key } value={ value }/>
+          }
+        }
       </form>
-        <script>document.getElementById('form').submit();</script>
+      <script>document.getElementById('form').submit();</script>
 
     if (Settings.Env == Environment.DEV) {
       // Just `open /tmp/mogopay-submit-form.html` to start the payment

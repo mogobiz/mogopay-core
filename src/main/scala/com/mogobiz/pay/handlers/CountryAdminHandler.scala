@@ -46,9 +46,9 @@ class CountryAdminHandler {
   }
 
   def cities(countryCode: Option[String] = None,
-             admin1Code: Option[String] = None,
-             admin2Code: Option[String] = None,
-             name: Option[String] = None) = {
+    admin1Code: Option[String] = None,
+    admin2Code: Option[String] = None,
+    name: Option[String] = None) = {
     val filters: Seq[Option[FilterDefinition]] = List(
       Option(termFilter("level" -> 3)),
       name.map(name => regexFilter("name" -> (".*" + name.toLowerCase + ".*"))),

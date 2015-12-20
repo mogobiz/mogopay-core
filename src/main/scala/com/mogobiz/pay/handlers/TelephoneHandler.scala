@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.handlers
 
-import com.google.i18n.phonenumbers.{PhoneNumberUtil, NumberParseException}
+import com.google.i18n.phonenumbers.{ PhoneNumberUtil, NumberParseException }
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.exceptions.Exceptions.InvalidPhoneNumberException
 import com.mogobiz.pay.model.Mogopay.Telephone

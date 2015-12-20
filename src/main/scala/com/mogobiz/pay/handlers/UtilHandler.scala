@@ -8,7 +8,7 @@ import java.security.SecureRandom
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 
-import com.google.maps.{GeocodingApi, GeoApiContext}
+import com.google.maps.{ GeocodingApi, GeoApiContext }
 
 object UtilHandler {
   /**
@@ -77,13 +77,13 @@ object UtilHandler {
   }
 
   def computeGeoCoords(road: String, zipCode: Option[String],
-                       city: String, country: Option[String],
-                       isGeoLocEnabled: Boolean, googleAPIKey: String): Option[String] = {
+    city: String, country: Option[String],
+    isGeoLocEnabled: Boolean, googleAPIKey: String): Option[String] = {
     (zipCode, country) match {
       case (Some(zipCode_), Some(country_)) if isGeoLocEnabled =>
         val addressQuery = s"$road $zipCode $city $country"
         val context = new GeoApiContext().setApiKey(googleAPIKey)
-        val results =  GeocodingApi.geocode(context, addressQuery).await()
+        val results = GeocodingApi.geocode(context, addressQuery).await()
         results
           .headOption
           .map(x => (x.geometry.location.lat, x.geometry.location.lng))

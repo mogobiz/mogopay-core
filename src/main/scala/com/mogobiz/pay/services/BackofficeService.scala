@@ -8,7 +8,7 @@ import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
-import com.mogobiz.pay.model.Mogopay.{BOTransaction, Account, BOTransactionLog}
+import com.mogobiz.pay.model.Mogopay.{ BOTransaction, Account, BOTransactionLog }
 import com.mogobiz.session.SessionESDirectives._
 import spray.http.StatusCodes
 import spray.routing.Directives

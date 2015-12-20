@@ -5,7 +5,7 @@
 package com.mogobiz.pay.handlers
 
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistException}
+import com.mogobiz.pay.exceptions.Exceptions.{ CreditCardDoesNotExistException, AccountDoesNotExistException }
 import com.mogobiz.pay.model.Mogopay._
 
 class CreditCardHandler {

@@ -7,18 +7,18 @@ package com.mogobiz.pay.handlers.payment
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util
-import java.util.{Date, GregorianCalendar}
-import javax.xml.datatype.{DatatypeFactory, XMLGregorianCalendar}
+import java.util.{ Date, GregorianCalendar }
+import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 import javax.xml.namespace.QName
 import javax.xml.ws.BindingProvider
 import javax.xml.ws.handler.MessageContext
 
-import com.lyra.vads.ws.stub.{CreatePaiementInfo, Standard, StandardWS, TransactionInfo}
-import com.lyra.vads.ws3ds.stub.{PaResInfo, ThreeDSecure, VeResPAReqInfo}
+import com.lyra.vads.ws.stub.{ CreatePaiementInfo, Standard, StandardWS, TransactionInfo }
+import com.lyra.vads.ws3ds.stub.{ PaResInfo, ThreeDSecure, VeResPAReqInfo }
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.{Environment, Settings}
+import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
@@ -26,7 +26,7 @@ import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
-import org.json4s.{DefaultFormats, StringInput}
+import org.json4s.{ DefaultFormats, StringInput }
 import spray.http.Uri
 
 import scala.collection.JavaConverters._
@@ -34,7 +34,6 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.util._
 import scala.util.control.NonFatal
-
 
 class SystempayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
@@ -132,8 +131,8 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     handleResponse(params, sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
 
   private def handleResponse(params: Map[String, String], locale: Option[String],
-                             step: TransactionStep): PaymentResult = {
-    val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0}).keys.toList.sorted
+    step: TransactionStep): PaymentResult = {
+    val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0 }).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
     val vendorAndUuid = params("vads_order_info").split("--")
@@ -151,8 +150,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       boTransactionLogHandler.save(botlog, false)
       val vads_card_brand = try {
         CreditCardType.withName(params.getOrElse("vads_card_brand", CreditCardType.CB.toString))
-      }
-      catch {
+      } catch {
         case NonFatal(e) =>
           CreditCardType.CB
       }
@@ -204,10 +202,10 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
   def threeDSCallback(sessionData: SessionData, params: Map[String, String]): Uri = {
     if (!sessionData.waitFor3DS) {
-      throw InvalidContextException( """Not verified: waitFor3DS""")
+      throw InvalidContextException("""Not verified: waitFor3DS""")
     }
     if (sessionData.transactionUuid.isEmpty) {
-      throw InvalidContextException( """!sessionData.transactionUUID""")
+      throw InvalidContextException("""!sessionData.transactionUUID""")
     }
 
     sessionData.waitFor3DS = false
@@ -281,11 +279,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       DatatypeFactory.newInstance().newXMLGregorianCalendar(gCalendar)
     }
 
-    val cbParams    = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val cbParams = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val certificate = cbParams("systempayCertificate")
 
     val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
-      sep         = SystempayClient.QUERY_STRING_SEP,
+      sep = SystempayClient.QUERY_STRING_SEP,
       elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP)
 
     val shopId = cbParams("systempayShopId")
@@ -300,17 +298,17 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val comment = ""
 
     val parameters = mutable.LinkedHashMap(
-      "shopId"           -> shopId,
+      "shopId" -> shopId,
       "transmissionDate" -> transmissionDate,
-      "transactionId"    -> transactionId,
-      "sequenceNb"       -> sequenceNb,
-      "ctxMode"          -> ctxMode,
+      "transactionId" -> transactionId,
+      "sequenceNb" -> sequenceNb,
+      "ctxMode" -> ctxMode,
       "newTransactionId" -> newTransactionId,
-      "amount"           -> amount,
-      "devise"           -> devise,
+      "amount" -> amount,
+      "devise" -> devise,
       "presentationDate" -> presentationDate,
-      "validationMode"   -> validationMode,
-      "comment"          -> comment
+      "validationMode" -> validationMode,
+      "comment" -> comment
     )
     val wsSignature = SystempayUtilities.makeSignature(certificate, parameters.values.toList.asInstanceOf[Seq[String]].asJava)
 
@@ -353,8 +351,8 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 class SystempayClient {
   implicit val formats = new DefaultFormats {}
 
-  def submit(sessionUUID:String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-             paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
+  def submit(sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
+    paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
@@ -554,8 +552,8 @@ class SystempayClient {
       val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
       val gatewayData = Map(
         "transmissionDate" -> payment.getTransmissionDate.toGregorianCalendar.getTime.getTime,
-        "transactionId"    -> payment.getTransactionId,
-        "sequenceNb"       -> paymentRequest.transactionSequence
+        "transactionId" -> payment.getTransactionId,
+        "sequenceNb" -> paymentRequest.transactionSequence
       ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
 
       if (code == 0) {
@@ -581,7 +579,7 @@ class SystempayClient {
   }
 
   def check3DSecure(sessionData: SessionData, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-                    paymentRequest: PaymentRequest): ThreeDSResult = {
+    paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = boTransactionHandler.find(transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException("")
 
@@ -681,7 +679,7 @@ object SystempayClient {
   val QUERY_STRING_SEP = "&"
   val QUERY_STRING_ELEMENTS_SEP = "="
 
-  def getExtendedMessage(code :Int): String = extendedErrorCodes.getOrElse(code, "")
+  def getExtendedMessage(code: Int): String = extendedErrorCodes.getOrElse(code, "")
 
   val extendedErrorCodes = Map[Int, String](
     0 -> "Action réalisée avec succès",

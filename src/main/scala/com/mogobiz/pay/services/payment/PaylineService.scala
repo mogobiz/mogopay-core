@@ -20,7 +20,6 @@ import scala.util._
 
 class PaylineService extends Directives with DefaultComplete {
 
-
   val route = {
     pathPrefix("payline") {
       startPayment ~

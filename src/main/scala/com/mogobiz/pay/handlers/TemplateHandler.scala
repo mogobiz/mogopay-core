@@ -4,9 +4,9 @@
 
 package com.mogobiz.pay.handlers
 
-import java.io.{File, InputStreamReader}
+import java.io.{ File, InputStreamReader }
 import java.util.Locale
-import javax.script.{ScriptEngineFactory, Invocable, ScriptEngine, ScriptEngineManager}
+import javax.script.{ ScriptEngineFactory, Invocable, ScriptEngine, ScriptEngineManager }
 
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.Account
@@ -25,8 +25,7 @@ class TemplateHandler {
 
   }
 
-
-  def loadTemplateByVendor(vendor: Option[Account], templateName: String, locale: Option[String]) : String = {
+  def loadTemplateByVendor(vendor: Option[Account], templateName: String, locale: Option[String]): String = {
     def findExternalTemplate(company: Option[String], templateName: String) = {
       val file = company.map { c =>
         new File(new File(Settings.TemplatesPath, c), s"$templateName.mustache")
@@ -36,8 +35,7 @@ class TemplateHandler {
         val lines = source.mkString
         source.close()
         Some(lines)
-      }
-      else None
+      } else None
     }
 
     def defaultTemplate() = scala.io.Source.fromInputStream(classOf[TemplateHandler].getResourceAsStream(s"/template/$templateName.mustache")).mkString

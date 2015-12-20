@@ -7,15 +7,15 @@ package com.mogobiz.pay.handlers.payment
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay._
-import net.authorize.api.contract.v1.{CreditCardType => _, _}
+import net.authorize.api.contract.v1.{ CreditCardType => _, _ }
 import net.authorize.api.controller.CreateTransactionController
 import net.authorize.api.controller.base.ApiOperationBase
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
-import spray.http.{Uri, _}
+import spray.http.{ Uri, _ }
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.util._
 
 class ApplePayHandler(handlerName: String) extends PaymentHandler {

@@ -49,7 +49,6 @@ class PayboxService extends Directives with DefaultComplete {
     }
   }
 
-
   def queryString: Directive1[String] = extract(_.request.uri.toString())
 
   lazy val done = path("done" / Segment) {

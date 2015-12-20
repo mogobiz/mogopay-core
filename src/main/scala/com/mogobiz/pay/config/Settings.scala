@@ -6,7 +6,7 @@ package com.mogobiz.pay.config
 
 import java.io.File
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import scalikejdbc.config._
 
 import scala.util.Try
@@ -73,7 +73,7 @@ object Settings {
 
     def publicKey = getKey("public")
 
-    import java.io.{FileInputStream, InputStream}
+    import java.io.{ FileInputStream, InputStream }
 
     private def getKey(whichOne: String): InputStream = {
       if (Env == Environment.PROD) {
@@ -149,9 +149,9 @@ object Settings {
   }
 
   object ApplePay {
-    import net.authorize.{Environment => ANetEnv}
+    import net.authorize.{ Environment => ANetEnv }
     val token = Try(Option(config.getString(s"applepay.$Env.token"))).getOrElse(None)
-    val env   = if (Env == Environment.DEV) ANetEnv.SANDBOX else ANetEnv.PRODUCTION
+    val env = if (Env == Environment.DEV) ANetEnv.SANDBOX else ANetEnv.PRODUCTION
   }
 
   object AuthorizeNet {

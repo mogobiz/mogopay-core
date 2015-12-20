@@ -4,8 +4,8 @@
 
 package com.mogobiz.pay.handlers
 
-import java.net.{URLConnection, URL, URLEncoder}
-import java.io.{InputStreamReader, BufferedReader}
+import java.net.{ URLConnection, URL, URLEncoder }
+import java.io.{ InputStreamReader, BufferedReader }
 
 import com.mogobiz.pay.config.Settings
 

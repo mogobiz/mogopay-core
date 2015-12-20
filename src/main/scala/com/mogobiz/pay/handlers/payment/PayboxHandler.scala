@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers.payment
 import java.io.StringReader
 import java.net.URLDecoder
 import java.security.interfaces.RSAPublicKey
-import java.security.{MessageDigest, NoSuchAlgorithmException, Security, Signature}
+import java.security.{ MessageDigest, NoSuchAlgorithmException, Security, Signature }
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -16,24 +16,24 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.{Environment, Settings}
-import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
+import com.mogobiz.pay.config.{ Environment, Settings }
+import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, InvalidSignatureException }
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
+import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil, Sha512}
+import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil, Sha512 }
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.PEMReader
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
 import spray.can.Http
 import spray.client.pipelining._
-import spray.http.{HttpResponse, Uri, _}
+import spray.http.{ HttpResponse, Uri, _ }
 import sun.misc.BASE64Decoder
 
-import scala.concurrent.duration.{Duration, _}
-import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.{ Duration, _ }
+import scala.concurrent.{ Await, Future }
 import scala.util._
 
 class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
@@ -88,8 +88,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       val simpleDateFormat = new SimpleDateFormat("ddMMyy")
       val expirationDate = try {
         simpleDateFormat.parse("01" + params("DATEFIN"))
-      }
-      catch {
+      } catch {
         case e: Exception =>
           // The customer did not give his card number
           null
@@ -132,12 +131,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, codeReponse, sessionData.locale)
         finishPayment(sessionData, paymentResult)
-      }
-      else {
+      } else {
         throw InvalidSignatureException(s"$signature")
       }
-    }
-    else {
+    } else {
       val paymentResult = PaymentResult(
         transactionSequence = paymentRequest.transactionSequence,
         orderDate = paymentRequest.orderDate,
@@ -335,8 +332,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
               """
         // We redirect the user to the paybox payment form
         Left(form)
-      }
-      else {
+      } else {
         // Group payment allowed only when using DIRECT_PLUS in PAYBOX and in 2D mode only
         val query = scala.collection.mutable.Map(
           "NUMQUESTION" -> String.format("%010d", paymentRequest.transactionSequence.toInt.asInstanceOf[AnyRef]),
@@ -375,8 +371,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         val logResponse: HttpResponse => HttpResponse = { r => println(r); r }
         val pipeline: Future[SendReceive] =
           for (
-            Http.HostConnectorInfo(connector, _) <-
-            IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
+            Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
           ) yield logRequest ~> sendReceive(connector) ~> logResponse
         //        query.put("TYPE", "00056")
         //        query.put("SITE", "1999888")
@@ -426,12 +421,11 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           paymentResult,
           errorCode,
           sessionData.locale,
-          Some( s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
+          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
         Right(finishPayment(sessionData, paymentResult))
       }
-    }
-    else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
+    } else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
       val hmackey = idMerchant
       val pbxtime = ISODateTimeFormat.dateTimeNoMillis().print(org.joda.time.DateTime.now())
       val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
@@ -451,7 +445,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         "PBX_ANNULE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
         "PBX_REPONDRE_A" -> s"${Settings.Mogopay.EndPoint}paybox/callback/${sessionData.uuid}"
       )
-
 
       val queryString = mapToQueryStringNoEncode(queryList)
       val hmac = Sha512.hmacDigest(queryString, hmackey)
@@ -493,9 +486,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 """
       // We redirect the user to the payment server
       Left(form)
-    }
-    else {
-      throw InvalidContextException( s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
+    } else {
+      throw InvalidContextException(s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
     }
   }
 

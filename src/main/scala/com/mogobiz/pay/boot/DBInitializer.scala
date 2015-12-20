@@ -5,12 +5,12 @@
 package com.mogobiz.pay.boot
 
 import java.io.File
-import java.util.{Calendar, Currency, Date, UUID}
+import java.util.{ Calendar, Currency, Date, UUID }
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.common.CartRate
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.{Mapping, Settings}
+import com.mogobiz.pay.config.{ Mapping, Settings }
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
@@ -35,8 +35,7 @@ object DBInitializer {
         DB autoCommit { implicit session =>
           try {
             SQL(Settings.DerbySequence).execute.apply()
-          }
-          catch {
+          } catch {
             case NonFatal(e) =>
             // Ignore if sequence exists
             //e.printStackTrace()
@@ -53,7 +52,6 @@ object DBInitializer {
     }
   }
 
-
   private def fillDB() {
     val PAYPAL = Map("paypalUser" -> "hayssams-facilitator_api1.yahoo.com", "paypalPassword" -> "1365940711", "paypalSignature" -> "An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG")
     val PAYLINE = Map("paylineAccount" -> "26399702760590", "paylineKey" -> "SH0gPsNhvHmePmlZz3Mj", "paylineContract" -> "1234567")
@@ -66,7 +64,7 @@ object DBInitializer {
     val AUTHORIZENET = Map("apiLoginID" -> "5zLq4S76A", "transactionKey" -> "69gQ3D7bRG45uSm4")
 
     // Création des comptes marchands
-    val paypalPaylineExternal = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, Map(), PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some( """\d+"""))
+    val paypalPaylineExternal = createPaymentConfig(CBPaymentProvider.PAYLINE, PAYPAL, Map(), PAYLINE, CBPaymentMethod.EXTERNAL, Some(1), Some("""\d+"""))
     val merchantAccount = createMerchantAccount("ebc23bd9-3abc-4684-849d-e4e15c1a0f82", "mogopay@merchant.com", "Mogopay", "Merchant", paypalPaylineExternal)
 
     val paypalSips2DSConfig = createPaymentConfig(CBPaymentProvider.SIPS, PAYPAL, Map(), SIPS, CBPaymentMethod.THREEDS_NO)
@@ -177,7 +175,7 @@ object DBInitializer {
 
     val APPLEPAY: Map[String, String] = Map()
     val applePayConfig = createPaymentConfig(CBPaymentProvider.NONE,
-      PAYPAL, APPLEPAY, PAYLINE, CBPaymentMethod.EXTERNAL, Some(42), Some( """\d+"""))
+      PAYPAL, APPLEPAY, PAYLINE, CBPaymentMethod.EXTERNAL, Some(42), Some("""\d+"""))
     var applePayMerchant = createMerchantAccount("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "mogopay-apay@merchant.com", "Merchant",
       "Mogopay", applePayConfig)
     val applePayClient = createClientAccount("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "client-apay@merchant.com",
@@ -205,10 +203,10 @@ object DBInitializer {
   }
 
   private def createClientAccount(uuid: String, email: String, firstname: String, lastname: String,
-                                  owner: Account, withShippingAddress: Boolean,
-                                  status: AccountStatus = AccountStatus.ACTIVE,
-                                  telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE,
-                                  geoCoords: Option[String] = None): Account = {
+    owner: Account, withShippingAddress: Boolean,
+    status: AccountStatus = AccountStatus.ACTIVE,
+    telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE,
+    geoCoords: Option[String] = None): Account = {
     val birthDate = Calendar.getInstance()
     birthDate.set(2000, 0, 1)
     val account = Account(uuid = uuid,
@@ -230,8 +228,8 @@ object DBInitializer {
   }
 
   private def createAddress(firstname: String, lastname: String,
-                            telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE,
-                            geoCoords: Option[String] = None): AccountAddress = {
+    telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE,
+    geoCoords: Option[String] = None): AccountAddress = {
     val phone = Telephone("+33123456789", "0123456789", "FR", Some("000"), telephoneStatus)
     AccountAddress(civility = Some(Civility.MR),
       firstName = Some(firstname),
@@ -256,14 +254,14 @@ object DBInitializer {
   }
 
   private def createPaymentConfig(cbProvider: CBPaymentProvider,
-                                  paypalConfig: Map[String, String],
-                                  applePayConfig: Map[String, String],
-                                  cbConfig: Map[String, String],
-                                  cbMethod: CBPaymentMethod,
-                                  id: Option[Long] = None,
-                                  passwordPattern: Option[String] = Some(""),
-                                  senderName: Option[String] = None,
-                                  senderEmail: Option[String] = None) = {
+    paypalConfig: Map[String, String],
+    applePayConfig: Map[String, String],
+    cbConfig: Map[String, String],
+    cbMethod: CBPaymentMethod,
+    id: Option[Long] = None,
+    passwordPattern: Option[String] = Some(""),
+    senderName: Option[String] = None,
+    senderEmail: Option[String] = None) = {
     PaymentConfig(
       None,
       Some(JSONObject(paypalConfig).toString()),
@@ -376,7 +374,6 @@ qRYApJkYmWXLLANZn46w0I65L63PlBVrpYPSvFAu25aUMaSwcELNUKcpgFq5tsI1wG
 BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++END
       """
-
 
     val certifDir = getCertifDir(merchant)
     certifDir.mkdirs()
@@ -518,8 +515,7 @@ object DbInitMain extends App {
     EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
     EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
     EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
-  }
-  catch {
+  } catch {
     case NonFatal(_) => println()
   }
   DBInitializer(false)

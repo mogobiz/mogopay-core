@@ -6,24 +6,24 @@ package com.mogobiz.pay.handlers.payment
 
 import java.math
 import java.nio.charset.StandardCharsets
-import java.util.{UUID, Date}
+import java.util.{ UUID, Date }
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.{Environment, Settings}
+import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
+import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
-import net.authorize.api.contract.v1.{TransactionRequestType, CreateTransactionRequest}
-import net.authorize.{aim, ResponseCode, Merchant, TransactionType}
+import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil }
+import net.authorize.api.contract.v1.{ TransactionRequestType, CreateTransactionRequest }
+import net.authorize.{ aim, ResponseCode, Merchant, TransactionType }
 import net.authorize.sim._
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
-import spray.http.{HttpResponse, Uri, _}
+import spray.http.{ HttpResponse, Uri, _ }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -83,28 +83,28 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       val form = {
         <div style="display:none">
-        <form name="authorizenet" id="authorizenet" action={formAction} method="post" >
-          <input type="hidden" name="x_amount" value={amountFloat}/>
-          <input type="hidden" name="x_login" value={net.authorize.util.StringUtils.sanitizeString(apiLoginID)}/>
-          <input type="hidden" name="x_fp_sequence" value={net.authorize.util.StringUtils.sanitizeString(x_fp_sequence.toString)}/>
-          <input type="hidden" name="x_fp_timestamp" value={net.authorize.util.StringUtils.sanitizeString(x_fp_timestamp.toString)}/>
-          <input type="hidden" name="x_fp_hash" value={net.authorize.util.StringUtils.sanitizeString(x_fp_hash)}/>
-          <input type="hidden" name="x_version" value="3.1"/>
-          <input type="hidden" name="x_method" value="CC"/>
-          <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
-          <input type="hidden" name="x_show_form" value="payment_form"/>
-          <input type="hidden" name="x_test_request" value="false"/>
-          <input TYPE="hidden" name="x_relay_response" value="true"/>
-          <input type="hidden" name="x_relay_url" value={relayURL}/>
-          <input type="hidden" name="x_cancel_url" value={cancelURL}/>
-          <input type="submit" name="submit_button" value="Submit"/>
-          <input type="hidden" name={VENDOR_UUID} value={vendorId}/>
-          <input type="hidden" name={BOTX_UUID} value={transaction.uuid}/>
-          <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
-          <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
-        </form>
+          <form name="authorizenet" id="authorizenet" action={ formAction } method="post">
+            <input type="hidden" name="x_amount" value={ amountFloat }/>
+            <input type="hidden" name="x_login" value={ net.authorize.util.StringUtils.sanitizeString(apiLoginID) }/>
+            <input type="hidden" name="x_fp_sequence" value={ net.authorize.util.StringUtils.sanitizeString(x_fp_sequence.toString) }/>
+            <input type="hidden" name="x_fp_timestamp" value={ net.authorize.util.StringUtils.sanitizeString(x_fp_timestamp.toString) }/>
+            <input type="hidden" name="x_fp_hash" value={ net.authorize.util.StringUtils.sanitizeString(x_fp_hash) }/>
+            <input type="hidden" name="x_version" value="3.1"/>
+            <input type="hidden" name="x_method" value="CC"/>
+            <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
+            <input type="hidden" name="x_show_form" value="payment_form"/>
+            <input type="hidden" name="x_test_request" value="false"/>
+            <input TYPE="hidden" name="x_relay_response" value="true"/>
+            <input type="hidden" name="x_relay_url" value={ relayURL }/>
+            <input type="hidden" name="x_cancel_url" value={ cancelURL }/>
+            <input type="submit" name="submit_button" value="Submit"/>
+            <input type="hidden" name={ VENDOR_UUID } value={ vendorId }/>
+            <input type="hidden" name={ BOTX_UUID } value={ transaction.uuid }/>
+            <input type="hidden" name={ PAYREQ_UUID } value={ paymentRequest.uuid }/>
+            <input type="hidden" name={ SESSION_UUID } value={ sessionData.uuid }/>
+          </form>
         </div>
-          <script>document.getElementById('authorizenet').submit();</script>
+        <script>document.getElementById('authorizenet').submit();</script>
       }
 
       if (Settings.Env == Environment.DEV) {
@@ -145,32 +145,34 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
 
       val form = {
         <div style="display:none">
-        <form id="authorizenet" action={formAction} method="post">
-          <label>CreditCardNumber</label>
-          <input type="text" class="text" name="x_card_num" size="15" value={cardNumberDefaultValue}/>
-          <label>Exp.</label>
-          <input type="text" class="text" name="x_exp_date" size="4" value={expirationDateDefaultValue}/>
-          <label>Amount</label>
-          <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={amount}/>
-          <input type="hidden" name="x_invoice_num" value={System.currentTimeMillis.toString}/>
-          <input type="hidden" name="x_relay_url" value={relayURL}/>
-          <input type="hidden" name="x_bInin" value={apiLoginID}/>
-          <input type="hidden" name="x_fp_sequence" value={fingerprint.getSequence.toString}/>
-          <input type="hidden" name="x_fp_timestamp" value={fingerprint.getTimeStamp.toString}/>
-          <input type="hidden" name="x_fp_hash" value={fingerprint.getFingerprintHash}/>
-          <input type="hidden" name="x_version" value="3.1"/>
-          <input type="hidden" name="x_method" value="CC"/>
-          <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
-          <input type="hidden" name="x_amount" value={amountFloat}/>
-          <input type="hidden" name="x_test_request" value="FALSE"/>
-          <input type="hidden" name={VENDOR_UUID} value={vendorId}/>
-          <input type="hidden" name={BOTX_UUID} value={transaction.uuid}/>
-          <input type="hidden" name={PAYREQ_UUID} value={paymentRequest.uuid}/>
-          <input type="hidden" name={SESSION_UUID} value={sessionData.uuid}/>
-          <input type="submit" name="buy_button" value="BUY"/>{if (Settings.Env == Environment.DEV) {
-          <script>document.getElementById('authorizenet').submit();</script>
-        }}
-        </form>
+          <form id="authorizenet" action={ formAction } method="post">
+            <label>CreditCardNumber</label>
+            <input type="text" class="text" name="x_card_num" size="15" value={ cardNumberDefaultValue }/>
+            <label>Exp.</label>
+            <input type="text" class="text" name="x_exp_date" size="4" value={ expirationDateDefaultValue }/>
+            <label>Amount</label>
+            <input type="text" class="text" name="x_amount" size="9" readonly="readonly" value={ amount }/>
+            <input type="hidden" name="x_invoice_num" value={ System.currentTimeMillis.toString }/>
+            <input type="hidden" name="x_relay_url" value={ relayURL }/>
+            <input type="hidden" name="x_bInin" value={ apiLoginID }/>
+            <input type="hidden" name="x_fp_sequence" value={ fingerprint.getSequence.toString }/>
+            <input type="hidden" name="x_fp_timestamp" value={ fingerprint.getTimeStamp.toString }/>
+            <input type="hidden" name="x_fp_hash" value={ fingerprint.getFingerprintHash }/>
+            <input type="hidden" name="x_version" value="3.1"/>
+            <input type="hidden" name="x_method" value="CC"/>
+            <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
+            <input type="hidden" name="x_amount" value={ amountFloat }/>
+            <input type="hidden" name="x_test_request" value="FALSE"/>
+            <input type="hidden" name={ VENDOR_UUID } value={ vendorId }/>
+            <input type="hidden" name={ BOTX_UUID } value={ transaction.uuid }/>
+            <input type="hidden" name={ PAYREQ_UUID } value={ paymentRequest.uuid }/>
+            <input type="hidden" name={ SESSION_UUID } value={ sessionData.uuid }/>
+            <input type="submit" name="buy_button" value="BUY"/>{
+              if (Settings.Env == Environment.DEV) {
+                <script>document.getElementById('authorizenet').submit();</script>
+              }
+            }
+          </form>
         </div>
       }
 
@@ -193,12 +195,15 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with Custo
   def relay(sessionData: SessionData, params: Map[String, String]) = {
     val action = s"${Settings.Mogopay.EndPoint}authorizenet/done/${sessionData.uuid}"
     val form = {
-      <form action={action} id="redirectForm" method="GET">
-        {params.map { case (name, value) =>
-          <input type="hidden" name={name} value={value}/>
-      }}
+      <form action={ action } id="redirectForm" method="GET">
+        {
+          params.map {
+            case (name, value) =>
+              <input type="hidden" name={ name } value={ value }/>
+          }
+        }
       </form>
-        <script>document.getElementById('redirectForm').submit();</script>
+      <script>document.getElementById('redirectForm').submit();</script>
     }.mkString
 
     form // TODO Sanitize the values?

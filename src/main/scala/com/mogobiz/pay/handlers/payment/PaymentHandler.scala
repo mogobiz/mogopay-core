@@ -4,19 +4,19 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ Props, ActorSystem }
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers._
-import com.mogobiz.pay.config.{Environment, Settings}
+import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.{EmailingActor, EmailHandler}
+import com.mogobiz.pay.handlers.{ EmailingActor, EmailHandler }
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
-import com.mogobiz.utils.{SymmetricCrypt, GlobalUtil}
+import com.mogobiz.utils.{ SymmetricCrypt, GlobalUtil }
 import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
@@ -26,7 +26,7 @@ import scala.collection.mutable
 trait PaymentHandler {
   implicit val system = ActorSystem()
 
-  def paymentType : PaymentType
+  def paymentType: PaymentType
   /**
    * Returns the redirection page's URL
    */
@@ -67,59 +67,60 @@ trait PaymentHandler {
   }
 
   private def handleGroupPayment(payers: Map[String, Long], firstPayerBOTx: BOTransaction, merchantId: String,
-                                 paymentConfig: PaymentConfig, firstPayer: Account, locale: Option[String]): Unit = if (payers.size > 1) {
+    paymentConfig: PaymentConfig, firstPayer: Account, locale: Option[String]): Unit = if (payers.size > 1) {
     val groupTxUUID = firstPayerBOTx.uuid
     boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = Some(groupTxUUID)), refresh = false)
 
-    payers.filter(_._1 != firstPayer.email).foreach { case (email, amount) =>
-      val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
-        val newAccount = Account(
-          uuid     = UUID.randomUUID().toString,
-          email    = email,
-          password = null,
-          owner    = Some(merchantId),
-          secret   = "",
-          status   = AccountStatus.INACTIVE
-        )
-        accountHandler.save(newAccount, false)
-        newAccount
-      }
+    payers.filter(_._1 != firstPayer.email).foreach {
+      case (email, amount) =>
+        val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
+          val newAccount = Account(
+            uuid = UUID.randomUUID().toString,
+            email = email,
+            password = null,
+            owner = Some(merchantId),
+            secret = "",
+            status = AccountStatus.INACTIVE
+          )
+          accountHandler.save(newAccount, false)
+          newAccount
+        }
 
-      val merchant = accountHandler.find(merchantId).get
-      val params = ParamRequest.TransactionInit(merchant.secret, amount, None,
-        firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
-      val txReq = transactionHandler.createTxReqForInit(merchant, params, firstPayerBOTx.currency, Some(groupTxUUID),
-        firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
-      transactionRequestHandler.save(txReq, refresh = false)
+        val merchant = accountHandler.find(merchantId).get
+        val params = ParamRequest.TransactionInit(merchant.secret, amount, None,
+          firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
+        val txReq = transactionHandler.createTxReqForInit(merchant, params, firstPayerBOTx.currency, Some(groupTxUUID),
+          firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
+        transactionRequestHandler.save(txReq, refresh = false)
 
-      val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
+        val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
 
-      val token = {
-        val expirationDate = firstPayerBOTx.groupPaymentExpirationDate.getOrElse(throw NoExpirationTimeSpecifiedException())
-        val expirationTime: Long = new Date((new Date).getTime + expirationDate).getTime
-        val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
-        SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
-      }
+        val token = {
+          val expirationDate = firstPayerBOTx.groupPaymentExpirationDate.getOrElse(throw NoExpirationTimeSpecifiedException())
+          val expirationTime: Long = new Date((new Date).getTime + expirationDate).getTime
+          val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
+          SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
+        }
 
-      if (Settings.Env == Environment.DEV) println(s"==== Group payment token: $token")
+        if (Settings.Env == Environment.DEV) println(s"==== Group payment token: $token")
 
-      val url = groupPaymentInfo.returnURLforNextPayers
-      val uri = Uri(url).withQuery(("token", token))
+        val url = groupPaymentInfo.returnURLforNextPayers
+        val uri = Uri(url).withQuery(("token", token))
 
-      def sendEmail() {
-        val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
-        val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
+        def sendEmail() {
+          val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
+          val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
 
-        val template = templateHandler.loadTemplateByVendor(Option(merchant), "mail-group-payment", locale)
+          val template = templateHandler.loadTemplateByVendor(Option(merchant), "mail-group-payment", locale)
 
-        val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
-        val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
+          val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
+          val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
 
-        val amount = rateHandler.format(txReq.amount.toFloat / 100, txReq.currency.code, country).getOrElse(
-          throw new RateNotFoundException(txReq.currency.code))
-        val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
-        val data =
-          s"""
+          val amount = rateHandler.format(txReq.amount.toFloat / 100, txReq.currency.code, country).getOrElse(
+            throw new RateNotFoundException(txReq.currency.code))
+          val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
+          val data =
+            s"""
               |{
               |  "firstPayer":  "$payerName",
               |  "url":         "$uri",
@@ -127,19 +128,19 @@ trait PaymentHandler {
               |  "transaction": $jsonTx
               |}
               |""".stripMargin
-        val (subject, body) = templateHandler.mustache(template, data)
+          val (subject, body) = templateHandler.mustache(template, data)
 
-        val senderName = merchant.paymentConfig.get.senderName
-        val senderEmail = merchant.paymentConfig.get.senderEmail
+          val senderName = merchant.paymentConfig.get.senderName
+          val senderEmail = merchant.paymentConfig.get.senderEmail
 
-        val emailingActor = system.actorOf(Props[EmailingActor])
-        emailingActor ! Mail(
-          from = (senderEmail.getOrElse(""), senderName.get),
-          to = Seq(account.email),
-          subject = subject,
-          message = body)
-      }
-      sendEmail()
+          val emailingActor = system.actorOf(Props[EmailingActor])
+          emailingActor ! Mail(
+            from = (senderEmail.getOrElse(""), senderName.get),
+            to = Seq(account.email),
+            subject = subject,
+            message = body)
+        }
+        sendEmail()
     }
   }
 

@@ -35,11 +35,10 @@ class BackofficeHandler {
   }
 
   def listTransactions(sessionData: SessionData, email: Option[String],
-                       startDate: Option[String], startTime: Option[String],
-                       endDate: Option[String], endTime: Option[String],
-                       amount: Option[Int], transactionUUID: Option[String],
-                       transactionStatus: Option[String], deliveryStatus: Option[String]
-                        ): Seq[BOTransaction] = {
+    startDate: Option[String], startTime: Option[String],
+    endDate: Option[String], endTime: Option[String],
+    amount: Option[Int], transactionUUID: Option[String],
+    transactionStatus: Option[String], deliveryStatus: Option[String]): Seq[BOTransaction] = {
     def parseDateAndTime(date: Option[String], time: Option[String]) = date.map { d =>
       val date = new SimpleDateFormat("yyyy-MM-dd").parse(d)
       time match {

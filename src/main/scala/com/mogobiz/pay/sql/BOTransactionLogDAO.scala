@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.sql
 
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model
@@ -42,18 +42,18 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
     newBOTransactionLog
   }
 
-  def upsert(transactionLog: model.Mogopay.BOTransactionLog, tryUpdate:Boolean = true): Unit = {
+  def upsert(transactionLog: model.Mogopay.BOTransactionLog, tryUpdate: Boolean = true): Unit = {
     DB localTx { implicit session =>
       val updateResult = if (tryUpdate) update(transactionLog) else 0
       if (updateResult == 0) create(transactionLog)
     }
   }
 
-//  def insert(transactionLog: model.Mogopay.BOTransactionLog): Unit = {
-//    DB localTx { implicit session =>
-//      create(transactionLog)
-//    }
-//  }
+  //  def insert(transactionLog: model.Mogopay.BOTransactionLog): Unit = {
+  //    DB localTx { implicit session =>
+  //      create(transactionLog)
+  //    }
+  //  }
 
   def update(transactionLog: model.Mogopay.BOTransactionLog): Int = {
     DB localTx { implicit session =>

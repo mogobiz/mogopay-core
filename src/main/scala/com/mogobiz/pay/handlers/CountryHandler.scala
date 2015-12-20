@@ -5,16 +5,16 @@
 package com.mogobiz.pay.handlers
 
 import com.google.i18n.phonenumbers.PhoneNumberUtil
-import com.google.i18n.phonenumbers.PhoneNumberUtil.{PhoneNumberFormat, PhoneNumberType}
+import com.google.i18n.phonenumbers.PhoneNumberUtil.{ PhoneNumberFormat, PhoneNumberType }
 import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
 
 case class PhoneVerification(isValid: Boolean,
-                             nationalFormat: Option[String] = None,
-                             internationalFormat: Option[String] = None,
-                             phoneType: Option[PhoneNumberType] = None)
+  nationalFormat: Option[String] = None,
+  internationalFormat: Option[String] = None,
+  phoneType: Option[PhoneNumberType] = None)
 
 class CountryHandler {
   def findCountriesForShipping(): Seq[Country] = {
@@ -27,7 +27,6 @@ class CountryHandler {
     val req = search in Settings.Mogopay.EsIndex -> "Country" postFilter termFilter("billing" -> true) size (Integer.MAX_VALUE / 2)
     EsClient.searchAll[Country](req) sortBy (_.name)
   }
-
 
   def findByCode(code: String): Option[Country] = {
     val req = search in Settings.Mogopay.EsIndex types "Country" postFilter termFilter("code", code) size (Integer.MAX_VALUE / 2)

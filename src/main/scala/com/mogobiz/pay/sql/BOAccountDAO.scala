@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.sql
 
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model.Mogopay.Account

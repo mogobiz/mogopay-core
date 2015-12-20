@@ -22,13 +22,13 @@ object EmailHandler {
   case object MultiPart extends MailType
 
   case class Mail(from: (String, String), // (email -> name)
-                  to: Seq[String],
-                  cc: Seq[String] = Seq.empty,
-                  bcc: Seq[String] = Seq.empty,
-                  subject: String,
-                  message: String,
-                  richMessage: Option[String] = None,
-                  attachment: Option[(java.io.File)] = None)
+    to: Seq[String],
+    cc: Seq[String] = Seq.empty,
+    bcc: Seq[String] = Seq.empty,
+    subject: String,
+    message: String,
+    richMessage: Option[String] = None,
+    attachment: Option[(java.io.File)] = None)
 
   object Send {
     def apply(mail: Mail) {
@@ -72,8 +72,7 @@ object EmailHandler {
           setFrom(mail.from._1, mail.from._2).
           setSubject(mail.subject).
           send()
-      }
-      catch {
+      } catch {
         case e: EmailException =>
           e.printStackTrace()
       }

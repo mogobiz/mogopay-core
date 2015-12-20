@@ -5,7 +5,7 @@
 package com.mogobiz.pay.handlers
 
 import java.text.NumberFormat
-import java.util.{Currency, Locale}
+import java.util.{ Currency, Locale }
 import com.mogobiz.pay.config.Settings
 
 import com.sksamuel.elastic4s.ElasticDsl._

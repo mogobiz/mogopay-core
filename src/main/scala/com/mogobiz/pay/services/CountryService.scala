@@ -9,7 +9,7 @@ import com.mogobiz.pay.config.MogopayHandlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
 import com.mogobiz.pay.handlers.PhoneVerification
-import com.mogobiz.pay.model.Mogopay.{Country, Rate, CountryAdmin}
+import com.mogobiz.pay.model.Mogopay.{ Country, Rate, CountryAdmin }
 import spray.http.StatusCodes
 import spray.routing.Directives
 
@@ -60,7 +60,7 @@ class CountryService extends Directives with DefaultComplete {
         }
       } ~
       get {
-        path("country"  / Segment) { countryCode =>
+        path("country" / Segment) { countryCode =>
           handleCall(countryHandler.findByCode(countryCode),
             (country: Option[Country]) => complete(StatusCodes.OK -> country))
         }
@@ -75,11 +75,11 @@ class CountryService extends Directives with DefaultComplete {
 
   lazy val cities = path("cities") {
     get {
-        val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin2_code.?, 'name.?)
-        params { (c, a1, a2, name) =>
-          handleCall(countryAdminHandler.cities(c, a1, a2, name),
-            (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-        }
+      val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin2_code.?, 'name.?)
+      params { (c, a1, a2, name) =>
+        handleCall(countryAdminHandler.cities(c, a1, a2, name),
+          (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+      }
     }
   }
 
