@@ -17,7 +17,7 @@ import com.lyra.vads.ws.stub.{ CreatePaiementInfo, Standard, StandardWS, Transac
 import com.lyra.vads.ws3ds.stub.{ PaResInfo, ThreeDSecure, VeResPAReqInfo }
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._

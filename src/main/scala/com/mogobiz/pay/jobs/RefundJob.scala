@@ -5,7 +5,7 @@
 package com.mogobiz.pay.jobs
 
 import akka.actor.{ Actor, ActorSystem, Props }
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import scala.concurrent.duration._
 

@@ -11,7 +11,7 @@ import java.util.{ UUID, Date }
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType

@@ -19,7 +19,7 @@ import java.util.Iterator
 import java.util.LinkedHashMap
 import java.util.Set
 
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil._
 

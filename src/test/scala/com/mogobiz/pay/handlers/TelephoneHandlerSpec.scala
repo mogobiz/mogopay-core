@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.handlers
 
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import org.specs2.mutable._
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberType
 

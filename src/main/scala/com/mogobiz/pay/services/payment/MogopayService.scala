@@ -6,7 +6,7 @@ package com.mogobiz.pay.services.payment
 
 import akka.actor.ActorRef
 import com.mogobiz.pay.config.DefaultComplete
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
 import com.mogobiz.session.SessionESDirectives

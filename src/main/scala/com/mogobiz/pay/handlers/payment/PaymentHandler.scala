@@ -8,7 +8,7 @@ import java.util.{ Date, UUID }
 
 import akka.actor.{ Props, ActorSystem }
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.{ EmailingActor, EmailHandler }

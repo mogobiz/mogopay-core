@@ -15,7 +15,7 @@ import com.experian.payline.ws.obj._
 
 import com.experian.payline.ws.wrapper.WebPayment
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._

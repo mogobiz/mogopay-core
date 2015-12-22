@@ -20,7 +20,7 @@ import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions._

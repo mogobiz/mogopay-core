@@ -13,7 +13,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Enumeration
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.atosorigin.services.cad.apipayment.SIPSCallParm
 import com.atosorigin.services.cad.apipayment.web.SIPSApiWeb
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeApi

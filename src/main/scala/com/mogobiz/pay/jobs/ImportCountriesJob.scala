@@ -8,7 +8,7 @@ import akka.actor.{ Actor, ActorSystem, Props }
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import scala.concurrent.duration._
 import scala.util.control.NonFatal

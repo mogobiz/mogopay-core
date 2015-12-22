@@ -15,7 +15,7 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, InvalidSignatureException }
 import com.mogobiz.pay.handlers.UtilHandler

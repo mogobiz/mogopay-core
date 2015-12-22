@@ -15,7 +15,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.pay.common.{ CartRate, Cart }
 import com.mogobiz.pay.config.{ Environment, Settings, DefaultComplete }
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayException, UnauthorizedException }
 import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
 import com.mogobiz.pay.handlers.shipping.ShippingPrice

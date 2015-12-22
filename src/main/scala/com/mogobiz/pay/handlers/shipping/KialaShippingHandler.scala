@@ -9,7 +9,7 @@ import java.util.UUID
 import com.mogobiz.pay.common.{ ShippingWithQuantity, Shipping, Cart }
 import com.mogobiz.pay.model.Mogopay.ShippingAddress
 import org.json4s.JValue
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 
 class KialaShippingHandler extends ShippingService {
 

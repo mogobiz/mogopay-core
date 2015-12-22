@@ -10,7 +10,7 @@ import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 
 import akka.actor.ActorSystem
 import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.{ InvalidInputException, InvalidContextException, AccountDoesNotExistException, MogopayError }

@@ -9,7 +9,7 @@ import com.easypost.model._
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.common.{ Cart, CompanyAddress, ShippingWithQuantity }
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
 

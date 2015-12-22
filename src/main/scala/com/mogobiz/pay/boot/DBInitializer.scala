@@ -9,7 +9,7 @@ import java.util.{ Calendar, Currency, Date, UUID }
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.common.CartRate
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Mapping, Settings }
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod

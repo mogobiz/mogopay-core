@@ -5,7 +5,7 @@
 package com.mogobiz.pay.handlers
 
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.model.Mogopay._
 
 class ShippingAddressHandler {

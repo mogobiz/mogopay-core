@@ -8,7 +8,7 @@ import java.io.File
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.utils.GlobalUtil._
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
 import org.elasticsearch.index.query.TermQueryBuilder

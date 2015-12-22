@@ -7,7 +7,7 @@ package com.mogobiz.pay.services
 import java.io.File
 
 import com.mogobiz.pay.config.DefaultComplete
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import spray.http.{ ContentType, HttpData, HttpEntity, MediaTypes }
 import spray.routing.Directives
 

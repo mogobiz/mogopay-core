@@ -5,7 +5,7 @@
 package com.mogobiz.pay.handlers.shipping
 
 import com.mogobiz.pay.common.{ ShippingWithQuantity, Cart, Shipping }
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
 

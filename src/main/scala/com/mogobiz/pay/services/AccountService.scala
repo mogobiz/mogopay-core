@@ -5,7 +5,7 @@
 package com.mogobiz.pay.services
 
 import com.mogobiz.pay.config.{ Settings, DefaultComplete }
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._

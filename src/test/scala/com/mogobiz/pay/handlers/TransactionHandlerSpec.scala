@@ -5,7 +5,7 @@
 package com.mogobiz.pay.handlers
 
 import com.mogobiz.pay.config.{Settings, Mapping}
-import com.mogobiz.pay.config.MogopayHandlers._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.handlers.payment.SubmitParams
 import com.mogobiz.pay.model.Mogopay.{Account, BOTransaction}

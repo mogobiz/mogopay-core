@@ -22,6 +22,8 @@ object Settings {
   val TemplatesPath = config.getString("templates.path")
   val IsResourcesLocal = ResourcesPath.isEmpty
 
+  val CakeClass = config.getString("mogopay.handlers.class")
+
   val AccountValidateMerchantPhone = config.getBoolean("account.validate.merchantphone")
   val AccountValidateMerchantEmail = config.getBoolean("account.validate.merchantemail")
   val AccountValidateCustomerPhone = config.getBoolean("account.validate.customerphone")
