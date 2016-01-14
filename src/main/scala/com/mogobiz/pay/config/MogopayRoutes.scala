@@ -10,7 +10,7 @@ import java.net.UnknownHostException
 import akka.actor.{ Actor, ActorLogging, Props }
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
-import com.mogobiz.pay.exceptions.Exceptions.MogopayException
+import com.mogobiz.pay.exceptions.Exceptions.{MogopayMessagelessException, MogopayException}
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
@@ -93,7 +93,10 @@ trait DefaultComplete {
     import Implicits._
     t match {
       case (ex: MogopayException) =>
-        ex.printStackTrace()
+        if (ex.printTrace) ex.printStackTrace()
+        complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.getMessage))
+      case (ex: MogopayMessagelessException) =>
+        if (ex.printTrace) ex.printStackTrace()
         complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.getMessage))
       case (ex: UnknownHostException) =>
         ex.printStackTrace()

@@ -11,6 +11,7 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.common.{ Cart, CompanyAddress, ShippingWithQuantity }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
+import com.mogobiz.pay.exceptions.Exceptions.ShippingException
 import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
 
 import scala.collection.JavaConversions._
@@ -45,7 +46,15 @@ class EasyPostHandler extends ShippingService {
       cart
     )
 
-    easyPostRates.map { easyPostRate =>
+    val filterRates = easyPostRates.span(rate => {
+      val shipment = Shipment.retrieve(rate.getShipmentId)
+      (shipment.getMessages != null && shipment.getMessages.size() > 0)
+    })
+
+    if (filterRates._1.size > 0 && filterRates._2.size == 0) {
+      throw ShippingException()
+    }
+    filterRates._2.map { easyPostRate =>
       var rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
       val currencyFractionDigits: Integer = rate.map {
         _.currencyFractionDigits
