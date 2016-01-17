@@ -11,7 +11,7 @@ import com.mogobiz.pay.model.Mogopay.ShippingAddress
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 
-class KialaShippingHandler extends ShippingService {
+class KialaShippingHandler extends ShippingHandler {
 
   val KIALA_PRICE = 400
   val KIALA_SHIPPING_PREFIX = "KIALA_"

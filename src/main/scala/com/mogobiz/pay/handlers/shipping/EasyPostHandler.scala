@@ -18,11 +18,11 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
-class EasyPostHandler extends ShippingService {
+class EasyPostHandler extends ShippingHandler {
 
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
 
-  EasyPost.apiKey = Settings.Shipping.EasyPost.apiKey
+  EasyPost.apiKey = Settings.Shipping.EasyPost.ApiKey
 
   override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     cart.compagnyAddress.map { compagnyAddress =>
@@ -109,6 +109,7 @@ class EasyPostHandler extends ShippingService {
   /**
    * convert the linear value into IN
    * 1 in = 2.54 cm
+   *
    * @param linear
    * @param unit
    * @return
@@ -125,6 +126,7 @@ class EasyPostHandler extends ShippingService {
    * 1 OZ = 28.3495231 g
    * 1 OZ = 28.3495231/1000 kg
    * 1 OZ = 16.000 lb
+   *
    * @param weight
    * @param unit
    * @return
@@ -153,7 +155,11 @@ class EasyPostHandler extends ShippingService {
       "from_address" -> companyAddressToMap(from),
       "to_address" -> accountAddressToMap(to),
       "parcel" -> parc,
+      "reference" -> cart.cartItems(0).id,
       "customs_info" -> cartToMap(cart))
+
+    if (Settings.Shipping.EasyPost.UpsCostCenter.length > 0)
+      shipmentMap.put("options", mutable.HashMap[String, AnyRef]("cost_center" -> Settings.Shipping.EasyPost.UpsCostCenter))
 
     val shipment = Shipment.create(shipmentMap)
     shipment.getRates
@@ -202,7 +208,9 @@ class EasyPostHandler extends ShippingService {
 
   private def accountAddressToMap(addr: AccountAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
-      "name" -> (addr.civility.map { _.toString + " " }.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
+      "name" -> (addr.civility.map {
+        _.toString + " "
+      }.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
       "company" -> addr.company.getOrElse(""),
       "street1" -> addr.road,
       "street2" -> addr.road2.getOrElse(""),

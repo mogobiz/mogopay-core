@@ -10,7 +10,7 @@ import java.net.UnknownHostException
 import akka.actor.{ Actor, ActorLogging, Props }
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
-import com.mogobiz.pay.exceptions.Exceptions.{MogopayMessagelessException, MogopayException}
+import com.mogobiz.pay.exceptions.Exceptions.{ MogopayMessagelessException, MogopayException }
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._

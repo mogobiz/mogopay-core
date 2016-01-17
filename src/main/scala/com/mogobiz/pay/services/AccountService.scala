@@ -514,14 +514,13 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val sendNewPassword = post {
-    path("send-new-password") {
+  lazy val sendNewPassword =
+    (post & path("send-new-password")) {
       entity(as[SendNewPasswordParams]) { params =>
         handleCall(accountHandler.sendNewPassword(params),
           (_: Unit) => complete(StatusCodes.OK))
       }
     }
-  }
 
   lazy val selectShippingAddress = get {
     path("select-shipping-address") {

@@ -16,7 +16,7 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.EmailHandler.Mail
-import com.mogobiz.pay.handlers.shipping.{ ShippingPrice, ShippingService }
+import com.mogobiz.pay.handlers.shipping.{ ShippingHandler, ShippingPrice }
 import com.mogobiz.pay.handlers.{ EmailHandler, UtilHandler }
 import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
@@ -26,19 +26,15 @@ import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
-import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ GlobalUtil, SymmetricCrypt }
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.commons.lang.LocaleUtils
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
-
 import org.json4s.JsonAST.{ JField, JObject }
 import org.json4s._
-import org.json4s.ext.JodaTimeSerializers
 import org.json4s.jackson.JsonMethods._
-import spray.http.StatusCodes
 
 import scala.collection.{ Map, _ }
 import scala.util._
@@ -301,7 +297,7 @@ class TransactionHandler {
 
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
-    address.map(addr => ShippingService.calculatePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
+    address.map(addr => ShippingHandler.calculatePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
   }
 
   def selectShippingPrice(sessionData: SessionData, accountId: String, shipmentId: String, rateId: String): ShippingPrice = {
@@ -426,7 +422,7 @@ class TransactionHandler {
       }
     }
 
-    sessionData.selectShippingPrice = ShippingService.confirmShippingPrice(selectedShippingPrice)
+    sessionData.selectShippingPrice = ShippingHandler.confirmShippingPrice(selectedShippingPrice)
     val shippingPrice = sessionData.selectShippingPrice.map { _.price }.getOrElse(0L)
 
     val cartWithShipping = CartWithShipping(cart.count,

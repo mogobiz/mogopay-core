@@ -145,7 +145,8 @@ object Settings {
       val enable = config.getBoolean("shipping.kiala.enable")
     }
     object EasyPost {
-      val apiKey = config.getString("shipping.easyPost.apiKey")
+      val ApiKey = config.getString("shipping.easyPost.apiKey")
+      val UpsCostCenter = if (config.hasPath("shipping.easyPost.ups.costCenter")) config.getString("shipping.easyPost.ups.costCenter") else ""
     }
 
   }

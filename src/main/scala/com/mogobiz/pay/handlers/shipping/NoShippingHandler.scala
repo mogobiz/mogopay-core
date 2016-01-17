@@ -12,7 +12,7 @@ import org.json4s._
 
 /**
  */
-class NoShippingHandler extends ShippingService {
+class NoShippingHandler extends ShippingHandler {
 
   val NO_SHIPPING_PREFIX = "NONE_"
 

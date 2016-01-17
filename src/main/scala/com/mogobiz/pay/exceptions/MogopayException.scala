@@ -8,9 +8,9 @@ import spray.http.{ StatusCode, StatusCodes }
 
 object Exceptions {
 
-  abstract class MogopayMessagelessException(val code: StatusCode, val printTrace : Boolean = true) extends Exception()
+  abstract class MogopayMessagelessException(val code: StatusCode, val printTrace: Boolean = true) extends Exception()
 
-  abstract class MogopayException(val code: StatusCode, message: String, val printTrace : Boolean = true) extends Exception(message)
+  abstract class MogopayException(val code: StatusCode, message: String, val printTrace: Boolean = true) extends Exception(message)
 
   case class UnauthorizedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 

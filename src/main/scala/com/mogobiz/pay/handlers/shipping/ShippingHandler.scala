@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.handlers.shipping
 
-import com.mogobiz.pay.common.{ ShippingWithQuantity, Cart, Shipping }
+import com.mogobiz.pay.common.{ Cart, ShippingWithQuantity }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
@@ -14,7 +14,7 @@ import scala.collection.Seq
 case class ShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
   currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false)
 
-trait ShippingService {
+trait ShippingHandler {
   def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice]
 
   def isManageShipmentId(shippingPrice: ShippingPrice): Boolean
@@ -49,8 +49,8 @@ trait ShippingService {
   }
 }
 
-object ShippingService {
-  val servicesList: Seq[ShippingService] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHander)
+object ShippingHandler {
+  val servicesList: Seq[ShippingHandler] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHander)
   else Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
 
   def calculatePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
