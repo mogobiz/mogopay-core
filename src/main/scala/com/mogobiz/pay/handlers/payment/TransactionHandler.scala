@@ -861,7 +861,10 @@ object BOTransactionJsonTransform {
   }
 
   private def formatDateTime(locale: Locale, value: String) = {
-    val date = ISODateTimeFormat.dateTime().parseDateTime(value)
+    val date = Try(ISODateTimeFormat.dateTime().parseDateTime(value)) match {
+      case Success(d) => d
+      case _ => ISODateTimeFormat.dateTimeNoMillis().parseDateTime(value)
+    }
     val formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, locale);
     formatter.format(date.toDate)
   }
