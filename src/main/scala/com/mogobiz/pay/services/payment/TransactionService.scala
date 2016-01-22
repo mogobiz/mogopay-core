@@ -138,9 +138,10 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           (result: (BOTransaction, Seq[TransactionRequest])) => {
             val transaction = result._1
             val transactions = result._2
+            val shipmentError = "SHIPMENT_ERROR".equals(transaction.errorCodeOrigin.getOrElse(""))
             complete(
               StatusCodes.OK -> Map(
-                'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) "success" else "error"),
+                'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED && !shipmentError) "success" else "error"),
                 'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
                 'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
                 'transaction_email -> Option(transaction.email).getOrElse(""),
@@ -150,7 +151,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
                 'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
                 'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),
-                'group_transactions -> transactions
+                'group_transactions -> transactions,
+                'error_shipment -> (if (shipmentError) transaction.errorMessageOrigin.getOrElse("") else "")
               )
             )
           }

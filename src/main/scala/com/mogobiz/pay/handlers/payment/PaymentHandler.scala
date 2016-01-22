@@ -11,6 +11,7 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
+import com.mogobiz.pay.handlers.shipping.ShippingHandler
 import com.mogobiz.pay.handlers.{ EmailingActor, EmailHandler }
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
@@ -22,6 +23,7 @@ import spray.http.Uri
 import spray.http.Uri.Query
 
 import scala.collection.mutable
+import scala.util.{ Try, Success, Failure }
 
 trait PaymentHandler {
   implicit val system = ActorSystem()
@@ -37,15 +39,35 @@ trait PaymentHandler {
     val transactionSequence = if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
     val success = paymentResult.status == PaymentStatus.COMPLETE
 
+    val errorShipment = if (success) {
+      val transaction = boTransactionHandler.find(transactionUUID)
+        .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
+
+      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
+        case Success(_) => None
+        case Failure(f) => {
+          val newTx = transaction.copy(
+            errorCodeOrigin = Option("SHIPMENT_ERROR"),
+            errorMessageOrigin = Some(f.getMessage)
+          )
+          boTransactionHandler.update(newTx, false)
+
+          //TODO faire l'appel à l'annulation du paiement
+          Some(f.getMessage)
+        }
+      }
+    } else None;
+
     val query = Query(
-      "result" -> (if (success) MogopayConstant.Success else MogopayConstant.Error),
+      "result" -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),
       "transaction_id" -> transactionUUID,
       "transaction_sequence" -> transactionSequence,
       "transaction_type" -> paymentType.toString,
       "error_code_bank" -> paymentResult.bankErrorCode,
       "error_message_bank" -> paymentResult.bankErrorMessage.getOrElse(""),
       "error_code_provider" -> paymentResult.errorCodeOrigin,
-      "error_message_provider" -> paymentResult.errorMessageOrigin.getOrElse("")
+      "error_message_provider" -> paymentResult.errorMessageOrigin.getOrElse(""),
+      "error_shipment" -> errorShipment.getOrElse("")
     )
 
     if (success && sessionData.payers.nonEmpty) {

@@ -422,7 +422,6 @@ class TransactionHandler {
       }
     }
 
-    sessionData.selectShippingPrice = ShippingHandler.confirmShippingPrice(selectedShippingPrice)
     val shippingPrice = sessionData.selectShippingPrice.map { _.price }.getOrElse(0L)
 
     val cartWithShipping = CartWithShipping(cart.count,
