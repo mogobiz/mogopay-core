@@ -4,9 +4,13 @@
 
 package com.mogobiz.pay.config
 
-import java.io.File
+import java.io.{ StringReader, File }
+import java.security.{ PublicKey, KeyFactory }
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.X509EncodedKeySpec
 
 import com.typesafe.config.{ Config, ConfigFactory }
+import org.bouncycastle.util.io.pem.PemReader
 import scalikejdbc.config._
 
 import scala.util.Try
@@ -125,8 +129,11 @@ object Settings {
     val DirectEndPoint = config.getString("paybox.directendpoint")
     val PemFileName = config.getString("paybox.pemfile")
     val PBXPorteur = config.getString("paybox.pbxporteur")
-    val publicKey: String = {
-      scala.io.Source.fromFile(Settings.Paybox.PemFileName).mkString
+    val PublicKey: PublicKey = {
+      val pemreader = new PemReader(new StringReader(scala.io.Source.fromFile(Settings.Paybox.PemFileName).mkString))
+      val x509EncodedKeySpec = new X509EncodedKeySpec(pemreader.readPemObject().getContent)
+      val kf = KeyFactory.getInstance("RSA")
+      kf.generatePublic(x509EncodedKeySpec)
     }
   }
 

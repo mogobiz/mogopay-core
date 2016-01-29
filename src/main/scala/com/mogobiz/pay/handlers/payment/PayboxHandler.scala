@@ -4,10 +4,10 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.io.StringReader
+import java.io._
 import java.net.URLDecoder
-import java.security.interfaces.RSAPublicKey
-import java.security.{ MessageDigest, NoSuchAlgorithmException, Security, Signature }
+import java.security._
+import java.security.spec.X509EncodedKeySpec
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -24,7 +24,7 @@ import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil, Sha512 }
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.openssl.PEMReader
+import org.bouncycastle.util.io.pem.PemReader
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
 import spray.can.Http
@@ -42,12 +42,12 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   implicit val timeout: Timeout = 40.seconds
   val paymentType = PaymentType.CREDIT_CARD
 
-  def verifySha1(data: String, sign: String, pemdata: String): Boolean = {
+  def verifySha1(data: String, sign: String): Boolean = {
     val Charset = "UTF-8"
     val HashEncryptionAlgorithm = "SHA1withRSA"
 
-    val decoder = new BASE64Decoder()
     Security.addProvider(new BouncyCastleProvider())
+    val decoder = new BASE64Decoder()
     val signature = decoder.decodeBuffer(URLDecoder.decode(sign, Charset))
     try {
       val md = MessageDigest.getInstance("SHA-1")
@@ -55,13 +55,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     } catch {
       case e: NoSuchAlgorithmException => e.printStackTrace()
     }
-    val reader = new StringReader(pemdata)
-    val pem = new PEMReader(reader)
-    val pubKey = pem.readObject().asInstanceOf[RSAPublicKey]
-    pem.close()
-    reader.close()
-    val sig = Signature.getInstance(HashEncryptionAlgorithm, "BC")
-    sig.initVerify(pubKey)
+    val sig = Signature.getInstance("SHA1withRSA")
+    sig.initVerify(Settings.Paybox.PublicKey)
     sig.update(data.getBytes(Charset))
     sig.verify(signature)
   }
@@ -95,7 +90,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       }
       val dataToCheck = uri.substring(uri.indexOf("?") + 1, uri.indexOf("&SIGNATURE="))
       val signature = uri.substring(uri.indexOf("&SIGNATURE=") + "&SIGNATURE=".length)
-      val ok = verifySha1(dataToCheck, signature, Settings.Paybox.publicKey) && paramTransactionUuid == transactionUuid && vendorId == paramVendorId
+      val ok = verifySha1(dataToCheck, signature) && paramTransactionUuid == transactionUuid && vendorId == paramVendorId
       if (ok) {
         val codeReponse = params("CODEREPONSE")
         val bankErrorCode = if (codeReponse == "00000") "00" else if (codeReponse.startsWith("001")) codeReponse.substring(3) else ""
@@ -531,6 +526,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 }
 
 object PayboxHandler {
+
   val errorMessages = Map(
     "00000" -> "Opération ré́ussie.",
     "00016" -> "Abonné déjà existant (inscription nouvel abonné).",
@@ -582,5 +578,27 @@ object PayboxHandler {
     } else {
       return CreditCardType.CB
     }
+  }
+
+  def main(args: Array[String]): Unit = {
+    val Charset = "UTF-8"
+    val sig = Signature.getInstance("SHA1withRSA")
+    val sign = "Olwo4inZvWiVIqfoQus8Y1xBNSAHcPJnrH4Qh7fX7DOwWeAlQUjHh0XoIX6La4eks6AiocuZSlx8Ey4xTiOt6A/W%2BJhpIz61eqz5d%2BHF2Oh/I0DkjKwSnSmVMVUgOu48YRDbsI05CR3EX162HBe0l2XYc8eZ3OYHk2CwgPPr3Uk%3D"
+    val decoder = new BASE64Decoder()
+    val signature = decoder.decodeBuffer(URLDecoder.decode(sign, Charset))
+    val lines = scala.io.Source.fromFile("/Applications/jcf/data/mogopay/paybox/paybox.pem").mkString
+    println(lines)
+    val pem = lines.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "")
+    println(pem)
+
+    val reader = new StringReader(scala.io.Source.fromFile("/Applications/jcf/data/mogopay/paybox/paybox.pem").mkString)
+    val pemreader = new PemReader(reader)
+    val x509EncodedKeySpec = new X509EncodedKeySpec(pemreader.readPemObject().getContent)
+    val kf = KeyFactory.getInstance("RSA")
+    sig.initVerify(kf.generatePublic(x509EncodedKeySpec))
+    val message = "AMOUNT=3300&REFERENCE=d7b864c8-4567-4603-abd4-5f85e9ff56e6--d32b6abd-b8a6-41f9-bbab-cdfb0c1048bf&AUTO=XXXXXX&NUMTRANS=13949577&TYPEPAIE=CARTE&CARTE=VISA&CARTEDEBUT=&CARTEFIN=&DATEFIN=2207&DTPBX=27012016&CODEREPONSE=00000&EMPREINTE=5B434C778490889697170E225029F56AFF19CA47"
+    sig.update(message.getBytes(Charset))
+    val ok = sig.verify(signature)
+    println(ok)
   }
 }

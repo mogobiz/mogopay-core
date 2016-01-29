@@ -604,7 +604,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     result
   }
 
-  private[payment] def cancel(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
+  def cancel(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")

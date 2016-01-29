@@ -13,7 +13,7 @@ import javax.xml.namespace.QName
 import javax.xml.ws.BindingProvider
 import javax.xml.ws.handler.MessageContext
 
-import com.lyra.vads.ws.stub.{ CreatePaiementInfo, Standard, StandardWS, TransactionInfo }
+import com.lyra.vads.ws.stub._
 import com.lyra.vads.ws3ds.stub.{ PaResInfo, ThreeDSecure, VeResPAReqInfo }
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
@@ -75,7 +75,8 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
         if (Option(threeDSResult).map(_.code) == Some(ResponseCode3DS.APPROVED)) {
           sessionData.waitFor3DS = true
-          val form = s"""
+          val form =
+            s"""
             <html>
               <head>
               </head>
@@ -428,7 +429,8 @@ class SystempayClient {
           certificat).mkString("+"))
 
       paymentResult = paymentResult.copy(
-        data = s"""
+        data =
+          s"""
       <html>
         <head>
         </head>
@@ -647,7 +649,8 @@ class SystempayClient {
           method = "POST"
         )
 
-        val form = s"""
+        val form =
+          s"""
         <html>
           <head>
           </head>
@@ -672,6 +675,108 @@ class SystempayClient {
     transactionHandler.updateStatus3DS(transactionUUID, sessionData.ipAddress, result.code, codeRetour)
 
     result
+  }
+
+  def cancel(sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
+    paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
+    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
+    val ctxMode = context
+    transactionHandler.updateStatus(transactionUUID, None, TransactionStatus.CANCEL_REQUESTED)
+    var paymentResult = PaymentResult(
+      transactionSequence = paymentRequest.transactionSequence,
+      orderDate = paymentRequest.orderDate,
+      amount = paymentRequest.amount,
+      ccNumber = "",
+      cardType = null,
+      expirationDate = null,
+      cvv = "",
+      gatewayTransactionId = "",
+      transactionDate = null,
+      transactionCertificate = null,
+      authorizationId = null,
+      status = null,
+      errorCodeOrigin = "",
+      errorMessageOrigin = Some(""),
+      data = "",
+      bankErrorCode = "",
+      bankErrorMessage = Some(""),
+      token = ""
+    )
+
+    val currency: Int = paymentRequest.currency.numericCode
+    val shopId: String = parametres("systempayShopId")
+    val contractNumber: String = parametres("systempayContractNumber")
+    val certificat: String = parametres("systempayCertificate")
+    val transactionId = "%06d".format(paymentRequest.transactionSequence.toLong)
+    val transactionSequence = paymentRequest.transactionSequence.toInt
+    val comment = s"Cancel transaction $transactionUUID"
+
+    paymentResult = paymentResult.copy(
+      cardType = paymentRequest.cardType,
+      ccNumber = paymentRequest.ccNumber,
+      expirationDate = paymentRequest.expirationDate,
+      cvv = paymentRequest.cvv
+    )
+    val gcalendar: GregorianCalendar = new GregorianCalendar
+    gcalendar.setTime(new Date)
+    val xmlCalendar: XMLGregorianCalendar = DatatypeFactory.newInstance.newXMLGregorianCalendar(gcalendar)
+    val signature: String = SystempayUtilities.makeSignature(certificat, Seq(
+      shopId,
+      xmlCalendar,
+      transactionId,
+      transactionSequence,
+      ctxMode,
+      comment).asInstanceOf[Seq[String]].asJava)
+
+    val wsdlURL: URL = getClass.getClassLoader.getResource("wsdl/SystemPay_WSAPI.wsdl")
+    val SERVICE_NAME: QName = new QName("http://v3.ws.vads.lyra.com/", "StandardWS")
+    val ss: StandardWS = new StandardWS(wsdlURL, SERVICE_NAME)
+    val port: Standard = ss.getStandardBeanPort
+    val response: StandardResponse = port.cancel(shopId, xmlCalendar, transactionId, transactionSequence, ctxMode, comment, signature)
+    val code: Int = response.getErrorCode
+
+    paymentResult = paymentResult.copy(
+      gatewayTransactionId = transactionId,
+      transactionDate = xmlCalendar.toGregorianCalendar.getTime,
+      transactionCertificate = null,
+      transactionSequence = paymentRequest.transactionSequence,
+      amount = paymentRequest.amount,
+      cardType = paymentRequest.cardType,
+      ccNumber = paymentRequest.ccNumber,
+      expirationDate = paymentRequest.expirationDate,
+      cvv = paymentRequest.cvv,
+      orderDate = new Date,
+      errorCodeOrigin = code.toString,
+      errorMessageOrigin = if (code == 5) Option(response.getExtendedErrorCode) else Some(SystempayClient.getExtendedMessage(code)),
+      bankErrorCode = "",
+      bankErrorMessage = Some("")
+    )
+
+    val sep = SystempayClient.QUERY_STRING_SEP
+    val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
+    val gatewayData = Map(
+      "transmissionDate" -> xmlCalendar.toGregorianCalendar.getTime.getTime,
+      "transactionId" -> transactionId,
+      "sequenceNb" -> transactionSequence
+    ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
+
+    val (paymentStatus, transactionStatus) =
+      if (code == 0)
+        (PaymentStatus.CANCELED, TransactionStatus.CANCEL_CONFIRMED)
+      else
+        (PaymentStatus.CANCEL_FAILED, TransactionStatus.CANCEL_FAILED)
+
+    paymentResult.copy(status = paymentStatus)
+    transactionHandler.finishPayment(transactionUUID,
+      transactionStatus,
+      paymentResult,
+      "" + code,
+      locale,
+      Some(gatewayData))
+
+    paymentResult
   }
 }
 
