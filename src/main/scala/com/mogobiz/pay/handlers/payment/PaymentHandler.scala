@@ -56,7 +56,7 @@ trait PaymentHandler {
           Some(f.getMessage)
         }
       }
-    } else None;
+    } else None
 
     val query = Query(
       "result" -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),

@@ -18,7 +18,6 @@ import scala.util._
 
 class AuthorizeNetService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
 
-  import akka.pattern.ask
   import akka.util.Timeout
 
   import scala.concurrent.duration._
