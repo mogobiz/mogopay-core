@@ -11,8 +11,6 @@ import java.security.spec.X509EncodedKeySpec
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import akka.io.IO
-import akka.pattern.ask
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
@@ -27,7 +25,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.jackson.JsonMethods._
-import spray.can.Http
 import spray.client.pipelining._
 import spray.http.{ HttpResponse, Uri, _ }
 import sun.misc.BASE64Decoder
@@ -229,8 +226,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     boTransactionHandler.update(transaction, refresh = false)
   }
 
-  import system.dispatcher
-
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
   implicit val formats = new org.json4s.DefaultFormats {
   }
@@ -360,14 +355,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         boTransactionLogHandler.save(botlog, false)
 
         val uri = Uri(Settings.Paybox.DirectEndPoint)
-        val host = uri.authority.host
 
-        val logRequest: HttpRequest => HttpRequest = { r => println(r); r }
-        val logResponse: HttpResponse => HttpResponse = { r => println(r); r }
-        val pipeline: Future[SendReceive] =
-          for (
-            Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(host.toString, 443, sslEncryption = true)(system, sslEngineProvider)
-          ) yield logRequest ~> sendReceive(connector) ~> logResponse
         //        query.put("TYPE", "00056")
         //        query.put("SITE", "1999888")
         //        query.put("RANG", "069")
@@ -384,7 +372,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         //        query.put("TYPE", "00053")
         //        query.put("MONTANT", Amount)
         val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
-        val response = pipeline.flatMap(_(request))
+        val response = sslPipeline(uri.authority.host).flatMap(_(request))
 
         val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
         tuples.foreach(println)
@@ -513,7 +501,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     val uri = Uri(Settings.Paybox.DirectEndPoint)
     val post = Post(uri).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query)))
-    val response = Await.result(pipeline(post), Duration.Inf)
+    val response = Await.result(sslPipeline(uri.authority.host).flatMap(_(post)), Duration.Inf)
 
     val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
       transaction = boTx.uuid, log = response.entity.data.asString, step = TransactionStep.REFUND)

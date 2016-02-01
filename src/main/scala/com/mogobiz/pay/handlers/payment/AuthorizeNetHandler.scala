@@ -4,11 +4,9 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.math
 import java.nio.charset.StandardCharsets
-import java.util.{ UUID, Date }
+import java.util.Date
 
-import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
@@ -16,28 +14,22 @@ import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
+import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil }
-import net.authorize.api.contract.v1.{ TransactionRequestType, CreateTransactionRequest }
-import net.authorize.{ aim, ResponseCode, Merchant, TransactionType }
 import net.authorize.sim._
+import net.authorize.{ Merchant, TransactionType, aim }
 import org.json4s.jackson.JsonMethods._
-import spray.client.pipelining._
-import spray.http.{ HttpResponse, Uri, _ }
+import spray.http.Uri
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util._
 
-class AuthorizeNetHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
+class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
 
   implicit val timeout: Timeout = 40.seconds
 
-  import system.dispatcher
-
   val paymentType = PaymentType.CREDIT_CARD
-  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
   implicit val formats = new org.json4s.DefaultFormats {}
 
   val VENDOR_UUID = "vendor_uuid"

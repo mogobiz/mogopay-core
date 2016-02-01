@@ -4,37 +4,34 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.net.{ URLDecoder }
+import java.net.URLDecoder
 import java.util.{ Date, Locale }
 import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 
-import akka.actor.ActorSystem
+import akka.util.Timeout
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.{ InvalidInputException, InvalidContextException, AccountDoesNotExistException, MogopayError }
-import com.mogobiz.pay.implicits.Implicits
+import com.mogobiz.pay.exceptions.Exceptions.{ AccountDoesNotExistException, InvalidContextException, InvalidInputException, MogopayError }
+import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.utils.GlobalUtil
-import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.session.Session
+import com.mogobiz.utils.GlobalUtil._
+import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil }
 import org.json4s.jackson.JsonMethods._
-import Implicits._
-import spray.http.Uri
+import spray.client.pipelining._
 import spray.http.Uri.Query
+import spray.http.{ Uri, _ }
 
-import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.util._
-import spray.http._
-import spray.client.pipelining._
 
-class PayPalHandler(handlerName: String) extends PaymentHandler {
+class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
   PaymentHandler.register(handlerName, this)
 
-  import system.dispatcher
+  implicit val timeout: Timeout = 40.seconds
 
   // execution context for futures
 
@@ -89,7 +86,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler {
         "PAYMENTREQUEST_0_CURRENCYCODE" -> paymentRequest.currency.code,
         "RETURNURL" -> successURL,
         "CANCELURL" -> failureURL)
-      val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(query)))
+      val uri: Uri = Uri(Settings.PayPal.UrlNvpApi)
+      val response: Future[HttpResponse] = sslPipeline(uri.authority.host).flatMap(_(Get(uri.withQuery(query))))
       val tuples = fromHttResponse(response)
       val res = tuples map { tuples =>
         tuples.get("ACK") flatMap { ack =>

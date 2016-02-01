@@ -6,27 +6,29 @@ package com.mogobiz.pay.handlers.payment
 
 import java.util.{ Date, UUID }
 
-import akka.actor.{ Props, ActorSystem }
+import akka.actor.Props
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.shipping.ShippingHandler
-import com.mogobiz.pay.handlers.{ EmailingActor, EmailHandler }
 import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.handlers.EmailingActor
+import com.mogobiz.pay.handlers.shipping.ShippingHandler
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
-import com.mogobiz.utils.{ SymmetricCrypt, GlobalUtil }
+import com.mogobiz.system.ActorSystemLocator
+import com.mogobiz.utils.{ GlobalUtil, SymmetricCrypt }
 import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
 
 import scala.collection.mutable
-import scala.util.{ Try, Success, Failure }
+import scala.util.{ Failure, Success, Try }
 
 trait PaymentHandler {
-  implicit val system = ActorSystem()
+  implicit val system = ActorSystemLocator()
+  implicit val _ = system.dispatcher
 
   def paymentType: PaymentType
   /**
