@@ -8,6 +8,7 @@ import java.net.URLDecoder
 import java.util.{ Date, Locale }
 import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 
+import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
@@ -17,6 +18,7 @@ import com.mogobiz.pay.exceptions.Exceptions.{ AccountDoesNotExistException, Inv
 import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil }
 import org.json4s.jackson.JsonMethods._
@@ -281,4 +283,13 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       throw AccountDoesNotExistException("")
     }
   }
+}
+
+object Test extends App with CustomSslConfiguration {
+  implicit val timeout: Timeout = 40.seconds
+  ActorSystemLocator(ActorSystem("Test"))
+  implicit val _ = ActorSystemLocator().dispatcher
+  val uri: Uri = Uri("https://api-3t.sandbox.paypal.com/nvp")
+  val response: Future[HttpResponse] = sslPipeline(uri.authority.host).flatMap(_(Get("https://api-3t.sandbox.paypal.com/nvp?METHOD=SetExpressCheckout&USER=hayssams-facilitator_api1.yahoo.com&PWD=1365940711&SIGNATURE=An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG&VERSION=78&PAYMENTREQUEST_0_PAYMENTACTION=SALE&PAYMENTREQUEST_0_AMT=27.50%0A&PAYMENTREQUEST_0_CURRENCYCODE=EUR&RETURNURL=http://mogobiz.ebiznext.com:80/api/pay/paypal/success/23601e5c-f921-4c09-8c16-d73c12fbfd38&CANCELURL=http://mogobiz.ebiznext.com:80/api/pay/paypal/fail/23601e5c-f921-4c09-8c16-d73c12fbfd38")))
+  response.foreach(x => println(x.entity.toString))
 }
