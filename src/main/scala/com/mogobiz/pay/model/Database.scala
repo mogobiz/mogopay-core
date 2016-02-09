@@ -94,6 +94,15 @@ object Mogopay {
     type Civility = Value
     val MR = Value("MR")
     val MRS = Value("MRS")
+    val MSS = Value("MRS")
+    val DR = Value("DR")
+    val ME = Value("ME")
+    val PR = Value("PR")
+    val SIR = Value("SIR")
+    val LADY = Value("LADY")
+    val LORD = Value("LORD")
+    val VVE = Value("VVE")
+    val MGR = Value("MGR")
   }
 
   class CivilityRef extends TypeReference[Civility.type]
