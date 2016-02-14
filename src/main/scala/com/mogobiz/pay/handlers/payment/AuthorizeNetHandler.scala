@@ -284,9 +284,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     finishPayment(sessionData, paymentResult)
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: java.math.BigDecimal): RefundResult = {
+  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
     import net.authorize.Environment
     import net.authorize.data.creditcard.CreditCard
+    def longToBigDecimal(n: Long): java.math.BigDecimal = new java.math.BigDecimal(n * 1.0)
 
     val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
@@ -300,7 +301,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     creditCard.setCreditCardNumber(boTx.creditCard.get.number.substring(9))
 
     val authCaptureTransaction = merchant.createAIMTransaction(
-      TransactionType.CREDIT, amount)
+      TransactionType.CREDIT, longToBigDecimal(amount))
     authCaptureTransaction.setTransactionId(anetTransactionId)
     authCaptureTransaction.setCreditCard(creditCard)
 
@@ -309,7 +310,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
       "transactionKey" -> transactionKey,
       "anetTransactionId" -> anetTransactionId,
       "creditCard" -> creditCard.getCreditCardNumber,
-      "amount" -> amount
+      "amount" -> longToBigDecimal(amount)
     )
     val logOUT = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
       transaction = boTx.uuid, log = GlobalUtil.mapToQueryString(queryOUT), step = TransactionStep.REFUND)

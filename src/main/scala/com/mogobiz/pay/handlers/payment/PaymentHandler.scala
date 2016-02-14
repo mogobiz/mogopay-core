@@ -31,6 +31,8 @@ trait PaymentHandler {
   implicit val _ = system.dispatcher
 
   def paymentType: PaymentType
+
+  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult
   /**
    * Returns the redirection page's URL
    */
@@ -53,8 +55,8 @@ trait PaymentHandler {
             errorMessageOrigin = Some(f.getMessage)
           )
           boTransactionHandler.update(newTx, false)
-
           //TODO faire l'appel à l'annulation du paiement
+          refund(sessionData.paymentConfig.get, newTx, sessionData.amount.get, paymentResult)
           Some(f.getMessage)
         }
       }

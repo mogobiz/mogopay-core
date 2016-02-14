@@ -668,7 +668,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       )
   }
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
+  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
     val vendor = boTx.vendor.get
     val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)

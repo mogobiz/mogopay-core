@@ -283,6 +283,36 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       throw AccountDoesNotExistException("")
     }
   }
+
+  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
+    val parameters: Map[String, String] =
+      paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+
+    val user = parameters("paypalUser").toString
+    val password = parameters("paypalPassword").toString
+    val signature = parameters("paypalSignature").toString
+
+    val query = Query(
+      "METHOD" -> "RefundTransaction",
+      "TRANSACTIONID" -> paymentResult.gatewayTransactionId,
+      "REFUNDTYPE" -> "Full")
+    val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(query)))
+    val tuples = GlobalUtil.fromHttResponse(response)
+    val res = tuples map { tuples =>
+      tuples.get("ACK") flatMap { ack =>
+        if (ack.equals("Success") || ack.equals("SuccessWithWarning")) {
+          val refundTrId = tuples("REFUNDTRANSACTIONID")
+          Some(URLDecoder.decode(refundTrId, "UTF-8"))
+        } else None
+      }
+    }
+    import scala.concurrent.duration._
+
+
+    val result  = Await.result(res, 30 seconds)
+    val status = if (result.isDefined) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+    RefundResult(status, result.getOrElse(""), None)
+  }
 }
 
 object Test extends App with CustomSslConfiguration {

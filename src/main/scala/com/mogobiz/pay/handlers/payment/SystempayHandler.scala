@@ -266,7 +266,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
   private def buildURL(url: String, params: Map[String, String]) = url + "?" + mapToQueryString(params)
 
-  def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long): RefundResult = {
+  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
     def createPort() = {
       val wsdlURL = new URL("https://paiement.systempay.fr/vads-ws/v3?wsdl")
       val qname = new QName("http://v3.ws.vads.lyra.com/", "StandardWS")
