@@ -212,10 +212,12 @@ class TransactionHandler {
       val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
       boTransactionHandler.update(finalTrans, refresh = false)
       notifyPaymentFinished(finalTrans.copy(extra = None), finalTrans.extra.getOrElse("{}"), locale)
+      notifySuccessPayment(finalTrans, locale)
       finalTrans
     } else {
       boTransactionHandler.update(newTx, false)
       notifyPaymentFinished(newTx.copy(extra = None), newTx.extra.getOrElse("{}"), locale)
+      notifySuccessPayment(newTx, locale)
       newTx
     }
 
@@ -234,17 +236,15 @@ class TransactionHandler {
         EmailHandler.Send(
           Mail(
             (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
-            List(transaction.email.get), List(), List(), subject, body, None, None
+            List(transaction.email.get), List(), List(), subject, body, Some(body), None
           ))
       } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
-
-      notifySuccessPayment(transaction, jsonCart, locale)
     } catch {
       case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
     }
   }
 
-  def notifySuccessPayment(transaction: BOTransaction, jsonCart: String, locale: Option[String]): Unit = {
+  def notifySuccessPayment(transaction: BOTransaction, locale: Option[String]): Unit = {
     try {
       transaction.vendor.map { vendor =>
         if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
@@ -254,7 +254,7 @@ class TransactionHandler {
           EmailHandler.Send(
             Mail(
               (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
-              List(transaction.email.get), List(), List(), subject, body, None, None
+              List(transaction.email.get), List(), List(), subject, body, Some(body), None
             ))
         }
       }
@@ -810,6 +810,9 @@ object BOTransactionJsonTransform {
 
   private def transformCartItem(cartItem: CartItem, locale: Locale, currencyCode: String, fractionDigits: Int): JValue = {
     JObject(
+      JField("name", JString(cartItem.name)),
+      JField("picture", JString(cartItem.picture)),
+      JField("shopUrl", JString(cartItem.shopUrl)),
       JField("quantity", JInt(cartItem.quantity)),
       JField("price", JString(formatPrice(locale, cartItem.price, currencyCode, fractionDigits))),
       JField("endPrice", JString(formatPrice(locale, cartItem.endPrice, currencyCode, fractionDigits))),
