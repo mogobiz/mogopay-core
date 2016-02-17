@@ -1,0 +1,67 @@
+Your command {{uuid}}
+<html>
+<head>
+    <title>Votre facture</title>
+</head>
+<body>
+<h1>Votre facture n&deg; {{transactionUuid}}<br/>du {{transactionDate}}</h1>
+
+{{#customer}}
+<p><label>Lastname : </label>{{lastName}}</p>
+<p><label>Firstname : </label>{{firstName}}</p>
+{{/customer}}
+
+{{#cart}}
+    <table>
+        <tr>
+            <th>&nbsp;</th>
+            <th>Designation</th>
+            <th>Qty</th>
+            <th>Px Unit.</th>
+            <th>Tax</th>
+            <th>Px Unit. TTC</th>
+            <th>Px Total</th>
+        </tr>
+        <tr>
+            {{#cartItems}}
+                <td><img src="{{picture}}"  width="50px" height="50px"/></td>
+                <td style="width: 50%">
+                    <a href="{{shopUrl}}">{{name}}</a>
+                    {{#registeredCartItems}}
+                        <br/>
+                        {{email}} {{firstname}} {{lastname}}<br/>
+                        <img src="{{qrCodeContent}}" /><br/>
+                    {{/registeredCartItems}}
+                    {{#downloadableLink}}
+                        <br/>><a href="{{.}}">Download</a>
+                    {{/downloadableLink}}
+                </td>
+                <td style="text-align: right;" nowrap="true">{{quantity}}</td>
+                <td style="text-align: right;" nowrap="true">{{salePrice}}</td>
+                <td style="text-align: right;" nowrap="true">{{tax}}%</td>
+                <td style="text-align: right;" nowrap="true">{{saleEndPrice}}</td>
+                <td style="text-align: right;" nowrap="true">{{saleTotalEndPrice}}</td>
+            {{/cartItems}}
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <td style="text-align: right; width:75%">Total TVA</td>
+            <td style="text-align: right; width:25%">{{taxAmount}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Reduction</td>
+            <td style="text-align: right; width:25%">{{reduction}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Shipping</td>
+            <td style="text-align: right; width:25%">{{shipping}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Total</td>
+            <td style="text-align: right; width:25%">{{finalPrice}}</td>
+        </tr>
+    </table>
+{{/cart}}
+</body>
+</html>

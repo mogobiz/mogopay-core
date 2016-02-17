@@ -237,6 +237,27 @@ class TransactionHandler {
             List(transaction.email.get), List(), List(), subject, body, None, None
           ))
       } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+
+      notifySuccessPayment(transaction, jsonCart, locale)
+    } catch {
+      case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
+    }
+  }
+
+  def notifySuccessPayment(transaction: BOTransaction, jsonCart: String, locale: Option[String]): Unit = {
+    try {
+      transaction.vendor.map { vendor =>
+        if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
+          val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+          val template = templateHandler.loadTemplateByVendor(transaction.vendor, "mail-bill", locale)
+          val (subject, body) = templateHandler.mustache(template, jsonString)
+          EmailHandler.Send(
+            Mail(
+              (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
+              List(transaction.email.get), List(), List(), subject, body, None, None
+            ))
+        }
+      }
     } catch {
       case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
     }
