@@ -32,7 +32,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.commons.lang.LocaleUtils
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
-import org.json4s.JsonAST.{ JField, JObject }
+import org.json4s.JsonAST.{ JObject, JField }
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
@@ -754,6 +754,10 @@ object BOTransactionJsonTransform {
     case JInt(v) => Some(v)
     case _ => None
   }
+  private def getFieldAsBool(obj: JValue) = obj match {
+    case JBool(v) => Some(v)
+    case _ => None
+  }
 
   def transformAsJValue(transaction: BOTransaction, locale: Locale) = {
     val json = Extraction.decompose(transaction)
@@ -772,6 +776,7 @@ object BOTransactionJsonTransform {
 
         val filterChildren = t.obj.filter { child: JField =>
           child match {
+            case JField("uuid", _) => false
             case JField("currency", _) => false
             case JField("modifications", _) => false
             case JField("dateCreated", _) => false
@@ -781,11 +786,49 @@ object BOTransactionJsonTransform {
         }
         val transformChildren = filterChildren.map { child: JField =>
           child match {
+            case JField("status", status: JValue) => JField("status", JString(getFieldAsString(status \ "name").getOrElse("")))
             case JField("amount", JInt(amount)) => JField("amount", formatPrice(locale, amount, currencyCode, fractionDigits))
+            case JField("transactionDate", JString(transactionDate)) => JField("transactionDate", getDateAsMillis(transactionDate))
             case JField("endDate", JString(endDate)) => JField("endDate", getDateAsMillis(endDate))
+            case JField("paymentData", paymentData: JValue) => JField("paymentData", transformBOPaymentData(paymentData))
             case JField("extra", JString(extra)) => JField("cart", transformCart(parse(extra).extract[CartWithShipping], locale))
+            case JField("creditCard", creditCard: JValue) => JField("creditCard", transformBOCreditCard(creditCard))
             case JField("vendor", vendor: JValue) => JField("vendor", transformAccount(vendor))
             case JField("customer", customer: JValue) => JField("customer", transformAccount(customer))
+            case f: JField => f
+          }
+        }
+        JObject(transformChildren)
+      }
+      case v: JValue => v
+    }
+  }
+
+  private def transformBOPaymentData(obj: JValue): JValue = {
+    obj match {
+      case t: JObject => {
+        val transformChildren = t.obj.map { child: JField =>
+          child match {
+            case JField("paymentType", paymentType: JValue) => JField("paymentType", JString(getFieldAsString(paymentType \ "name").getOrElse("")))
+            case JField("cbProvider", cbProvider: JValue) => JField("cbProvider", JString(getFieldAsString(cbProvider \ "name").getOrElse("")))
+            case JField("orderDate", JString(orderDate)) => JField("orderDate", getDateAsMillis(orderDate))
+            case JField("status3DS", status3DS: JValue) => JField("status3DS", JString(getFieldAsString(status3DS \ "name").getOrElse("")))
+            case f: JField => f
+          }
+        }
+        JObject(transformChildren)
+      }
+      case v: JValue => v
+    }
+  }
+
+  private def transformBOCreditCard(obj: JValue): JValue = {
+    obj match {
+      case t: JObject => {
+        val transformChildren = t.obj.map { child: JField =>
+          child match {
+            case JField("cardType", cardType: JValue) => JField("cardType", JString(getFieldAsString(cardType \ "name").getOrElse("")))
+            case JField("expiryDate", JString(expiryDate)) => JField("expiryDate", getDateAsMillis(expiryDate))
             case f: JField => f
           }
         }
@@ -800,6 +843,7 @@ object BOTransactionJsonTransform {
       case a: JObject => {
         val filterChildren = a.obj.filter { child: JField =>
           child match {
+            case JField("uuid", _) => false
             case JField("password", _) => false
             case JField("loginFailedCount", _) => false
             case JField("waitingPhoneSince", _) => false
@@ -819,7 +863,65 @@ object BOTransactionJsonTransform {
             case _ => true
           }
         }
-        JObject(filterChildren)
+        val transformChildren = filterChildren.map { child: JField =>
+          child match {
+            case JField("civility", civility: JValue) => JField("civility", JString(getFieldAsString(civility \ "name").getOrElse("")))
+            case JField("status", status: JValue) => JField("status", JString(getFieldAsString(status \ "name").getOrElse("")))
+            case JField("address", address: JValue) => JField("address", transformAccountAddress(address))
+            case JField("birthDate", JString(birthDate)) => JField("birthDate", getDateAsMillis(birthDate))
+            case JField("shippingAddresses", shippingAddresses: JValue) => JField("shippingAddress", transformShippingAddress(shippingAddresses))
+            case f: JField => f
+          }
+        }
+        JObject(transformChildren)
+      }
+      case v: JValue => v
+    }
+  }
+
+  private def transformAccountAddress(obj: JValue): JValue = {
+    obj match {
+      case a: JObject => {
+        val filterChildren = a.obj.filter { child: JField =>
+          child match {
+            case JField("company", _) => false
+            case JField("geoCoordinates", _) => false
+            case _ => true
+          }
+        }
+        val transformChildren = filterChildren.map { child: JField =>
+          child match {
+            case JField("civility", civility: JValue) => JField("civility", JString(getFieldAsString(civility \ "name").getOrElse("")))
+            case JField("status", status: JValue) => JField("status", JString(getFieldAsString(status \ "name").getOrElse("")))
+            case JField("telephone", telephone: JValue) => JField("telephone", transformTelephone(telephone))
+            case f: JField => f
+          }
+        }
+        JObject(transformChildren)
+      }
+      case v: JValue => v
+    }
+  }
+
+  private def transformTelephone(obj: JValue): JValue = {
+    obj match {
+      case a: JObject => {
+        val transformChildren = a.obj.map { child: JField =>
+          child match {
+            case JField("status", status: JValue) => JField("status", JString(getFieldAsString(status \ "name").getOrElse("")))
+            case f: JField => f
+          }
+        }
+        JObject(transformChildren)
+      }
+      case v: JValue => v
+    }
+  }
+
+  private def transformShippingAddress(obj: JValue): JValue = {
+    obj match {
+      case a: JArray => {
+        a.find { c: JValue => getFieldAsBool(c \ "active").getOrElse(false) }.map { c: JValue => transformAccountAddress(c) }.getOrElse(JNothing)
       }
       case v: JValue => v
     }
@@ -859,22 +961,8 @@ object BOTransactionJsonTransform {
       JField("saleTotalPrice", formatPrice(locale, cartItem.saleTotalPrice, currencyCode, fractionDigits)),
       JField("saleTotalEndPrice", formatPrice(locale, cartItem.saleTotalEndPrice, currencyCode, fractionDigits)),
       JField("saleTotalTaxAmount", formatPrice(locale, cartItem.saleTotalTaxAmount, currencyCode, fractionDigits)),
-      JField("registeredCartItems", JArray(cartItem.registeredCartItems.toList.map { registeredCartItem => transformRegisteredCartItem(registeredCartItem, locale, currencyCode, fractionDigits) })),
-      JField("shipping", cartItem.shipping.map { shipping => transformShipping(shipping, locale, currencyCode, fractionDigits) }.getOrElse(JNothing))
+      JField("registeredCartItems", JArray(cartItem.registeredCartItems.toList.map { registeredCartItem => transformRegisteredCartItem(registeredCartItem, locale, currencyCode, fractionDigits) }))
     ).merge(Extraction.decompose(cartItem.customs))
-  }
-
-  private def transformShipping(shipping: Shipping, locale: Locale, currencyCode: String, fractionDigits: Int): JValue = {
-    JObject(
-      JField("weight", JInt(shipping.weight)),
-      JField("weightUnit", JString(shipping.weightUnit)),
-      JField("width", JInt(shipping.width)),
-      JField("height", JInt(shipping.height)),
-      JField("depth", JInt(shipping.depth)),
-      JField("linearUnit", JString(shipping.linearUnit)),
-      JField("amount", JInt(shipping.amount)),
-      JField("free", JBool(shipping.free))
-    ).merge(Extraction.decompose(shipping.customs))
   }
 
   private def transformRegisteredCartItem(registeredCartItem: RegisteredCartItem, locale: Locale, currencyCode: String, fractionDigits: Int): JValue = {

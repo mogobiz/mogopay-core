@@ -4,7 +4,7 @@ subject: ignore
     <title>Votre facture</title>
 </head>
 <body>
-<h1>Votre facture n&deg; {{transactionUuid}} du {{transactionDate}}</h1>
+<h1>Votre facture n&deg; {{transactionUuid}} du {{#fn_format_date}}{{transactionDate}}|dd/MM/yyyy{{/fn_format_date}}</h1>
 
 {{#cart}}
     <table>
