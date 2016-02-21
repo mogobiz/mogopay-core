@@ -447,7 +447,7 @@ class AccountHandler {
     val data =
       s"""
          |{
-         |"templateImagesUrl": "${Settings.TEMPLATE_IMAGES_URL}",
+         |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
          |"newPassword": "$newPassword",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
@@ -1131,7 +1131,7 @@ class AccountHandler {
     val (subject, body) = templateHandler.mustache(template,
       s"""
          |{
-         |"templateImagesUrl": "${Settings.TEMPLATE_IMAGES_URL}",
+         |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
          |"url": "$validationUrl",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",

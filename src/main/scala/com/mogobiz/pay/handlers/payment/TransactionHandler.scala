@@ -760,7 +760,7 @@ object BOTransactionJsonTransform {
 
   def transformAsJValue(transaction: BOTransaction, locale: Locale) = {
     val json = Extraction.decompose(transaction)
-    transformBOTransaction(json, locale) merge JObject(JField("templateImagesUrl", JString(Settings.TEMPLATE_IMAGES_URL)))
+    transformBOTransaction(json, locale) merge JObject(JField("templateImagesUrl", JString(Settings.TemplateImagesUrl)))
   }
 
   def transform(transaction: BOTransaction, locale: Locale) = {

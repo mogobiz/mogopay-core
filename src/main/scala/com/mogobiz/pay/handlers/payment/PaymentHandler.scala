@@ -148,7 +148,7 @@ trait PaymentHandler {
           val data =
             s"""
               |{
-              |"templateImagesUrl": "${Settings.TEMPLATE_IMAGES_URL}",
+              |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
               |  "firstPayer":  "$payerName",
               |  "url":         "$uri",
               |  "amount":      "$amount",
