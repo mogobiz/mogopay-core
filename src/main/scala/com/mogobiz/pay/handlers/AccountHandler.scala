@@ -12,30 +12,29 @@ import java.text.SimpleDateFormat
 import java.util.{ Calendar, UUID }
 
 import com.atosorigin.services.cad.common.util.FileParamReader
-import com.google.maps.{ GeocodingApi, GeoApiContext }
+import com.mogobiz.es.{ EsClient, _ }
 import com.mogobiz.json.JacksonConverter
-import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.handlers.EmailHandler.Mail
-import com.mogobiz.pay.handlers.EmailType.EmailType
-import com.mogobiz.pay.sql.BOAccountDAO
-import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.es._
-import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
+import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
-import com.mogobiz.utils.GlobalUtil._
+import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.sql.BOAccountDAO
+import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.SymmetricCrypt
+import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
-import org.json4s.JsonAST.{ JValue, JString }
-import org.json4s.jackson.Serialization.write
-import org.json4s.jackson.Serialization.read
+import org.json4s.Extraction
+import org.json4s.JsonAST.{ JString, JValue }
+import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization.{ read, write }
 
 import scala.util._
 import scala.util.control.NonFatal
@@ -335,6 +334,7 @@ class AccountHandler {
 
   /**
    * For debugging purposes. Works only for merchant.com - so no risk :)
+   *
    * @return
    */
   def id(seller: String): String = {
@@ -344,6 +344,7 @@ class AccountHandler {
 
   /**
    * For debugging purposes. Works only for merchant.com - so no risk :)
+   *
    * @return
    */
   def secret(seller: String): String = {
@@ -432,19 +433,25 @@ class AccountHandler {
 
   def notifyNewPassword(account: Account, newPassword: String, locale: Option[String]) = {
 
-    val vendor = if (account.owner.isDefined) load(account.owner.get) else None
+    val vendor = account.owner.flatMap(load)
     val template = templateHandler.loadTemplateByVendor(vendor, "mail-new-password", locale)
 
     val paymentConfig = vendor.get.paymentConfig.get
     val senderName = paymentConfig.senderName
     val senderEmail = paymentConfig.senderEmail
+    //    val jaccount = Extraction.decompose(account)
+    //    val jvendor = Extraction.decompose(vendor.get)
+    //    val json = jaccount merge jvendor
+    //    val jsonString = compact(render(json))
+
     val data =
       s"""
          |{
          |"newPassword": "$newPassword",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
-         |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
+         |"vendor" :"${vendor.map(_.email).getOrElse("")}"
          |}
          |""".stripMargin
 
