@@ -80,4 +80,6 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
       }
     }
   }
+
+  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = ???
 }

@@ -308,8 +308,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     }
     import scala.concurrent.duration._
 
-
-    val result  = Await.result(res, 30 seconds)
+    val result = Await.result(res, 30 seconds)
     val status = if (result.isDefined) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, result.getOrElse(""), None)
   }

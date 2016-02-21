@@ -121,7 +121,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
         transactionHandler.finishPayment(transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult, codeReponse, sessionData.locale)
+          paymentResult, codeReponse, sessionData.locale, Some(GlobalUtil.mapToQueryString(params)))
         finishPayment(sessionData, paymentResult)
       } else {
         throw InvalidSignatureException(s"$signature")
@@ -420,7 +420,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         "PBX_DEVISE" -> s"${paymentRequest.currency.numericCode}",
         "PBX_CMD" -> s"${vendorId}--${transactionUUID}",
         "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
-        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:T;TYPEPAIE:P;CARTE:C;CARTEDEBUT:N;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
+        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:S;NUMAPPEL:T;TYPEPAIE:P;CARTE:C;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
         "PBX_HASH" -> "SHA512",
         "PBX_TIME" -> pbxtime,
         "PBX_EFFECTUE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
