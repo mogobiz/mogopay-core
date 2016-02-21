@@ -447,6 +447,7 @@ class AccountHandler {
     val data =
       s"""
          |{
+         |"templateImagesUrl": "${Settings.TEMPLATE_IMAGES_URL}",
          |"newPassword": "$newPassword",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
@@ -461,7 +462,8 @@ class AccountHandler {
         from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
         to = Seq(account.email),
         subject = subject,
-        message = body))
+        message = body,
+        richMessage = Some(body)))
   }
 
   def isMerchant(account: Account) = account.roles.contains(RoleName.MERCHANT)
@@ -1129,6 +1131,7 @@ class AccountHandler {
     val (subject, body) = templateHandler.mustache(template,
       s"""
          |{
+         |"templateImagesUrl": "${Settings.TEMPLATE_IMAGES_URL}",
          |"url": "$validationUrl",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
@@ -1141,7 +1144,8 @@ class AccountHandler {
         from = (fromEmail, fromName),
         to = Seq(account.email),
         subject = subject,
-        message = body))
+        message = body,
+        richMessage = Some(body)))
   }
 }
 

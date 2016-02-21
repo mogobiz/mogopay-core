@@ -1,14 +1,20 @@
-subject: ignore
+Your command {{transactionUuid}}
 <html>
 <head>
     <title>Votre facture</title>
 </head>
 <body>
-<h1>Votre facture n&deg; {{transactionUuid}} du {{#fn_format_date}}{{transactionDate}}|dd/MM/yyyy{{/fn_format_date}}</h1>
+<h1>Votre facture n&deg; {{transactionUuid}}<br/>du {{#fn_format_date}}{{transactionDate}}|dd/MM/yyyy{{/fn_format_date}}</h1>
+
+{{#customer}}
+<p><label>Lastname : </label>{{lastName}}</p>
+<p><label>Firstname : </label>{{firstName}}</p>
+{{/customer}}
 
 {{#cart}}
     <table>
         <tr>
+            <th>&nbsp;</th>
             <th>Designation</th>
             <th>Qty</th>
             <th>Px Unit.</th>
@@ -18,7 +24,18 @@ subject: ignore
         </tr>
         <tr>
             {{#cartItems}}
-                <td style="width: 50%">{{productName}} -&gt; {{skuName}}</td>
+                <td><img src="{{picture}}"  width="50px" height="50px"/></td>
+                <td style="width: 50%">
+                    <a href="{{shopUrl}}">{{name}}</a>
+                    {{#registeredCartItems}}
+                        <br/>
+                        {{email}} {{firstname}} {{lastname}}<br/>
+                        <img src="{{qrCodeContent}}" /><br/>
+                    {{/registeredCartItems}}
+                    {{#downloadableLink}}
+                        <br/>><a href="{{.}}">Download</a>
+                    {{/downloadableLink}}
+                </td>
                 <td style="text-align: right;" nowrap="true">{{quantity}}</td>
                 <td style="text-align: right;" nowrap="true">{{salePrice}}</td>
                 <td style="text-align: right;" nowrap="true">{{tax}}%</td>

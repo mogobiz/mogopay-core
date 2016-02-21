@@ -23,6 +23,7 @@ object Settings {
   val Demo = config.getBoolean("demo")
 
   val ResourcesPath = config.getString("resources.path")
+  val TEMPLATE_IMAGES_URL = config.getString("templates.imagesUrl")
   val TemplatesPath = config.getString("templates.path")
   val IsResourcesLocal = ResourcesPath.isEmpty
 
