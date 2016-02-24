@@ -83,7 +83,27 @@ case class AddressToUpdateFromGetParams(id: String, road: String,
   lastName: String, company: Option[String], country: String,
   admin1: String, admin2: Option[String], lphone: String)
 
+@deprecated
 case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
+    zipCode: String, extra: Option[String],
+    civility: String, firstName: String,
+    lastName: String, company: Option[String], country: String,
+    admin1: String, admin2: Option[String], lphone: String) {
+  def getAddress = {
+    val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
+    AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
+      Option(lastName), company, Option(telephone), Option(country), Option(admin1), admin2)
+  }
+}
+
+case class Address(road: String,
+  city: String, road2: Option[String],
+  zipcode: String, extra: Option[String],
+  civility: String, firstname: String,
+  lastname: String, company: Option[String], country: String,
+  admin1: String, admin2: Option[String], lphone: String)
+
+case class AddressAddCommand(road: String, city: String, road2: Option[String],
     zipCode: String, extra: Option[String],
     civility: String, firstName: String,
     lastName: String, company: Option[String], country: String,
@@ -112,7 +132,7 @@ case class SendNewPasswordParams(merchantId: String, email: String, locale: Opti
 
 case class AssignBillingAddress(accountId: String, address: AddressToAssignFromGetParams)
 
-case class AddShippingAddress(accountId: String, address: AddressToAddFromGetParams)
+//case class AddShippingAddress(accountId: String, address: AddressToAddFromGetParams)
 
 case class DeleteShippingAddress(accountId: String, addressId: String)
 
@@ -611,7 +631,7 @@ class AccountHandler {
       accountHandler.update(newAccount, refresh = false)
     }
 
-  def addShippingAddress(accountId: String, address: AddressToAddFromGetParams): Unit =
+  def addShippingAddress(accountId: String, address: AddressAddCommand): Unit =
     load(accountId).map {
       account =>
         val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
@@ -899,6 +919,10 @@ class AccountHandler {
   }
 
   def updateProfileLight(profile: UpdateProfileLight): Unit = {
+    if (profile.civility.isEmpty) {
+      throw InvalidParameterException("civility parameter should not be left empty")
+    }
+
     val newPassword = if (profile.password != "") {
       if (profile.password == profile.password2)
         Some(new Sha256Hash(profile.password).toHex)
@@ -971,6 +995,8 @@ class AccountHandler {
   }
 
   def signup(signup: Signup): (Token, Account) = {
+    println("signup")
+    println("isMerchant=" + signup.isMerchant)
     val owner = if (signup.isMerchant) {
       None
     } else {
@@ -981,6 +1007,7 @@ class AccountHandler {
         account.uuid
       }))
     }
+    println("owner=", owner)
     if (alreadyExistEmail(signup.email, owner)) {
       throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
     }
@@ -1019,13 +1046,14 @@ class AccountHandler {
 
       val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
 
-      val coords = UtilHandler.computeGeoCoords(signup.address.road, signup.address.zipCode,
+      val coords = Try(UtilHandler.computeGeoCoords(signup.address.road, signup.address.zipCode,
         signup.address.city, signup.address.country,
-        Settings.EnableGeoLocation, Settings.GoogleAPIKey)
+        Settings.EnableGeoLocation, Settings.GoogleAPIKey))
+      println(coords)
 
       signup.address.copy(
         telephone = Some(tel),
-        geoCoordinates = coords
+        geoCoordinates = coords.getOrElse(None)
       )
     }
 
@@ -1040,8 +1068,13 @@ class AccountHandler {
       AccountStatus.ACTIVE
     }
 
+    println("needEmailValidation=" + needEmailValidation)
+    println("account status = ", accountStatus)
+
     val token = if (accountStatus == AccountStatus.ACTIVE) ""
     else Token.generateToken(accountId, owner, TokenType.Signup)
+
+    println("token = " + token)
 
     val shippingAddressList = if (signup.withShippingAddress) {
       List(new ShippingAddress(
@@ -1080,13 +1113,18 @@ class AccountHandler {
 
     if (needEmailValidation) {
       val validationUrl = signup.validationUrl + (if (signup.validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
+      println("validationUrl = " + validationUrl)
+      println("account.owner=", account.owner)
       val vendor = account.owner.flatMap(load)
+      println("owner=", owner)
       owner match {
         case None =>
           notifyNewAccount(account, vendor, validationUrl, token, Settings.EmailSenderName,
             Settings.EmailSenderAddress, signup.locale)
         case Some(acc) =>
+          println(acc)
           val merchant = getMerchant(acc)
+          println("merchant=", merchant)
           val paymentConfig = merchant.get.paymentConfig.get
           val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
           val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")

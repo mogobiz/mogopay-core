@@ -114,6 +114,8 @@ object Exceptions {
 
   case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class InvalidParameterException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
+
   case class PasswordsDoNotMatchException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
   case class InvalidEmailException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)

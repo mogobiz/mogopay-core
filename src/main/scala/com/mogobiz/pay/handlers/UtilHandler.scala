@@ -83,6 +83,7 @@ object UtilHandler {
       case (Some(zipCode_), Some(country_)) if isGeoLocEnabled =>
         val addressQuery = s"$road $zipCode $city $country"
         val context = new GeoApiContext().setApiKey(googleAPIKey)
+        //TODO try catch
         val results = GeocodingApi.geocode(context, addressQuery).await()
         results
           .headOption

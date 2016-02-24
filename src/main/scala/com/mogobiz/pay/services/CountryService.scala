@@ -9,25 +9,21 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
 import com.mogobiz.pay.handlers.PhoneVerification
-import com.mogobiz.pay.model.Mogopay.{ Country, Rate, CountryAdmin }
+import com.mogobiz.pay.model.Mogopay.{ Country, CountryAdmin }
 import spray.http.StatusCodes
 import spray.routing.Directives
 
 class CountryService extends Directives with DefaultComplete {
 
   val route = {
-    pathPrefix("country") {
+    pathPrefix("countries") {
       countriesForShipping ~
         countriesForBilling ~
-        countryPath ~
-        admins1 ~
-        admins2 ~
-        cities ~
-        checkPhoneNumber
+        countryPath
     }
   }
 
-  lazy val countriesForShipping = path("countries-for-shipping") {
+  lazy val countriesForShipping = path("for-shipping") {
     get {
       dynamic {
         handleCall(countryHandler.findCountriesForShipping(),
@@ -36,8 +32,8 @@ class CountryService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val countriesForBilling = get {
-    path("countries-for-billing") {
+  lazy val countriesForBilling = path("for-billing") {
+    get {
       dynamic {
         handleCall(countryHandler.findCountriesForBilling(),
           (countries: Seq[Country]) => complete(StatusCodes.OK -> countries))
@@ -45,56 +41,57 @@ class CountryService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val countryPath =
-    get {
-      path("country" / Segment / "admin1" / Segment) { (countryCode, admin1Code) =>
-        handleCall(countryAdminHandler.getAdmin1ByCode(countryCode, admin1Code),
-          (country: Option[CountryAdmin]) => complete(StatusCodes.OK -> country))
+  lazy val countryPath = pathPrefix(Segment) { countryCode =>
+    path("check-phone-number") {
+      post {
+        entity(as[String]) { phone =>
+          handleCall(countryHandler.checkPhoneNumber(phone, countryCode),
+            (phoneVerif: PhoneVerification) => complete(StatusCodes.OK -> phoneVerif))
+        }
       }
     } ~
-      get {
-        path("country" / Segment / "admin2" / Segment) { (countryCode, admin2Code) =>
-
+      path("cities") {
+        get {
+          parameters('name.?, 'parent_admin1_code.?, 'parent_admin2_code.?) {
+            (name, a1, a2) =>
+              handleCall(countryAdminHandler.cities(Some(countryCode), a1, a2, name),
+                (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+          }
+        }
+      } ~
+      pathPrefix(("admin1" | "states")) {
+        pathPrefix(Segment) {
+          admin1Code =>
+            path(("admin2" | "regions")) {
+              get {
+                handleCall(countryAdminHandler.admins2(admin1Code),
+                  (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+              }
+            } ~ pathEnd {
+              get {
+                handleCall(countryAdminHandler.getAdmin1ByCode(countryCode, admin1Code),
+                  (country: Option[CountryAdmin]) => complete(StatusCodes.OK -> country))
+              }
+            }
+        } ~
+          pathEnd {
+            get {
+              handleCall(countryAdminHandler.admins1(countryCode),
+                (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+            }
+          }
+      } ~
+      pathPrefix(("admin2" | "regions") / Segment) { admin2Code =>
+        get {
           handleCall(countryAdminHandler.getAdmin2ByCode(countryCode, admin2Code),
             (country: Option[CountryAdmin]) => complete(StatusCodes.OK -> country))
         }
       } ~
-      get {
-        path("country" / Segment) { countryCode =>
+      pathEnd {
+        get {
           handleCall(countryHandler.findByCode(countryCode),
             (country: Option[Country]) => complete(StatusCodes.OK -> country))
         }
-      }
-
-  lazy val admins1 = path("admins1" / Segment) { countryCode =>
-    get {
-      handleCall(countryAdminHandler.admins1(countryCode),
-        (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-    }
-  }
-
-  lazy val cities = path("cities") {
-    get {
-      val params = parameters('country.?, 'parent_admin1_code.?, 'parent_admin2_code.?, 'name.?)
-      params { (c, a1, a2, name) =>
-        handleCall(countryAdminHandler.cities(c, a1, a2, name),
-          (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-      }
-    }
-  }
-
-  lazy val admins2 = path("admins2" / Segment) { admin1 =>
-    get {
-      handleCall(countryAdminHandler.admins2(admin1),
-        (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-    }
-  }
-
-  lazy val checkPhoneNumber = path(Segment / "check-phone-number" / Segment) {
-    (countryCode, phone) =>
-      get {
-        handleCall(countryHandler.checkPhoneNumber(phone, countryCode),
-          (phoneVerif: PhoneVerification) => complete(StatusCodes.OK -> phoneVerif))
       }
   }
 }

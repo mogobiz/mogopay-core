@@ -6,6 +6,7 @@ package com.mogobiz.pay.services
 
 import com.mogobiz.pay.config.{ Settings, DefaultComplete }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.exceptions.Exceptions.InvalidParameterException
 import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
@@ -13,6 +14,8 @@ import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 import com.mogobiz.pay.model.Mogopay.TokenValidity._
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
+import com.typesafe.scalalogging.slf4j.Logger
+import org.slf4j.LoggerFactory
 import shapeless.HNil
 import spray.http.MediaTypes._
 import spray.http._
@@ -22,6 +25,10 @@ import shapeless._
 class AccountService extends Directives with DefaultComplete {
 
   import Implicits._
+
+  //  private val serviceLogger = Logger(LoggerFactory.getLogger("AccountService"))
+  //
+  //  def logger() = serviceLogger
 
   val route = {
     pathPrefix("account") {
@@ -37,30 +44,27 @@ class AccountService extends Directives with DefaultComplete {
         generateNewPhoneCode ~
         enroll ~
         generateNewSecret ~
-        addCreditCard ~
-        deleteCreditCard ~
+        creditCards ~
+        //addCreditCard ~
+        //deleteCreditCard ~
         logout ~
-        getBillingAddress ~
-        getShippingAddresses ~
-        getShippingAddress ~
-        profileInfo ~
-        assignBillingAddress ~
-        addShippingAddress ~
-        updateShippingAddress ~
+        billingAddress ~
+        //getBillingAddress ~
+        shippingAddresses ~
+        //getShippingAddresses ~
+        //getShippingAddress ~
+        //profileInfo ~
+        profile ~
+        //assignBillingAddress ~
+        //addShippingAddress ~
+        //updateShippingAddress ~
         getActiveCountryStateShipping ~
-        selectShippingAddress ~
-        deleteShippingAddress ~
+        //selectShippingAddress ~
+        //deleteShippingAddress ~
         deleteMerchantTestAccount ~
         sendNewPassword ~
-        listCompagnies ~
-        listMerchants
-    }
-  }
-
-  lazy val isPatternValid = path("is-pattern-valid" / Segment) { pattern =>
-    get {
-      handleCall(accountHandler.isPatternValid(pattern),
-        (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString))))
+        companies ~
+        merchants
     }
   }
 
@@ -87,24 +91,6 @@ class AccountService extends Directives with DefaultComplete {
       setSession(session) {
         complete {
           Map('token -> token)
-        }
-      }
-    }
-  }
-
-  lazy val alreadyExistEmail = path("already-exist-email") {
-    get {
-      session { session =>
-        parameters('email, 'merchant_id.?, 'account_type.as[RoleName]) { (email, merchantId, accountType) =>
-          assert(accountType == RoleName.CUSTOMER || accountType == RoleName.MERCHANT)
-          val isCustomer = accountType == RoleName.CUSTOMER && !session.sessionData.merchantSession
-
-          if (isCustomer && merchantId.isEmpty) {
-            complete(StatusCodes.BadRequest -> Map('type -> "BadRequest", 'error -> "Merchant ID not specified."))
-          } else {
-            handleCall(accountHandler.alreadyExistEmail(email, merchantId),
-              (exist: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), exist.toString))))
-          }
         }
       }
     }
@@ -253,6 +239,68 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
+  lazy val isPatternValid = path("is-pattern-valid" / Segment) { pattern =>
+    get {
+      handleCall(accountHandler.isPatternValid(pattern),
+        (isValid: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), isValid.toString))))
+    }
+  }
+
+  lazy val alreadyExistEmail = path("already-exist-email") {
+    get {
+      session { session =>
+        parameters('email, 'merchant_id.?, 'account_type.as[RoleName]) { (email, merchantId, accountType) =>
+          assert(accountType == RoleName.CUSTOMER || accountType == RoleName.MERCHANT)
+          val isCustomer = accountType == RoleName.CUSTOMER && !session.sessionData.merchantSession
+
+          if (isCustomer && merchantId.isEmpty) {
+            complete(StatusCodes.BadRequest -> Map('type -> "BadRequest", 'error -> "Merchant ID not specified."))
+          } else {
+            handleCall(accountHandler.alreadyExistEmail(email, merchantId),
+              (exist: Boolean) => complete(HttpResponse(StatusCodes.OK, HttpEntity(ContentType(`text/plain`), exist.toString))))
+          }
+        }
+      }
+    }
+  }
+
+  case class CreditCardCmd(cardId: Option[String], holder: String, number: Option[String], expiryDate: String, ccType: String)
+  lazy val creditCards = pathPrefix("credit-cards") {
+    path(Segment) { creditCardId =>
+      delete {
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) =>
+                handleCall(creditCardHandler.delete(accountId, creditCardId),
+                  (_: Unit) => complete(StatusCodes.OK -> Map()))
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
+            }
+        }
+      }
+    } ~
+      post {
+        //      parameters('card_id.?, 'holder, 'number.?, 'expiry_date, 'type) {
+        entity(as[CreditCardCmd]) { cc =>
+          session {
+            session =>
+              session.sessionData.accountId match {
+                case Some(accountId: String) =>
+                  handleCall(accountHandler.addCreditCard(accountId, cc.cardId, cc.holder, cc.number, cc.expiryDate, cc.ccType),
+                    (creditCard: CreditCard) => complete(StatusCodes.OK -> creditCard))
+                case _ => complete {
+                  StatusCodes.Unauthorized ->
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                }
+              }
+          }
+        }
+      }
+  }
+  /*
   lazy val addCreditCard = path("add-credit-card") {
     get {
       parameters('card_id.?, 'holder, 'number.?, 'expiry_date, 'type) {
@@ -292,7 +340,7 @@ class AccountService extends Directives with DefaultComplete {
 
       }
     }
-  }
+  }*/
 
   lazy val logout = get {
     path("logout") {
@@ -305,8 +353,8 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val getBillingAddress = get {
-    path("billing-address") {
+  lazy val billingAddress = path("billing-address") {
+    get {
       session {
         session =>
           session.sessionData.accountId match {
@@ -323,26 +371,152 @@ class AccountService extends Directives with DefaultComplete {
             }
           }
       }
-    }
-  }
+    } ~ post {
+      //      val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
+      //        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2.?, 'lphone)
+      entity(as[Address]) { address =>
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) =>
+                val billingAddress = AddressToAssignFromGetParams(
+                  road = address.road,
+                  city = address.city,
+                  road2 = address.road2,
+                  zipCode = address.zipcode, extra = address.extra,
+                  civility = address.civility, firstName = address.firstname,
+                  lastName = address.lastname, company = address.company, country = address.country,
+                  admin1 = address.admin1, admin2 = address.admin2, lphone = address.lphone
+                )
 
-  lazy val getShippingAddresses = get {
-    path("shipping-addresses") {
-      session {
-        session =>
-          session.sessionData.accountId match {
-            case Some(accountId: String) =>
-              handleCall(accountHandler.getShippingAddresses(accountId),
-                (addr: Seq[ShippingAddress]) => complete(StatusCodes.OK -> addr))
-            case _ => complete {
-              StatusCodes.Unauthorized ->
-                Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                handleCall(accountHandler.assignBillingAddress(accountId, billingAddress),
+                  (_: Unit) => complete(StatusCodes.OK))
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
             }
-          }
+        }
       }
     }
   }
 
+  lazy val shippingAddresses = pathPrefix("shipping-addresses") {
+    path("active") {
+      get {
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) =>
+                handleCall(accountHandler.getShippingAddress(accountId),
+                  (addr: Option[ShippingAddress]) =>
+                    addr match {
+                      case Some(addr) => complete(StatusCodes.OK -> addr)
+                      case None => complete(StatusCodes.NotFound)
+                    })
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
+            }
+        }
+      }
+    } ~
+      pathPrefix(Segment) { addressId =>
+        path("active") {
+          put {
+            session {
+              session =>
+                session.sessionData.accountId match {
+                  case Some(accountId: String) =>
+                    handleCall(accountHandler.selectShippingAddress(accountId, addressId),
+                      (_: Unit) => complete(StatusCodes.OK))
+
+                  case _ => complete {
+                    StatusCodes.Unauthorized ->
+                      Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                  }
+                }
+            }
+          }
+        } ~
+          put {
+            entity(as[Address]) { address =>
+              session {
+                session =>
+                  session.sessionData.accountId match {
+                    case Some(accountId: String) =>
+                      val addresseWithId = AddressToUpdateFromGetParams(
+                        id = addressId,
+                        road = address.road,
+                        city = address.city,
+                        road2 = address.road2,
+                        zipCode = address.zipcode, extra = address.extra,
+                        civility = address.civility, firstName = address.firstname,
+                        lastName = address.lastname, company = address.company, country = address.country,
+                        admin1 = address.admin1, admin2 = address.admin2, lphone = address.lphone
+                      )
+                      handleCall(accountHandler.updateShippingAddress(accountId, addresseWithId),
+                        (_: Unit) => complete(StatusCodes.OK))
+                    case _ => complete {
+                      StatusCodes.Unauthorized ->
+                        Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                    }
+                  }
+              }
+            }
+          } ~
+          delete {
+            session {
+              session =>
+                session.sessionData.accountId match {
+                  case Some(accountId: String) =>
+                    handleCall(accountHandler.deleteShippingAddress(accountId, addressId),
+                      (_: Unit) => complete(StatusCodes.OK))
+
+                  case _ => complete {
+                    StatusCodes.Unauthorized ->
+                      Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                  }
+                }
+            }
+          }
+      } ~
+      get {
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) =>
+                handleCall(accountHandler.getShippingAddresses(accountId),
+                  (addr: Seq[ShippingAddress]) => complete(StatusCodes.OK -> addr))
+
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
+            }
+        }
+
+      } ~ post {
+        entity(as[AddressAddCommand]) { address =>
+          session {
+            session =>
+              session.sessionData.accountId match {
+                case Some(accountId: String) =>
+                  handleCall(accountHandler.addShippingAddress(accountId, address),
+                    (_: Unit) => complete(StatusCodes.OK))
+
+                case _ => complete {
+                  StatusCodes.Unauthorized ->
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                }
+              }
+          }
+        }
+      }
+  }
+
+  /*
   lazy val getShippingAddress = get {
     path("shipping-address") {
       session {
@@ -362,50 +536,9 @@ class AccountService extends Directives with DefaultComplete {
           }
       }
     }
-  }
+  }*/
 
-  lazy val profileInfo = path("profile-info") {
-    parameter('email.?) { email =>
-      get {
-        session {
-          session =>
-            session.sessionData.accountId match {
-              case Some(accountId: String) =>
-                handleCall(accountHandler.profileInfo(accountId),
-                  (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
-              case _ => complete {
-                StatusCodes.Unauthorized ->
-                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
-              }
-            }
-        }
-      }
-    }
-  }
-
-  lazy val assignBillingAddress = get {
-    path("assign-billing-address") {
-      val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
-        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2.?, 'lphone)
-
-      params.as(AddressToAssignFromGetParams) {
-        address =>
-          session {
-            session =>
-              session.sessionData.accountId match {
-                case Some(accountId: String) =>
-                  handleCall(accountHandler.assignBillingAddress(accountId, address),
-                    (_: Unit) => complete(StatusCodes.OK))
-                case _ => complete {
-                  StatusCodes.Unauthorized ->
-                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
-                }
-              }
-          }
-      }
-    }
-  }
-
+  /*
   lazy val deleteShippingAddress = get {
     path("delete-shipping-address") {
       parameters('address_id) {
@@ -425,8 +558,9 @@ class AccountService extends Directives with DefaultComplete {
           }
       }
     }
-  }
+  }*/
 
+  /*
   lazy val addShippingAddress = get {
     path("add-shipping-address") {
       val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
@@ -449,8 +583,9 @@ class AccountService extends Directives with DefaultComplete {
           }
       }
     }
-  }
+  }*/
 
+  /*
   lazy val updateShippingAddress = get {
     path("update-shipping-address") {
       val params = parameters('address_id, 'road, 'city, 'road2.?,
@@ -473,7 +608,7 @@ class AccountService extends Directives with DefaultComplete {
           }
       }
     }
-  }
+  }*/
 
   lazy val getActiveCountryStateShipping = get {
     path("active-country-state-shipping") {
@@ -496,7 +631,66 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val listCompagnies = path("list-compagnies") {
+  lazy val profile = path("profile") {
+    get {
+      session { session =>
+        session.sessionData.accountId match {
+          case Some(accountId: String) =>
+            handleCall(accountHandler.profileInfo(accountId),
+              (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
+          case _ => complete {
+            StatusCodes.Unauthorized ->
+              Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+          }
+        }
+      }
+    }
+  }
+
+  /*
+  lazy val profileInfo = path("profile-info") {
+    parameter('email.?) { email =>
+      get {
+        session {
+          session =>
+            session.sessionData.accountId match {
+              case Some(accountId: String) =>
+                handleCall(accountHandler.profileInfo(accountId),
+                  (res: Map[Symbol, Any]) => complete(StatusCodes.OK -> res))
+              case _ => complete {
+                StatusCodes.Unauthorized ->
+                  Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+              }
+            }
+        }
+      }
+    }
+  }*/
+
+  /*
+  lazy val assignBillingAddress = get {
+    path("assign-billing-address") {
+      val params = parameters('road, 'city, 'road2.?, 'zip_code, 'extra.?, 'civility,
+        'firstname, 'lastname, 'company.?, 'country, 'admin1, 'admin2.?, 'lphone)
+
+      params.as(AddressToAssignFromGetParams) {
+        address =>
+          session {
+            session =>
+              session.sessionData.accountId match {
+                case Some(accountId: String) =>
+                  handleCall(accountHandler.assignBillingAddress(accountId, address),
+                    (_: Unit) => complete(StatusCodes.OK))
+                case _ => complete {
+                  StatusCodes.Unauthorized ->
+                    Map('type -> "Unauthorized", 'error -> "ID missing or incorrect. The user is probably not logged in.")
+                }
+              }
+          }
+      }
+    }
+  }*/
+  lazy val companies = path("companies") {
     get {
       session { session =>
         handleCall(accountHandler.listCompagnies(session.sessionData.accountId),
@@ -505,7 +699,7 @@ class AccountService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val listMerchants = path("list-merchants") {
+  lazy val merchants = path("merchants") {
     get {
       session { session =>
         handleCall(accountHandler.listMerchants(),
@@ -522,6 +716,7 @@ class AccountService extends Directives with DefaultComplete {
       }
     }
 
+  /*
   lazy val selectShippingAddress = get {
     path("select-shipping-address") {
       parameters('address_id.as[String]) {
@@ -541,7 +736,7 @@ class AccountService extends Directives with DefaultComplete {
           }
       }
     }
-  }
+  }*/
 
   lazy val deleteMerchantTestAccount = path("delete-test-account") {
     get {
@@ -564,25 +759,28 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
 
   import Implicits.MogopaySession
 
+  //  private val serviceLogger = Logger(LoggerFactory.getLogger("AccountServiceJsonless"))
+  //
+  //  def logger() = serviceLogger
+
   val route = {
     pathPrefix("account") {
       login ~
-        loginWithSecret ~
-        updateCustomerProfile ~
-        updateMerchantProfile ~
-        updateProfileLight ~
+        //        loginWithSecret ~
+        //        updateCustomerProfile ~
+        //        updateMerchantProfile ~
+        //        updateProfileLight ~
+        profile ~
         signup ~
         confirmSignup
     }
   }
 
-  lazy val login = path("login") {
-    post {
-      var fields = formFields('email, 'password, 'merchant_id.?, 'is_customer.as[Boolean])
-      fields { (email, password, merchantId, isCustomer) =>
+  lazy val login = pathPrefix("login") {
+    path(Segment) { secret =>
+      post {
         session { session =>
-          val login = Login(email, password, merchantId, isCustomer)
-          handleCall(accountHandler.login(email, password, merchantId, isCustomer),
+          handleCall(accountHandler.login(secret),
             (account: Account) => {
               ServicesUtil.authenticateSession(session, account)
               setSession(session) {
@@ -592,9 +790,26 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
             })
         }
       }
-    }
+    } ~
+      post {
+        var fields = formFields('email, 'password, 'merchant_id.?, 'is_customer.as[Boolean])
+        fields { (email, password, merchantId, isCustomer) =>
+          session { session =>
+            val login = Login(email, password, merchantId, isCustomer)
+            handleCall(accountHandler.login(email, password, merchantId, isCustomer),
+              (account: Account) => {
+                ServicesUtil.authenticateSession(session, account)
+                setSession(session) {
+                  import Implicits._
+                  complete(StatusCodes.OK, account)
+                }
+              })
+          }
+        }
+      }
   }
 
+  /*
   lazy val loginWithSecret = path("login-with-secret") {
     post {
       var fields = formFields('secret)
@@ -612,6 +827,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
       }
     }
   }
+  */
 
   lazy val confirmSignup = path("confirm-signup") {
     get {
@@ -684,7 +900,12 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     }
   }
 
-  lazy val updateCustomerProfile = path("update-customer-profile") {
+  lazy val profile = pathPrefix("profile") {
+    updateCustomerProfile ~ updateMerchantProfile ~ updateProfileLight
+  }
+
+  lazy val updateCustomerProfile = path("customer") {
+    //path("update-customer-profile") {
     post {
       session {
         session =>
@@ -753,7 +974,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     }
   }
 
-  lazy val updateMerchantProfile = path("update-merchant-profile") {
+  lazy val updateMerchantProfile = path("merchant") {
+    //path("update-merchant-profile") {
     post {
       session {
         session =>
@@ -921,8 +1143,9 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
       (_: Unit) => complete(StatusCodes.OK -> Map()))
   }
 
-  lazy val updateProfileLight = path("update-profile-light") {
-    post {
+  lazy val updateProfileLight =
+    //path("update-profile-light") { post {
+    put {
       session {
         session =>
           session.sessionData.accountId match {
@@ -955,5 +1178,5 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
           }
       }
     }
-  }
+  //}
 }

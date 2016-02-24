@@ -20,7 +20,8 @@ import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayE
 import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{ TransactionRequest, Account, BOTransaction, TransactionStatus }
+import Implicits.MogopaySession
+import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest.{ TransactionInit, SelectShippingPriceParam, ListShippingPriceParam }
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{ SessionESDirectives, Session }
@@ -37,39 +38,181 @@ import scala.util.{ Failure, Success }
 class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
   implicit val timeout = Timeout(40 seconds)
 
-  //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-  //  val responseFuture = pipeline {
-  //    Get("http://maps.googleapis.com/maps/api/elevation/json?locations=27.988056,86.925278&sensor=false")
-  //  }
-
   implicit val system = ActorSystem()
 
   // execution context for futures
 
-  val serviceName = "transaction"
+  val serviceName = "transactions"
 
-  val route = {
-    pathPrefix(serviceName) {
-      searchByCustomer ~
-        init ~
-        selectShipping ~
-        verify ~
-        submit ~
-        submitWithSession ~
-        download ~
-        initGroupPayment ~
-        refund
-    }
+  val route = pathPrefix(serviceName) {
+    transactions
+  }
+  /*
+    val route = {
+      pathPrefix(serviceName) {
+        searchByCustomer ~
+          init ~
+          selectShipping ~
+          verify ~
+          submit ~
+          submitWithSession ~
+          download ~
+          initGroupPayment ~
+          refund
+      }
+    }*/
+
+  /*
+  GET /customers/{customerId}/transactions or GET /?customer_id={customerId}
+POST /transactions/ => init DONE
+POST /transactions/init-group-payment => init
+POST /transactions/select-shipping
+GET   /transactions/{transactionId}/download or receipt or invoice
+POST /transactions/{transactionId}/ => submit
+POST /transactions/{transactionId}/?session-uuid={uuid} => submitWithSession
+POST /transactions/{transactionId }/verify
+POST /transactions/{transactionId}/refund
+
+   */
+
+  lazy val transactions = session { session =>
+    path("shipping") {
+      post {
+        //entity(as[SelectShippingPriceParam]) {
+        formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
+          params =>
+            import Implicits._
+            session.sessionData.accountId.map(_.toString) match {
+              case None => complete {
+                StatusCodes.Forbidden -> Map('error -> "Not logged in")
+              }
+              case Some(id) =>
+                handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shipmentId, params.rateId),
+                  (shippingPrice: ShippingPrice) => {
+                    setSession(session) {
+                      complete(StatusCodes.OK -> shippingPrice)
+                    }
+                  }
+                )
+            }
+        }
+      }
+    } ~
+      path("group-payment") {
+        //import com.mogobiz.pay.implicits.Implicits._
+        post {
+          val params = parameters('token, 'transaction_type, 'card_cvv, 'card_month, 'card_year, 'card_type, 'card_number)
+          params { (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
+            handleCall(transactionHandler.initGroupPayment(token),
+              (result: (Account, TransactionRequest, String, String, String)) => {
+                ServicesUtil.authenticateSession(session, account = result._1)
+
+                setSession(session) {
+                  val form = buildFormForInitGroupPayment(
+                    account = result._1,
+                    transaction = result._2,
+                    groupTxUUID = result._3,
+                    transactionType = transactionType,
+                    successURL = result._4,
+                    failureURL = result._5,
+                    ccCVV,
+                    ccMonth,
+                    ccYear,
+                    ccType,
+                    ccNumber
+                  )
+                  respondWithMediaType(MediaTypes.`text/html`) {
+                    complete {
+                      new HttpResponse(StatusCodes.OK, HttpEntity(form))
+                    }
+                  }
+                }
+              }
+            )
+          }
+        }
+      } ~
+      pathPrefix(JavaUUID) { uuid =>
+        val transactionId = uuid.toString
+        /*
+        get {
+          handleCall(backofficeHandler.getTransaction(transactionId),
+            (trans: Option[BOTransaction]) => complete(StatusCodes.OK -> trans))
+        } ~
+          path("logs") {
+            get {
+              handleCall(backofficeHandler.listTransactionLogs(transactionId),
+                (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
+              )
+            }
+          } ~ */
+        submit ~ verify
+      } ~
+      pathEnd {
+        get {
+          val params = parameters('email ?,
+            'start_date.as[String] ?, 'start_time.as[String] ?,
+            'end_date.as[String] ?, 'end_time.as[String] ?,
+            'amount.as[Int] ?, 'transaction_uuid ?, 'transaction_status.?, 'delivery_status.?)
+          params {
+            (email, startDate, startTime, endDate, endTime, amount, transaction, transactionStatus, deliveryStatus) =>
+              import Implicits._
+              handleCall(backofficeHandler.listTransactions(session.sessionData,
+                email.filter(_.trim.nonEmpty),
+                startDate, startTime,
+                endDate, endTime,
+                amount,
+                transaction.filter(_.trim.nonEmpty),
+                transactionStatus.filter(_.trim.nonEmpty),
+                deliveryStatus.filter(_.trim.nonEmpty)),
+                (trans: Seq[BOTransaction]) => complete(StatusCodes.OK -> trans))
+          }
+        } ~
+          post {
+            import Implicits._
+            entity(as[TransactionInit]) { params =>
+              /*formFields('merchant_secret, 'transaction_amount.as[Long],
+          'return_url ?,
+          'group_payment_exp_date.?.as[Option[Long]],
+          'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
+*/
+              {
+                //import Implicits._
+                val cart: Cart = session.sessionData.cart.getOrElse {
+                  if (Settings.Mogopay.Anonymous)
+                    Cart(count = 0,
+                      rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
+                      price = 0,
+                      endPrice = 0,
+                      taxAmount = 0,
+                      reduction = 0,
+                      finalPrice = 0,
+                      cartItems = Array(),
+                      coupons = Array(),
+                      customs = Map[String, Any]())
+                  else
+                    throw InvalidContextException("Cart isn't set.")
+                }
+                handleCall(transactionHandler.init(params, cart),
+                  (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+                )
+              }
+            }
+
+          }
+      }
   }
 
+  /* TODO
   lazy val searchByCustomer = path("customer" / JavaUUID) { uuid =>
     import Implicits._
     get {
       handleCall(transactionHandler.searchByCustomer(uuid.toString),
         (res: Seq[BOTransaction]) => complete(res))
     }
-  }
+  }*/
 
+  /* DONE
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long],
@@ -102,8 +245,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           }
         }
     }
-  }
+  }*/
 
+  /*
   lazy val selectShipping = path("select-shipping") {
     post {
       formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
@@ -128,6 +272,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       }
     }
   }
+  */
 
   lazy val verify = path("verify") {
     import Implicits._
@@ -161,6 +306,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
   }
 
+  /*
   lazy val initGroupPayment = path("init-group-payment") {
     import com.mogobiz.pay.implicits.Implicits._
     get {
@@ -196,7 +342,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         }
       }
     }
-  }
+  }*/
 
   lazy val refund = path("refund") {
     get {
@@ -242,7 +388,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               }
             } else {
               session { session =>
-                import Implicits._
+                //import Implicits._
 
                 if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
                   complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
@@ -257,6 +403,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                   }
                   //}
                 }
+                //                println(submitParams.merchantId)
+                //                println(submitParams.transactionUUID)
+                //                complete(StatusCodes.OK -> "dummy ok.")
               }
             }
         }
@@ -294,7 +443,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   }
 
   private def doSubmit(submitParams: SubmitParams, session: Session): Route = {
-    import Implicits._
+    //    import Implicits._
     def isNewSession: Boolean = {
       val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
       val incomingTrans = submitParams.transactionUUID

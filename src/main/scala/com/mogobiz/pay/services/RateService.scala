@@ -14,21 +14,18 @@ import spray.routing.Directives
 
 class RateService extends Directives with DefaultComplete {
 
-  val route = pathPrefix("rate") {
-    list ~
-      format
+  val route = pathPrefix("rates") {
+    format ~ list
   }
 
-  lazy val list = path("list") {
-    get {
-      dynamic {
-        handleCall(rateHandler.list,
-          (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
-      }
+  lazy val list = get {
+    dynamic {
+      handleCall(rateHandler.list,
+        (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
     }
   }
 
-  lazy val format = path("format") {
+  lazy val format = pathPrefix("format") {
     get {
       parameters('amount.as[Long], 'currency, 'country) { (amount, currency, country) =>
         handleCall(rateHandler.format(amount, currency, country),

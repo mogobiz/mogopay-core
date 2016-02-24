@@ -15,6 +15,8 @@ import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.system.MogobizSystem
+import com.typesafe.scalalogging.slf4j.Logger
+import org.slf4j.LoggerFactory
 import spray.http.StatusCodes._
 import spray.http.{ HttpEntity, StatusCode, _ }
 import spray.routing.{ Directives, _ }
@@ -23,6 +25,7 @@ import com.mogobiz.system.RoutedHttpService
 
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
+import com.mogobiz.pay.LogUtil
 
 trait MogopayRoutes extends Directives {
   this: MogobizSystem =>
@@ -82,6 +85,10 @@ trait MogopayRoutes extends Directives {
 
 trait DefaultComplete {
   this: Directives =>
+
+  //def logger(): Logger
+  def logger() = LogUtil.logger
+
   def handleCall[T](call: => T, handler: T => Route): Route = {
     Try(call) match {
       case Success(res) => handler(res)
@@ -91,6 +98,10 @@ trait DefaultComplete {
 
   def completeException(t: Throwable): Route = {
     import Implicits._
+    val exceptionName = t.getClass.getSimpleName
+    val msg = t.getMessage
+    logger.error("Error thrown : " + exceptionName + " : " + msg, t)
+    //logger.error("Error thrown : " + exceptionName + " : " + msg)
     t match {
       case (ex: MogopayException) =>
         if (ex.printTrace) ex.printStackTrace()
@@ -99,10 +110,10 @@ trait DefaultComplete {
         if (ex.printTrace) ex.printStackTrace()
         complete(ex.code -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.getMessage))
       case (ex: UnknownHostException) =>
-        ex.printStackTrace()
+        //ex.printStackTrace()
         complete(StatusCodes.NotFound -> Map('type -> ex.getClass.getSimpleName, 'error -> ex.getMessage))
       case (_) =>
-        t.printStackTrace()
+        //t.printStackTrace()
         complete(StatusCodes.InternalServerError -> Map('type -> t.getClass.getSimpleName, 'error -> t.getMessage))
     }
   }

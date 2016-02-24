@@ -16,10 +16,12 @@ import spray.routing.Directives
 class BackofficeService extends Directives with DefaultComplete {
 
   val route = pathPrefix("backoffice") {
-    listCustomers ~
+    listCustomers ~ transactions
+    /*
       listTransactionLogs ~
       listTransactions ~
       getTransaction
+      */
   }
 
   lazy val listCustomers = path("customers") {
@@ -34,6 +36,41 @@ class BackofficeService extends Directives with DefaultComplete {
     }
   }
 
+  lazy val transactions = get {
+    session { session =>
+      pathPrefix("transactions") {
+        pathPrefix(Segment) { transactionId =>
+          path("logs") {
+            handleCall(backofficeHandler.listTransactionLogs(transactionId),
+              (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
+            )
+          } ~ pathEnd {
+            handleCall(backofficeHandler.getTransaction(transactionId),
+              (trans: Option[BOTransaction]) => complete(StatusCodes.OK -> trans))
+          }
+        } ~ pathEnd {
+          val params = parameters('email ?,
+            'start_date.as[String] ?, 'start_time.as[String] ?,
+            'end_date.as[String] ?, 'end_time.as[String] ?,
+            'amount.as[Int] ?, 'transaction_uuid ?, 'transaction_status.?, 'delivery_status.?)
+          params {
+            (email, startDate, startTime, endDate, endTime, amount, transaction, transactionStatus, deliveryStatus) =>
+              handleCall(backofficeHandler.listTransactions(session.sessionData,
+                email.filter(_.trim.nonEmpty),
+                startDate, startTime,
+                endDate, endTime,
+                amount,
+                transaction.filter(_.trim.nonEmpty),
+                transactionStatus.filter(_.trim.nonEmpty),
+                deliveryStatus.filter(_.trim.nonEmpty)),
+                (trans: Seq[BOTransaction]) => complete(StatusCodes.OK -> trans))
+          }
+        }
+      }
+    }
+  }
+
+  /*
   lazy val listTransactionLogs = path("transactions" / Segment / "logs") { transactionId =>
     get {
       session { session =>
@@ -78,4 +115,6 @@ class BackofficeService extends Directives with DefaultComplete {
         }
       }
   }
+  */
+
 }
