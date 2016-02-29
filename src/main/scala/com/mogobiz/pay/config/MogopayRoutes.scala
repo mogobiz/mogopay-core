@@ -100,8 +100,8 @@ trait DefaultComplete {
     import Implicits._
     val exceptionName = t.getClass.getSimpleName
     val msg = t.getMessage
-    logger.error("Error thrown : " + exceptionName + " : " + msg, t)
-    //logger.error("Error thrown : " + exceptionName + " : " + msg)
+    //logger.error("Error thrown : " + exceptionName + " : " + msg, t)
+    logger.error("Error thrown : " + exceptionName + " : " + msg)
     t match {
       case (ex: MogopayException) =>
         if (ex.printTrace) ex.printStackTrace()

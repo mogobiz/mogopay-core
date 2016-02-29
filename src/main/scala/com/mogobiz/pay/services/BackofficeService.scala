@@ -6,25 +6,29 @@ package com.mogobiz.pay.services
 
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.exceptions.Exceptions.{ NotAuthentifiedException, InvalidContextException }
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
-import com.mogobiz.pay.model.Mogopay.{ BOTransaction, Account, BOTransactionLog }
+import com.mogobiz.pay.model.Mogopay.{ SessionData, BOTransaction, Account, BOTransactionLog }
 import com.mogobiz.session.SessionESDirectives._
 import spray.http.StatusCodes
-import spray.routing.Directives
+import spray.routing.{ RejectionHandler, Rejection, Directives }
 
 class BackofficeService extends Directives with DefaultComplete {
 
-  val route = pathPrefix("backoffice") {
-    listCustomers ~ transactions
-    /*
-      listTransactionLogs ~
-      listTransactions ~
-      getTransaction
-      */
+  case object MogopayAuthenticationRejection extends Rejection
+
+  implicit val mogopayAuthenticationRejectionHandler = RejectionHandler {
+    case MogopayAuthenticationRejection :: _ =>
+      //complete(StatusCodes.Unauthorized, "Not logged in")
+      complete(StatusCodes.Unauthorized -> Map('type -> "NotAuthentifiedException", 'error -> "Not logged in"))
   }
 
-  lazy val listCustomers = path("customers") {
+  val route = pathPrefix("backoffice") {
+    customers ~ transactions
+  }
+
+  lazy val customers = path("customers") {
     get {
       parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
         session { session =>
@@ -36,12 +40,27 @@ class BackofficeService extends Directives with DefaultComplete {
     }
   }
 
+  /**
+   * TODO çà : http://spray.io/documentation/1.2.2/spray-routing/key-concepts/rejections/
+   */
+  def assertAuthenticated(sessionData: SessionData) = {
+    println("assertAuthenticated")
+    if (!sessionData.authenticated) {
+      reject(MogopayAuthenticationRejection)
+      //completeException(new NotAuthentifiedException("Not logged in"))
+      //complete(StatusCodes.Unauthorized -> Map('type -> "NotAuthentifiedException", 'error -> "Not logged in"))
+    }
+  }
+
   lazy val transactions = get {
     session { session =>
+      assertAuthenticated(session.sessionData) // NOT WORKING
       pathPrefix("transactions") {
+        assertAuthenticated(session.sessionData) // NOT WORKING
         pathPrefix(Segment) { transactionId =>
           path("logs") {
-            handleCall(backofficeHandler.listTransactionLogs(transactionId),
+            handleCall(
+              backofficeHandler.listTransactionLogs(transactionId),
               (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
             )
           } ~ pathEnd {
@@ -69,52 +88,4 @@ class BackofficeService extends Directives with DefaultComplete {
       }
     }
   }
-
-  /*
-  lazy val listTransactionLogs = path("transactions" / Segment / "logs") { transactionId =>
-    get {
-      session { session =>
-        handleCall(backofficeHandler.listTransactionLogs(transactionId),
-          (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
-        )
-      }
-    }
-  }
-
-  lazy val listTransactions = path("transactions") {
-    get {
-      session {
-        session =>
-          val params = parameters('email ?,
-            'start_date.as[String] ?, 'start_time.as[String] ?,
-            'end_date.as[String] ?, 'end_time.as[String] ?,
-            'amount.as[Int] ?, 'transaction_uuid ?, 'transaction_status.?, 'delivery_status.?)
-          params {
-            (email, startDate, startTime, endDate, endTime, amount, transaction, transactionStatus, deliveryStatus) =>
-              handleCall(backofficeHandler.listTransactions(session.sessionData,
-                email.filter(_.trim.nonEmpty),
-                startDate, startTime,
-                endDate, endTime,
-                amount,
-                transaction.filter(_.trim.nonEmpty),
-                transactionStatus.filter(_.trim.nonEmpty),
-                deliveryStatus.filter(_.trim.nonEmpty)),
-                (trans: Seq[BOTransaction]) => complete(StatusCodes.OK -> trans))
-          }
-      }
-    }
-  }
-
-  lazy val getTransaction = path("transaction" / JavaUUID) {
-    uuid =>
-      get {
-        session {
-          session =>
-            handleCall(backofficeHandler.getTransaction(uuid.toString),
-              (trans: Option[BOTransaction]) => complete(StatusCodes.OK -> trans))
-        }
-      }
-  }
-  */
-
 }

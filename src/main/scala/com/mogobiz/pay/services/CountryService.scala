@@ -41,32 +41,46 @@ class CountryService extends Directives with DefaultComplete {
     }
   }
 
+  private def cities(countryCode: String, a1: Option[String], a2: Option[String], name: Option[String]) = {
+    handleCall(countryAdminHandler.cities(Some(countryCode), a1, a2, name),
+      (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+  }
+
   lazy val countryPath = pathPrefix(Segment) { countryCode =>
-    path("check-phone-number") {
-      post {
-        entity(as[String]) { phone =>
-          handleCall(countryHandler.checkPhoneNumber(phone, countryCode),
-            (phoneVerif: PhoneVerification) => complete(StatusCodes.OK -> phoneVerif))
-        }
+    path("check-phone-number" / Segment) { phone =>
+      get {
+        handleCall(countryHandler.checkPhoneNumber(phone, countryCode),
+          (phoneVerif: PhoneVerification) => complete(StatusCodes.OK -> phoneVerif))
       }
     } ~
       path("cities") {
         get {
           parameters('name.?, 'parent_admin1_code.?, 'parent_admin2_code.?) {
-            (name, a1, a2) =>
-              handleCall(countryAdminHandler.cities(Some(countryCode), a1, a2, name),
-                (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+            (name, a1, a2) => cities(countryCode, a1, a2, name)
           }
         }
       } ~
       pathPrefix(("admin1" | "states")) {
         pathPrefix(Segment) {
           admin1Code =>
-            path(("admin2" | "regions")) {
-              get {
-                handleCall(countryAdminHandler.admins2(admin1Code),
-                  (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
-              }
+            pathPrefix(("admin2" | "regions")) {
+              pathPrefix(Segment) { admin2Code =>
+                path("cities") {
+                  get {
+                    parameters('name.?) {
+                      (name) => cities(countryCode, Some(admin1Code), Some(admin2Code), name)
+                    }
+                  }
+                } ~
+                  get {
+                    handleCall(countryAdminHandler.getAdmin2ByCode(countryCode, admin2Code),
+                      (country: Option[CountryAdmin]) => complete(StatusCodes.OK -> country))
+                  }
+              } ~
+                get {
+                  handleCall(countryAdminHandler.admins2(admin1Code),
+                    (admins: Seq[CountryAdmin]) => complete(StatusCodes.OK -> admins))
+                }
             } ~ pathEnd {
               get {
                 handleCall(countryAdminHandler.getAdmin1ByCode(countryCode, admin1Code),

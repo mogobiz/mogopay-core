@@ -124,6 +124,8 @@ object Exceptions {
 
   case class InvalidTokenException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
+  case class NotAuthentifiedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+
   // Paybox
   case class InvalidSignatureException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
