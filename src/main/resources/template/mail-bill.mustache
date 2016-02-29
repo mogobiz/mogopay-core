@@ -22,8 +22,8 @@ Your command {{transactionUuid}}
             <th>Px Unit. TTC</th>
             <th>Px Total</th>
         </tr>
-        <tr>
-            {{#cartItems}}
+        {{#cartItems}}
+            <tr>
                 <td><img src="{{picture}}"  width="50px" height="50px"/></td>
                 <td style="width: 50%">
                     <a href="{{shopUrl}}">{{name}}</a>
@@ -41,8 +41,8 @@ Your command {{transactionUuid}}
                 <td style="text-align: right;" nowrap="true">{{tax}}%</td>
                 <td style="text-align: right;" nowrap="true">{{saleEndPrice}}</td>
                 <td style="text-align: right;" nowrap="true">{{saleTotalEndPrice}}</td>
-            {{/cartItems}}
-        </tr>
+            </tr>
+        {{/cartItems}}
     </table>
     <table>
         <tr>
