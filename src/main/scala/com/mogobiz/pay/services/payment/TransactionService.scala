@@ -20,8 +20,7 @@ import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayE
 import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import Implicits.MogopaySession
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.Mogopay.{ TransactionRequest, Account, BOTransaction, TransactionStatus }
 import com.mogobiz.pay.model.ParamRequest.{ TransactionInit, SelectShippingPriceParam, ListShippingPriceParam }
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{ SessionESDirectives, Session }
@@ -42,212 +41,64 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   // execution context for futures
 
-  val serviceName = "transactions"
+  val serviceName = "transaction"
 
-  val route = pathPrefix(serviceName) {
-    transactions
-  }
-  /*
-    val route = {
-      pathPrefix(serviceName) {
-        searchByCustomer ~
-          init ~
-          selectShipping ~
-          verify ~
-          submit ~
-          submitWithSession ~
-          download ~
-          initGroupPayment ~
-          refund
-      }
-    }*/
-
-  /*
-  GET /customers/{customerId}/transactions or GET /?customer_id={customerId}
-POST /transactions/ => init DONE
-POST /transactions/init-group-payment => init
-POST /transactions/select-shipping
-GET   /transactions/{transactionId}/download or receipt or invoice
-POST /transactions/{transactionId}/ => submit
-POST /transactions/{transactionId}/?session-uuid={uuid} => submitWithSession
-POST /transactions/{transactionId }/verify
-POST /transactions/{transactionId}/refund
-
-   */
-
-  lazy val transactions = session { session =>
-    path("shipping") {
-      post {
-        //entity(as[SelectShippingPriceParam]) {
-        formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
-          params =>
-            import Implicits._
-            session.sessionData.accountId.map(_.toString) match {
-              case None => complete {
-                StatusCodes.Forbidden -> Map('error -> "Not logged in")
-              }
-              case Some(id) =>
-                handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shipmentId, params.rateId),
-                  (shippingPrice: ShippingPrice) => {
-                    setSession(session) {
-                      complete(StatusCodes.OK -> shippingPrice)
-                    }
-                  }
-                )
-            }
-        }
-      }
-    } ~
-      path("group-payment") {
-        //import com.mogobiz.pay.implicits.Implicits._
-        post {
-          val params = parameters('token, 'transaction_type, 'card_cvv, 'card_month, 'card_year, 'card_type, 'card_number)
-          params { (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
-            handleCall(transactionHandler.initGroupPayment(token),
-              (result: (Account, TransactionRequest, String, String, String)) => {
-                ServicesUtil.authenticateSession(session, account = result._1)
-
-                setSession(session) {
-                  val form = buildFormForInitGroupPayment(
-                    account = result._1,
-                    transaction = result._2,
-                    groupTxUUID = result._3,
-                    transactionType = transactionType,
-                    successURL = result._4,
-                    failureURL = result._5,
-                    ccCVV,
-                    ccMonth,
-                    ccYear,
-                    ccType,
-                    ccNumber
-                  )
-                  respondWithMediaType(MediaTypes.`text/html`) {
-                    complete {
-                      new HttpResponse(StatusCodes.OK, HttpEntity(form))
-                    }
-                  }
-                }
-              }
-            )
-          }
-        }
-      } ~
-      pathPrefix(JavaUUID) { uuid =>
-        val transactionId = uuid.toString
-        /*
-        get {
-          handleCall(backofficeHandler.getTransaction(transactionId),
-            (trans: Option[BOTransaction]) => complete(StatusCodes.OK -> trans))
-        } ~
-          path("logs") {
-            get {
-              handleCall(backofficeHandler.listTransactionLogs(transactionId),
-                (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
-              )
-            }
-          } ~ */
-        submit ~ verify
-      } ~
-      pathEnd {
-        get {
-          val params = parameters('email ?,
-            'start_date.as[String] ?, 'start_time.as[String] ?,
-            'end_date.as[String] ?, 'end_time.as[String] ?,
-            'amount.as[Int] ?, 'transaction_uuid ?, 'transaction_status.?, 'delivery_status.?)
-          params {
-            (email, startDate, startTime, endDate, endTime, amount, transaction, transactionStatus, deliveryStatus) =>
-              import Implicits._
-              handleCall(backofficeHandler.listTransactions(session.sessionData,
-                email.filter(_.trim.nonEmpty),
-                startDate, startTime,
-                endDate, endTime,
-                amount,
-                transaction.filter(_.trim.nonEmpty),
-                transactionStatus.filter(_.trim.nonEmpty),
-                deliveryStatus.filter(_.trim.nonEmpty)),
-                (trans: Seq[BOTransaction]) => complete(StatusCodes.OK -> trans))
-          }
-        } ~
-          post {
-            import Implicits._
-            entity(as[TransactionInit]) { params =>
-              /*formFields('merchant_secret, 'transaction_amount.as[Long],
-          'return_url ?,
-          'group_payment_exp_date.?.as[Option[Long]],
-          'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
-*/
-              {
-                //import Implicits._
-                val cart: Cart = session.sessionData.cart.getOrElse {
-                  if (Settings.Mogopay.Anonymous)
-                    Cart(count = 0,
-                      rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
-                      price = 0,
-                      endPrice = 0,
-                      taxAmount = 0,
-                      reduction = 0,
-                      finalPrice = 0,
-                      cartItems = Array(),
-                      coupons = Array(),
-                      customs = Map[String, Any]())
-                  else
-                    throw InvalidContextException("Cart isn't set.")
-                }
-                handleCall(transactionHandler.init(params, cart),
-                  (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-                )
-              }
-            }
-
-          }
-      }
+  val route = {
+    pathPrefix(serviceName) {
+      searchByCustomer ~
+        init ~
+        selectShipping ~
+        verify ~
+        submit ~
+        submitWithSession ~
+        download ~
+        initGroupPayment ~
+        refund
+    }
   }
 
-  /* TODO
   lazy val searchByCustomer = path("customer" / JavaUUID) { uuid =>
     import Implicits._
     get {
       handleCall(transactionHandler.searchByCustomer(uuid.toString),
         (res: Seq[BOTransaction]) => complete(res))
     }
-  }*/
+  }
 
-  /* DONE
   lazy val init = path("init") {
     post {
       formFields('merchant_secret, 'transaction_amount.as[Long],
         'return_url ?,
         'group_payment_exp_date.?.as[Option[Long]],
         'group_payment_refund_percentage.?.as[Option[Int]]).as(TransactionInit) { params =>
-          session {
-            session =>
-              {
-                import Implicits._
-                val cart: Cart = session.sessionData.cart.getOrElse {
-                  if (Settings.Mogopay.Anonymous)
-                    Cart(count = 0,
-                      rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
-                      price = 0,
-                      endPrice = 0,
-                      taxAmount = 0,
-                      reduction = 0,
-                      finalPrice = 0,
-                      cartItems = Array(),
-                      coupons = Array(),
-                      customs = Map[String, Any]())
-                  else
-                    throw InvalidContextException("Cart isn't set.")
-                }
-                handleCall(transactionHandler.init(params, cart),
-                  (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
-                )
-              }
+        session {
+          session =>
+          {
+            import Implicits._
+            val cart: Cart = session.sessionData.cart.getOrElse {
+              if (Settings.Mogopay.Anonymous)
+                Cart(count = 0,
+                  rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
+                  price = 0,
+                  endPrice = 0,
+                  taxAmount = 0,
+                  reduction = 0,
+                  finalPrice = 0,
+                  cartItems = Array(),
+                  coupons = Array(),
+                  customs = Map[String, Any]())
+              else
+                throw InvalidContextException("Cart isn't set.")
+            }
+            handleCall(transactionHandler.init(params, cart),
+              (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id))
+            )
           }
         }
+      }
     }
-  }*/
+  }
 
-  /*
   lazy val selectShipping = path("select-shipping") {
     post {
       formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
@@ -272,7 +123,6 @@ POST /transactions/{transactionId}/refund
       }
     }
   }
-  */
 
   lazy val verify = path("verify") {
     import Implicits._
@@ -306,7 +156,6 @@ POST /transactions/{transactionId}/refund
     }
   }
 
-  /*
   lazy val initGroupPayment = path("init-group-payment") {
     import com.mogobiz.pay.implicits.Implicits._
     get {
@@ -342,7 +191,7 @@ POST /transactions/{transactionId}/refund
         }
       }
     }
-  }*/
+  }
 
   lazy val refund = path("refund") {
     get {
@@ -380,35 +229,32 @@ POST /transactions/{transactionId}/refund
         'transaction_id, 'transaction_amount.as[Long], 'merchant_id, 'transaction_type, 'card_cvv.?, 'card_number.?,
         'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?, 'card_month.?, 'card_year.?,
         'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
-          submitParams: SubmitParams =>
-            val payersAmountsSum = submitParams.payers.values.sum
-            if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
-              complete {
-                400 -> "The total amount and the payers amounts don't match."
-              }
-            } else {
-              session { session =>
-                //import Implicits._
+        submitParams: SubmitParams =>
+          val payersAmountsSum = submitParams.payers.values.sum
+          if (!submitParams.payers.isEmpty && payersAmountsSum != submitParams.amount) {
+            complete {
+              400 -> "The total amount and the payers amounts don't match."
+            }
+          } else {
+            session { session =>
+              import Implicits._
 
-                if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
-                  complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
-                } else {
-                  //clientIP { ip =>
-                  session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
-                  session.sessionData.payers = submitParams.payers.toMap[String, Long]
-                  session.sessionData.groupTxUUID = submitParams.groupTxUUID
+              if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
+                complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
+              } else {
+                //clientIP { ip =>
+                session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
+                session.sessionData.payers = submitParams.payers.toMap[String, Long]
+                session.sessionData.groupTxUUID = submitParams.groupTxUUID
 
-                  setSession(session) {
-                    doSubmit(submitParams, session)
-                  }
-                  //}
+                setSession(session) {
+                  doSubmit(submitParams, session)
                 }
-                //                println(submitParams.merchantId)
-                //                println(submitParams.transactionUUID)
-                //                complete(StatusCodes.OK -> "dummy ok.")
+                //}
               }
             }
-        }
+          }
+      }
     }
   }
 
@@ -418,10 +264,10 @@ POST /transactions/{transactionId}/refund
         'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
         'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
         'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
-          submitParams =>
-            val session = SessionESDirectives.load(sessionUuid).get
-            doSubmit(submitParams, session)
-        }
+        submitParams =>
+          val session = SessionESDirectives.load(sessionUuid).get
+          doSubmit(submitParams, session)
+      }
     }
   }
 
@@ -443,7 +289,7 @@ POST /transactions/{transactionId}/refund
   }
 
   private def doSubmit(submitParams: SubmitParams, session: Session): Route = {
-    //    import Implicits._
+    import Implicits._
     def isNewSession: Boolean = {
       val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
       val incomingTrans = submitParams.transactionUUID
@@ -506,8 +352,8 @@ POST /transactions/{transactionId}/refund
   }
 
   def buildFormForInitGroupPayment(account: Account, transaction: TransactionRequest, groupTxUUID: String,
-    transactionType: String, successURL: String, failureURL: String,
-    ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String): String = {
+                                   transactionType: String, successURL: String, failureURL: String,
+                                   ccCVV: String, ccMonth: String, ccYear: String, ccType: String, ccNumber: String): String = {
     val submitParams = Map(
       "callback_success" -> successURL,
       "callback_error" -> failureURL,
@@ -526,13 +372,13 @@ POST /transactions/{transactionId}/refund
     val form =
       <form id="form" action={ s"${Settings.Mogopay.EndPoint}transaction/submit" } method="POST">
         {
-          submitParams.map {
-            case (key, value) =>
+        submitParams.map {
+          case (key, value) =>
               <input type="hidden" name={ key } value={ value }/>
-          }
+        }
         }
       </form>
-      <script>document.getElementById('form').submit();</script>
+        <script>document.getElementById('form').submit();</script>
 
     if (Settings.Env == Environment.DEV) {
       // Just `open /tmp/mogopay-submit-form.html` to start the payment
