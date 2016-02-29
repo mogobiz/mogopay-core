@@ -104,7 +104,7 @@
 					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.customer.firstName}} {{transaction.customer.lastName}}</a></td>
 					<td>{{transaction.customer.email}}</td>
 					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>
-					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate}}</td>
+					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate | priceFilter}}</td>
 					<td>
 						<a href="javascript:void(0)" rel="popoverCard">{{transaction.creditCard.number}}</a>
 						<div ng-if="transaction.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
