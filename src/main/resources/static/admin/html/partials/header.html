@@ -9,7 +9,7 @@
 			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">{{resourceBundle.menu}} <span class="caret"></span></button>
 			<ul class="dropdown-menu" role="menu">
 				<li><a href="javascript:void(0);" ng-click="goToListTrasactions()">{{resourceBundle.menu_transactions}}</a></li>
-				<li><a href="javascript:void(0);"ng-click="goToListCustomers()">{{resourceBundle.menu_customers}}</a></li>
+				<li ng-if="isMerchant==true"><a href="javascript:void(0);"ng-click="goToListCustomers()">{{resourceBundle.menu_customers}}</a></li>
 				<li><a href="javascript:void(0);" ng-click="goToProfile()">{{resourceBundle.menu_profile}}</a></li>
 				<li class="divider"></li>
 				<li><a href="javascript:void(0);" ng-click="logout()">{{resourceBundle.menu_logout}}</a></li>
