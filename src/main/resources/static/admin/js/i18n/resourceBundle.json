@@ -165,6 +165,7 @@
 
 	"authorizenet_api_login_id": "API Login ID",
 	"authorizenet_transaction_key": "Transaction Key",
+	"authorizenet_md5": "MD5 key",
 	"authorizenet_error": "Authorize Net API Login ID and Transaction Key are related !",
 
 	"paybox_contract_type": "Contract Type",

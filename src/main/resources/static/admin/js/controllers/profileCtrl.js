@@ -558,6 +558,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				case "authorizenet":
 					data += "&anet_api_login_id=" + $("#authorizeNetLogin").val();
 					data += "&anet_transaction_key=" + $("#authorizeNetTransactionKey").val();
+					data += "&anet_md5=" + $("#authorizeNetMD5Key").val();
 					break;
 				default:
 					break;
