@@ -170,7 +170,7 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
   sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
   sipsMerchantLogoPath: String) extends CBParams
 
-case class AuthorizeNetParams(apiLoginID: String, transactionKey: String) extends CBParams
+case class AuthorizeNetParams(apiLoginID: String, transactionKey: String, md5Key: String) extends CBParams
 
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
