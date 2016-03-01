@@ -24,20 +24,26 @@ class BackofficeService extends Directives with DefaultComplete {
       complete(StatusCodes.Unauthorized -> Map('type -> "NotAuthentifiedException", 'error -> "Not logged in"))
   }
 
+  /*
   val route = pathPrefix("backoffice") {
     customers ~ transactions
-  }
+  }*/
+  val route = customers ~ transactions
 
-  lazy val customers = path("customers") {
-    get {
-      parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
-        session { session =>
-          handleCall(backofficeHandler.listCustomers(session.sessionData, page, max),
-            (accounts: Seq[Account]) => complete(StatusCodes.OK -> accounts)
-          )
+  lazy val customers = pathPrefix("customers") {
+    path(JavaUUID / "transactions") { uuid =>
+      handleCall(transactionHandler.searchByCustomer(uuid.toString),
+        (res: Seq[BOTransaction]) => complete(res))
+    } ~
+      get {
+        parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
+          session { session =>
+            handleCall(backofficeHandler.listCustomers(session.sessionData, page, max),
+              (accounts: Seq[Account]) => complete(StatusCodes.OK -> accounts)
+            )
+          }
         }
       }
-    }
   }
 
   /**
@@ -52,22 +58,25 @@ class BackofficeService extends Directives with DefaultComplete {
     }
   }
 
-  lazy val transactions = get {
+  lazy val transactions = pathPrefix("transactions") {
     session { session =>
-      assertAuthenticated(session.sessionData) // NOT WORKING
-      pathPrefix("transactions") {
-        assertAuthenticated(session.sessionData) // NOT WORKING
-        pathPrefix(Segment) { transactionId =>
-          path("logs") {
+      pathPrefix(Segment) { transactionId =>
+        path("logs") {
+          get {
             handleCall(
               backofficeHandler.listTransactionLogs(transactionId),
               (trans: Seq[BOTransactionLog]) => complete(StatusCodes.OK -> trans)
             )
-          } ~ pathEnd {
+          }
+        } ~ pathEnd {
+          get {
             handleCall(backofficeHandler.getTransaction(transactionId),
               (trans: Option[BOTransaction]) => complete(StatusCodes.OK -> trans))
           }
-        } ~ pathEnd {
+        }
+      } ~ pathEnd {
+        get {
+
           val params = parameters('email ?,
             'start_date.as[String] ?, 'start_time.as[String] ?,
             'end_date.as[String] ?, 'end_time.as[String] ?,
@@ -88,4 +97,5 @@ class BackofficeService extends Directives with DefaultComplete {
       }
     }
   }
+
 }
