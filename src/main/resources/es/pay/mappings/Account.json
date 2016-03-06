@@ -29,7 +29,8 @@
           },
           "lastName": {
             "type": "string",
-            "index": "not_analyzed"
+            // Make case insensitive search work.
+            //"index": "not_analyzed"
           },
           "company": {
             "type": "string",
