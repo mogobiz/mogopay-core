@@ -55,13 +55,6 @@ case class SubmitParams(successURL: String, errorURL: String, cardinfoURL: Optio
 
 class TransactionHandler {
 
-  def searchByCustomer(uuid: String): Seq[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
-      termFilter("customer.uuid", uuid)
-    } from 0 size EsClient.MAX_SIZE
-    EsClient.searchAll[BOTransaction](req)
-  }
-
   def init(params: ParamRequest.TransactionInit, cart: Cart): String = {
     //    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
     (accountHandler findBySecret params.merchantSecret map { vendor: Account =>

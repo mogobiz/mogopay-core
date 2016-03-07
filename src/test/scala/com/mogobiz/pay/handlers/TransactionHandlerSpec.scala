@@ -30,16 +30,6 @@ class TransactionHandlerSpec extends Specification with Before {
     boTransactionHandler.save(tx, true)
   }
 
-  "searchByCustomer" should {
-    "find an existent result" in {
-      val maybeTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, "123")
-      transactionHandler.searchByCustomer("xyz").size must_== 1
-    }
-
-    "not find a non-existent result" in {
-      transactionHandler.searchByCustomer("0") must beEmpty
-    }
-  }
 
   //  "SubmitParam" in {
   //    "payers" should {

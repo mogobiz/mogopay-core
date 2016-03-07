@@ -50,7 +50,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   val route = {
     pathPrefix(serviceName) {
-      searchByCustomer ~
         init ~
         selectShipping ~
         verify ~
@@ -59,14 +58,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         download ~
         initGroupPayment ~
         refund
-    }
-  }
-
-  lazy val searchByCustomer = path("customer" / JavaUUID) { uuid =>
-    import Implicits._
-    get {
-      handleCall(transactionHandler.searchByCustomer(uuid.toString),
-        (res: Seq[BOTransaction]) => complete(res))
     }
   }
 
