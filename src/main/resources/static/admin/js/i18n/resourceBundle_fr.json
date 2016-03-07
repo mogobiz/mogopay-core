@@ -75,6 +75,23 @@
 	"transactions_uuid": "UUID",
 	"transactions_group_uuid": "UUID du groupe",
 
+	"transactionStatus_initiated": "Initié",
+	"transactionStatus_verification_threeds": "Fil de vérification",
+	"transactionStatus_threeds_tested": "Fil testé",
+	"transactionStatus_payment_requested": "Paiement demandé",
+	"transactionStatus_payment_confirmed": "Paiement accepté",
+	"transactionStatus_payment_refused": "Paiement refusé",
+	"transactionStatus_cancel_requested": "Annuler la demande",
+	"transactionStatus_cancel_failed": "Annulation échoué",
+	"transactionStatus_cancel_confirmed": "Annulation confirmé",
+	"transactionStatus_customer_refunded": "Remboursements du client",
+
+	"deliveryStatus_not_started": "Pas démarré",
+	"deliveryStatus_in_progress": "En cours",
+	"deliveryStatus_delivered": "Livré",
+	"deliveryStatus_returned": "Revenu",
+	"deliveryStatus_canceled": "Annulé",
+
 	"details_customer_title": "Details du client",
 	"details_customer_fName": "Prénom",
 	"details_customer_lName": "Nom",
