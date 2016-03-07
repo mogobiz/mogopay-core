@@ -7,6 +7,8 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 		return;
 	$rootScope.selectedStore = $rootScope.allStores[0];
 	$scope.transactionsSelectedStore = $rootScope.selectedStore;
+	$scope.listTransactionsStatus = "";
+	$scope.listTransactionsDelivery = "";
 	$scope.goToProfile = function () {
 		var success = function (response) {
 			$rootScope.userProfile = response;
@@ -30,8 +32,10 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		rootScope.transactions = response.list;
 		if(rootScope.transactions.length > 0)
 			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
-		else
+		else{
+			scope.$apply();
 			$("body").removeClass("loading");
+		}
 	};
 	var dataToSend = "";
 
@@ -45,16 +49,16 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		dataToSend += "price=" + $("#listTransactionsAmount").val();
 	}
 
-	if ($.trim($("#listTransactionsStatus").val()) != ""){
+	if (scope.listTransactionsStatus != ""){
 		if(dataToSend != "")
 			dataToSend += "&";
-		dataToSend += "transactionStatus=" + $("#listTransactionsStatus").val();
+		dataToSend += "transactionStatus=" + scope.listTransactionsStatus;
 	}
 
-	if ($.trim($("#listTransactionsDelivery").val()) != ""){
+	if (scope.listTransactionsDelivery != ""){
 		if(dataToSend != "")
 			dataToSend += "&";
-		dataToSend += "deliveryStatus=" + $("#listTransactionsDelivery").val();
+		dataToSend += "deliveryStatus=" + scope.listTransactionsDelivery;
 	}
 
 	if ($("#listTransactionsStartDate").val() != ""){
@@ -111,7 +115,7 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 			listRetunedStatus = [{value: "None"}];
 		rootScope.transactions[index].listRetunedStatus = listRetunedStatus;
 		if(index == rootScope.transactions.length - 1){
-			scope.$apply()
+			scope.$apply();
 			$("body").removeClass("loading");
 		}
 		else{

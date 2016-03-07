@@ -56,6 +56,61 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 				"RETURN_REFUSED": $rootScope.resourceBundle.return_refused,
 				"RETURN_ACCEPTED": $rootScope.resourceBundle.return_accepted
 			};
+
+			$rootScope.transactionStatusValues = [{
+				value: "",
+				label: $rootScope.resourceBundle.option_all
+			},{
+				value: "INITIATED",
+				label: $rootScope.resourceBundle.transactionStatus_initiated,
+			},{
+				value: "VERIFICATION_THREEDS",
+				label: $rootScope.resourceBundle.transactionStatus_verification_threeds,
+			},{
+				value: "THREEDS_TESTED",
+				label: $rootScope.resourceBundle.transactionStatus_threeds_tested,
+			},{
+				value: "PAYMENT_REQUESTED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_requested,
+			},{
+				value: "PAYMENT_CONFIRMED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_confirmed,
+			},{
+				value: "PAYMENT_REFUSED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_refused,
+			},{
+				value: "CANCEL_REQUESTED",
+				label: $rootScope.resourceBundle.transactionStatus_cancel_requested,
+			},{
+				value: "CANCEL_FAILED",
+				label: $rootScope.resourceBundle.transactionStatus_cancel_failed,
+			},{
+				value: "CANCEL_CONFIRMED",
+				label: $rootScope.resourceBundle.transactionStatus_cancel_confirmed,
+			},{
+				value: "CUSTOMER_REFUNDED",
+				label: $rootScope.resourceBundle.transactionStatus_customer_refunded
+			}];
+
+			$rootScope.deliveryStatusValues = [{
+				value: "",
+				label: $rootScope.resourceBundle.option_all,
+			},{
+				value: "NOT_STARTED",
+				label: $rootScope.resourceBundle.deliveryStatus_not_started,
+			},{
+				value: "IN_PROGRESS",
+				label: $rootScope.resourceBundle.deliveryStatus_in_progress,
+			},{
+				value: "DELIVERED",
+				label: $rootScope.resourceBundle.deliveryStatus_delivered,
+			},{
+				value: "RETURNED",
+				label: $rootScope.resourceBundle.deliveryStatus_returned,
+			},{
+				value: "CANCELED",
+				label: $rootScope.resourceBundle.deliveryStatus_canceled
+			}];
 		}).error(function (resourceBundle) {
 			$rootScope.i18n = {language: "en"};
 			$rootScope.$watch("i18n.language", function (language) {
