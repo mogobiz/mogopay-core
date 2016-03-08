@@ -13,12 +13,17 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
 import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
+import com.typesafe.scalalogging.slf4j.Logger
+import org.apache.commons.lang.StringUtils
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
 class EasyPostHandler extends ShippingHandler {
+
+  private val logger = Logger(LoggerFactory.getLogger("EasyPostHandler"))
 
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
 
@@ -51,6 +56,14 @@ class EasyPostHandler extends ShippingHandler {
       (shipment.getMessages != null && shipment.getMessages.size() > 0)
     })
 
+    val message = StringUtils.join(filterRates._1.map { rate =>
+      {
+        val shipment = Shipment.retrieve(rate.getShipmentId)
+        StringUtils.join(shipment.getMessages.map { m => m.getMessage }, ", ")
+      }
+    }, ", ")
+
+    logger.info("EasyPost Messages : " + message)
     if (filterRates._1.size > 0 && filterRates._2.size == 0) {
       throw ShippingException()
     }
