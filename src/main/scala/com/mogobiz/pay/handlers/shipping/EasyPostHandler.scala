@@ -44,31 +44,22 @@ class EasyPostHandler extends ShippingHandler {
   }
 
   private def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingPrice] = {
-    val easyPostRates = rate(
+    val shipment = rate(
       compagnyAddress,
       shippingAddress.address,
       parcel,
       cart
     )
 
-    val filterRates = easyPostRates.span(rate => {
-      val shipment = Shipment.retrieve(rate.getShipmentId)
-      (shipment.getMessages != null && shipment.getMessages.size() > 0)
-    })
+    val easyPostRates = shipment.getRates.toList
 
-    val message = StringUtils.join(filterRates._1.map { rate =>
-      {
-        val shipment = Shipment.retrieve(rate.getShipmentId)
-        StringUtils.join(shipment.getMessages.map { m => m.getMessage }, ", ")
-      }
-    }, ", ")
-
-    logger.info("EasyPost Messages : " + message)
-    if (filterRates._1.size > 0 && filterRates._2.size == 0) {
+    if (easyPostRates.size == 0) {
+      val message = StringUtils.join(shipment.getMessages.toList.map { m => m.getCarrier + " " + m.getType + " => " + m.getMessage }, ", ")
+      logger.info("EasyPost Messages : " + message)
       throw ShippingException()
     }
-    filterRates._2.map { easyPostRate =>
-      var rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
+    easyPostRates.map { easyPostRate =>
+      val rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
       val currencyFractionDigits: Integer = rate.map {
         _.currencyFractionDigits
       }.getOrElse(2)
@@ -155,7 +146,7 @@ class EasyPostHandler extends ShippingHandler {
 
   case class ShippingParcelAndFixAmount(amount: Long, fixParcel: Option[ShippingParcel], parcel: Option[ShippingParcel])
 
-  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Seq[Rate] = {
+  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Shipment = {
     val parcelMap = mutable.HashMap[String, AnyRef](
       "height" -> parcel.height.asInstanceOf[AnyRef],
       "width" -> parcel.width.asInstanceOf[AnyRef],
@@ -174,8 +165,7 @@ class EasyPostHandler extends ShippingHandler {
     if (Settings.Shipping.EasyPost.UpsCostCenter.length > 0)
       shipmentMap.put("options", mutable.HashMap[String, AnyRef]("cost_center" -> Settings.Shipping.EasyPost.UpsCostCenter))
 
-    val shipment = Shipment.create(shipmentMap)
-    shipment.getRates
+    Shipment.create(shipmentMap)
   }
 
   private def cartToMap(cart: Cart): CustomsInfo = {
