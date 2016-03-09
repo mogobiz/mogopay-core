@@ -50,7 +50,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   val route = {
     pathPrefix(serviceName) {
-        init ~
+      init ~
         selectShipping ~
         verify ~
         submit ~
