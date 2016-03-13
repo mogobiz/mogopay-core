@@ -137,8 +137,6 @@ trait PaymentHandler {
           val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
           val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
 
-          val template = templateHandler.loadTemplateByVendor(Option(merchant), "mail-group-payment", locale)
-
           val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
           val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
 
@@ -155,7 +153,7 @@ trait PaymentHandler {
               |  "transaction": $jsonTx
               |}
               |""".stripMargin
-          val (subject, body) = templateHandler.mustache(template, data)
+          val (subject, body) = templateHandler.mustache(Option(merchant), "mail-group-payment", locale, data)
 
           val senderName = merchant.paymentConfig.get.senderName
           val senderEmail = merchant.paymentConfig.get.senderEmail

@@ -434,8 +434,6 @@ class AccountHandler {
   def notifyNewPassword(account: Account, newPassword: String, locale: Option[String]) = {
 
     val vendor = account.owner.flatMap(load)
-    val template = templateHandler.loadTemplateByVendor(vendor, "mail-new-password", locale)
-
     val paymentConfig = vendor.get.paymentConfig.get
     val senderName = paymentConfig.senderName
     val senderEmail = paymentConfig.senderEmail
@@ -456,7 +454,7 @@ class AccountHandler {
          |}
          |""".stripMargin
 
-    val (subject, body) = templateHandler.mustache(template, data)
+    val (subject, body) = templateHandler.mustache(vendor, "mail-new-password", locale, data)
     EmailHandler.Send(
       Mail(
         from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
@@ -1126,9 +1124,7 @@ class AccountHandler {
 
   def notifyNewAccount(account: Account, vendor: Option[Account], validationUrl: String, token: String,
     fromName: String, fromEmail: String, locale: Option[String]): Unit = {
-    val template = templateHandler.loadTemplateByVendor(vendor, "mail-signup-confirmation", locale)
-
-    val (subject, body) = templateHandler.mustache(template,
+    val (subject, body) = templateHandler.mustache(vendor, "mail-signup-confirmation", locale,
       s"""
          |{
          |"templateImagesUrl": "${Settings.TemplateImagesUrl}",

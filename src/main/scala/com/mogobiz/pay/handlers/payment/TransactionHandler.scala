@@ -221,8 +221,7 @@ class TransactionHandler {
     try {
       transaction.vendor.map { vendor =>
         val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
-        val template = templateHandler.loadTemplateByVendor(Some(vendor), "mail-order", locale)
-        val (subject, body) = templateHandler.mustache(template, jsonString)
+        val (subject, body) = templateHandler.mustache(Some(vendor), "mail-order", locale, jsonString)
         EmailHandler.Send(
           Mail(
             (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
@@ -239,8 +238,7 @@ class TransactionHandler {
       transaction.vendor.map { vendor =>
         if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
-          val template = templateHandler.loadTemplateByVendor(transaction.vendor, "mail-bill", locale)
-          val (subject, body) = templateHandler.mustache(template, jsonString)
+          val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
           EmailHandler.Send(
             Mail(
               (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
@@ -580,8 +578,7 @@ class TransactionHandler {
       case Some(transaction) => {
         if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(langCountry))
-          val template = templateHandler.loadTemplateByVendor(transaction.vendor, "download-bill", Some(langCountry))
-          val (subject, body) = templateHandler.mustache(template, jsonString)
+          val (subject, body) = templateHandler.mustache(transaction.vendor, "download-bill", Some(langCountry), jsonString)
           pdfHandler.convertToPdf(pageFormat, body)
         } else throw new PaymentNotConfirmedException(transactionUuid)
       }
