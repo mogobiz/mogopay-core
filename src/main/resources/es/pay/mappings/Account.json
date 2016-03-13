@@ -28,8 +28,7 @@
             "index": "not_analyzed"
           },
           "lastName": {
-            "type": "string",
-            // Make case insensitive search work.
+            "type": "string"// , Make case insensitive search work.
             //"index": "not_analyzed"
           },
           "company": {
@@ -112,10 +111,12 @@
             "index": "not_analyzed"
           },
           "dateCreated": {
-            "type": "long"
+            "type": "date",
+            "format": "dateOptionalTime"
           },
           "lastUpdated": {
-            "type": "long"
+            "type": "date",
+            "format": "dateOptionalTime"
           },
           "name": {
             "type": "string",
@@ -178,7 +179,8 @@
             "index": "not_analyzed"
           },
           "dateCreated": {
-            "type": "long"
+            "type": "date",
+            "format":"dateOptionalTime"
           },
           "emailField": {
             "type": "string",
@@ -189,7 +191,8 @@
             "index": "not_analyzed"
           },
           "lastUpdated": {
-            "type": "long"
+            "type": "date",
+            "format":"dateOptionalTime"
           },
           "passwordField": {
             "type": "string",

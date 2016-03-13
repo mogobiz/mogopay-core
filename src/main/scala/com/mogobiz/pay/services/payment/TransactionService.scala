@@ -25,6 +25,8 @@ import com.mogobiz.pay.model.ParamRequest.{ TransactionInit, SelectShippingPrice
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{ SessionESDirectives, Session }
 import com.mogobiz.session.SessionESDirectives._
+import com.mogobiz.system.ActorSystemLocator
+import com.mogobiz.utils.CustomSslConfiguration
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
@@ -34,7 +36,7 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import scala.util.{ Failure, Success }
 
-class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration {
   implicit val timeout = Timeout(40 seconds)
 
   //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
@@ -42,7 +44,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   //    Get("http://maps.googleapis.com/maps/api/elevation/json?locations=27.988056,86.925278&sensor=false")
   //  }
 
-  implicit val system = ActorSystem()
+  implicit val system = ActorSystemLocator()
 
   // execution context for futures
 
@@ -308,11 +310,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           val (serviceName, methodName) = t
           setSession(session) {
             val sessionId = session.id
-            val pipeline: Future[SendReceive] =
-              for (
-                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
-
-              ) yield sendReceive(connector)
+            //            val pipeline: Future[SendReceive] =
+            //              for (
+            //                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
+            //
+            //              ) yield sendReceive(connector)
             val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
             def cleanSession(session: Session) {
               val authenticated = session.sessionData.authenticated
@@ -321,7 +323,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               session.sessionData.authenticated = authenticated
               session.sessionData.accountId = customerId
             }
-            val response = pipeline.flatMap(_(request))
+            //val response = pipeline.flatMap(_(request))
+            val response = sslPipeline(request.uri.authority.host).flatMap(_(request))
             onComplete(response) {
               case Failure(t) =>
                 t.printStackTrace()

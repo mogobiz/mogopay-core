@@ -395,7 +395,7 @@ class TransactionHandler {
     val transactionRequest = transactionRequestHandler.find(transactionUUID.get).getOrElse(
       throw TransactionRequestNotFoundException(s"${transactionUUID.get}"))
 
-    if (transactionRequest.vendor != vendor.uuid)
+    if (transactionRequest.vendorUuid != vendor.uuid)
       throw TransactionRequestWasInitiatedByAnotherMerchantException()
 
     if (sessionData.payers.size > 1 && transactionRequest.groupPaymentExpirationDate.isEmpty)

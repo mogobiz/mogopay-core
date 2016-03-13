@@ -397,7 +397,7 @@ object Mogopay {
     description: Option[String],
     gatewayData: Option[String],
     creditCard: Option[BOCreditCard],
-    shipping: Option[String],
+    shippingInfo: Option[String],
     shippingTrackingNumber: Option[String],
     vendor: Option[Account],
     customer: Option[Account],
@@ -412,7 +412,7 @@ object Mogopay {
     groupPaymentRefundPercentage: Int = 100,
     amount: Long,
     currency: CartRate,
-    vendor: Document,
+    vendorUuid: Document,
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 

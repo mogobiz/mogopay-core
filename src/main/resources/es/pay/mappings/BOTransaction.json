@@ -78,7 +78,6 @@
           },
           "dateCreated": {
             "type": "date",
-            "index": "no",
             "format": "dateOptionalTime"
           },
           "email": {
@@ -95,7 +94,6 @@
           },
           "lastUpdated": {
             "type": "date",
-            "index": "no",
             "format": "dateOptionalTime"
           },
           "loginFailedCount": {
@@ -135,7 +133,7 @@
       },
       "dateCreated": {
         "type": "date",
-        "index": "no"
+        "format": "dateOptionalTime"
       },
       "email": {
         "type": "string",
@@ -153,7 +151,7 @@
         "type": "string",
         "index": "not_analyzed"
       },
-      "shipping": {
+      "shippingInfo": {
         "type": "string",
         "index": "not_analyzed"
       },
@@ -167,7 +165,6 @@
       },
       "lastUpdated": {
         "type": "date",
-        "index": "no",
         "format": "dateOptionalTime"
       },
       "merchantConfirmation": {
@@ -256,7 +253,6 @@
           },
           "dateCreated": {
             "type": "date",
-            "index": "no",
             "format": "dateOptionalTime"
           },
           "email": {
@@ -273,7 +269,6 @@
           },
           "lastUpdated": {
             "type": "date",
-            "index": "no",
             "format": "dateOptionalTime"
           },
           "loginFailedCount": {
@@ -295,7 +290,6 @@
               },
               "dateCreated": {
                 "type": "date",
-                "index": "no",
                 "format": "dateOptionalTime"
               },
               "emailField": {
@@ -308,7 +302,6 @@
               },
               "lastUpdated": {
                 "type": "date",
-                "index": "no",
                 "format": "dateOptionalTime"
               },
               "passwordField": {

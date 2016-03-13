@@ -309,7 +309,7 @@ object DBInitializer {
       description = None,
       gatewayData = None,
       creditCard = Some(creditCard),
-      shipping = None,
+      shippingInfo = None,
       shippingTrackingNumber = None,
       vendor = Some(vendor),
       customer = Some(customer),
