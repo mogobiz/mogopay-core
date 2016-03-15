@@ -4,19 +4,15 @@
 
 package com.mogobiz.pay.model
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import com.fasterxml.jackson.module.scala.{ JsonScalaEnumeration, DefaultScalaModule }
-import com.mogobiz.pay.common.{ Coupon, CartItem, CartRate, Cart }
-import com.mogobiz.pay.handlers.shipping.ShippingPrice
-import com.mogobiz.pay.model.Mogopay._
-import java.util.{ Date, Calendar }
-import com.mogobiz.pay.model.Mogopay.Account
-import com.mogobiz.pay.model.Mogopay.AccountAddress
-import com.mogobiz.pay.model.Mogopay.Telephone
-import com.mogobiz.pay.model.Mogopay.AccountStatus
+import java.util.{ Calendar, Date }
+
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.fasterxml.jackson.databind.{ ObjectWriter, ObjectMapper }
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
+import com.fasterxml.jackson.module.scala.{ DefaultScalaModule, JsonScalaEnumeration }
+import com.mogobiz.pay.common.{ Cart, CartItem, CartRate, Coupon }
+import com.mogobiz.pay.handlers.shipping.ShippingPrice
+import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, Telephone, _ }
 import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
 import scala.util.control.NonFatal

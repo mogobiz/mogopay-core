@@ -73,7 +73,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
         threeDSResult = systempayClient.check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
 
-        if (Option(threeDSResult).map(_.code) == Some(ResponseCode3DS.APPROVED)) {
+        if (Option(threeDSResult).map(_.code).contains(ResponseCode3DS.APPROVED)) {
           sessionData.waitFor3DS = true
           val form =
             s"""
@@ -116,7 +116,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         handleResponse(params, sessionData.locale, TransactionStep.DONE)
       } else {
         PaymentResult(
-          newUUID, null, -1L, "", null, null, "", "", null, "", "",
+          newUUID, null, -1L, "", null, null, "", "", paymentRequest.orderDate, "", "",
           if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
             PaymentStatus.COMPLETE
           } else {
@@ -283,14 +283,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val cbParams = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
     val certificate = cbParams("systempayCertificate")
 
-    val previousTxInfo = queryStringToMap(boTx.gatewayData.getOrElse(""),
-      sep = SystempayClient.QUERY_STRING_SEP,
-      elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP)
-
     val shopId = cbParams("systempayShopId")
-    val transmissionDate = createGregorianCalendar(new Date(previousTxInfo("transmissionDate").toLong))
-    val transactionId = previousTxInfo("transactionId")
-    val sequenceNb = 1
+
+    val transmissionDate = createGregorianCalendar(paymentResult.orderDate)
+    val transactionId = paymentResult.gatewayTransactionId
+    val sequenceNb = paymentResult.transactionSequence
     val ctxMode = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val newTransactionId = "%06d".format(transactionSequenceHandler.nextTransactionId(boTx.vendor.get.uuid))
     val devise = boTx.currency.numericCode
@@ -322,7 +319,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
       shopId,
       transmissionDate,
       transactionId,
-      sequenceNb,
+      sequenceNb.toInt,
       ctxMode,
       newTransactionId,
       amount,
@@ -428,7 +425,16 @@ class SystempayClient {
           vads_version,
           certificat).mkString("+"))
 
+      val sep = SystempayClient.QUERY_STRING_SEP
+      val elementsSep = SystempayClient.QUERY_STRING_ELEMENTS_SEP
+      val gatewayData = Map(
+        "transmissionDate" -> paymentRequest.orderDate.getTime,
+        "transactionId" -> vads_trans_id,
+        "sequenceNb" -> vads_trans_id
+      ).map({ case (k, v) => s"$k$elementsSep$v" }).mkString(sep)
+
       paymentResult = paymentResult.copy(
+        gatewayTransactionId = vads_trans_id,
         data =
           s"""
       <html>
@@ -468,7 +474,8 @@ class SystempayClient {
         cvv = paymentRequest.cvv
       )
       val gcalendar: GregorianCalendar = new GregorianCalendar
-      gcalendar.setTime(new Date)
+      val orderDate = new Date
+      gcalendar.setTime(orderDate)
       val xmlCalendar: XMLGregorianCalendar = DatatypeFactory.newInstance.newXMLGregorianCalendar(gcalendar)
       val expCalendar: GregorianCalendar = new GregorianCalendar
       expCalendar.setTime(paymentRequest.expirationDate)
@@ -543,7 +550,7 @@ class SystempayClient {
         ccNumber = paymentRequest.ccNumber,
         expirationDate = paymentRequest.expirationDate,
         cvv = paymentRequest.cvv,
-        orderDate = new Date,
+        orderDate = orderDate,
         errorCodeOrigin = code.toString,
         errorMessageOrigin = if (code == 5) Option(info.getExtendedErrorCode) else Some(SystempayClient.getExtendedMessage(code)),
         bankErrorCode = info.getAuthResult.toString,
