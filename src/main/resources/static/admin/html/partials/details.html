@@ -105,8 +105,8 @@
 										<span style="padding-left: 10px;"><i class="glyphicon glyphicon-calendar"></i>{{card.birthdate | date:'dd/MM/yyyy'}}</span>
 									</div>
 								</td>
-								<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
-								<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
+								<td>{{item.totalPrice * cartDetails.currencyRate | priceFilter}}</td>
+								<td>{{item.totalEndPrice * cartDetails.currencyRate | priceFilter}}</td>
 								<td>{{item.quantity}}</td>
 								<td>
 									<span ng-if="item.principal.product.calendarType != NO_DATE">
