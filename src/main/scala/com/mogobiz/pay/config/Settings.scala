@@ -195,6 +195,7 @@ object Settings {
     val Anonymous = config getBoolean "mogopay.anonymous"
     val BaseEndPoint = s"$Protocol://$Host:$Port"
     val EndPoint = s"${BaseEndPoint}/api/pay/"
+    val isHTTPS = Protocol.equalsIgnoreCase("https")
 
     require(Secret.nonEmpty, "mogopay.secret must be non-empty")
     require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")

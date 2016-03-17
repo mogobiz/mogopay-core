@@ -310,11 +310,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           val (serviceName, methodName) = t
           setSession(session) {
             val sessionId = session.id
-            //            val pipeline: Future[SendReceive] =
-            //              for (
-            //                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
-            //
-            //              ) yield sendReceive(connector)
             val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
             def cleanSession(session: Session) {
               val authenticated = session.sessionData.authenticated
@@ -323,8 +318,12 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               session.sessionData.authenticated = authenticated
               session.sessionData.accountId = customerId
             }
-            //val response = pipeline.flatMap(_(request))
-            val response = sslPipeline(request.uri.authority.host).flatMap(_(request))
+            val response = if (Settings.Mogopay.isHTTPS) sslPipeline(request.uri.authority.host).flatMap(_(request)) else {
+              val pipeline: Future[SendReceive] = for (
+                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
+              ) yield sendReceive(connector)
+              pipeline.flatMap(_(request))
+            }
             onComplete(response) {
               case Failure(t) =>
                 t.printStackTrace()
