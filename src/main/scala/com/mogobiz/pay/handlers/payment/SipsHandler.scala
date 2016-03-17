@@ -126,7 +126,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
           Right(finishPayment(sessionData, resultat))
         } else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
         }
       } else {
         val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)

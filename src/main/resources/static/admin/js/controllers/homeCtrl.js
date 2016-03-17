@@ -7,7 +7,6 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
 		var success = function (response) {
 			$rootScope.xtoken = response;
 			$rootScope.isMerchant = false;
-			$rootScope.xtoken = response;
 			$scope.$apply();
 			navigateToPage($scope, $location, $rootScope, $route, "login");
 		}
@@ -17,7 +16,6 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
 		var success = function (response) {
                 $rootScope.xtoken = response;
 				$rootScope.isMerchant = true;
-				$rootScope.xtoken = response;
 				$scope.$apply();
 				navigateToPage($scope, $location, $rootScope, $route, "login");
             }
