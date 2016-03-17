@@ -56,14 +56,8 @@ mogopay.directive('ngFileChange', function() {
 mogopay.filter("priceFilter", [
 function() { // should be altered to suit your needs
     return function(input) {
-    input = parseFloat(input);
-    if(input % 1 === 0) {
-      input = input.toFixed(0);
-    }
-    else {
-      input = input.toFixed();
-    }
-
-    return input.toString();
-  };
+		input = parseFloat(input);
+		input = input.toFixed(2);
+		return input.toString();
+	};
 }]);
