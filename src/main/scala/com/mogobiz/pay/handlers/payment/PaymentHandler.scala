@@ -33,6 +33,7 @@ trait PaymentHandler {
   def paymentType: PaymentType
 
   def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult
+
   /**
    * Returns the redirection page's URL
    */
@@ -145,14 +146,14 @@ trait PaymentHandler {
           val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
           val data =
             s"""
-              |{
-              |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
-              |  "firstPayer":  "$payerName",
-              |  "url":         "$uri",
-              |  "amount":      "$amount",
-              |  "transaction": $jsonTx
-              |}
-              |""".stripMargin
+               |{
+               |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
+               |  "firstPayer":  "$payerName",
+               |  "url":         "$uri",
+               |  "amount":      "$amount",
+               |  "transaction": $jsonTx
+               |}
+               |""".stripMargin
           val (subject, body) = templateHandler.mustache(Option(merchant), "mail-group-payment", locale, data)
 
           val senderName = merchant.paymentConfig.get.senderName
@@ -171,9 +172,9 @@ trait PaymentHandler {
 
   def startPayment(sessionData: SessionData): Either[String, Uri]
 
-  def createThreeDSNotEnrolledResult(): PaymentResult = {
+  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResult = {
     PaymentResult(
-      transactionSequence = GlobalUtil.newUUID,
+      transactionSequence = paymentRequest.transactionSequence,
       orderDate = null,
       amount = -1L,
       ccNumber = "",

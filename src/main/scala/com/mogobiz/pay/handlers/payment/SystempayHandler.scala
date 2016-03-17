@@ -95,7 +95,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           val paymentResult = systempayClient.submit(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
           Right(finishPayment(sessionData, paymentResult))
         } else {
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
         }
       } else {
         val paymentResult = systempayClient.submit(sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
@@ -116,7 +116,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         handleResponse(params, sessionData.locale, TransactionStep.DONE)
       } else {
         PaymentResult(
-          newUUID, null, -1L, "", null, null, "", "", paymentRequest.orderDate, "", "",
+          params("vads_trans_id"),
+          new SimpleDateFormat("yyyyMMddHHmmss").parse(params("vads_trans_date")),
+          params("vads_amount").toLong,
+          params("vads_card_number"),
+          null, null, "", params("vads_trans_uuid"), paymentRequest.orderDate, "", "",
           if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
             PaymentStatus.COMPLETE
           } else {
@@ -156,7 +160,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           CreditCardType.CB
       }
 
-      var pr = PaymentResult(transaction.uuid,
+      var pr = PaymentResult(params.getOrElse("vads_sequence_number", "0"),
         transaction.dateCreated,
         transaction.amount,
         params("vads_card_number"),

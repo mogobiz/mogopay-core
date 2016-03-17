@@ -35,8 +35,8 @@ object Run extends App {
       file =>
         val id = file.getName
         val source = scala.io.Source.fromFile(new File(file, "_source")).mkString
-        post(s"http://elastic.ebiznext.com/mogopay/$typ/$id", source.replaceAll("é", "e").replaceAll("ö", "o").replaceAll("ü", "u").replace("\"shipping\"", "\"shippingInfo\""))
+        post(s"http://elastic.ebiznext.com/mogopay/$typ/$id", source.replaceAll("é", "e").replaceAll("ö", "o").replaceAll("ü", "u").replace("\"shipping\":null", "\"shippingInfo\":null"))
     }
   }
-  indexType("BOTransaction")
+  indexType("BOTransactionLog")
 }

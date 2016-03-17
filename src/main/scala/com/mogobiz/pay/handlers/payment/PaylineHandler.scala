@@ -141,7 +141,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
           Right(finishPayment(sessionData, paymentResult))
         } else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
         }
       } else {
         // on lance un paiement classique

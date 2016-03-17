@@ -7,7 +7,6 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
         callServer("account/customer-token", "", function (response) {
                 $rootScope.xtoken = response;
                     $rootScope.isMerchant = false;
-                    $rootScope.xtoken = response;
                     $scope.$apply();
                     navigateToPage($scope, $location, $rootScope, $route, "login");
             },
@@ -18,7 +17,6 @@ function HomeCtrl($scope, $location, $rootScope, $route) {
             function (response) {
                 $rootScope.xtoken = response;
                     $rootScope.isMerchant = true;
-                    $rootScope.xtoken = response;
                     $scope.$apply();
                     navigateToPage($scope, $location, $rootScope, $route, "login");
             },
