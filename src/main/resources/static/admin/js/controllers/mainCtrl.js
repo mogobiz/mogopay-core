@@ -165,7 +165,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 
 	$rootScope.logout = function () {
 		var success = function(response) {
-			$rootScope.xtoken = null;
+			xtoken = null;
 			$rootScope.isMerchant = null;
 			$rootScope.userProfile = null;
 			$rootScope.transactions = null;
@@ -175,7 +175,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			if(merchantPage == true || customerPage == true)
 				navigateToPage($scope, $location, $rootScope, $route, "login");
 		}
-		callServer("account/logout", "", success, function (response) {}, "GET", true, true, true);
+		callServer("account/logout", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
 	};
 
 	$rootScope.isPageActive = function (route) {
@@ -186,7 +186,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		var success = function (response) {
 			$scope.$apply(function () {
 				$rootScope.allStores = response;
-				$rootScope.selectedStore = response[0];
+				selectedStore = response[0];
 				$rootScope.transactions = null;
 				$rootScope.customers = null;
 				if($rootScope.mogopayGoToProfile){
@@ -197,7 +197,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 					navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
 			});
 		};
-		callServer("account/list-compagnies", "", success, function (response) {}, "GET", false, false, false);
+		callServer("account/list-compagnies", "", success, emptyFunc, "GET", "params", "pay", false, false, false);
 	};
 	$scope.urlHistory = [];
 	$scope.$on("$routeChangeSuccess", function () {
@@ -254,7 +254,7 @@ function validationConfirmSignUp(scope, location, rootScope, route){
 		scope.validationError = true;
 		scope.$apply();
 	}
-	callServer("account/confirm-signup", dataToSend, success, error, "GET", true, false, true);
+	callServer("account/confirm-signup", dataToSend, success, error, "GET", "params", "pay", true, false, true);
 }
 
 function validationGetUserProfile(scope, location, rootScope, route){
@@ -265,5 +265,5 @@ function validationGetUserProfile(scope, location, rootScope, route){
 			window.location.href = deployUrl + "customer.html";
 	}
 	var error = function(response){}
-	callServer("account/profile-info", "", success, error, "GET", true, true, true);
+	callServer("account/profile-info", "", success, error, "GET", "params", "pay", true, true, true);
 }

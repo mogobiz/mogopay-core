@@ -17,7 +17,7 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
             $scope.$apply();
             navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
-        callServer("account/profile-info", "", success, function (response) {}, "GET", true, false, true);
+        callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
     };
 	$scope.historyDetails = null;
 	$rootScope.returnDetails = null;
@@ -54,7 +54,7 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 			scope.historyDetails = response.list;
 		});
 	};
-	callStoreServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, function (response) {}, rootScope.selectedStore, "GET", true, true, true);
+	callServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, emptyFunc, "GET", "params", "store", true, true, true);
 }
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
@@ -88,7 +88,7 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 		if(rootScope.isMerchant)
 			detailsGetOrderLogs(scope, location, rootScope, route);
 	};
-	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, error, rootScope.selectedStore, "GET", true, true, true);
+	callServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, error, "GET", "params", "store", true, true, true);
 }
 
 function detailsGetOrderLogs(scope, location, rootScope, route){
@@ -104,7 +104,7 @@ function detailsGetOrderLogs(scope, location, rootScope, route){
 			rootScope.logsDetails = response;
 		});
 	};
-	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, function (response) {}, "GET", false, false, false);
+	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, emptyFunc, "GET", "params", "pay", false, false, false);
 }
 
 function detailsRefundCheckAll(scope, location, rootScope, route){

@@ -20,9 +20,9 @@ function changePasswordSave(scope, location, rootScope, route, email){
 		showAlertBootStrapMsg("success", rootScope.resourceBundle.message_change_password);
 		navigateToPage(scope, location, rootScope, route, "profile");
 	}
-	var failure = function(status){
+	var error = function(status){
 		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_change_password);
 	};
 	var dataToSend = "current_password=" + $("#changePasswordCurrent").val() + "&new_password=" + $("#changePasswordNew").val();
-	callServer("account/update-password", dataToSend, success, failure, "GET", true, false, true);
+	callServer("account/update-password", dataToSend, success, error, "GET", "params", "pay", true, false, true);
 }
