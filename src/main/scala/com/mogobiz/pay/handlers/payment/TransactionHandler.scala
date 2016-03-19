@@ -224,7 +224,7 @@ class TransactionHandler {
         val (subject, body) = templateHandler.mustache(Some(vendor), "mail-order", locale, jsonString)
         EmailHandler.Send(
           Mail(
-            (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
+            transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
             List(transaction.email.get), List(), List(), subject, body, Some(body), None
           ))
       } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
@@ -235,13 +235,31 @@ class TransactionHandler {
 
   def notifySuccessPayment(transaction: BOTransaction, locale: Option[String]): Unit = {
     try {
-      transaction.vendor.map { vendor =>
+      transaction.vendor.foreach { vendor =>
         if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
           val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
           EmailHandler.Send(
             Mail(
-              (transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}"""),
+              transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
+              List(transaction.email.get), List(), List(), subject, body, Some(body), None
+            ))
+        }
+      }
+    } catch {
+      case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
+    }
+  }
+
+  def notifySuccessRefund(transaction: BOTransaction, locale: Option[String]): Unit = {
+    try {
+      transaction.vendor.foreach { vendor =>
+        if (transaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
+          val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+          val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-refund", locale, jsonString)
+          EmailHandler.Send(
+            Mail(
+              transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
               List(transaction.email.get), List(), List(), subject, body, Some(body), None
             ))
         }
@@ -258,7 +276,7 @@ class TransactionHandler {
       case "CB" => CB
       case "VISA" | "VISA_ELECTRON" => VISA
       case "AMEX" => AMEX
-      case x if (x.startsWith("MASTERCARD")) => MASTER_CARD
+      case x if x.startsWith("MASTERCARD") => MASTER_CARD
       case _ => CB
     }
   }
@@ -675,8 +693,7 @@ class TransactionHandler {
     (account, txReq, groupTxUUID, successURL, failureURL)
   }
 
-  def refund(merchantSecret: String, boTransactionUUID: String, maybeAmount: Option[Long] = None) {
-
+  def refund(merchantSecret: String, boTransactionUUID: String, maybeAmount: Option[Long] = None, locale: Option[String]) {
     type Params = (PaymentConfig, BOTransaction, Long)
     val handlers = Map(
       CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2, p._3, null)),
@@ -710,6 +727,7 @@ class TransactionHandler {
 
     if (refundResult.status == PaymentStatus.REFUNDED) {
       updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
+      notifySuccessRefund(boTransaction, locale)
     } else {
       val message = refundResult.errorMessage.map(s => s" — $s").getOrElse("")
       throw new RefundException(s"[${

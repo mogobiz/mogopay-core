@@ -193,9 +193,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val refund = path("refund") {
     get {
-      val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid)
-      params { (merchantSecret, amount, boTransactionUUID) =>
-        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount)),
+      val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid, 'locale.?)
+      params { (merchantSecret, amount, boTransactionUUID, locale) =>
+        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount), locale),
           (_: Any) => complete(200 -> "")
         )
       }
