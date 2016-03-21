@@ -743,7 +743,7 @@ class TransactionHandler {
     transactions
       .filter(tx => tx.groupPaymentExpirationDate.exists(_ * 1000 <= (new Date).getTime))
       .filter(tx => tx.status == TransactionStatus.PAYMENT_CONFIRMED)
-      .foreach(transaction => transactionHandler.refund(transaction.vendor.get.secret, transaction.uuid))
+      .foreach(transaction => transactionHandler.refund(transaction.vendor.get.secret, transaction.uuid, Some(transaction.amount), None))
   }
 
   private def serializeCart(cart: CartWithShipping): String = {
