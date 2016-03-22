@@ -85,6 +85,8 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 		});
 	};
 	var error = function (response) {
+		scope.cartDetails = {};
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_details_not_found);
 		if(rootScope.isMerchant)
 			detailsGetOrderLogs(scope, location, rootScope, route);
 	};
