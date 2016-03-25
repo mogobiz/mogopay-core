@@ -81,7 +81,7 @@ class SipsService extends Directives with DefaultComplete {
         import Implicits._
         val session = SessionESDirectives.load(xtoken).get
         handleCall(sipsHandler.callbackPayment(session.sessionData, formData.fields.toMap, vendorUuid),
-          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+          (pr: PaymentResultWithShippingResult) => complete(StatusCodes.OK, pr.paymentResult))
       }
     }
   }

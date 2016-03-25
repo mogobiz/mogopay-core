@@ -184,8 +184,8 @@ class TransactionHandler {
   }
 
   // called by other handlers
-  def finishPayment(transactionUUID: String, newStatus: TransactionStatus,
-    paymentResult: PaymentResult, returnCode: String, locale: Option[String], gatewayData: Option[String] = None): Unit = {
+  def finishPayment(paymentHandler: PaymentHandler, sessionData: SessionData, transactionUUID: String, newStatus: TransactionStatus,
+    paymentResult: PaymentResult, returnCode: String, locale: Option[String], gatewayData: Option[String] = None): PaymentResultWithShippingResult = {
     //    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
     updateStatus(transactionUUID, None, newStatus, Option(returnCode))
 
@@ -201,20 +201,30 @@ class TransactionHandler {
       gatewayData = gatewayData
     )
 
-    val tx = if (paymentResult.transactionDate != null) {
-      val finalTrans = newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-      boTransactionHandler.update(finalTrans, refresh = false)
-      notifyPaymentFinished(finalTrans.copy(extra = None), locale)
-      notifySuccessPayment(finalTrans, locale)
-      finalTrans
-    } else {
-      boTransactionHandler.update(newTx, false)
-      notifyPaymentFinished(newTx.copy(extra = None), locale)
-      notifySuccessPayment(newTx, locale)
-      newTx
-    }
+    val finalTrans = if (paymentResult.transactionDate != null) newTx.copy(transactionDate = Option(paymentResult.transactionDate))
+    else newTx
 
-    Success()
+    // Mise à jour de la transaction et envoi du mail du resultat du paiement
+    boTransactionHandler.update(finalTrans, refresh = false)
+    notifyPaymentFinished(finalTrans.copy(extra = None), locale)
+
+    // commit du shipping
+    val transactionAndErrorShipment = if (paymentResult.status == PaymentStatus.COMPLETE) {
+      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
+        case Success(_) => (finalTrans, None)
+        case Failure(f) => {
+          val refundFinalTrans = finalTrans.copy(status = TransactionStatus.CUSTOMER_REFUNDED, errorCodeOrigin = Option("SHIPMENT_ERROR"), errorMessageOrigin = Some(f.getMessage))
+          boTransactionHandler.update(refundFinalTrans, false)
+          paymentHandler.refund(sessionData.paymentConfig.get, refundFinalTrans, sessionData.amount.get, paymentResult)
+          (refundFinalTrans, Some(f.getMessage))
+        }
+      }
+    } else (finalTrans, None)
+
+    notifySuccessPayment(transactionAndErrorShipment._1, locale)
+    notifySuccessRefund(transactionAndErrorShipment._1, locale)
+
+    new PaymentResultWithShippingResult(paymentResult, transactionAndErrorShipment._2)
   }
 
   def notifyPaymentFinished(transaction: BOTransaction, locale: Option[String]): Unit = {
@@ -234,9 +244,9 @@ class TransactionHandler {
   }
 
   def notifySuccessPayment(transaction: BOTransaction, locale: Option[String]): Unit = {
-    try {
-      transaction.vendor.foreach { vendor =>
-        if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
+    if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
+      try {
+        transaction.vendor.foreach { vendor =>
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
           val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
           EmailHandler.Send(
@@ -245,16 +255,16 @@ class TransactionHandler {
               List(transaction.email.get), List(), List(), subject, body, Some(body), None
             ))
         }
+      } catch {
+        case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
       }
-    } catch {
-      case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
     }
   }
 
   def notifySuccessRefund(transaction: BOTransaction, locale: Option[String]): Unit = {
-    try {
-      transaction.vendor.foreach { vendor =>
-        if (transaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
+    if (transaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
+      try {
+        transaction.vendor.foreach { vendor =>
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
           val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-refund", locale, jsonString)
           EmailHandler.Send(
@@ -263,9 +273,9 @@ class TransactionHandler {
               List(transaction.email.get), List(), List(), subject, body, Some(body), None
             ))
         }
+      } catch {
+        case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
       }
-    } catch {
-      case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
     }
   }
 

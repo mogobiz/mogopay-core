@@ -71,7 +71,7 @@ class PaylineService extends Directives with DefaultComplete {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
         handleCall(paylineHandler.callbackPayment(session.sessionData, params),
-          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+          (pr: PaymentResultWithShippingResult) => complete(StatusCodes.OK, pr.paymentResult))
       }
     }
   }

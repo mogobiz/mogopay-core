@@ -37,31 +37,14 @@ trait PaymentHandler {
   /**
    * Returns the redirection page's URL
    */
-  protected def finishPayment(sessionData: SessionData, paymentResult: PaymentResult): Uri = {
+  protected def finishPayment(sessionData: SessionData, paymentResultWithShippingResult: PaymentResultWithShippingResult): Uri = {
+    val paymentResult = paymentResultWithShippingResult.paymentResult
     val errorURL = sessionData.errorURL.getOrElse("")
     val successURL = sessionData.successURL.getOrElse("")
     val transactionUUID = sessionData.transactionUuid.getOrElse("")
     val transactionSequence = if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
     val success = paymentResult.status == PaymentStatus.COMPLETE
-
-    val errorShipment = if (success) {
-      val transaction = boTransactionHandler.find(transactionUUID)
-        .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
-
-      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
-        case Success(_) => None
-        case Failure(f) => {
-          val newTx = transaction.copy(
-            errorCodeOrigin = Option("SHIPMENT_ERROR"),
-            errorMessageOrigin = Some(f.getMessage)
-          )
-          boTransactionHandler.update(newTx, false)
-          //TODO faire l'appel à l'annulation du paiement
-          refund(sessionData.paymentConfig.get, newTx, sessionData.amount.get, paymentResult)
-          Some(f.getMessage)
-        }
-      }
-    } else None
+    val errorShipment = paymentResultWithShippingResult.errorShipment
 
     val query = Query(
       "result" -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),
@@ -172,8 +155,8 @@ trait PaymentHandler {
 
   def startPayment(sessionData: SessionData): Either[String, Uri]
 
-  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResult = {
-    PaymentResult(
+  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResultWithShippingResult = {
+    val paymentResult = PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = null,
       amount = -1L,
@@ -193,6 +176,7 @@ trait PaymentHandler {
       bankErrorMessage = Some(BankErrorCodes.getErrorMessage("12")),
       token = ""
     )
+    PaymentResultWithShippingResult(paymentResult, None)
   }
 }
 
