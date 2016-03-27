@@ -109,7 +109,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           data = "",
           bankErrorCode = bankErrorCode,
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(bankErrorCode)),
-          token = ""
+          token = "",
+          errorShipment = None
         )
         val creditCard = BOCreditCard(
           number = ccNumber,
@@ -145,9 +146,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         data = "",
         bankErrorCode = "",
         bankErrorMessage = Some(""),
-        token = ""
+        token = "",
+        errorShipment = None
       )
-      finishPayment(sessionData, new PaymentResultWithShippingResult(paymentResult, None))
+      finishPayment(sessionData, paymentResult)
     }
 
   }
@@ -201,9 +203,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           data = "",
           bankErrorCode = errorCode,
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(errorCode)),
-          token = ""
+          token = "",
+          errorShipment = None
         )
-        finishPayment(sessionData, new PaymentResultWithShippingResult(paymentResult, None))
+        finishPayment(sessionData, paymentResult)
       }
     }
   }
@@ -268,7 +271,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       data = "",
       bankErrorCode = "",
       bankErrorMessage = Some(""),
-      token = ""
+      token = "",
+      errorShipment = None
     )
     val currency: Int = paymentRequest.currency.numericCode
     val site: String = parametres("payboxSite")

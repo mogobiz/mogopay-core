@@ -95,12 +95,11 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     } else {
       transactionHandler.startPayment(vendorUuid, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
       if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val resultatWithShippingResult = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
-        val resultat = resultatWithShippingResult.paymentResult
+        val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
         if (resultat.data != null)
           Left(resultat.data)
         else
-          Right(finishPayment(sessionData, resultatWithShippingResult))
+          Right(finishPayment(sessionData, resultat))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED) {
         val resultat3DS = check3DSecure(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
         if (resultat3DS != null && resultat3DS.code == ResponseCode3DS.APPROVED) {
@@ -136,7 +135,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  def callbackPayment(sessionData: SessionData, params: Map[String, String], vendorUuid: Document): PaymentResultWithShippingResult = {
+  def callbackPayment(sessionData: SessionData, params: Map[String, String], vendorUuid: Document): PaymentResult = {
     handleResponse(sessionData, vendorUuid, params("DATA"), sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
     //Uri(Settings.Mogopay.EndPoint)
   }
@@ -176,11 +175,11 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val amount = sessionData.amount
     val errorURL = sessionData.errorURL
     val successURL = sessionData.successURL
-    var resultatPaiement: PaymentResultWithShippingResult =
+    var resultatPaiement: PaymentResult =
       if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.PAYMENT_REFUSED) {
         handleResponse(sessionData, vendorId, params("DATA"), sessionData.locale, TransactionStep.DONE)
       } else {
-        val paymentResult = PaymentResult(
+        PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
           if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
             PaymentStatus.COMPLETE
@@ -188,15 +187,15 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
             PaymentStatus.FAILED
           },
           transaction.errorCodeOrigin.getOrElse(""),
-          transaction.errorMessageOrigin, "", "", Some(""), "")
-        PaymentResultWithShippingResult(paymentResult, None)
+          transaction.errorMessageOrigin, "", "", Some(""), "", None)
+
       }
     finishPayment(sessionData, resultatPaiement)
 
   }
 
   private def handleResponse(sessionData: SessionData, vendorUuid: Document, cypheredtxt: String, locale: Option[String],
-    step: TransactionStep): PaymentResultWithShippingResult = {
+    step: TransactionStep): PaymentResult = {
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
     val targetFile: File = new File(dir, "pathfile")
     val api = new SIPSApiWeb(targetFile.getAbsolutePath)
@@ -288,7 +287,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       data = null,
       bankErrorCode = resp.getValue("bank_response_code"),
       bankErrorMessage = Option(BankErrorCodes.getErrorMessage(resp.getValue("bank_response_code"))),
-      token = null)
+      token = null,
+      errorShipment = None)
 
     transactionHandler.finishPayment(this, sessionData, transactionUuid,
       if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
@@ -353,7 +353,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     resultat
   }
 
-  private[payment] def order3D(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResultWithShippingResult = {
+  private[payment] def order3D(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): PaymentResult = {
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
@@ -429,14 +429,15 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       authorizationId = authorisation_id,
       status = if (diag_response_code == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
       token = null,
-      data = null
+      data = null,
+      errorShipment = None
     )
     transactionHandler.finishPayment(this, sessionData, transactionUuid, computeTransactionStatus(paymentResult.status),
       paymentResult, paymentResult.errorCodeOrigin, sessionData.locale, Option(transaction_id))
   }
 
   private[payment] def submit(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-    paymentRequest: PaymentRequest): PaymentResultWithShippingResult = {
+    paymentRequest: PaymentRequest): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -471,7 +472,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         """			</BODY>
 </HTML>
         """
-      val paymentResult = PaymentResult(
+      PaymentResult(
         transactionSequence = paymentRequest.transactionSequence,
         orderDate = new Date,
         amount = paymentRequest.amount,
@@ -489,9 +490,9 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         authorizationId = null,
         status = null,
         token = null,
-        data = htmlToDsiplay
+        data = htmlToDsiplay,
+        errorShipment = None
       )
-      PaymentResultWithShippingResult(paymentResult, None)
     } else {
       val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
       val targetFile: File = new File(dir, "pathfile")
@@ -562,7 +563,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         authorizationId = authorisation_id,
         status = if (bank_response_code == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
         token = null,
-        data = null
+        data = null,
+        errorShipment = None
       )
       val creditCard = BOCreditCard(
         number = paymentResult.ccNumber,

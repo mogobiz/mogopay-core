@@ -106,13 +106,12 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
           TransactionStep.START_PAYMENT)
         Right(finishPayment(sessionData, paymentResult))
       } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val paymentResultWithShippingResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
-        val paymentResult = paymentResultWithShippingResult.paymentResult
+        val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
         sessionData.token = scala.Option(paymentResult.token)
         if (paymentResult.data != null && paymentResult.data.nonEmpty) {
           Left(paymentResult.data)
         } else {
-          Right(finishPayment(sessionData, paymentResultWithShippingResult))
+          Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
         threeDSResult = check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
@@ -158,11 +157,11 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     finishPayment(sessionData, paymentResult)
   }
 
-  def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResultWithShippingResult = {
+  def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult = {
     handleResponse(sessionData, params)
   }
 
-  private def handleResponse(sessionData: SessionData, params: Map[String, String]): PaymentResultWithShippingResult = {
+  private def handleResponse(sessionData: SessionData, params: Map[String, String]): PaymentResult = {
     val transactionUuid = sessionData.transactionUuid.get
     val paymentConfig = sessionData.paymentConfig.get
     val vendorId = sessionData.merchantId.get
@@ -288,7 +287,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
 
   private def submit(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
     infosPaiement: PaymentRequest, mogopay: Boolean, locale: scala.Option[String],
-    step: TransactionStep): PaymentResultWithShippingResult = {
+    step: TransactionStep): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -411,7 +410,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       data = null,
       bankErrorCode = "",
       bankErrorMessage = None,
-      token = null
+      token = null,
+      errorShipment = None
     )
 
     paymentResult = if ("00000" == code) {
@@ -434,7 +434,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         bankErrorMessage = scala.Option(BankErrorCodes.getErrorMessage("")),
         status = PaymentStatus.FAILED)
     }
-    val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUuid,
+    paymentResult = transactionHandler.finishPayment(this, sessionData, transactionUuid,
       if ("00000" == code) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
       code,
@@ -444,7 +444,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val botlogIn = BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, step = step)
     boTransactionLogHandler.save(botlogIn, false)
 
-    paymentResultWithShippingResult
+    paymentResult
   }
 
   private def cancel(vendorUuid: Document, transactionUuid: String, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
@@ -496,7 +496,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   def doWebPayment(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-    paymentRequest: PaymentRequest, sessionId: String): PaymentResultWithShippingResult = {
+    paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -602,7 +602,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
      */
     if (result != null && result.getResult != null) {
       if (result.getResult.getCode == "00000") {
-        val paymentResult = PaymentResult(
+        PaymentResult(
           status = null,
           transactionSequence = paymentRequest.transactionSequence,
           orderDate = paymentRequest.orderDate,
@@ -629,8 +629,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
                |<body>
                |</body>
                |</html>
-              """.stripMargin)
-        PaymentResultWithShippingResult(paymentResult, None)
+              """.stripMargin,
+          errorShipment = None)
       } else {
         throw NotAvailablePaymentGatewayException(result.getResult.getCode)
       }
@@ -640,7 +640,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   def getWebPaymentDetails(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
-    paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResultWithShippingResult = {
+    paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
@@ -730,7 +730,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       bankErrorCode = "",
       bankErrorMessage = scala.Option(BankErrorCodes.getErrorMessage("")),
       token = null,
-      data = null)
+      data = null,
+      errorShipment = None
+    )
 
     val creditCard = BOCreditCard(
       number = paymentResult.ccNumber,
