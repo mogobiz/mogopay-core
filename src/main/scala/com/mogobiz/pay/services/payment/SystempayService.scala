@@ -75,7 +75,7 @@ class SystempayService extends Directives with DefaultComplete {
           import Implicits._
           val session = SessionESDirectives.load(xtoken).get
           handleCall(systempayHandler.callbackPayment(session.sessionData, params),
-            (pr: PaymentResultWithShippingResult) => complete(StatusCodes.OK, pr.paymentResult))
+            (pr: PaymentResult) => complete(StatusCodes.OK, pr))
         }
       }
   }

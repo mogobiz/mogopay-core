@@ -64,12 +64,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         val paymentResult = systempayClient.submit(this, sessionData, sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
         Right(finishPayment(sessionData, paymentResult))
       } else if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val paymentResultWithShipping = systempayClient.submit(this, sessionData, sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
-        val paymentResult = paymentResultWithShipping.paymentResult
+        val paymentResult = systempayClient.submit(this, sessionData, sessionData.uuid, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.locale)
         if (paymentResult.data.nonEmpty) {
           Left(paymentResult.data)
         } else {
-          Right(finishPayment(sessionData, paymentResultWithShipping))
+          Right(finishPayment(sessionData, paymentResult))
         }
       } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
         threeDSResult = systempayClient.check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
@@ -112,11 +111,11 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
 
     val transaction = boTransactionHandler.find(transactionUUID).orNull
 
-    val resultatPaiement: PaymentResultWithShippingResult =
+    val resultatPaiement: PaymentResult =
       if (!Array(PAYMENT_CONFIRMED, PAYMENT_REFUSED).contains(transaction.status)) {
         handleResponse(sessionData, params, sessionData.locale, TransactionStep.DONE)
       } else {
-        val paymentResult = PaymentResult(
+        PaymentResult(
           params("vads_trans_id"),
           new SimpleDateFormat("yyyyMMddHHmmss").parse(params("vads_trans_date")),
           params("vads_amount").toLong,
@@ -128,17 +127,16 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
             PaymentStatus.FAILED
           },
           transaction.errorCodeOrigin.getOrElse(""),
-          transaction.errorMessageOrigin, "", "", Some(""), "")
-        PaymentResultWithShippingResult(paymentResult, None)
+          transaction.errorMessageOrigin, "", "", Some(""), "", None)
       }
     finishPayment(sessionData, resultatPaiement)
   }
 
-  def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResultWithShippingResult =
+  def callbackPayment(sessionData: SessionData, params: Map[String, String]): PaymentResult =
     handleResponse(sessionData, params, sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
 
   private def handleResponse(sessionData: SessionData, params: Map[String, String], locale: Option[String],
-    step: TransactionStep): PaymentResultWithShippingResult = {
+    step: TransactionStep): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0 }).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -169,7 +167,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
         vads_card_brand,
         null, "", "", null, "", "", null,
         params("vads_result").toString,
-        Option(BankErrorCodes.getErrorMessage(params("vads_result").toString)), "", "", Some(""), "")
+        Option(BankErrorCodes.getErrorMessage(params("vads_result").toString)), "", "", Some(""), "", None)
 
       val month = params.get("vads_expiry_month") match {
         case None => None
@@ -355,7 +353,7 @@ class SystempayClient {
   implicit val formats = new DefaultFormats {}
 
   def submit(paymentHandler: SystempayHandler, sessionData: SessionData, sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-    paymentRequest: PaymentRequest, locale: Option[String]): PaymentResultWithShippingResult = {
+    paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
@@ -379,7 +377,8 @@ class SystempayClient {
       data = "",
       bankErrorCode = "",
       bankErrorMessage = Some(""),
-      token = ""
+      token = "",
+      None
     )
 
     val currency: Int = paymentRequest.currency.numericCode
@@ -471,7 +470,7 @@ class SystempayClient {
       </html>
                """
       )
-      PaymentResultWithShippingResult(paymentResult, None)
+      paymentResult
     } else {
       paymentResult = paymentResult.copy(
         cardType = paymentRequest.cardType,
@@ -689,7 +688,7 @@ class SystempayClient {
   }
 
   def cancel(paymentHandler: SystempayHandler, sessionData: SessionData, sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-    paymentRequest: PaymentRequest, locale: Option[String]): PaymentResultWithShippingResult = {
+    paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
     val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
@@ -713,7 +712,8 @@ class SystempayClient {
       data = "",
       bankErrorCode = "",
       bankErrorMessage = Some(""),
-      token = ""
+      token = "",
+      None
     )
 
     val currency: Int = paymentRequest.currency.numericCode

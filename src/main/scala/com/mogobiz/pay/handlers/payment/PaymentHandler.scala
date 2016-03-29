@@ -37,14 +37,13 @@ trait PaymentHandler {
   /**
    * Returns the redirection page's URL
    */
-  protected def finishPayment(sessionData: SessionData, paymentResultWithShippingResult: PaymentResultWithShippingResult): Uri = {
-    val paymentResult = paymentResultWithShippingResult.paymentResult
+  protected def finishPayment(sessionData: SessionData, paymentResult: PaymentResult): Uri = {
     val errorURL = sessionData.errorURL.getOrElse("")
     val successURL = sessionData.successURL.getOrElse("")
     val transactionUUID = sessionData.transactionUuid.getOrElse("")
     val transactionSequence = if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
     val success = paymentResult.status == PaymentStatus.COMPLETE
-    val errorShipment = paymentResultWithShippingResult.errorShipment
+    val errorShipment = paymentResult.errorShipment
 
     val query = Query(
       "result" -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),
@@ -155,8 +154,8 @@ trait PaymentHandler {
 
   def startPayment(sessionData: SessionData): Either[String, Uri]
 
-  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResultWithShippingResult = {
-    val paymentResult = PaymentResult(
+  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResult = {
+    PaymentResult(
       transactionSequence = paymentRequest.transactionSequence,
       orderDate = null,
       amount = -1L,
@@ -174,9 +173,9 @@ trait PaymentHandler {
       data = "",
       bankErrorCode = "12",
       bankErrorMessage = Some(BankErrorCodes.getErrorMessage("12")),
-      token = ""
+      token = "",
+      None
     )
-    PaymentResultWithShippingResult(paymentResult, None)
   }
 }
 

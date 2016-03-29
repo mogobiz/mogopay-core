@@ -185,7 +185,7 @@ class TransactionHandler {
 
   // called by other handlers
   def finishPayment(paymentHandler: PaymentHandler, sessionData: SessionData, transactionUUID: String, newStatus: TransactionStatus,
-    paymentResult: PaymentResult, returnCode: String, locale: Option[String], gatewayData: Option[String] = None): PaymentResultWithShippingResult = {
+    paymentResult: PaymentResult, returnCode: String, locale: Option[String], gatewayData: Option[String] = None): PaymentResult = {
     //    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
     updateStatus(transactionUUID, None, newStatus, Option(returnCode))
 
@@ -223,8 +223,7 @@ class TransactionHandler {
 
     notifySuccessPayment(transactionAndErrorShipment._1, locale)
     notifySuccessRefund(transactionAndErrorShipment._1, locale)
-
-    new PaymentResultWithShippingResult(paymentResult, transactionAndErrorShipment._2)
+    paymentResult.copy(errorShipment = transactionAndErrorShipment._2)
   }
 
   def notifyPaymentFinished(transaction: BOTransaction, locale: Option[String]): Unit = {

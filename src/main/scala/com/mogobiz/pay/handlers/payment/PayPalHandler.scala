@@ -115,7 +115,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       throw InvalidContextException(s"$tokenFromParams unknown")
     } else {
       val paymentResult = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
-        "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
+        "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token, None)
       val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUuid, TransactionStatus.PAYMENT_REFUSED, paymentResult, "Cancel", sessionData.locale)
       finishPayment(sessionData, paymentResultWithShippingResult)
     }
@@ -181,7 +181,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
   private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
     paymentRequest: PaymentRequest, token: String, payerId: String,
-    sessionData: SessionData, step: TransactionStep): PaymentResultWithShippingResult = {
+    sessionData: SessionData, step: TransactionStep): PaymentResult = {
     accountHandler.load(vendorId).map {
       account =>
         val parameters = paymentConfig.paypalParam.map(parse(_).extract[Map[String, String]])
@@ -209,7 +209,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           data = null,
           bankErrorCode = null,
           bankErrorMessage = None,
-          token = token
+          token = token,
+          errorShipment = None
         )
 
         val amount = paymentRequest.amount.toDouble / 100.0

@@ -247,7 +247,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
       data = "",
       bankErrorCode = "",
       bankErrorMessage = None,
-      token = ""
+      token = "",
+      None
     )
 
     val anetTransactionId = params("x_trans_id")
@@ -269,7 +270,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val paymentResult = PaymentResult(
       newUUID, null, -1L, "", null, null, "", "", null, "", "", PaymentStatus.CANCELED,
       transaction.errorCodeOrigin.getOrElse(""),
-      transaction.errorMessageOrigin, "", "", Some(""), "")
+      transaction.errorMessageOrigin, "", "", Some(""), "", None)
 
     val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, sessionData.transactionUuid.getOrElse(""),
       TransactionStatus.CANCEL_CONFIRMED, paymentResult, "", sessionData.locale)
