@@ -313,7 +313,7 @@ class TransactionHandler {
     val durationOK = duration < Settings.TransactionDuration
     if (!durationOK) {
       throw TransactionTimeoutException(MogopayConstant.Timeout.toString)
-    } else if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED) {
+    } else if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.CUSTOMER_REFUNDED) {
       throw PaymentNotConfirmedException(MogopayConstant.PaymentNotConfirmed)
     } else if (transaction.merchantConfirmation) {
       throw TransactionAlreadyConfirmedException(MogopayConstant.TransactionAlreadyConfirmed)
