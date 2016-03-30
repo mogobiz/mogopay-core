@@ -15,7 +15,8 @@ var mogopay = angular.module("mogopay",  ["ngRoute","ngI18n"]).
             when("/profile",			{templateUrl: "partials/profile.html",				controller: ProfileCtrl}).
             when("/details",			{templateUrl: "partials/details.html",				controller: DetailsCtrl}).
             when("/signup",				{templateUrl: "partials/signup.html",				controller: SignupCtrl}).
-            when("/passwordChange",		{templateUrl: "partials/passwordChange.html",		controller: PasswordChangeCtrl}).
+            when("/changePassword",		{templateUrl: "partials/changePassword.html",		controller: ChangePasswordCtrl}).
+            when("/forgetPassword",		{templateUrl: "partials/forgetPassword.html",		controller: ForgetPasswordCtrl}).
             when("/validation",			{templateUrl: "partials/validation.html",			controller: ValidationCtrl}).
             when("/return",				{templateUrl: "partials/return.html",				controller: ReturnCtrl}).
             otherwise({redirectTo: "/login"} );
@@ -51,3 +52,14 @@ mogopay.directive('ngFileChange', function() {
 		}
 	};
 });
+
+mogopay.filter("priceFilter", [
+function() { // should be altered to suit your needs
+    return function(input) {
+		if(isNaN(input))
+			return "";
+		input = parseFloat(input);
+		input = input.toFixed(2);
+		return input.toString();
+	};
+}]);

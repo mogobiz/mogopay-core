@@ -14,10 +14,10 @@ function ListCustomersCtrl($scope, $location, $rootScope, $route){
             $scope.$apply();
             navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
-        callServer("account/profile-info", "", success, function (response) {});
+        callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
     };
-	$rootScope.selectedStore = $rootScope.allStores[0];
-	$scope.customersSelectedStore = $rootScope.selectedStore;
+	selectedStore = $rootScope.allStores[0];
+	$scope.customersSelectedStore = selectedStore;
 	$scope.listCustomersSearch =  function () {listCustomersSearch($scope, $location, $rootScope, $route)};
 	$scope.gotToCustomerDetails =  function (index) {gotToCustomerDetails($scope, $location, $rootScope, $route, index)};
 	$scope.customersChangeStore =  function () {customersChangeStore($scope, $location, $rootScope, $route)};
@@ -30,18 +30,15 @@ function listCustomersSearch(scope, location, rootScope, route){
 		});
 	};
 	var dataToSend = "";
-
 	if ($.trim($("#listCustomersEmail").val()) != ""){
 		dataToSend += "email=" + $("#listCustomersEmail").val();
 	}
-
 	if ($.trim($("#listCustomersLastName").val()) != ""){
 		if(dataToSend != "")
 			dataToSend += "&";
 		dataToSend += "lastName=" + $("#listCustomersLastName").val();
 	}
-
-	callStoreServer("backoffice/listCustomers", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET");
+	callServer("backoffice/listCustomers", dataToSend, success, emptyFunc, "GET", "params", "store", true, true, true);
 }
 
 function gotToCustomerDetails(scope, location, rootScope, route, index){
@@ -51,5 +48,5 @@ function gotToCustomerDetails(scope, location, rootScope, route, index){
 }
 
 function customersChangeStore(scope, location, rootScope, route){
-	rootScope.selectedStore = scope.customersSelectedStore;
+	selectedStore = scope.customersSelectedStore;
 }

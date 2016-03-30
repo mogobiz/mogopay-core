@@ -5,12 +5,12 @@
 <header ng-include src="'partials/header.html'"></header>
 <div>
     <div class="panel panel-default">
-        <div class="panel-heading"><h3 class="panel-title">Enter Query</h3></div>
+        <div class="panel-heading"><h3 class="panel-title">{{resourceBundle.transactions_title}}</h3></div>
         <div class="panel-body">
             <form role="form" class="form-horizontal">
 				<div class="form-group" style="padding:0px 3px;">
 					<div style="padding:0px 3px;">
-						<label for="listTransactionsStore">Store</label>
+						<label for="listTransactionsStore">{{resourceBundle.transactions_store}}</label>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
 						<select class="form-control" id="listTransactionsStore" ng-model="transactionsSelectedStore" ng-options="comp as comp for comp in allStores" ng-change="transactionsChangeStore()" ng-show="allStores.length > 1"></select>
@@ -19,7 +19,7 @@
 				</div>
                 <div class="form-group">
                     <div style="padding:0px 3px;">
-                        <label for="listTransactionsEmail">Customer Email</label>
+                        <label for="listTransactionsEmail">{{resourceBundle.transactions_customer_email}}</label>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
                         <input type="email" class="form-control" id="listTransactionsEmail" autofocus/>
@@ -27,7 +27,7 @@
                 </div>
                 <div class="form-group" style="padding:0px 3px;">
                     <div style="padding:0px 3px;">
-                        <label for="listTransactionsAmount">Transaction Amount</label>
+                        <label for="listTransactionsAmount">{{resourceBundle.transactions_trans_amount}}</label>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
                         <input type="text" class="form-control" id="listTransactionsAmount"/>
@@ -35,27 +35,23 @@
                 </div>
                 <div class="form-group" style="padding:0px 3px;">
                     <div style="padding:0px 3px;">
-                        <label for="listTransactionsStatus">Transaction Status</label>
+                        <label for="listTransactionsStatus">{{resourceBundle.transactions_trans_status}}</label>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-                        <select class="form-control" id="listTransactionsStatus">
-							<option value="">All</option> 
-						</select>
+                        <select class="form-control" id="listTransactionsStatus" ng-model="listTransactionsStatus" ng-options="option.value as option.label for option in transactionStatusValues"></select>
                     </div>
                 </div>
                 <div class="form-group" style="padding:0px 3px;">
                     <div style="padding:0px 3px;">
-                        <label for="listTransactionsDelivery">Delivery Status</label>
+                        <label for="listTransactionsDelivery">{{resourceBundle.transactions_delivery_status}}</label>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-                        <select class="form-control" id="listTransactionsDelivery">
-							<option value="">All</option> 
-						</select>
+                        <select class="form-control" id="listTransactionsDelivery" ng-model="listTransactionsDelivery" ng-options="option.value as option.label for option in deliveryStatusValues"></select>
                     </div>
                 </div>
                 <div class="form-group">
                     <div style="padding:0px 3px;">
-                        <label>Transaction occurred after</label>
+                        <label>{{resourceBundle.transactions_trans_after}}</label>
                     </div>
                     <div class="col-xs-12 col-sm-3 col-md-3 col-lg-3" style="padding:0px 3px;">
                         <input type="date" class="form-control" id="listTransactionsStartDate"/>
@@ -66,7 +62,7 @@
                 </div>
                 <div class="form-group">
                     <div style="padding:0px 3px;">
-                        <label>Transaction occurred before</label>
+                        <label>{{resourceBundle.transactions_trans_before}}</label>
                     </div>
                     <div class="col-xs-12 col-sm-3 col-md-3 col-lg-3" style="padding:0px 3px;">
                         <input type="date" class="form-control" id="listTransactionsEndDate"/>
@@ -77,7 +73,7 @@
                 </div>
 				<div class="form-group" style="padding:0px 3px;">
 					<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-						<input type="button" class="btn btn-default pull-right" value="Search" ng-click="listTransactionsSearch()"/>
+						<input type="button" class="btn btn-default pull-right" value="{{resourceBundle.btn_search}}" ng-click="listTransactionsSearch()"/>
 					</div>
                 </div>
             </form>
@@ -87,16 +83,16 @@
         <table class="table table-bordered table-striped">
 			<thead>
 				<tr>
-					<th>Name</th>
-					<th>Email</th>
-					<th>Date</th>
-					<th>Amount</th>
-					<th>Card</th>
-					<th>Transaction Status</th>
-					<th>Return Status</th>
-					<th>Delivery Status</th>
-					<th>UUID</th>
-					<th>group UUID</th>
+					<th>{{resourceBundle.transactions_name}}</th>
+					<th>{{resourceBundle.transactions_email}}</th>
+					<th>{{resourceBundle.transactions_date}}</th>
+					<th>{{resourceBundle.transactions_amount}}</th>
+					<th>{{resourceBundle.transactions_card}}</th>
+					<th>{{resourceBundle.transactions_trans_status}}</th>
+					<th>{{resourceBundle.transactions_return_status}}</th>
+					<th>{{resourceBundle.transactions_delivery_status}}</th>
+					<th>{{resourceBundle.transactions_uuid}}</th>
+					<th>{{resourceBundle.transactions_group_uuid}}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -104,24 +100,24 @@
 					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.customer.firstName}} {{transaction.customer.lastName}}</a></td>
 					<td>{{transaction.customer.email}}</td>
 					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>
-					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate}}</td>
+					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate | priceFilter}}</td>
 					<td>
 						<a href="javascript:void(0)" rel="popoverCard">{{transaction.creditCard.number}}</a>
 						<div ng-if="transaction.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
 							<div class="row">
-								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >Card Number:</label>
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >{{resourceBundle.card_number}}:</label>
 								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.number}}</label>
 							</div>
 							<div class="row">
-								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Holder:</label>
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">{{resourceBundle.card_holder}}:</label>
 								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.holder}}</label>
 							</div>
 							<div class="row">
-								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5"> Expiration Date:</label>
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">{{resourceBundle.card_exp_date}}:</label>
 								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
 							</div>
 							<div class="row">
-								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Card Type:</label>
+								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">{{resourceBundle.card_type}}:</label>
 								<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{transaction.creditCard.cardType}}</label>
 							</div>
 						</div>
@@ -140,7 +136,7 @@
 					<td>{{transaction.uuid}}</td>
 					<td>
 						<span ng-if="transaction.groupTransactionUUID != null">{{transaction.groupTransactionUUID}}</span>
-						<span ng-if="transaction.groupTransactionUUID == null"><i>N.A.</i></span>
+						<span ng-if="transaction.groupTransactionUUID == null"><i>{{resourceBundle.not_available}}</i></span>
 					</td>
 				</tr>
 			</tbody>
