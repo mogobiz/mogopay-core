@@ -6,18 +6,26 @@
 	<form role="form" class="form-horizontal">
 		<div class="form-group">
 			<div style="padding:0px 3px;">
-				<label for="authorizeNetLogin">API Login ID</label>
+				<label for="authorizeNetLogin">{{resourceBundle.authorizenet_api_login_id}}</label>
 			</div>
 			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-				<input type="text" class="form-control" id="authorizeNetLogin" placeholder="API Login ID" value="{{cbParam.apiLoginId}}" onchange="anetChangeLogin()" errorMessage="Authorize Net API Login ID and Transaction Key are related!"/>
+				<input type="text" class="form-control" id="authorizeNetLogin" placeholder="{{resourceBundle.authorizenet_api_login_id}}" value="{{cbParam.apiLoginID}}" ng-required="cbParam.transactionKey && cbParam.transactionKey != ''" onchange="anetChangeLogin()" errorMessage="{{resourceBundle.authorizenet_error}}"/>
 			</div>
 		</div>
 		<div class="form-group">
 			<div style="padding:0px 3px;">
-				<label for="authorizeNetTransactionKey">Transaction Key</label>
+				<label for="authorizeNetTransactionKey">{{resourceBundle.authorizenet_transaction_key}}</label>
 			</div>
 			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
-				<input type="text" class="form-control" id="authorizeNetTransactionKey" placeholder="Transaction Key" value="{{cbParam.transactionKey}}" onchange="anetChangeTransactionKey()" errorMessage="Authorize Net API Login ID and Transaction Key are related!"/>
+				<input type="text" class="form-control" id="authorizeNetTransactionKey" placeholder="{{resourceBundle.authorizenet_transaction_key}}" value="{{cbParam.transactionKey}}" ng-required="cbParam.apiLoginID && cbParam.apiLoginID != ''" onchange="anetChangeTransactionKey()" errorMessage="{{resourceBundle.authorizenet_error}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<div style="padding:0px 3px;">
+				<label for="authorizeNetMD5Key">{{resourceBundle.authorizenet_md5}}</label>
+			</div>
+			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+				<input type="text" class="form-control" id="authorizeNetMD5Key" placeholder="{{resourceBundle.authorizenet_md5}}" value="{{cbParam.md5Key}}"/>
 			</div>
 		</div>
 	</form>

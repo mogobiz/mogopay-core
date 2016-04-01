@@ -60,9 +60,9 @@
 			<img id="logo" alt="Ebiznext logo" src="../images/style/logo.png"/>
 		</div>
 		<div style="font-weight: bold; text-align:center; padding-top: 50px;">
-			<div ng-show="validationInProgress == true">Validation in progress</div>
-			<div ng-show="validationSuccess == true">Your account has been validated successfully</div>
-			<div ng-show="validationError == true">An error has been occurred while validating your account</div>
+			<div ng-show="validationInProgress == true">{{resourceBundle.validation_in_progress}}</div>
+			<div ng-show="validationSuccess == true">{{resourceBundle.validation_success}}</div>
+			<div ng-show="validationError == true">{{resourceBundle.validation_error}}</div>
 		</div>
 	</body>
 </html>

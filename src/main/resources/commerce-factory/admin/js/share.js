@@ -4,114 +4,50 @@
 
 var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
-var clientUrl = "/pay-client/";
+var selectedStore = "";
+var xtoken = null;
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
 
-function callClient(action, dataToSend, success, error){
-    $.ajax({
-        url :  clientUrl + action,
-        type : "GET",
-        data : dataToSend,
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
-
-function callServer(action, dataToSend, success, error){
-    $.ajax({
-        url :  serverUrl + action,
-        type : "GET",
-        data : dataToSend,
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
-
-function postOnServer(action, dataToSend, success, error){
-    $.ajax({
-        url :  serverUrl + action,
-        type : "POST",
-        data : encodeURI(dataToSend),
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
-
-function callServerJson(action, dataToSend, success, error){
-    var afterCallingSuccess = function (response) {
+function callServer(action, dataToSend, success, error, type, sentDataType, server, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
+	if(showLoading){
+		$("body").addClass("loading");
+	}
+	var afterCallingSuccess = function (response) {
+		if(hideLoadingOnSuccess){
+			$("body").removeClass("loading");
+		}
         success(response);
     };
     var afterCallingError = function (response) {
+		if(hideLoadingOnError){
+			$("body").removeClass("loading");
+		}
         error(response);
     };
-    $.ajax({
-        url :  serverUrl + action,
-        type : "PUT",
-        data : JSON.stringify(dataToSend),
-        dataType : "json",
-        contentType: "application/json; charset=utf-8",
-        cache : false,
-        async : true,
-        success : afterCallingSuccess,
+	var options = {
+		type : type,
+		cache : false,
+		async : true,
+		success : afterCallingSuccess,
         error: afterCallingError
-    });
-}
-
-function callStoreServer(action, dataToSend, success, error, storeCode, type){
-    $.ajax({
-        url :  storeUrl + storeCode + "/" + action,
-        type : type,
-        data : dataToSend,
-        cache : false,
-        async : true,
-        success : success,
-        error: error
-    });
-}
-
-function callStoreServerJson(action, dataToSend, success, error, storeCode, type){
-    var afterCallingSuccess = function (response) {
-        success(response);
-    };
-    var afterCallingError = function (response) {
-        error(response);
-    };
-    $.ajax({
-        url :  storeUrl + storeCode + "/" + action,
-        type : type,
-        data : JSON.stringify(dataToSend),
-        contentType: "application/json; charset=utf-8",
-        cache : false,
-        async : true,
-        success : afterCallingSuccess,
-        error: afterCallingError
-    });
-}
-
-function dateToString(date, withHours){
-    var dateString = "";
-    if(date){
-        var day = ""+(parseInt(date.getDate()));
-        if(day.length == 1)
-            dateString += "0"+day;
-        else
-            dateString += day;
-        var month = ""+(parseInt(date.getMonth())+1);
-        if(month.length == 1)
-            dateString += "/0"+month;
-        else
-            dateString += "/"+month;
-        dateString += "/"+date.getFullYear();
-        if(withHours)
-            dateString +=" "+date.getHours()+":"+date.getSeconds();
-    }
-    return dateString;
+	}
+	if(xtoken != null){
+		options.headers = { "X-CSRF-Token": xtoken };
+	}
+	if(server == "store"){
+		options.url = storeUrl + selectedStore + "/" + action;
+	}
+	else{
+		options.url = serverUrl + action;
+	}
+	if(sentDataType == "JSON"){
+		options.data = JSON.stringify(dataToSend);
+		options.contentType = "application/json; charset=utf-8";
+	}
+	else if(sentDataType == "params"){
+		options.data = (type != "POST") ? dataToSend : encodeURI(dataToSend);
+	}
+	$.ajax(options);
 }
 
 function dateToDateValue(date){
@@ -194,3 +130,5 @@ function isConnectedUser(scope, location, rootScope, route){
     }
 	return true;
 }
+
+var emptyFunc = function () {}
