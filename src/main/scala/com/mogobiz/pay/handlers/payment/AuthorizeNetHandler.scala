@@ -247,17 +247,18 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
       data = "",
       bankErrorCode = "",
       bankErrorMessage = None,
-      token = ""
+      token = "",
+      None
     )
 
     val anetTransactionId = params("x_trans_id")
     val gatewayData = s"$anetTransactionId"
 
-    transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
+    val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, sessionData.transactionUuid.getOrElse(""),
       if (status == PaymentStatus.COMPLETE) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
       params("x_response_code"), sessionData.locale, Some(gatewayData))
-    finishPayment(sessionData, paymentResult)
+    finishPayment(sessionData, paymentResultWithShippingResult)
   }
 
   def cancel(sessionData: SessionData): Uri = {
@@ -269,11 +270,11 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val paymentResult = PaymentResult(
       newUUID, null, -1L, "", null, null, "", "", null, "", "", PaymentStatus.CANCELED,
       transaction.errorCodeOrigin.getOrElse(""),
-      transaction.errorMessageOrigin, "", "", Some(""), "")
+      transaction.errorMessageOrigin, "", "", Some(""), "", None)
 
-    transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
+    val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, sessionData.transactionUuid.getOrElse(""),
       TransactionStatus.CANCEL_CONFIRMED, paymentResult, "", sessionData.locale)
-    finishPayment(sessionData, paymentResult)
+    finishPayment(sessionData, paymentResultWithShippingResult)
   }
 
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {

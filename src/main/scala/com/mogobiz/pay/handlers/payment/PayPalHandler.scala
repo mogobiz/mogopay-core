@@ -115,9 +115,9 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       throw InvalidContextException(s"$tokenFromParams unknown")
     } else {
       val paymentResult = PaymentResult("", new Date, sessionData.amount.get, "", CreditCardType.OTHER, new Date, "", transactionUuid, new Date,
-        "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token)
-      transactionHandler.finishPayment(transactionUuid, TransactionStatus.PAYMENT_REFUSED, paymentResult, "Cancel", sessionData.locale)
-      finishPayment(sessionData, paymentResult)
+        "", "", PaymentStatus.FAILED, "", Some(""), "", "", Some(""), token, None)
+      val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUuid, TransactionStatus.PAYMENT_REFUSED, paymentResult, "Cancel", sessionData.locale)
+      finishPayment(sessionData, paymentResultWithShippingResult)
     }
   }
 
@@ -209,7 +209,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           data = null,
           bankErrorCode = null,
           bankErrorMessage = None,
-          token = token
+          token = token,
+          errorShipment = None
         )
 
         val amount = paymentRequest.amount.toDouble / 100.0
@@ -259,8 +260,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
               gatewayTransactionId = transactionId,
               transactionCertificate = null
             )
-            transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
-            updatedPaymentResult
+            transactionHandler.finishPayment(this, sessionData, transactionUUID, TransactionStatus.PAYMENT_CONFIRMED, paymentResult, ack, sessionData.locale)
           } else {
             val errorCode = tuples.get("L_ERRORCODE0").orNull
             val errorCodeMessage = URLDecoder.decode(tuples.get("L_SHORTMESSAGE0").orNull, "UTF-8")
@@ -271,10 +271,8 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
               errorMessageOrigin = Option(errorCodeMessage)
             )
 
-            transactionHandler.finishPayment(transactionUUID, TransactionStatus.PAYMENT_REFUSED,
+            transactionHandler.finishPayment(this, sessionData, transactionUUID, TransactionStatus.PAYMENT_REFUSED,
               paymentResult, null, sessionData.locale)
-
-            updatedPaymentResult
           }
         }
         import scala.concurrent.duration._

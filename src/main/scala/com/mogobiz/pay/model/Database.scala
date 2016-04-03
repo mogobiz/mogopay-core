@@ -448,7 +448,8 @@ object Mogopay {
     data: String,
     bankErrorCode: String,
     bankErrorMessage: Option[String],
-    token: String)
+    token: String,
+    errorShipment: Option[String])
 
   case class PaymentRequest(uuid: String,
     transactionSequence: String,

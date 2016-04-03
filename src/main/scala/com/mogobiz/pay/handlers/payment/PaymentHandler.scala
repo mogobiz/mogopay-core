@@ -43,25 +43,7 @@ trait PaymentHandler {
     val transactionUUID = sessionData.transactionUuid.getOrElse("")
     val transactionSequence = if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
     val success = paymentResult.status == PaymentStatus.COMPLETE
-
-    val errorShipment = if (success) {
-      val transaction = boTransactionHandler.find(transactionUUID)
-        .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
-
-      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
-        case Success(_) => None
-        case Failure(f) => {
-          val newTx = transaction.copy(
-            errorCodeOrigin = Option("SHIPMENT_ERROR"),
-            errorMessageOrigin = Some(f.getMessage)
-          )
-          boTransactionHandler.update(newTx, false)
-          //TODO faire l'appel à l'annulation du paiement
-          refund(sessionData.paymentConfig.get, newTx, sessionData.amount.get, paymentResult)
-          Some(f.getMessage)
-        }
-      }
-    } else None
+    val errorShipment = paymentResult.errorShipment
 
     val query = Query(
       "result" -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),
@@ -191,7 +173,8 @@ trait PaymentHandler {
       data = "",
       bankErrorCode = "12",
       bankErrorMessage = Some(BankErrorCodes.getErrorMessage("12")),
-      token = ""
+      token = "",
+      None
     )
   }
 }
