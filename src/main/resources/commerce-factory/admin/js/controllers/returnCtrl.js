@@ -20,7 +20,7 @@ function ReturnCtrl($scope, $location, $rootScope, $route) {
             $scope.$apply();
             navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
-        callServer("account/profile-info", "", success, function (response) {});
+        callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
     };
 // Merchant Functions
 	$scope.refundedValue = [];
@@ -73,42 +73,36 @@ function updateReturnItem(scope, location, rootScope, route, index, returnStatus
 		returnStatus: returnStatus,
 		motivation: $("#returnMotivation-" + index).val()
 	}
-	callStoreServerJson(
-		"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.returnDetails.cartItem.uuid + "/" + rootScope.returnDetails.returnedItems[index].uuid,
-		data,
-		function () {scope.goToDetails();scope.$apply();},
-		function () {},
-		rootScope.selectedStore,
-		"PUT"
-	);
+	var action = "backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.returnDetails.cartItem.uuid + "/" + rootScope.returnDetails.returnedItems[index].uuid;
+	callServer(action, data, function () {scope.goToDetails();scope.$apply();}, emptyFunc, "PUT", "JSON", "store", true, true, true);
 }
 
 function validateRetunForm(scope, location, rootScope, route, index){
 	var item = rootScope.returnDetails.returnedItems[index];
 	if($("#returnMotivation-" + index).val() == ""){
 		$("#returnMotivation-" + index).focus();
-		showAlertBootStrapMsg("warning", "Motivation is required!");
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_motivation_required);
 		return false;
 	}
 	if(item.boReturns[0].status == 'RETURN_RECEIVED'){
 		if($("#returnRefunded-" + index).val() == ""){
 			$("#returnRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Refunded is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_refunded_required);
 			return false;
 		}
 		if(!$("#returnRefunded-" + index)[0].checkValidity()){
 			$("#returnRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Invalid refunded!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_refunded);
 			return false;
 		}
 		if($("#returnTotalRefunded-" + index).val() == ""){
 			$("#returnTotalRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Refunded is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_refunded_required);
 			return false;
 		}
 		if(!$("#returnTotalRefunded-" + index)[0].checkValidity()){
 			$("#returnTotalRefunded-" + index).focus();
-			showAlertBootStrapMsg("warning", "Invalid refunded!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_refunded);
 			return false;
 		}
 	}
@@ -134,14 +128,8 @@ function submitReturnItems(scope, location, rootScope, route){
 				quantity: parseInt(parseFloat($("#toBeReturnedQuantity-" + i).val())),
 				motivation: $("#toBeReturnedMotivation-" + i).val()
 			}
-			callStoreServerJson(
-				"backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.itemsToBeReturned[i].uuid,
-				data,
-				function () {scope.goToDetails();scope.$apply();},
-				function () {},
-				rootScope.selectedStore,
-				"POST"
-			);
+			var action = "backoffice/cartDetails/" + rootScope.selectedTransaction.uuid + "/" + rootScope.itemsToBeReturned[i].uuid;
+			callServer(action, data, function () {scope.goToDetails();scope.$apply();}, emptyFunc, "POST", "JSON", "store", true, true, true);
 		}
 	}
 }
@@ -150,22 +138,22 @@ function validateRetunItemsForms(scope, location, rootScope, route){
 	for(var i = 0; i < rootScope.itemsToBeReturned.length; i++){
 		if($("#toBeReturnedQuantity-" + i).val() == ""){
 			$("#toBeReturnedQuantity-" + i).focus();
-			showAlertBootStrapMsg("warning", "Quantity is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_quantity_required);
 			return false;
 		}
 		if(!$("#toBeReturnedQuantity-" + i)[0].checkValidity()){
 			$("#toBeReturnedQuantity-" + i).focus();
-			showAlertBootStrapMsg("warning", "Quantity is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_quantity_required);
 			return false;
 		}
-		if(parseInt($("#toBeReturnedQuantity-" + i).val()) > rootScope.itemsToBeReturned[i].quantity){
+		if(parseInt($("#toBeReturnedQuantity-" + i).val()) > (rootScope.itemsToBeReturned[i].quantity - rootScope.itemsToBeReturned[i].sumReturnedItems)){
 			$("#toBeReturnedQuantity-" + i).focus();
-			showAlertBootStrapMsg("warning", "Invalid quantity!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_quantity);
 			return false;
 		}
 		if($("#toBeReturnedMotivation-" + i).val() == ""){
 			$("#toBeReturnedMotivation-" + i).focus();
-			showAlertBootStrapMsg("warning", "Motivation is required!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_motivation_required);
 			return false;
 		}
 	}
