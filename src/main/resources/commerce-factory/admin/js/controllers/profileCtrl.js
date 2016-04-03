@@ -11,20 +11,8 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.applePayParam)
 		$scope.applePayParam = JSON.parse($rootScope.userProfile.account.paymentConfig.applePayParam);
 
-	$("#applePayLogin").change(function(){
-		if($(this).val() != "")
-			$("#applePayTransactionKey").attr("required", "required");
-		else
-			$("#applePayTransactionKey").removeAttr("required");
-	});
-	$("#applePayTransactionKey").change(function(){
-		if($(this).val() != "")
-			$("#applePayLogin").attr("required", "required");
-		else
-			$("#applePayLogin").removeAttr("required");
-	});
-
 	//Main Variables
+	var profileCompanyNameChanged = false;
 	var minBirthDate = new Date();
 	var maxBirthDate = new Date();
 	minBirthDate.setFullYear(new Date().getFullYear() - 100);
@@ -42,17 +30,17 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		for(var i = 0; i < $scope.creditCards.length; i++)
 			$scope.creditCards[i].expiryDateVal = dateToMonthValue(new Date($scope.creditCards[i].expiryDate));
 	}
-	$scope.sipsCetificateFileLabel = "Upload Certificate File";
+	$scope.sipsCetificateFileLabel = $rootScope.resourceBundle.sips_upload_cetificate;
 	$scope.sipsCetificateFileName = "";
 	$scope.sipsCetificateFileContent = "";
 	if($rootScope.userProfile && $rootScope.userProfile.paymentProviderParam && $rootScope.userProfile.paymentProviderParam.sipsMerchantCertificateFile) {
-		$scope.sipsCetificateFileLabel = "Current Certificate : " + $rootScope.userProfile.paymentProviderParam.sipsMerchantCertificateFile;
+		$scope.sipsCetificateFileLabel = $rootScope.resourceBundle.sips_current_cetificate + " : " + $rootScope.userProfile.paymentProviderParam.sipsMerchantCertificateFile;
 	}
-	$scope.sipsParcomFileLabel = "Upload Parcom File";
+	$scope.sipsParcomFileLabel = $rootScope.resourceBundle.sips_upload_parcom;
 	$scope.sipsParcomFileName = "";
 	$scope.sipsParcomFileContent = "";
 	if($rootScope.userProfile && $rootScope.userProfile.paymentProviderParam && $rootScope.userProfile.paymentProviderParam.sipsMerchantParcomFile) {
-		$scope.sipsParcomFileLabel = "Current Parcom File : " + $rootScope.userProfile.paymentProviderParam.sipsMerchantParcomFile;
+		$scope.sipsParcomFileLabel = $rootScope.resourceBundle.sips_current_parcom + " : " + $rootScope.userProfile.paymentProviderParam.sipsMerchantParcomFile;
 	}
 
 	//Options and Model
@@ -69,10 +57,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 
 	//Credit Card Mode
 	$scope.creditCardModeOptions = [
-		{"value": "EXTERNAL", "name": "Payment user Interface managed by external provider"},
-		{"value": "THREEDS_NO", "name": "Payment without Card holder verification (No 3DSecure)"},
-		{"value": "THREEDS_IF_AVAILABLE", "name": "3DSecure Payment if customer card enrolled"},
-		{"value": "THREEDS_REQUIRED", "name": "Require customer card to be enrolled for 3DSecure"}
+		{"value": "EXTERNAL", "name": $rootScope.resourceBundle.card_option_external},
+		{"value": "THREEDS_NO", "name": $rootScope.resourceBundle.card_option_threedsNo},
+		{"value": "THREEDS_IF_AVAILABLE", "name": $rootScope.resourceBundle.card_option_threedsIfAvailable},
+		{"value": "THREEDS_REQUIRED", "name": $rootScope.resourceBundle.card_option_threedsRequired}
 	];
 	$scope.creditCardModeModel = null;
 	if($rootScope.userProfile && $rootScope.userProfile.account && $rootScope.userProfile.account.paymentConfig && $rootScope.userProfile.account.paymentConfig.paymentMethod) {
@@ -169,8 +157,12 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	$scope.goToListCustomers = function () {
         navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
     };
+	$scope.profileChangePassword = function () {
+        navigateToPage($scope, $location, $rootScope, $route, "changePassword");
+    };
 
 	setTimeout(function () {
+		$("#profileCompanyName").change(function(){profileCompanyNameChanged = true;});
 		$("#profileCity").autocomplete({
 			source: function (request, response) {
 				var valueContry = ($scope.profileCountriesModel && $scope.profileCountriesModel != "") ? $scope.profileCountriesModel.code : "";
@@ -185,7 +177,19 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			minLength: 3,
 			delay: 0
 		});
-	},1000);
+		$("#applePayLogin").change(function(){
+			if($(this).val() != "")
+				$("#applePayTransactionKey").attr("required", "required");
+			else
+				$("#applePayTransactionKey").removeAttr("required");
+		});
+		$("#applePayTransactionKey").change(function(){
+			if($(this).val() != "")
+				$("#applePayLogin").attr("required", "required");
+			else
+				$("#applePayLogin").removeAttr("required");
+		});
+	},250);
 
 	$scope.displayUserUUID = function () {$scope.showUserUUID = !$scope.showUserUUID;};
 	$scope.renewUserUUID = function () {profileRenewUserUUID($scope, $location, $rootScope, $route);};
@@ -194,21 +198,15 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 	$scope.profileResendPhoneValidation = function () {profileResendPhoneValidation($scope, $location, $rootScope, $route)};
 
 	$scope.profileCheckPhoneNumberForCountry = function () {profileCheckPhoneNumberForCountry($scope, $location, $rootScope, $route);};
-	$scope.profileCheckPasswordConfrimation = function () {
-		$("#profileConfirmPassword")[0].setCustomValidity($("#profileConfirmPassword").val() != $("#profilePassword").val() ? "The two passwords must match !" : "");
-		if($("#profileConfirmPassword").val() != $("#profilePassword").val()) {
-			showAlertBootStrapMsg("warning", "The two passwords must match !");
-		}
-	};
 
 	$scope.profileCheckCreditCardNumber = function (index) {
 		var id = "personalCardNumber";
 		if(index)
 			id += "-" + index;
-		$("#" + id)[0].setCustomValidity(luhn10($("#" + id).val()) == true ? "" : "Invalid credit card number");
+		$("#" + id)[0].setCustomValidity(luhn10($("#" + id).val()) == true ? "" : $rootScope.resourceBundle.error_invalid_card);
 		if(!luhn10($("#" + id).val())) {
 			$("#" + id).focus();
-			showAlertBootStrapMsg("warning", "Invalid credit card number");
+			showAlertBootStrapMsg("warning", $rootScope.resourceBundle.error_invalid_card);
 		}
 	};
 
@@ -239,20 +237,20 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.userUUID = response.uuid;
 			scope.$apply();
 		}
-		callServer("account/generate-new-secret", "", success, function () {})
+		callServer("account/generate-new-secret", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function profileResendMailConfirmation(scope, location, rootScope, route) {
-		callServer("account/generateNewEmailCode", "", function (response) {}, function (response) {});
+		callServer("account/generateNewEmailCode", "", emptyFunc, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function profileResendPhoneValidation(scope, location, rootScope, route) {
-		callServer("account/generateNewPhoneCode", "", function (response) {}, function (response) {});
+		callServer("account/generateNewPhoneCode", "", emptyFunc, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function profileCheckPhoneNumberForCountry(scope, location, rootScope, route) {
 		if(!scope.profileCountriesModel || scope.profileCountriesModel == "") {
-			showAlertBootStrapMsg("warning", "Please select your country first");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_select_country);
 			$("#profilePhoneNumber").val("");
 			return;
 		}
@@ -260,28 +258,24 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			if (response['isValid'] == true) {
 				$("#profilePhoneNumber").val(response['nationalFormat']);
 			} else {
-				showAlertBootStrapMsg("warning", "Invalid phone number!");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_select_country);
 				$("#profilePhoneNumber").val("");
 			}
 		};
-		callServer(
-				"country/" + scope.profileCountriesModel.code + "/check-phone-number/" + $("#profilePhoneNumber").val(),
-			"",
-			success,
-			function (response) {}
-		);
+		var action = "country/" + scope.profileCountriesModel.code + "/check-phone-number/" + $("#profilePhoneNumber").val();
+		callServer(action, "", success, emptyFunc, "GET", "params", "pay", false, false, false);
 	}
 
 	function profileCheckPasswordRegExValidity(scope, location, rootScope, route) {
 		var success = function (response) {
-			$("#authPasswordRegex")[0].setCustomValidity(response =="false" ? "Invalid Regular Expression" : "");
+			$("#authPasswordRegex")[0].setCustomValidity(response =="false" ? rootScope.resourceBundle.error_invalid_regex : "");
 			if(response == "false") {
 				$("#authPasswordRegex").focus();
-				showAlertBootStrapMsg("warning", "Invalid Regular Expression");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_regex);
 			}
 		};
 		var pattern = encodeURIComponent($("#authPasswordRegex").val());
-		callServer("account/is-pattern-valid/" + pattern, "", success, function (response) {});
+		callServer("account/is-pattern-valid/" + pattern, "", success, emptyFunc, "GET", "params", "pay", false, false, false);
 	}
 
 	function profileGetCitiesForAutoComplete(country, state, region, city, response) {
@@ -293,7 +287,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}));
 		};
 		var dataToSend = "country=" + country + "&parent_admin1_code=" + state + "&parent_admin2_code=" + region + "&name=" + city;
-		callServer("country/cities", dataToSend, success, function (response) {});
+		callServer("country/cities", dataToSend, success, emptyFunc, "GET", "params", "pay", false, false, false);
 	}
 
 	function profileLoadCountries(scope, location, rootScope, route) {
@@ -312,7 +306,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}
 			scope.$apply();
 		}
-		callServer("country/countries-for-billing", "", success, function (response) {});
+		callServer("country/countries-for-billing", "", success, emptyFunc, "GET", "params", "pay", false, true, true);
 	}
 
 	function profileLoadStatesForCountry(scope, location, rootScope, route) {
@@ -340,7 +334,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			}
 			scope.$apply();
 		};
-		callServer("country/admins1/" + scope.profileCountriesModel.code, "", success, function (response) {});
+		callServer("country/admins1/" + scope.profileCountriesModel.code, "", success, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function profileLoadRegionsForState(scope, location, rootScope, route) {
@@ -363,7 +357,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			scope.$apply();
 		};
 		var dataToSend = "country=" + scope.profileCountriesModel.code + "&state=" + scope.profileStateModel.code;
-		callServer("country/admins2/" + scope.profileStateModel.code, "", success, function (response) {});
+		callServer("country/admins2/" + scope.profileStateModel.code, "", success, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function sipsCetificateFileChangeContent(evt, scope, location, rootScope, route) {
@@ -373,7 +367,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			r.onload = function (e) {
 				scope.sipsCetificateFileName = f.name;
 				scope.sipsCetificateFileContent = e.target.result;
-				scope.sipsCetificateFileLabel = "Current Certificate : " + f.name;
+				scope.sipsCetificateFileLabel = rootScope.resourceBundle.sips_current_cetificate + " : " + f.name;
 				scope.$apply();
 			}
 			r.readAsText(f);
@@ -387,7 +381,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			r.onload = function (e) {
 				scope.sipsParcomFileName = f.name;
 				scope.sipsParcomFileContent = e.target.result;
-				scope.sipsParcomFileLabel = "Current Parcom File : " + f.name;
+				scope.sipsParcomFileLabel = rootScope.resourceBundle.sips_current_parcom + " : " + f.name;
 				scope.$apply();
 			}
 			r.readAsText(f);
@@ -405,20 +399,20 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 // PERSONAL CARDS FUNCTIONS
 	function profileAddCreditCard(scope, location, rootScope, route) {
 		if (scope.personalCardTypeModel.value == "") {
-			showAlertBootStrapMsg("warning", "Please choose a type !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_choose_type);
 			return;
 		}
 		if (!$("#personalCardNumber")[0].checkValidity()) {
 			if($("#personalCardNumber").val() == "")
-				showAlertBootStrapMsg("warning", "Invalid credit card number!");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_card);
 			return;
 		}
 		if (!$("#personalCardHolderName")[0].checkValidity()) {
-			showAlertBootStrapMsg("warning", "Invalid holder name!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_holder);
 			return;
 		}
 		if (!$("#personalCardExpiryDate")[0].checkValidity()) {
-			showAlertBootStrapMsg("warning", "Invalid date !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_date);
 			return;
 		}
 		var success = function (response) {
@@ -428,6 +422,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			$("#personalCardType").prop('selectedIndex', 0);
 
 			scope.creditCards.push(response);
+			scope.creditCards[scope.creditCards.length - 1].expiryDateVal = dateToMonthValue(new Date(scope.creditCards[scope.creditCards.length - 1].expiryDate));
 
 			var x = scope.creditCards.length - 1;
 			scope.personalCardsTypeOptions.push([
@@ -453,35 +448,35 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		};
 
 		var dataToSend = "";
-		dataToSend += "&type=" + scope.personalCardTypeModel.value;
+		dataToSend += "type=" + scope.personalCardTypeModel.value;
 		dataToSend += "&number=" + $("#personalCardNumber").val();
 		dataToSend += "&holder=" + $("#personalCardHolderName").val();
 		dataToSend += "&expiry_date=" + $("#personalCardExpiryDate").val();
-		callServer("account/add-credit-card", dataToSend, success, function (response) {});
+		callServer("account/add-credit-card", dataToSend, success, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function profileUpdateCreditCard(scope, location, rootScope, route, index) {
 		if (scope.personalCardsTypeModel[index].value == "") {
-			showAlertBootStrapMsg("warning", "Please choose a type !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_choose_type);
 			return;
 		}
 		if (!$("#personalCardHolderName-" + index)[0].checkValidity()) {
-			showAlertBootStrapMsg("warning", "Invalid holder name!");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_holder);
 			return;
 		}
 		if (!$("#personalCardExpiryDate-" + index)[0].checkValidity()) {
-			showAlertBootStrapMsg("warning", "Invalid date !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_date);
 			return;
 		}
 		var success = function (response) {
 			scope.$apply();
 		};
 		var dataToSend = "";
-		dataToSend += "&card_id=" + scope.creditCards[index].uuid;
+		dataToSend += "card_id=" + scope.creditCards[index].uuid;
 		dataToSend += "&type=" + scope.personalCardsTypeModel[index].value;
 		dataToSend += "&holder=" + $("#personalCardHolderName-" + index).val();
 		dataToSend += "&expiry_date=" + $("#personalCardExpiryDate-" + index).val();
-		callServer("account/add-credit-card", dataToSend, success, function (response) {});
+		callServer("account/add-credit-card", dataToSend, success, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 	function profileDeleteCreditCard(scope, location, rootScope, route, index) {
@@ -493,7 +488,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		};
 		var dataToSend = "";
 		dataToSend += "&card_id=" + scope.creditCards[index].uuid;
-		callServer("account/delete-credit-card", dataToSend, success, function (response) {});
+		callServer("account/delete-credit-card", dataToSend, success, emptyFunc, "GET", "params", "pay", true, true, true);
 	}
 
 // PROFILE FUNCTIONS
@@ -501,17 +496,14 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		if(!validateProfileForm(scope, location, rootScope, route))
 			return;
 		var dataToSend = getProfileFormData(scope, location, rootScope, route);
+		var action = rootScope.isMerchant ? "update-merchant-profile" : "update-customer-profile"
 		var success = function (response) {
-			if (rootScope.createPage) {
-				if(indexPage == true)
-					navigateToPage(scope, location, rootScope, route, "home");
-				if(merchantPage == true || customerPage == true)
-					navigateToPage(scope, location, rootScope, route, "login");
-			} else {
+			if(profileCompanyNameChanged)
+				rootScope.getAllStores();
+			else
 				navigateToPage(scope, location, rootScope, route, "listTransactions");
-			}
 		};
-		postOnServer("account/update-profile", dataToSend, success, function (response) {});
+		callServer("account/" + action, dataToSend, success, emptyFunc, "POST", "params", "pay", true, true, true);
 	}
 
 	function getProfileFormData(scope, location, rootScope, route) {
@@ -527,19 +519,10 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 		data += "&city=" + $("#profileCity").val();
 		data += "&road=" + $("#profileRoad").val();
 		data += "&zip_code=" + $("#profilePostalCode").val();
-		if(rootScope.createPage) {
-			data += "&password=" + $("#profilePassword").val();
-			data += "&password2=" + $("#profileConfirmPassword").val();
-		}
-		if(rootScope.isMerchant) {
-			data += "&company=" + $("#profileCompanyName").val();
-			data += "&website=" + $("#profileWebsite").val();
-		}
-		else{ // TO BE DELETED
-			data += "&company=CustomerCompany"; // TO BE DELETED
-		} // TO BE DELETED
 
 		if (rootScope.isMerchant) {
+			data += "&company=" + $("#profileCompanyName").val();
+			data += "&website=" + $("#profileWebsite").val();
 			data += "&payment_method=" + scope.creditCardModeModel.value;
 			data += "&cb_provider=" + ((scope.creditCardProviderModel != null) ? scope.creditCardProviderModel.value : "");
 
@@ -575,6 +558,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 				case "authorizenet":
 					data += "&anet_api_login_id=" + $("#authorizeNetLogin").val();
 					data += "&anet_transaction_key=" + $("#authorizeNetTransactionKey").val();
+					data += "&anet_md5=" + $("#authorizeNetMD5Key").val();
 					break;
 				default:
 					break;
@@ -584,9 +568,6 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&paypal_user=" + $("#paypalUser").val();
 			data += "&paypal_password=" + $("#paypalPassword").val();
 			data += "&paypal_signature=" + $("#paypalSignature").val();
-
-//KWIXO INFO
-			data += "&kwixo_params=" + $("#kwixoParams").val();
 
 //APPLE PAY INFO
 			data += "&apple_pay_anet_api_login_id=" + $("#applePayLogin").val();
@@ -604,71 +585,48 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			data += "&group_payment_failure_url=" + $("#groupPaymentFailureURL").val();
 
 //EMAIL INFO
-			if(!rootScope.createPage) {
-				data += "&sender_email=" + $("#emailInfoSenderMail").val();
-				data += "&sender_name=" + $("#emailInfoSenderName").val();
-			}
+			data += "&sender_email=" + $("#emailInfoSenderMail").val();
+			data += "&sender_name=" + $("#emailInfoSenderName").val();
 		}
 		return data;
 	}
 
 	function validateProfileForm(scope, location, rootScope, route) {
-		if($("#profileEmail").val() == "" || $("#profileCompanyName").val() == "" || $("#profileWebsite").val() == "" || $("#profilePhoneNumber").val() == ""
+		if($("#profileCompanyName").val() == "" || $("#profileWebsite").val() == "" || $("#profilePhoneNumber").val() == ""
 			|| $("#profileFirstName").val() == "" || $("#profileLastName").val() == "" || $("#profileBirthDate").val() == ""
 			|| !scope.profileCountriesModel || scope.profileCountriesModel == "" || $("#profileCity").val() == "" || $("#profileRoad").val() == ""
-			|| $("#profilePostalCode").val() == "") {
+			|| $("#profilePostalCode").val() == ""){
 			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-			showAlertBootStrapMsg("warning", "Please fill all required fields");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_required);
 			return false;
-		}
-		if(rootScope.createPage) {
-			if($("#profilePassword").val() == "" || $("#profileConfirmPassword").val() == "" || $("#captchaText").val() == "") {
-				$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-				showAlertBootStrapMsg("warning", "Please fill all required fields");
-				return false;
-			}
-		}
-		if(!$("#profileEmail")[0].checkValidity()) {
-			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-			$("#profileEmail").focus();
-			showAlertBootStrapMsg("warning", "Invalid email !");
-			return false;
-		}
-		if(rootScope.createPage) {
-			if($("#profilePassword").val() != $("#profileConfirmPassword").val()) {
-				$(".nav-tabs a[data-target='#profileInfo']").tab("show");
-				$("#profileConfirmPassword").focus();
-				showAlertBootStrapMsg("warning", "The two passwords must match !");
-				return false;
-			}
 		}
 		if(rootScope.isMerchant && !$("#profileCompanyName")[0].checkValidity()) {
 			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
 			$("#profileCompanyName").focus();
-			showAlertBootStrapMsg("warning", "Invalid company name !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_company_name);
 			return false;
 		}
 		if(rootScope.isMerchant && !$("#profileWebsite")[0].checkValidity()) {
 			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
 			$("#profileWebsite").focus();
-			showAlertBootStrapMsg("warning", "Invalid website !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_website);
 			return false;
 		}
 		if(!$("#profileBirthDate")[0].checkValidity()) {
 			$(".nav-tabs a[data-target='#profileInfo']").tab("show");
 			$("#profileBirthDate").focus();
-			showAlertBootStrapMsg("warning", "Invalid birth date !");
+			showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_birthdate);
 			return false;
 		}
 		if(rootScope.isMerchant) {
 			if(!scope.creditCardModeModel || scope.creditCardModeModel == "") {
 				$(".nav-tabs a[data-target='#creditCard']").tab("show");
-				showAlertBootStrapMsg("warning", "Please fill all required fields");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_required);
 				return false;
 			}
 			if(!scope.creditCardProviderModel || scope.creditCardProviderModel == "") {
 				$(".nav-tabs a[data-target='#creditCard']").tab("show");
-				showAlertBootStrapMsg("warning", "Please fill all required fields");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_required);
 				return false;
 			}
 			var inputs = $("#creditCardForm input");
@@ -692,43 +650,43 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
 			if(!$("#applePayLogin")[0].checkValidity()){
 				$(".nav-tabs a[data-target='#applePay']").tab("show");
 				$("#applePayLogin").focus();
-				showAlertBootStrapMsg("warning", "Apple pay API Login ID and Transaction Key are related!");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_appele_pay);
 				return false;
 			}
 			if(!$("#applePayTransactionKey")[0].checkValidity()){
 				$(".nav-tabs a[data-target='#applePay']").tab("show");
 				$("#applePayTransactionKey").focus();
-				showAlertBootStrapMsg("warning", "Apple pay API Login ID and Transaction Key are related!");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_appele_pay);
 				return false;
 			}
 			if(!$("#authPasswordRegex")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#auth']").tab("show");
 				$("#authPasswordRegex").focus();
-				showAlertBootStrapMsg("warning", "Invalid password regex !");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_pass_regex);
 				return false;
 			}
 			if(!$("#groupPaymentUrlNextPayer")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
 				$("#groupPaymentUrlNextPayer").focus();
-				showAlertBootStrapMsg("warning", "Invalid URL !");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_url);
 				return false;
 			}
 			if(!$("#groupPaymentSuccessURL")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
 				$("#groupPaymentSuccessURL").focus();
-				showAlertBootStrapMsg("warning", "Invalid URL !");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_url);
 				return false;
 			}
 			if(!$("#groupPaymentFailureURL")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#groupPayment']").tab("show");
 				$("#groupPaymentFailureURL").focus();
-				showAlertBootStrapMsg("warning", "Invalid URL !");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_url);
 				return false;
 			}
 			if(!$("#emailInfoSenderMail")[0].checkValidity()) {
 				$(".nav-tabs a[data-target='#emailInfo']").tab("show");
 				$("#emailInfoSenderMail").focus();
-				showAlertBootStrapMsg("warning", "Invalid email !");
+				showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_email);
 				return false;
 			}
 		}
@@ -741,10 +699,11 @@ function anetChangeLogin(){
 		$("#authorizeNetTransactionKey").attr("required", "required");
 	else
 		$("#authorizeNetTransactionKey").removeAttr("required");
-};
+}
+
 function anetChangeTransactionKey(){
 	if($("#authorizeNetTransactionKey").val() != "")
 		$("#authorizeNetLogin").attr("required", "required");
 	else
 		$("#authorizeNetLogin").removeAttr("required");
-};
+}

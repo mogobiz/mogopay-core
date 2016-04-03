@@ -5,214 +5,144 @@
 <header ng-include src="'partials/header.html'"></header>
 <div class="details">
 	<div ng-if="selectedCustomer != null" class="panel panel-default">
-		<div class="panel-heading"><h3 class="panel-title">Customer Details</h3></div>
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_customer_title}}</h3></div>
 		<div class="panel-body">
 			<form role="form" class="form-horizontal">
 				<div class="form-group" style="margin-bottom: 0px;">
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerName">First Name</label>
+						<label for="detailsCustomerName">{{resourceBundle.details_customer_fName}}</label>
 						<input type="text" class="form-control" id="detailsCustomerName" autofocus readonly value="{{selectedCustomer.firstName}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerName">Last Name</label>
+						<label for="detailsCustomerName">{{resourceBundle.details_customer_lName}}</label>
 						<input type="text" class="form-control" id="detailsCustomerName" autofocus readonly value="{{selectedCustomer.lastName}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerEmail">Email</label>
+						<label for="detailsCustomerEmail">{{resourceBundle.details_customer_email}}</label>
 						<input type="text" class="form-control" id="detailsCustomerEmail" readonly value="{{selectedCustomer.email}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerBirthdate">Birth Date</label>
+						<label for="detailsCustomerBirthdate">{{resourceBundle.details_customer_birthdate}}</label>
 						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.birthDate | date:'dd/MM/yyyy'}}"/>
 					</div>
 				</div>
 				<div class="form-group" style="margin-bottom: 0px;">
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerPhone">Phone</label>
+						<label for="detailsCustomerPhone">{{resourceBundle.details_customer_phone}}</label>
 						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.telephone.phone}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerPhone">Country</label>
+						<label for="detailsCustomerPhone">{{resourceBundle.details_customer_country}}</label>
 						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.country}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerPhone">Address</label>
+						<label for="detailsCustomerPhone">{{resourceBundle.details_customer_address}}</label>
 						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.city}}, {{selectedCustomer.address.zipCode}}, {{selectedCustomer.address.road}}"/>
 					</div>
 				</div>
 			</form>
 		</div>
 	</div>
-	<div ng-if="selectedCustomer != null" class="history panel panel-default">
-		<div class="panel-heading"><h3 class="panel-title">History</h3></div>
-		<div class="panel-body">
-			<div class="table-responsive" ng-show="historyDetails.length > 0">
-				<table class="table table-bordered table-striped">
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Email</th>
-							<th>Date</th>
-							<th>Price</th>
-							<th>Card</th>
-							<th>Transaction Status</th>
-							<th>Delivery Status</th>
-							<th>UUID</th>
-							<th>group UUID</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="record in historyDetails">
-							<td>
-								<a ng-if="selectedTransaction.uuid != record.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{record.customer.firstName}} {{record.customer.lastName}}</a>
-								<span ng-if="selectedTransaction.uuid == record.uuid">{{record.customer.firstName}} {{record.customer.lastName}}</span>
-							</td>
-							<td>{{record.customer.email}}</td>
-							<td>{{record.transactionDate | date:'dd/MM/yyyy'}}</td>
-							<td>{{record.currency.code}} {{record.amount * record.currency.rate}}</td>
-							<td>
-								<a href="javascript:void(0)" rel="popoverCard">{{record.creditCard.number}}</a>
-								<div ng-if="record.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
-									<div class="row">
-										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >Card Number:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.number}}</label>
-									</div>
-									<div class="row">
-										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Holder:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.holder}}</label>
-									</div>
-									<div class="row">
-										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5"> Expiration Date:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
-									</div>
-									<div class="row">
-										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">Card Type:</label>
-										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.cardType}}</label>
-									</div>
-								</div>
-							</td>
-							<td>{{record.status}}</td>
-							<td>{{record.deliveryStatus[0]}}</td>
-							<td>{{record.uuid}}</td>
-							<td>
-								<span ng-if="record.groupTransactionUUID != null">{{record.groupTransactionUUID}}</span>
-								<span ng-if="record.groupTransactionUUID == null"><i>N.A.</i></span>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div class="panel panel-default" ng-if="selectedTransaction != null">
-		<div class="panel-heading"><h3 class="panel-title">Order Details</h3></div>
-		<div class="panel-body">
-			<div class="form-group" style="margin-bottom: 0px;">
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsStatus">Status</label>
-					<input type="text" class="form-control" id="cartDetailsStatus" autofocus readonly value="{{cartDetails.status}}"/>
+	<div class="detailsOrderBlock">
+		<div id="detailsOrderBlock" class="panel panel-default" ng-if="selectedTransaction != null">
+			<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_order_title}}</h3></div>
+			<div class="panel-body">
+				<div class="form-group" style="margin-bottom: 0px;">
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="cartDetailsStatus">{{resourceBundle.details_order_status}}</label>
+						<input type="text" class="form-control" id="cartDetailsStatus" autofocus readonly value="{{cartDetails.status}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="cartDetailsPrice">{{resourceBundle.details_order_price}}</label>
+						<input type="text" class="form-control" id="cartDetailsPrice" autofocus readonly value="{{cartDetails.price * cartDetails.currencyRate | priceFilter}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="cartDetailsCurrency">{{resourceBundle.details_order_currency}}</label>
+						<input type="text" class="form-control" id="cartDetailsCurrency" readonly value="{{cartDetails.currencyCode}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="cartDetailsDate">{{resourceBundle.details_order_date}}</label>
+						<input type="text" class="form-control" id="cartDetailsDate" readonly value="{{cartDetails.lastUpdated | date:'dd/MM/yyyy'}}"/>
+					</div>
 				</div>
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsPrice">Price</label>
-					<input type="text" class="form-control" id="cartDetailsPrice" autofocus readonly value="{{cartDetails.price * cartDetails.currencyRate}}"/>
-				</div>
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsCurrency">Currency</label>
-					<input type="text" class="form-control" id="cartDetailsCurrency" readonly value="{{cartDetails.currencyCode}}"/>
-				</div>
-				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="cartDetailsDate">Date</label>
-					<input type="text" class="form-control" id="cartDetailsDate" readonly value="{{cartDetails.lastUpdated | date:'dd/MM/yyyy'}}"/>
-				</div>
-			</div>
-			<div class="clearfix"></div>
-			<div class="table-responsive" ng-show="cartDetails.cartItems.length > 0">
-				<table class="table table-bordered table-striped">
-					<thead>
-						<tr>
-							<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
-							<th>Name</th>
-							<th>Basic Price</th>
-							<th>End Price</th>
-							<th>Quantity</th>
-							<th>Returned Item(s)</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="item in cartDetails.cartItems">
-							<td  ng-if="!isMerchant">
-								<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
-							</td>
-							<td>
-								<!--<div ng-if="item.bOProducts.length == 1">-->
-								<div>
-									<a href="javascript:void(0);" ng-if="item.url" ng-click="getProductDetails(item.url)">{{item.principal.product.name}}/({{item.sku.sku}})</a>
-									<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
-								</div>
-								<!--<div ng-if="item.bOProducts.length > 1">-->
-									<!--<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}} / ({{item.sku.sku}})</a>-->
-									<!--<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">-->
-										<!--<div ng-repeat="product in item.secondary" style="padding: 5px;">-->
-											<!--<a href="javascript:void(0);" ng-if="!item.url" ng-click="getProductDetails(item.url)">{{product.product.name}}</a>-->
-											<!--<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>-->
-										<!--</div>-->
-									<!--</div>-->
-								<!--</div>-->
-							</td>
-							<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
-							<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
-							<td>{{item.quantity}}</td>
-							<td>
-								<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}</a>
-								<span ng-if="item.bOReturnedItems.length == 0">None</span>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-				<div ng-if="!isMerchant">
-					<button class="btn btn-default pull-right" ng-click="detailsReturnSelectedItems()">Return selected items</button>
+				<div class="clearfix"></div>
+				<div class="table-responsive" ng-show="cartDetails.cartItems.length > 0">
+					<table class="table table-bordered table-striped">
+						<thead>
+							<tr>
+								<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
+								<th>{{resourceBundle.details_order_name}}</th>
+								<th>{{resourceBundle.details_order_basic_price}}</th>
+								<th>{{resourceBundle.details_order_end_price}}</th>
+								<th>{{resourceBundle.details_order_quantity}}</th>
+								<th>{{resourceBundle.details_order_date}}</th>
+								<th>{{resourceBundle.details_order_time}}</th>
+								<th>{{resourceBundle.details_order_returned_items}}</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr ng-repeat="item in cartDetails.cartItems">
+								<td  ng-if="!isMerchant">
+									<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
+								</td>
+								<td>
+									<div ng-if="!item.secondary || item.secondary.length == 0">
+										<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+										<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
+									</div>
+									<div ng-if="item.secondary && item.secondary.length > 0">
+										<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+										<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
+											<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
+												<span>{{productSec.product.name}}/({{item.sku.sku}})</span>
+											</div>
+											<a href="{{item.url}}" ng-if="item.url" class="pull-right" target="_blank">{{resourceBundle.details_order_details}}>></a>
+										</div>
+									</div>
+									<div ng-if="item.principal.product.xtype == 'SERVICE'" ng-repeat="card in item.principal.registeredCartItem">
+										<a href="mailto:{{card.email}}" title="mailto:{{card.email}}">{{card.firstname}} {{card.lastname}}</a>
+										<span style="padding-left: 10px;"><i class="glyphicon glyphicon-earphone"></i>{{card.phone}}</span>
+										<span style="padding-left: 10px;"><i class="glyphicon glyphicon-calendar"></i>{{card.birthdate | date:'dd/MM/yyyy'}}</span>
+									</div>
+								</td>
+								<td>{{item.totalPrice * cartDetails.currencyRate | priceFilter}}</td>
+								<td>{{item.totalEndPrice * cartDetails.currencyRate | priceFilter}}</td>
+								<td>{{item.quantity}}</td>
+								<td>
+									<span ng-if="item.principal.product.calendarType != NO_DATE">
+										{{item.startDate | date:'dd/MM/yyyy'}}
+									</span>
+								</td>
+								<td>
+									<span ng-if="item.principal.product.calendarType != NO_DATE">
+										{{toUTCDate(item.startDate) | date:'HH:mm'}}
+									</span>
+								</td>
+								<td>
+									<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">
+										{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}
+									</a>
+									<span ng-if="item.bOReturnedItems.length == 0">{{resourceBundle.none}}</span>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div ng-if="!isMerchant">
+						<button class="btn btn-default pull-right" ng-disabled="detailsDisableReturn" ng-click="detailsReturnSelectedItems()">
+							{{resourceBundle.details_order_return_selected_items}}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-
-<!-- Merchant Block -->
-	<div class="panel panel-default" ng-if="isMerchant && logsDetails != null">
-		<div class="panel-heading"><h3 class="panel-title">Order Logs</h3></div>
-		<div class="panel-body">
-			<div class="table-responsive" ng-show="logsDetails.length > 0">
-				<table class="table table-bordered table-striped">
-					<thead>
-						<tr>
-							<th style="width: 20%;">Direction</th>
-							<th style="width: 20%;">Provider</th>
-							<th style="width: 20%;">Step</th>
-							<th style="width: 40%;">Log</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="row in logsDetails">
-							<td style="width: 20%;">{{row.direction}}</td>
-							<td style="width: 20%;">{{row.provider}}</td>
-							<td style="width: 20%;">{{row.step}}</td>
-							<td style="width: 40%;">
-								<div ng-repeat="instance in row.log">{{instance}}</div>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-<!-- End Of Merchant Block -->
-
 <!-- Customer Block -->
 	<div class="panel panel-default" ng-if="!isMerchant && returnDetails != null">
-		<div class="panel-heading"><h3 class="panel-title">Return Details</h3></div>
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_return_title}}</h3></div>
 		<div class="panel-body">
 			<div class="form-group" style="margin-bottom: 0px;">
 				<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-					<label for="returnDetailsName">Name</label>
+					<label for="returnDetailsName">{{resourceBundle.details_return_name}}</label>
 					<input type="text" class="form-control" id="returnDetailsName" autofocus readonly value="{{returnDetails.name}}"/>
 				</div>
 			</div>
@@ -221,10 +151,10 @@
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
-							<th>Quantity</th>
-							<th>Refunded</th>
-							<th>Total Refunded</th>
-							<th>Status</th>
+							<th>{{resourceBundle.details_return_quantity}}</th>
+							<th>{{resourceBundle.details_return_refunded}}</th>
+							<th>{{resourceBundle.details_return_total_refunded}}</th>
+							<th>{{resourceBundle.details_return_status}}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -246,4 +176,95 @@
 		</div>
 	</div>
 <!-- End Of Customer Block -->
+	<div ng-if="selectedCustomer != null" class="history panel panel-default">
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_history_title}}</h3></div>
+		<div class="panel-body">
+			<div class="table-responsive" ng-show="historyDetails.length > 0">
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr>
+							<th>{{resourceBundle.details_history_name}}</th>
+							<th>{{resourceBundle.details_history_email}}</th>
+							<th>{{resourceBundle.details_history_date}}</th>
+							<th>{{resourceBundle.details_history_price}}</th>
+							<th>{{resourceBundle.details_history_card}}</th>
+							<th>{{resourceBundle.details_history_transaction_status}}</th>
+							<th>{{resourceBundle.details_history_delivery_status}}</th>
+							<th>{{resourceBundle.details_history_uuid}}</th>
+							<th>{{resourceBundle.details_history_group_uuid}}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="record in historyDetails">
+							<td>
+								<a ng-if="selectedTransaction.uuid != record.uuid" href="javascript:void(0);" ng-click="detailsSelectOrder($index);">{{record.customer.firstName}} {{record.customer.lastName}}</a>
+								<span ng-if="selectedTransaction.uuid == record.uuid">{{record.customer.firstName}} {{record.customer.lastName}}</span>
+							</td>
+							<td>{{record.customer.email}}</td>
+							<td>{{record.transactionDate | date:'dd/MM/yyyy'}}</td>
+							<td>{{record.currency.code}} {{record.amount * record.currency.rate | priceFilter}}</td>
+							<td>
+								<a href="javascript:void(0)" rel="popoverCard">{{record.creditCard.number}}</a>
+								<div ng-if="record.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
+									<div class="row">
+										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >{{resourceBundle.card_number}}:</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.number}}</label>
+									</div>
+									<div class="row">
+										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">{{resourceBundle.card_holder}}:</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.holder}}</label>
+									</div>
+									<div class="row">
+										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">{{resourceBundle.card_exp_date}}:</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.expiryDate | date:'dd/MM/yyyy'}}</label>
+									</div>
+									<div class="row">
+										<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5">{{resourceBundle.card_type}}:</label>
+										<label class="col-xs-7 col-sm-7 col-md-7 col-lg-7">{{record.creditCard.cardType}}</label>
+									</div>
+								</div>
+							</td>
+							<td>{{record.status}}</td>
+							<td>{{record.deliveryStatus[0]}}</td>
+							<td>{{record.uuid}}</td>
+							<td>
+								<span ng-if="record.groupTransactionUUID != null">{{record.groupTransactionUUID}}</span>
+								<span ng-if="record.groupTransactionUUID == null"><i>{{resourceBundle.not_available}}</i></span>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+<!-- Merchant Block -->
+	<div class="panel panel-default" ng-if="isMerchant && logsDetails != null">
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_logs_title}}</h3></div>
+		<div class="panel-body">
+			<div class="table-responsive" ng-show="logsDetails.length > 0">
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr>
+							<th style="width: 20%;">{{resourceBundle.details_logs_direction}}</th>
+							<th style="width: 20%;">{{resourceBundle.details_logs_provider}}</th>
+							<th style="width: 20%;">{{resourceBundle.details_logs_step}}</th>
+							<th style="width: 40%;">{{resourceBundle.details_logs_log}}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="row in logsDetails">
+							<td style="width: 20%;">{{row.direction}}</td>
+							<td style="width: 20%;">{{row.provider}}</td>
+							<td style="width: 20%;">{{row.step}}</td>
+							<td style="width: 40%;">
+								<div ng-repeat="instance in row.log">{{instance}}</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+<!-- End Of Merchant Block -->
 </div>

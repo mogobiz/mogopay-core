@@ -4,40 +4,35 @@
 
 function HomeCtrl($scope, $location, $rootScope, $route) {
     $scope.customerLogin =  function () {
-        callServer("account/customer-token", "", function (response) {
-                $rootScope.xtoken = response;
-                    $rootScope.isMerchant = false;
-                    $scope.$apply();
-                    navigateToPage($scope, $location, $rootScope, $route, "login");
-            },
-            function (response) {});
+		var success = function (response) {
+			$rootScope.isMerchant = false;
+			xtoken = response.token;
+			$scope.$apply();
+			navigateToPage($scope, $location, $rootScope, $route, "login");
+		}
+        callServer("account/customer-token", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
     }
     $scope.merchantLogin =  function () {
-        callServer("account/merchant-token", "",
-            function (response) {
-                $rootScope.xtoken = response;
-                    $rootScope.isMerchant = true;
-                    $scope.$apply();
-                    navigateToPage($scope, $location, $rootScope, $route, "login");
-            },
-            function (response) {});
+		var success = function (response) {
+				$rootScope.isMerchant = true;
+				xtoken = response.token;
+				$scope.$apply();
+				navigateToPage($scope, $location, $rootScope, $route, "login");
+            }
+        callServer("account/merchant-token", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
     }
 	
-	$("#mainContainer").hide();
 	var success = function (){};
-	var failure = function (){};
+	var error = function (){};
 	if(indexPage == true){
 		success = function (response) {
-		$("#mainContainer").show();
 			$rootScope.isMerchant = response.isMerchant;
 			$rootScope.userProfile = response;
-			$rootScope.createPage = false;
 			$rootScope.getAllStores();
 		};
-
-		failure = function (response) {
-			$("#mainContainer").show();
+		error = function (response) {
+			$("#homeContainer").show();
 		};
 	}
-	callServer("account/profile-info", "", success, failure);
+	callServer("account/profile-info", "", success, error, "GET", "params", "pay", false, false, false);
 }

@@ -17,19 +17,18 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
             $scope.$apply();
             navigateToPage($scope, $location, $rootScope, $route, "profile");
         };
-        callServer("account/profile-info", "", success, function (response) {});
+        callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
     };
 	$scope.historyDetails = null;
 	$rootScope.returnDetails = null;
 	$rootScope.logsDetails = null;
 	$rootScope.itemsToBeReturned = [];
+	$scope.detailsDisableReturn = true;
 	if($rootScope.selectedCustomer != null){
 		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
 	}
 	if($rootScope.selectedTransaction != null){
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
-		if($rootScope.isMerchant)
-			detailsGetOrderLogs($scope, $location, $rootScope, $route)
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
 	$scope.detailsRefundCheckAll = function () {detailsRefundCheckAll($scope, $location, $rootScope, $route);};
@@ -40,6 +39,13 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 	$scope.refreshProductsPopover = function () {refreshProductsPopover();};
 	$scope.refreshReturnPopover = function () {refreshReturnPopover();};
 	$scope.refreshBoRetunPopover = function () {refreshBoRetunPopover();};
+	$scope.toUTCDate = function(dateValue){return toUTCDate(dateValue);};
+}
+
+function toUTCDate(dateValue){
+	var date = new Date(dateValue);
+	var newDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),  date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds());
+	return newDate.getTime();
 }
 
 function detailsGetCustomerHistory(scope, location, rootScope, route){
@@ -48,20 +54,25 @@ function detailsGetCustomerHistory(scope, location, rootScope, route){
 			scope.historyDetails = response.list;
 		});
 	};
-	callStoreServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, function (response) {}, rootScope.selectedStore, "GET");
+	callServer("backoffice/listOrders", "email=" + rootScope.selectedCustomer.email, success, emptyFunc, "GET", "params", "store", true, true, true);
 }
 
 function detailsSelectOrder(scope, location, rootScope, route, index){
+	$("input[name='detailsRefundAll']").prop("checked", false);
+	scope.detailsDisableReturn = true;
 	rootScope.returnDetails = null;
 	rootScope.logsDetails = null;
 	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
-	if(rootScope.isMerchant)
-		detailsGetOrderLogs(scope, location, rootScope, route)
+	$("html,body").animate({
+		scrollTop: $(".detailsOrderBlock").offset().top
+	}, 500);
 }
 
 function detailsGetOrderDetails(scope, location, rootScope, route){
 	var success = function (response) {
+		if(rootScope.isMerchant)
+			detailsGetOrderLogs(scope, location, rootScope, route);
 		scope.$apply(function () {
 			scope.cartDetails = response;
 			for(var  i = 0; i < scope.cartDetails.cartItems.length; i++){
@@ -73,7 +84,13 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			}
 		});
 	};
-	callStoreServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, function (response) {}, rootScope.selectedStore, "GET");
+	var error = function (response) {
+		scope.cartDetails = {};
+		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_details_not_found);
+		if(rootScope.isMerchant)
+			detailsGetOrderLogs(scope, location, rootScope, route);
+	};
+	callServer("backoffice/cartDetails/" + rootScope.selectedTransaction.uuid, "", success, error, "GET", "params", "store", true, true, true);
 }
 
 function detailsGetOrderLogs(scope, location, rootScope, route){
@@ -89,20 +106,24 @@ function detailsGetOrderLogs(scope, location, rootScope, route){
 			rootScope.logsDetails = response;
 		});
 	};
-	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, function (response) {});
+	callServer("backoffice/transactions/" + rootScope.selectedTransaction.uuid + "/logs", "", success, emptyFunc, "GET", "params", "pay", false, false, false);
 }
 
 function detailsRefundCheckAll(scope, location, rootScope, route){
+	scope.detailsDisableReturn = !($("input[name='detailsRefundAll']").is(":checked") && $("input[name='detailsRefundOne']:not([disabled])").length > 0);
 	$("input[name='detailsRefundOne']:not([disabled])").prop("checked", $("input[name='detailsRefundAll']").is(":checked"));
 }
 
 function detailsRefundCheckOne(scope, location, rootScope, route){
 	var allchecked = true;
+	scope.detailsDisableReturn = true;
 	var checkBoxes = $("input[name='detailsRefundOne']:not([disabled])");
 	for(var i = 0; i < checkBoxes.length; i++){
 		if(!$(checkBoxes[i]).is(":checked")){
 			allchecked = false;
-			break;
+		}
+		else{
+			scope.detailsDisableReturn = false;
 		}
 	}
 	$("input[name='detailsRefundAll']").prop("checked", allchecked);
