@@ -1085,7 +1085,7 @@ class AccountHandler {
             Settings.EmailSenderAddress, signup.locale)
         case Some(acc) =>
           val merchant = getMerchant(acc)
-          val paymentConfig = merchant.get.paymentConfig.get
+          val paymentConfig = merchant.getOrElse(throw new Exception(s"Unknown merchant ID $acc")).paymentConfig.getOrElse(throw new Exception(s"No payment config found found merchant $acc"))
           val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
           val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
           notifyNewAccount(account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
