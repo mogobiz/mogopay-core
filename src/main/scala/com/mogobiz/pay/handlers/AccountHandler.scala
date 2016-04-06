@@ -9,10 +9,10 @@ import java.net.URLEncoder
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
-import java.util.{Calendar, UUID}
+import java.util.{ Calendar, UUID }
 
 import com.atosorigin.services.cad.common.util.FileParamReader
-import com.mogobiz.es.{EsClient, _}
+import com.mogobiz.es.{ EsClient, _ }
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
@@ -21,7 +21,7 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
-import com.mogobiz.pay.handlers.Token.{Token, TokenType}
+import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.sql.BOAccountDAO
@@ -32,9 +32,9 @@ import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
 import org.json4s.Extraction
-import org.json4s.JsonAST.{JString, JValue}
+import org.json4s.JsonAST.{ JString, JValue }
 import org.json4s.jackson.JsonMethods._
-import org.json4s.jackson.Serialization.{read, write}
+import org.json4s.jackson.Serialization.{ read, write }
 
 import scala.util._
 import scala.util.control.NonFatal
@@ -47,7 +47,7 @@ case class DoesAccountExistByEmail(email: String, merchantId: Option[String])
 case class IsPatternValid(pattern: String)
 
 case class RequestPasswordChange(email: String, merchantId: String,
-                                 passwordCB: String, isCustomer: Boolean)
+  passwordCB: String, isCustomer: Boolean)
 
 case class SelectShippingAddress(accountId: String, addressId: String)
 
@@ -66,7 +66,7 @@ case class ConfirmSignup(token: String)
 case class GenerateNewSecret(accountId: String)
 
 case class AddCreditCard(accountId: String, ccId: Option[String], holder: String,
-                         number: Option[String], expiry: String, ccType: String)
+  number: Option[String], expiry: String, ccType: String)
 
 case class DeleteCreditCard(accountId: String, cardId: String)
 
@@ -77,17 +77,17 @@ case class GetShippingAddresses(accountId: String)
 case class GetShippingAddress(accountId: String)
 
 case class AddressToUpdateFromGetParams(id: String, road: String,
-                                        city: String, road2: Option[String],
-                                        zipCode: String, extra: Option[String],
-                                        civility: String, firstName: String,
-                                        lastName: String, company: Option[String], country: String,
-                                        admin1: String, admin2: Option[String], lphone: String)
+  city: String, road2: Option[String],
+  zipCode: String, extra: Option[String],
+  civility: String, firstName: String,
+  lastName: String, company: Option[String], country: String,
+  admin1: String, admin2: Option[String], lphone: String)
 
 case class AddressToAddFromGetParams(road: String, city: String, road2: Option[String],
-                                     zipCode: String, extra: Option[String],
-                                     civility: String, firstName: String,
-                                     lastName: String, company: Option[String], country: String,
-                                     admin1: String, admin2: Option[String], lphone: String) {
+    zipCode: String, extra: Option[String],
+    civility: String, firstName: String,
+    lastName: String, company: Option[String], country: String,
+    admin1: String, admin2: Option[String], lphone: String) {
   def getAddress = {
     val telephone = telephoneHandler.buildTelephone(lphone, country, TelephoneStatus.WAITING_ENROLLMENT)
     AccountAddress(road, road2, city, Option(zipCode), extra, Option(Civility.withName(civility)), Option(firstName),
@@ -96,11 +96,11 @@ case class AddressToAddFromGetParams(road: String, city: String, road2: Option[S
 }
 
 case class AddressToAssignFromGetParams(road: String, city: String,
-                                        road2: Option[String], zipCode: String,
-                                        extra: Option[String], civility: String,
-                                        firstName: String, lastName: String, company: Option[String],
-                                        country: String, admin1: String,
-                                        admin2: Option[String], lphone: String) {
+    road2: Option[String], zipCode: String,
+    extra: Option[String], civility: String,
+    firstName: String, lastName: String, company: Option[String],
+    country: String, admin1: String,
+    admin2: Option[String], lphone: String) {
   def getAddress = {
     val c = Civility.withName(civility)
     AccountAddress(road, road2, city, Some(zipCode), extra, Some(c), Some(firstName),
@@ -129,26 +129,26 @@ case class MerchantComSecret(seller: String)
 case class Enroll(accountId: String, lPhone: String, pinCode: String)
 
 case class Signup(email: String, password: String, password2: String,
-                  lphone: String, civility: String, firstName: String,
-                  lastName: String, birthDate: String, address: AccountAddress,
-                  withShippingAddress: Boolean,
-                  isMerchant: Boolean, vendor: Option[String], company: Option[String],
-                  website: Option[String], validationUrl: String, locale: Option[String])
+  lphone: String, civility: String, firstName: String,
+  lastName: String, birthDate: String, address: AccountAddress,
+  withShippingAddress: Boolean,
+  isMerchant: Boolean, vendor: Option[String], company: Option[String],
+  website: Option[String], validationUrl: String, locale: Option[String])
 
 case class UpdateProfile(id: String, password: Option[(String, String)],
-                         company: Option[String], website: Option[String], lphone: String, civility: String,
-                         firstName: String, lastName: String, birthDate: String,
-                         billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
-                         emailField: Option[String], passwordField: Option[String],
-                         senderName: Option[String], senderEmail: Option[String],
-                         passwordPattern: Option[String], callbackPrefix: Option[String],
-                         paymentMethod: Option[String], cbProvider: Option[String], cbParam: Option[CBParams],
-                         payPalParam: Option[PayPalParam], applePayParam: Option[AuthorizeNetParam],
-                         kwixoParam: KwixoParam, groupPaymentReturnURLforNextPayers: Option[String],
-                         groupPaymentSuccessURL: Option[String], groupPaymentFailureURL: Option[String])
+  company: Option[String], website: Option[String], lphone: String, civility: String,
+  firstName: String, lastName: String, birthDate: String,
+  billingAddress: AccountAddress, vendor: Option[String], isMerchant: Boolean,
+  emailField: Option[String], passwordField: Option[String],
+  senderName: Option[String], senderEmail: Option[String],
+  passwordPattern: Option[String], callbackPrefix: Option[String],
+  paymentMethod: Option[String], cbProvider: Option[String], cbParam: Option[CBParams],
+  payPalParam: Option[PayPalParam], applePayParam: Option[AuthorizeNetParam],
+  kwixoParam: KwixoParam, groupPaymentReturnURLforNextPayers: Option[String],
+  groupPaymentSuccessURL: Option[String], groupPaymentFailureURL: Option[String])
 
 case class UpdateProfileLight(id: String, password: String, password2: String, civility: String,
-                              firstName: String, lastName: String, birthDate: String)
+  firstName: String, lastName: String, birthDate: String)
 
 sealed trait CBParams
 
@@ -161,14 +161,14 @@ case class AuthorizeNetParam(apiLoginId: String, transactionKey: String) extends
 case class KwixoParam(kwixoParams: Option[String]) extends CBParams
 
 case class PaylineParams(paylineAccount: String, paylineKey: String, paylineContract: String,
-                         paylineCustomPaymentPageCode: String, paylineCustomPaymentTemplateURL: String) extends CBParams
+  paylineCustomPaymentPageCode: String, paylineCustomPaymentTemplateURL: String) extends CBParams
 
 case class PayboxParams(payboxSite: String, payboxKey: String, payboxRank: String, payboxContract: String, payboxMerchantId: String) extends CBParams
 
 case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
-                      sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
-                      sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
-                      sipsMerchantLogoPath: String) extends CBParams
+  sipsMerchantCertificateFileName: Option[String], sipsMerchantCertificateFileContent: Option[String],
+  sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
+  sipsMerchantLogoPath: String) extends CBParams
 
 case class AuthorizeNetParams(apiLoginID: String, transactionKey: String, md5Key: String) extends CBParams
 
@@ -333,20 +333,20 @@ class AccountHandler {
   }
 
   /**
-    * For debugging purposes. Works only for merchant.com - so no risk :)
-    *
-    * @return
-    */
+   * For debugging purposes. Works only for merchant.com - so no risk :)
+   *
+   * @return
+   */
   def id(seller: String): String = {
     val email = seller + "@merchant.com"
     this.findByEmail(email, None).map(_.uuid).getOrElse(throw InvalidEmailException(s"$email"))
   }
 
   /**
-    * For debugging purposes. Works only for merchant.com - so no risk :)
-    *
-    * @return
-    */
+   * For debugging purposes. Works only for merchant.com - so no risk :)
+   *
+   * @return
+   */
   def secret(seller: String): String = {
     val email = seller + "@merchant.com"
     this.findByEmail(email, None).map(_.secret).getOrElse(throw InvalidEmailException(s"$email"))
@@ -467,8 +467,8 @@ class AccountHandler {
   def isMerchant(account: Account) = account.roles.contains(RoleName.MERCHANT)
 
   /**
-    * Generates, saves and sends a pin code
-    */
+   * Generates, saves and sends a pin code
+   */
   def generateAndSendPincode3(uuid: String): Unit = {
     val acc = accountHandler.load(uuid) getOrElse (throw AccountDoesNotExistException(""))
     val phoneNumber: Telephone =
@@ -517,13 +517,13 @@ class AccountHandler {
   }
 
   def addCreditCard(accountId: String, ccId: Option[String], holder: String,
-                    number: Option[String], expiryDate: String, ccType: String): CreditCard = ccId match {
+    number: Option[String], expiryDate: String, ccType: String): CreditCard = ccId match {
     case None => createCard(accountId, holder, number.get, expiryDate, ccType)
     case Some(cardId) => updateCard(accountId, cardId, holder, expiryDate, ccType)
   }
 
   private def updateCard(accountId: String, ccId: String, holder: String,
-                         expiryDate: String, ccType: String): CreditCard = {
+    expiryDate: String, ccType: String): CreditCard = {
     val account = accountHandler.load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
@@ -541,7 +541,7 @@ class AccountHandler {
   }
 
   private def createCard(accountId: String, holder: String, number: String,
-                         expiryDate: String, ccType: String): CreditCard = {
+    expiryDate: String, ccType: String): CreditCard = {
     val account = load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val (hiddenN, cryptedN) =
@@ -843,11 +843,11 @@ class AccountHandler {
 
         val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers,
           profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
-          case (None, None, None) => None
-          case (Some(""), Some(""), Some("")) => None
-          case (Some(a), Some(b), Some(c)) => Some(GroupPaymentInfo(a, b, c))
-          case _ => throw new MissingGroupPaymentInfoValues
-        }
+            case (None, None, None) => None
+            case (Some(""), Some(""), Some("")) => None
+            case (Some(a), Some(b), Some(c)) => Some(GroupPaymentInfo(a, b, c))
+            case _ => throw new MissingGroupPaymentInfoValues
+          }
 
         val paymentConfig = if (!profile.isMerchant) None
         else {
@@ -1106,7 +1106,7 @@ class AccountHandler {
 
     if (account.isCustomer) {
       val req = search in Settings.Mogopay.EsIndex limit Integer.MAX_VALUE types "BOTransaction" sourceInclude "vendor.company" postFilter termFilter("customer.uuid", account.uuid)
-      (EsClient.searchAllRaw(req) hits() map { hit: SearchHit =>
+      (EsClient.searchAllRaw(req) hits () map { hit: SearchHit =>
         val json: JValue = hit
         val JString(company) = json \ "vendor" \ "company"
         company
@@ -1125,7 +1125,7 @@ class AccountHandler {
   }
 
   def notifyNewAccount(account: Account, vendor: Option[Account], validationUrl: String, token: String,
-                       fromName: String, fromEmail: String, locale: Option[String]): Unit = {
+    fromName: String, fromEmail: String, locale: Option[String]): Unit = {
     val (subject, body) = templateHandler.mustache(vendor, "mail-signup-confirmation", locale,
       s"""
          |{

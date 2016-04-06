@@ -72,6 +72,7 @@ class AccountService extends Directives with DefaultComplete {
 
   lazy val customerToken = path("customer-token") {
     session { session =>
+      session.clear()
       val token = addCSRFTokenToSession(session, isMerchant = false)
       setSession(session) {
         complete {
@@ -83,6 +84,7 @@ class AccountService extends Directives with DefaultComplete {
 
   lazy val merchantToken = path("merchant-token") {
     session { session =>
+      session.clear()
       val token = addCSRFTokenToSession(session, isMerchant = true)
       setSession(session) {
         complete {

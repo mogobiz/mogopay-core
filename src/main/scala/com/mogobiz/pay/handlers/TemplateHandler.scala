@@ -19,7 +19,7 @@ class TemplateHandler {
     val template = loadTemplateByVendor(vendor, templateName, locale)
     val mailContent = Mustache(template, customJS, jsonString)
     val eol = mailContent.indexOf('\n')
-    require(eol > 0, "No new line found in mustache file to distinguish subject from body")
+    require(eol > 0, "No new line found in mustache file to distinguish subject from body. Subject cannot be empty.")
     println(mailContent)
     val subject = mailContent.substring(0, eol)
     val body = mailContent.substring(eol + 1)

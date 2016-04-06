@@ -35,19 +35,19 @@ trait MogopayRoutes extends Directives {
 
   def routes =
     logRequestResponse(showRequest _) {
-      pathPrefix("static" / "admin") {
-        pathEndOrSingleSlash {
-          //compressResponse() {
-          redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
-          //}
-        }
+      path("static" / "admin") {
+        //compressResponse() {
+        redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
+        //}
       } ~
         pathPrefix("static") {
           //compressResponse() {
           if (Settings.IsResourcesLocal) {
             getFromResourceDirectory("static")
-          } else {
+          } else if (Settings.isResourcesPathAbsolute) {
             getFromBrowseableDirectory(Settings.ResourcesPath)
+          } else {
+            getFromResourceDirectory(Settings.ResourcesPath)
           }
           //}
         } ~

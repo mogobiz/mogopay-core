@@ -26,6 +26,7 @@ object Settings {
   val TemplateImagesUrl = config.getString("templates.imagesUrl")
   val TemplatesPath = config.getString("templates.path")
   val IsResourcesLocal = ResourcesPath.isEmpty
+  val isResourcesPathAbsolute = ResourcesPath.contains(File.separator)
 
   val CakeClass = config.getString("mogopay.handlers.class")
 
