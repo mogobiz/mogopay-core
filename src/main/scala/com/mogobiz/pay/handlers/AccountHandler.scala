@@ -18,27 +18,27 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.sql.BOAccountDAO
+import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.SymmetricCrypt
+import com.mogobiz.utils.{ EmailHandler, SymmetricCrypt }
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
-import org.json4s.Extraction
 import org.json4s.JsonAST.{ JString, JValue }
-import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.{ read, write }
 
 import scala.util._
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
+import Settings.Mail.Smtp.MailSettings
+import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 
 class LoginException(msg: String) extends Exception(msg)
 
@@ -369,11 +369,23 @@ class AccountHandler {
     EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert = false, refresh = refresh)
   }
 
-  def getMerchant(merchantId: String): Option[Account] = {
-    val merchant = accountHandler.load(merchantId)
-    merchant flatMap { merchant =>
-      if (merchant.owner.isEmpty) Some(merchant) else None
+  def getAccount(accountId: String, roleName: RoleName): Option[Account] = {
+    val account = accountHandler.load(accountId)
+    account flatMap { account =>
+      account.roles.find {
+        role => role == roleName
+      }.map {
+        r => account
+      }
     }
+  }
+
+  def getMerchant(merchantId: String): Option[Account] = {
+    getAccount(merchantId, RoleName.MERCHANT)
+  }
+
+  def getCustomer(customerId: String): Option[Account] = {
+    getAccount(customerId, RoleName.CUSTOMER)
   }
 
   type UserInfo = Option[Map[Symbol, Option[String]]]

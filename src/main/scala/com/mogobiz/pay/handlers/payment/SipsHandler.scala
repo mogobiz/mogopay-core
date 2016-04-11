@@ -66,8 +66,7 @@ import scala.util.control.NonFatal
  */
 class SipsHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
-  implicit val formats = new org.json4s.DefaultFormats {
-  }
+  implicit val formats = new org.json4s.DefaultFormats {}
   val paymentType = PaymentType.CREDIT_CARD
 
   import SipsHandler._

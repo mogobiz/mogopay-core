@@ -5,7 +5,7 @@
 package com.mogobiz.pay.handlers.payment
 
 import java.io.File
-import java.text.{ DateFormat, NumberFormat, SimpleDateFormat }
+import java.text.{ NumberFormat, SimpleDateFormat }
 import java.util.{ List => _, _ }
 
 import com.mogobiz.es.EsClient
@@ -15,9 +15,8 @@ import com.mogobiz.pay.common._
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.EmailHandler.Mail
+import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.handlers.shipping.{ ShippingHandler, ShippingPrice }
-import com.mogobiz.pay.handlers.{ EmailHandler, UtilHandler }
 import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
@@ -26,15 +25,16 @@ import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
+import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{ GlobalUtil, SymmetricCrypt }
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
 import org.apache.commons.lang.LocaleUtils
 import org.elasticsearch.common.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
-import org.json4s.JsonAST.{ JObject, JField }
+import org.json4s.JsonAST.{ JField, JObject }
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import Settings.Mail.Smtp.MailSettings
 
 import scala.collection.{ Map, _ }
 import scala.util._
@@ -228,15 +228,20 @@ class TransactionHandler {
 
   def notifyPaymentFinished(transaction: BOTransaction, locale: Option[String]): Unit = {
     try {
-      transaction.vendor.map { vendor =>
-        val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
-        val (subject, body) = templateHandler.mustache(Some(vendor), "mail-order", locale, jsonString)
-        EmailHandler.Send(
-          Mail(
-            transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-            List(transaction.email.get), List(), List(), subject, body, Some(body), None
-          ))
-      } getOrElse (throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+      val vendor = transaction.vendor.getOrElse(throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+      val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+      val (subject, body) = templateHandler.mustache(Some(vendor), "mail-order", locale, jsonString)
+      EmailHandler.Send(
+        Mail(
+          transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
+          List(transaction.email.get),
+          Nil,
+          Nil,
+          subject,
+          body,
+          Some(body),
+          None
+        ))
     } catch {
       case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
     }
@@ -245,15 +250,20 @@ class TransactionHandler {
   def notifySuccessPayment(transaction: BOTransaction, locale: Option[String]): Unit = {
     if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
       try {
-        transaction.vendor.foreach { vendor =>
-          val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
-          val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
-          EmailHandler.Send(
-            Mail(
-              transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-              List(transaction.email.get), List(), List(), subject, body, Some(body), None
-            ))
-        }
+        val vendor = transaction.vendor.getOrElse(throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+        val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+        val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
+        EmailHandler.Send(
+          Mail(
+            transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
+            List(transaction.email.get),
+            Nil,
+            Nil,
+            subject,
+            body,
+            Some(body),
+            None
+          ))
       } catch {
         case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
       }
@@ -263,15 +273,20 @@ class TransactionHandler {
   def notifySuccessRefund(transaction: BOTransaction, locale: Option[String]): Unit = {
     if (transaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
       try {
-        transaction.vendor.foreach { vendor =>
-          val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
-          val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-refund", locale, jsonString)
-          EmailHandler.Send(
-            Mail(
-              transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-              List(transaction.email.get), List(), List(), subject, body, Some(body), None
-            ))
-        }
+        val vendor = transaction.vendor.getOrElse(throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+        val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+        val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-refund", locale, jsonString)
+        EmailHandler.Send(
+          Mail(
+            transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
+            List(transaction.email.get),
+            Nil,
+            Nil,
+            subject,
+            body,
+            Some(body),
+            None
+          ))
       } catch {
         case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
       }
@@ -350,8 +365,12 @@ class TransactionHandler {
             }
           }
           shippingPrice
-        }.getOrElse { throw SelectedShippingPriceNotFound() }
-      }.getOrElse { throw NoShippingPriceFound() }
+        }.getOrElse {
+          throw SelectedShippingPriceNotFound()
+        }
+      }.getOrElse {
+        throw NoShippingPriceFound()
+      }
     }.getOrElse(throw NoActiveShippingAddressFound())
   }
 
@@ -458,7 +477,9 @@ class TransactionHandler {
       }
     }
 
-    val shippingPrice = sessionData.selectShippingPrice.map { _.price }.getOrElse(0L)
+    val shippingPrice = sessionData.selectShippingPrice.map {
+      _.price
+    }.getOrElse(0L)
 
     val cartWithShipping = CartWithShipping(cart.count,
       shippingPrice,
@@ -766,10 +787,12 @@ object BOTransactionJsonTransform {
     case JString(v) => Some(v)
     case _ => None
   }
+
   private def getFieldAsBigInt(obj: JValue) = obj match {
     case JInt(v) => Some(v)
     case _ => None
   }
+
   private def getFieldAsBool(obj: JValue) = obj match {
     case JBool(v) => Some(v)
     case _ => None

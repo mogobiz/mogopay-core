@@ -58,7 +58,7 @@ class TemplateHandler {
   }
   private def findExternalFileForCompanyAndLanguage(standardName: String, prefixe: String, company: Option[String], locale: Option[String]): Option[File] = {
     // On cherche en fonction de la langue dans le répertoire de la compagnie
-    val localeFile = locale.map { l =>
+    val localeFile = locale.flatMap { l =>
       loadExistingExternalFile(company, s"${standardName}_$l.$prefixe").map { f =>
         Some(f)
       }.getOrElse {
@@ -68,7 +68,7 @@ class TemplateHandler {
           None
         }
       }
-    }.flatten
+    }
 
     localeFile.map { f =>
       Some(f)
@@ -78,9 +78,9 @@ class TemplateHandler {
   }
 
   private def loadExistingExternalFile(company: Option[String], fileName: String): Option[File] = {
-    val companyFile = company.map { c =>
+    val companyFile = company.flatMap { c =>
       loadExistingExternalFileFromParent(new File(Settings.TemplatesPath, c), fileName)
-    }.flatten
+    }
 
     companyFile.map { f =>
       Some(f)

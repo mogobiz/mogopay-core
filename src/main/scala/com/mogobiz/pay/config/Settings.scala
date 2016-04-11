@@ -4,11 +4,12 @@
 
 package com.mogobiz.pay.config
 
-import java.io.{ StringReader, File }
-import java.security.{ PublicKey, KeyFactory }
+import java.io.{ File, StringReader }
+import java.security.{ KeyFactory, PublicKey }
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
 
+import com.mogobiz.utils.EmailHandler.MailConfig
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.bouncycastle.util.io.pem.PemReader
 import scalikejdbc.config._
@@ -62,6 +63,7 @@ object Settings {
   }
 
   object Mail {
+
     object Smtp {
       val Host = config.getString("mail.smtp.host")
       val Port = config.getInt("mail.smtp.port")
@@ -71,6 +73,16 @@ object Settings {
       val IsSSLEnabled = config.getBoolean("mail.smtp.ssl")
       val IsSSLCheckServerIdentity = config.getBoolean("mail.smtp.checkserveridentity")
       val IsStartTLSEnabled = config.getBoolean("mail.smtp.starttls")
+      implicit val MailSettings = MailConfig(
+        host = Host,
+        port = Port,
+        sslPort = SslPort,
+        username = Username,
+        password = Password,
+        sslEnabled = IsSSLEnabled,
+        sslCheckServerIdentity = IsSSLCheckServerIdentity,
+        startTLSEnabled = IsStartTLSEnabled
+      )
     }
 
     val MaxAge = config.getInt("mail.confirmation.maxage")
@@ -150,9 +162,11 @@ object Settings {
   }
 
   object Shipping {
+
     object Kiala {
       val enable = config.getBoolean("shipping.kiala.enable")
     }
+
     object EasyPost {
       val ApiKey = config.getString("shipping.easyPost.apiKey")
       val UpsCostCenter = if (config.hasPath("shipping.easyPost.ups.costCenter")) config.getString("shipping.easyPost.ups.costCenter") else ""
@@ -161,7 +175,9 @@ object Settings {
   }
 
   object ApplePay {
+
     import net.authorize.{ Environment => ANetEnv }
+
     val token = Try(Option(config.getString(s"applepay.$Env.token"))).getOrElse(None)
     val env = if (Env == Environment.DEV) ANetEnv.SANDBOX else ANetEnv.PRODUCTION
   }
@@ -171,6 +187,7 @@ object Settings {
   }
 
   object Jobs {
+
     object Interval {
       val CleanAccounts = config.getInt("jobs.cron.recycleaccount")
       val ImportCountries = config.getInt("jobs.cron.importcountries")
@@ -184,6 +201,7 @@ object Settings {
       val ImportRates = config.getInt("jobs.delay.importrates")
       val Refund = config.getInt("jobs.delay.refund")
     }
+
   }
 
   object Mogopay {
@@ -202,7 +220,8 @@ object Settings {
     require(EndPoint.endsWith("/"), "applicationAPIURL must end with a '/'.")
   }
 
-  val GoogleAPIKey = config.getString("mogopay.googleApi.key") //"AIzaSyCwKQwcdpCHgs5t-tXxaAlPshpu4HsYKbU"
+  val GoogleAPIKey = config.getString("mogopay.googleApi.key")
+  //"AIzaSyCwKQwcdpCHgs5t-tXxaAlPshpu4HsYKbU"
   val EnableGeoLocation = config.getBoolean("mogopay.googleApi.enable")
 
   val NextVal = config getString s"$Env.db.default.nextval"
@@ -215,6 +234,7 @@ object Settings {
 trait MogopayTypesafeConfig extends TypesafeConfig {
   lazy val config: Config = ConfigFactory.load("mogopay").withFallback(ConfigFactory.load("default-mogopay"))
 }
+
 case class MogopayDBsWithEnv(envValue: String) extends DBs with TypesafeConfigReader with MogopayTypesafeConfig with EnvPrefix {
   override val env = Option(envValue)
 }

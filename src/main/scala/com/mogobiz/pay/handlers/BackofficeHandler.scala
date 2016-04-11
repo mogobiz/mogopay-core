@@ -15,6 +15,7 @@ import com.mogobiz.pay.model.Mogopay._
 import org.elasticsearch.search.sort.SortOrder._
 
 class BackofficeHandler {
+
   def listCustomers(sessionData: SessionData, page: Int, max: Int): Seq[Account] = {
     if (!sessionData.isMerchant)
       throw InvalidContextException("User not a merchant")

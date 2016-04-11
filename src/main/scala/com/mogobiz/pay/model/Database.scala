@@ -331,9 +331,7 @@ object Mogopay {
       hasRoleName(RoleName.MERCHANT)
     }
 
-    private def hasRoleName(roleName: RoleName): Boolean = {
-      roles.find { r: RoleName => roleName == r }.map { r: RoleName => true }.getOrElse(false)
-    }
+    private def hasRoleName(roleName: RoleName): Boolean = roles.contains(roleName)
   }
 
   case class ShippingAddress(uuid: String,

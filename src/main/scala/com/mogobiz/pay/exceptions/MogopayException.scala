@@ -112,7 +112,7 @@ object Exceptions {
 
   case class NotACreditCardTransactionException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
   case class PasswordsDoNotMatchException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 

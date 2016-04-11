@@ -6,25 +6,22 @@ package com.mogobiz.pay.handlers.payment
 
 import java.util.{ Date, UUID }
 
-import akka.actor.Props
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.EmailHandler.Mail
-import com.mogobiz.pay.handlers.EmailingActor
-import com.mogobiz.pay.handlers.shipping.ShippingHandler
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.system.ActorSystemLocator
-import com.mogobiz.utils.{ GlobalUtil, SymmetricCrypt }
+import com.mogobiz.utils.EmailHandler.Mail
+import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
 import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
+import Settings.Mail.Smtp.MailSettings
 
 import scala.collection.mutable
-import scala.util.{ Failure, Success, Try }
 
 trait PaymentHandler {
   implicit val system = ActorSystemLocator()
@@ -141,12 +138,12 @@ trait PaymentHandler {
           val senderName = merchant.paymentConfig.get.senderName
           val senderEmail = merchant.paymentConfig.get.senderEmail
 
-          val emailingActor = system.actorOf(Props[EmailingActor])
-          emailingActor ! Mail(
-            from = (senderEmail.getOrElse(""), senderName.get),
-            to = Seq(account.email),
-            subject = subject,
-            message = body)
+          EmailHandler.Send(
+            Mail(
+              from = (senderEmail.getOrElse(throw new Exception("No Sender Email configured for merchant")), senderName.getOrElse(throw new Exception("No Sender Name configured for Merchant"))),
+              to = Seq(account.email),
+              subject = subject,
+              message = body))
         }
         sendEmail()
     }
