@@ -213,6 +213,7 @@ object Settings {
     val Port = config getInt "mogopay.port"
     val Anonymous = config getBoolean "mogopay.anonymous"
     val BaseEndPoint = s"$Protocol://$Host:$Port"
+    val EndPointNoPort = s"$Protocol://$Host/api/pay/" // For authorize (does not support port in url)
     val EndPoint = s"${BaseEndPoint}/api/pay/"
     val isHTTPS = Protocol.equalsIgnoreCase("https")
 

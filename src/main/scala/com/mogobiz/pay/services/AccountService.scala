@@ -617,9 +617,9 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
 
   lazy val confirmSignup = path("confirm-signup") {
     get {
-      parameters('token) { (token) =>
+      parameters('token, 'locale.?) { (token, locale) =>
         session { session =>
-          handleCall(accountHandler.confirmSignup(token),
+          handleCall(accountHandler.confirmSignup(token, locale),
             (account: Account) => {
               ServicesUtil.authenticateSession(session, account)
               setSession(session) {

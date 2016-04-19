@@ -64,8 +64,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val transactionKey = cbParam("transactionKey")
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amountFloat)
 
-    val relayURL = s"${Settings.Mogopay.EndPoint}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
-    val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel/${sessionData.uuid}"
+    val relayURL = s"${Settings.Mogopay.EndPointNoPort}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
+    val cancelURL = s"${Settings.Mogopay.EndPointNoPort}authorizenet/cancel/${sessionData.uuid}"
     val formAction = Settings.AuthorizeNet.formAction
 
     if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
@@ -185,7 +185,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
   }
 
   def relay(sessionData: SessionData, params: Map[String, String]) = {
-    val action = s"${Settings.Mogopay.EndPoint}authorizenet/done/${sessionData.uuid}"
+    val action = s"${Settings.Mogopay.EndPointNoPort}authorizenet/done/${sessionData.uuid}"
     val form = {
       <form action={ action } id="redirectForm" method="GET">
         {

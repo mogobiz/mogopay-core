@@ -501,7 +501,7 @@ class AccountHandler {
     smsHandler.sendSms(message, phoneNumber.phone)
   }
 
-  def confirmSignup(token: String): Account = {
+  def confirmSignup(token: String, locale: Option[String] = None): Account = {
     val (emailType, timestamp, accountId, _) = Token.parseToken(token)
 
     if (emailType != EmailType.Signup) {
@@ -512,11 +512,13 @@ class AccountHandler {
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
         throw new TokenExpiredException()
       } else {
-        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) };
-        if (account.isDefined) {
-          accountHandler.update(account.get, refresh = true)
-          account.get
-        } else throw new InvalidTokenException("")
+        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) }
+        account.map { account =>
+          accountHandler.update(account, refresh = true)
+          val vendor = account.owner.flatMap(load)
+          notifyAccountConfirmed(account, vendor, Settings.EmailSenderName, Settings.EmailSenderAddress, locale)
+          account
+        } getOrElse (throw new InvalidTokenException(""))
       }
     }
   }
@@ -1138,6 +1140,7 @@ class AccountHandler {
 
   def notifyNewAccount(account: Account, vendor: Option[Account], validationUrl: String, token: String,
     fromName: String, fromEmail: String, locale: Option[String]): Unit = {
+    val (companyName, companyWebsite) = vendor.map { vendor => (vendor.company.getOrElse(""), vendor.website.getOrElse("")) } getOrElse (("", ""))
     val (subject, body) = templateHandler.mustache(vendor, "mail-signup-confirmation", locale,
       s"""
          |{
@@ -1145,7 +1148,32 @@ class AccountHandler {
          |"url": "$validationUrl",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
-         |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
+         |"companyWebsite" : $companyWebsite,
+         |"companyName":$companyName
+         |}
+         |""".stripMargin)
+
+    EmailHandler.Send(
+      Mail(
+        from = (fromEmail, fromName),
+        to = Seq(account.email),
+        subject = subject,
+        message = body,
+        richMessage = Some(body)))
+  }
+
+  def notifyAccountConfirmed(account: Account, vendor: Option[Account], fromName: String, fromEmail: String, locale: Option[String]): Unit = {
+    val (companyName, companyWebsite) = vendor.map { vendor => (vendor.company.getOrElse(""), vendor.website.getOrElse("")) } getOrElse (("", ""))
+    val (subject, body) = templateHandler.mustache(vendor, "mail-signup-validation", locale,
+      s"""
+         |{
+         |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
+         |"email" :"${account.email}",
+         |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
+         |"companyWebsite" : $companyWebsite,
+         |"companyName":$companyName
          |}
          |""".stripMargin)
 

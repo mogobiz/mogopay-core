@@ -29,7 +29,7 @@ class EasyPostHandler extends ShippingHandler {
 
   EasyPost.apiKey = Settings.Shipping.EasyPost.ApiKey
 
-  override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     cart.compagnyAddress.map { compagnyAddress =>
       val shippingContent = extractShippingContent(cart)
       computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
@@ -70,7 +70,7 @@ class EasyPostHandler extends ShippingHandler {
     }
   }
 
-  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
 
   override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = {
     if (shippingPrice.confirm) shippingPrice

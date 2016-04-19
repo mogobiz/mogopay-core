@@ -15,9 +15,9 @@ case class ShippingPrice(shipmentId: String, rateId: String, provider: String, s
   currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false)
 
 trait ShippingHandler {
-  def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice]
+  def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice]
 
-  def isManageShipmentId(shippingPrice: ShippingPrice): Boolean
+  def isValidShipmentId(shippingPrice: ShippingPrice): Boolean
 
   def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice
 
@@ -53,17 +53,17 @@ object ShippingHandler {
   val servicesList: Seq[ShippingHandler] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHander)
   else Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
 
-  def calculatePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     servicesList.flatMap {
       service =>
-        service.calculatePrice(address, cart)
+        service.computePrice(address, cart)
     }
   }
 
   def confirmShippingPrice(shippingPriceOpt: Option[ShippingPrice]): Option[ShippingPrice] = {
     shippingPriceOpt.map { shippingPrice =>
       val serviceOpt = servicesList.find {
-        _.isManageShipmentId(shippingPrice)
+        _.isValidShipmentId(shippingPrice)
       }
       serviceOpt.map { service =>
         service.confirmShipmentId(shippingPrice)

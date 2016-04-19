@@ -91,7 +91,7 @@ class TemplateHandler {
 
   private def loadExistingExternalFileFromParent(parent: File, fileName: String): Option[File] = {
     val file = new File(parent, fileName)
-    if (file.exists()) Some(file);
+    if (file.exists()) Some(file)
     else None
   }
 
