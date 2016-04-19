@@ -1000,7 +1000,8 @@ object BOTransactionJsonTransform {
       JField("saleTotalPrice", formatPrice(locale, cartItem.saleTotalPrice, currencyCode, fractionDigits)),
       JField("saleTotalEndPrice", formatPrice(locale, cartItem.saleTotalEndPrice, currencyCode, fractionDigits)),
       JField("saleTotalTaxAmount", formatPrice(locale, cartItem.saleTotalTaxAmount, currencyCode, fractionDigits)),
-      JField("registeredCartItems", JArray(cartItem.registeredCartItems.toList.map { registeredCartItem => transformRegisteredCartItem(registeredCartItem, locale, currencyCode, fractionDigits) }))
+      JField("registeredCartItems", JArray(cartItem.registeredCartItems.toList.map { registeredCartItem => transformRegisteredCartItem(registeredCartItem, locale, currencyCode, fractionDigits) })),
+      JField("downloadableLink", if (cartItem.downloadableLink != null) JString(cartItem.downloadableLink) else JNothing)
     ).merge(Extraction.decompose(cartItem.customs))
   }
 
