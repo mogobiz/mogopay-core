@@ -283,7 +283,7 @@
 	"error_invalid_website": "Site web invalide !",
 	"error_invalid_birthdate": "Date de naissance invalide !",
 	"error_invalid_date": "Date invalide!",
-	"error_invalid_company_name": "Nom de la compagnie invalide !",
+	"error_invalid_company_name": "Code de la compagnie invalide !",
 	"error_invalid_phone": "Numéro de téléphone invalide !",
 	"error_invalid_card": "Numéro de carte de credit invalide !",
 	"error_invalid_regex": "Expression régulière invalide !",

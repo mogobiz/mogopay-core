@@ -1149,8 +1149,8 @@ class AccountHandler {
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
          |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
-         |"companyWebsite" : $companyWebsite,
-         |"companyName":$companyName
+         |"companyWebsite" : "$companyWebsite",
+         |"companyName": "$companyName"
          |}
          |""".stripMargin)
 
@@ -1172,8 +1172,8 @@ class AccountHandler {
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
          |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
-         |"companyWebsite" : $companyWebsite,
-         |"companyName":$companyName
+         |"companyWebsite" : "$companyWebsite",
+         |"companyName":"$companyName"
          |}
          |""".stripMargin)
 
