@@ -276,7 +276,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           import Implicits._
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              handleCall(transactionHandler.download(accountId, transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
+              handleCall(transactionHandler.download(transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
                 getFromFile(pdfFile)
               })
             case _ => completeException(new UnauthorizedException("Not logged in"))

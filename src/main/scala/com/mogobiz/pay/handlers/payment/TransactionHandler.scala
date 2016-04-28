@@ -25,7 +25,7 @@ import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
-import com.mogobiz.utils.EmailHandler.Mail
+import com.mogobiz.utils.EmailHandler.{ Attachment, Mail }
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
 import org.apache.commons.lang.LocaleUtils
@@ -250,9 +250,14 @@ class TransactionHandler {
   def notifySuccessPayment(transaction: BOTransaction, locale: Option[String]): Unit = {
     if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
       try {
+        val localeOrEn = locale.getOrElse("en");
         val vendor = transaction.vendor.getOrElse(throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
-        val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+        val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(localeOrEn))
         val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
+        val bill = transaction.customer.map { customer =>
+          val f = download(transaction.transactionUUID, "A4", localeOrEn)
+          Attachment(f, transaction.transactionUUID + ".pdf")
+        }
         EmailHandler.Send(
           Mail(
             transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName.getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
@@ -262,7 +267,7 @@ class TransactionHandler {
             subject,
             body,
             Some(body),
-            None
+            bill
           ))
       } catch {
         case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
@@ -620,7 +625,7 @@ class TransactionHandler {
     }
   }
 
-  def download(accountId: String, transactionUuid: String, pageFormat: String, langCountry: String): File = {
+  def download(transactionUuid: String, pageFormat: String, langCountry: String): File = {
     val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
     optTransaction match {
       case Some(transaction) => {
