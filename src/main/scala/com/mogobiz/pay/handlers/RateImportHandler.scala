@@ -14,7 +14,7 @@ import com.mogobiz.pay.model.Mogopay._
 import org.elasticsearch.index.query.TermQueryBuilder
 
 class RateImportHandler {
-  def importRates(ratesFile: File) {
+  def importRates(ratesFile: File): Unit = {
     assert(ratesFile.exists(), s"${ratesFile.getAbsolutePath} does not exist.")
     val format = new java.text.SimpleDateFormat("yyyy-MM-dd")
 
@@ -22,7 +22,7 @@ class RateImportHandler {
       aggregation max "agg" field "lastUpdated"
     }
 
-    EsClient.search[Rate](req) map (_.lastUpdated.getTime) orElse Some(ratesFile.lastModified) map { lastUpdated =>
+    EsClient.search[Rate](req) map (_.lastUpdated.getTime) orElse Some(ratesFile.lastModified) foreach { lastUpdated =>
       if (lastUpdated <= ratesFile.lastModified) {
         EsClient().client
           .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
