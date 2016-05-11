@@ -25,7 +25,7 @@ function LoginCtrl($scope, $location, $rootScope, $route) {
 				$rootScope.userProfile = infoResponse;
 				$rootScope.getAllStores();
 			}
-			callServer("account/profile-info", "", infoSuccess, function(){}, "GET", false, true, true);
+			callServer("account/profile-info", "", infoSuccess, emptyFunc, "GET", "params", "pay", false, true, true);
         };
 
         var error = function (response) {
@@ -39,7 +39,7 @@ function LoginCtrl($scope, $location, $rootScope, $route) {
 		if(!$rootScope.isMerchant)
 			dataToSend += "&merchant_id=" + $scope.loginSelectedSeller;
 
-        callServer("account/login", dataToSend, success, error, "POST", true, false, true);
+        callServer("account/login", dataToSend, success, error, "POST", "params", "pay", true, false, true);
     };
 
     $scope.requestNewPassword =  function () {
@@ -69,19 +69,19 @@ function LoginCtrl($scope, $location, $rootScope, $route) {
 		});
 		loginGetProfileInfo($scope, $location, $rootScope, $route);
 	}
-	callServer("account/list-merchants", "", listSuccess, function (response) {}, "GET", true, true, true);
+	callServer("account/list-merchants", "", listSuccess, emptyFunc, "GET", "params", "pay", true, true, true);
 }
 
 function loginGetProfileInfo(scope, location, rootScope, route){
 	var success = function (){};
-	var failure = function (){};
+	var error = function (){};
 	if(indexPage == true){
 		success = function (response) {
 			rootScope.userProfile = response;
 			rootScope.getAllStores();
 		};
 
-		failure = function (response) {
+		error = function (response) {
 			$("#loginContainer").show();
 		};
 	}
@@ -90,9 +90,9 @@ function loginGetProfileInfo(scope, location, rootScope, route){
 			if(!response.isMerchant){
 				var logoutSuccess = function (response) {
 					$("#loginContainer").show();
-					callServer("account/merchant-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+					callServer("account/merchant-token", "", function (response) {xtoken = response.token;}, emptyFunc, "GET", "params", "pay", false, false, false);
 				}
-				callServer("account/logout", "", logoutSuccess, function (response) {}, "GET", false, false, false);
+				callServer("account/logout", "", logoutSuccess, emptyFunc, "GET", "params", "pay", false, false, false);
 			}
 			else{
 				rootScope.userProfile = response;
@@ -100,9 +100,9 @@ function loginGetProfileInfo(scope, location, rootScope, route){
 			}
 		};
 
-		failure = function (response) {
+		error = function (response) {
 			$("#loginContainer").show();
-			callServer("account/merchant-token", "", function (response){rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+			callServer("account/merchant-token", "", function (response){xtoken = response.token;}, emptyFunc, "GET", "params", "pay", false, false, false);
 		};
 	}
 	if(customerPage == true){
@@ -110,19 +110,19 @@ function loginGetProfileInfo(scope, location, rootScope, route){
 			if(response.isMerchant){
 				var logoutSuccess = function (response) {
 					$("#loginContainer").show();
-					callServer("account/customer-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+					callServer("account/customer-token", "", function (response) {xtoken = response.token;}, emptyFunc, "GET", "params", "pay", false, false, false);
 				}
-				callServer("account/logout", "", logoutSuccess, function (response) {}, "GET", false, false, false);
+				callServer("account/logout", "", logoutSuccess, emptyFunc, "GET", "params", "pay", false, false, false);
 			}
 			else{
 				rootScope.userProfile = response;
 				rootScope.getAllStores();
 			}
 		};
-		failure = function (response) {
+		error = function (response) {
 			$("#loginContainer").show();
-			callServer("account/customer-token", "", function (response) {rootScope.xtoken = response;}, function (response) {}, "GET", false, false, false);
+			callServer("account/customer-token", "", function (response) {xtoken = response.token;}, emptyFunc, "GET", "params", "pay", false, false, false);
 		};
 	}
-	callServer("account/profile-info", "", success, failure, "GET", false, false, false);
+	callServer("account/profile-info", "", success, error, "GET", "params", "pay", false, false, false);
 }

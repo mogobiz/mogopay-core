@@ -18,27 +18,27 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.EmailHandler.Mail
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.sql.BOAccountDAO
+import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.SymmetricCrypt
+import com.mogobiz.utils.{ EmailHandler, SymmetricCrypt }
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
-import org.json4s.Extraction
 import org.json4s.JsonAST.{ JString, JValue }
-import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.{ read, write }
 
 import scala.util._
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
+import Settings.Mail.Smtp.MailSettings
+import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 
 class LoginException(msg: String) extends Exception(msg)
 
@@ -190,7 +190,7 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
   sipsMerchantParcomFileName: Option[String], sipsMerchantParcomFileContent: Option[String],
   sipsMerchantLogoPath: String) extends CBParams
 
-case class AuthorizeNetParams(apiLoginID: String, transactionKey: String) extends CBParams
+case class AuthorizeNetParams(apiLoginID: String, transactionKey: String, md5Key: String) extends CBParams
 
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
@@ -389,11 +389,23 @@ class AccountHandler {
     EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert = false, refresh = refresh)
   }
 
-  def getMerchant(merchantId: String): Option[Account] = {
-    val merchant = accountHandler.load(merchantId)
-    merchant flatMap { merchant =>
-      if (merchant.owner.isEmpty) Some(merchant) else None
+  def getAccount(accountId: String, roleName: RoleName): Option[Account] = {
+    val account = accountHandler.load(accountId)
+    account flatMap { account =>
+      account.roles.find {
+        role => role == roleName
+      }.map {
+        r => account
+      }
     }
+  }
+
+  def getMerchant(merchantId: String): Option[Account] = {
+    getAccount(merchantId, RoleName.MERCHANT)
+  }
+
+  def getCustomer(customerId: String): Option[Account] = {
+    getAccount(customerId, RoleName.CUSTOMER)
   }
 
   type UserInfo = Option[Map[Symbol, Option[String]]]
@@ -454,8 +466,6 @@ class AccountHandler {
   def notifyNewPassword(account: Account, newPassword: String, locale: Option[String]) = {
 
     val vendor = account.owner.flatMap(load)
-    val template = templateHandler.loadTemplateByVendor(vendor, "mail-new-password", locale)
-
     val paymentConfig = vendor.get.paymentConfig.get
     val senderName = paymentConfig.senderName
     val senderEmail = paymentConfig.senderEmail
@@ -476,7 +486,7 @@ class AccountHandler {
          |}
          |""".stripMargin
 
-    val (subject, body) = templateHandler.mustache(template, data)
+    val (subject, body) = templateHandler.mustache(vendor, "mail-new-password", locale, data)
     EmailHandler.Send(
       Mail(
         from = (senderEmail.getOrElse(vendor.get.email), senderName.getOrElse(s"${vendor.get.firstName} ${vendor.get.lastName}")),
@@ -511,7 +521,7 @@ class AccountHandler {
     smsHandler.sendSms(message, phoneNumber.phone)
   }
 
-  def confirmSignup(token: String): Account = {
+  def confirmSignup(token: String, locale: Option[String] = None): Account = {
     val (emailType, timestamp, accountId, _) = Token.parseToken(token)
 
     if (emailType != EmailType.Signup) {
@@ -522,11 +532,13 @@ class AccountHandler {
       if (currentDate - signupDate > Settings.Mail.MaxAge) {
         throw new TokenExpiredException()
       } else {
-        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) };
-        if (account.isDefined) {
-          accountHandler.update(account.get, refresh = true)
-          account.get
-        } else throw new InvalidTokenException("")
+        val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) }
+        account.map { account =>
+          accountHandler.update(account, refresh = true)
+          val vendor = account.owner.flatMap(load)
+          notifyAccountConfirmed(account, vendor, Settings.EmailSenderName, Settings.EmailSenderAddress, locale)
+          account
+        } getOrElse (throw new InvalidTokenException(""))
       }
     }
   }
@@ -1124,10 +1136,11 @@ class AccountHandler {
         case Some(acc) =>
           println(acc)
           val merchant = getMerchant(acc)
-          println("merchant=", merchant)
-          val paymentConfig = merchant.get.paymentConfig.get
-          val senderEmail = paymentConfig.senderEmail.getOrElse(merchant.get.email)
-          val senderName = paymentConfig.senderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
+          val paymentConfig = merchant.getOrElse(throw new Exception(s"Unknown merchant ID $acc")).paymentConfig.getOrElse(throw new Exception(s"No payment config found found merchant $acc"))
+          val paymentConfigSenderEmail = if (paymentConfig.senderEmail.getOrElse("").trim.length == 0) None else paymentConfig.senderEmail
+          val paymentConfigSenderName = if (paymentConfig.senderName.getOrElse("").trim.length == 0) None else paymentConfig.senderName
+          val senderEmail = paymentConfigSenderEmail.getOrElse(merchant.get.email)
+          val senderName = paymentConfigSenderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
           notifyNewAccount(account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
       }
     }
@@ -1164,16 +1177,40 @@ class AccountHandler {
 
   def notifyNewAccount(account: Account, vendor: Option[Account], validationUrl: String, token: String,
     fromName: String, fromEmail: String, locale: Option[String]): Unit = {
-    val template = templateHandler.loadTemplateByVendor(vendor, "mail-signup-confirmation", locale)
-
-    val (subject, body) = templateHandler.mustache(template,
+    val (companyName, companyWebsite) = vendor.map { vendor => (vendor.company.getOrElse(""), vendor.website.getOrElse("")) } getOrElse (("", ""))
+    val (subject, body) = templateHandler.mustache(vendor, "mail-signup-confirmation", locale,
       s"""
          |{
          |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
          |"url": "$validationUrl",
          |"email" :"${account.email}",
          |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
-         |"civility" :"${account.civility.map(_.toString).getOrElse("")}"
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
+         |"companyWebsite" : "$companyWebsite",
+         |"companyName": "$companyName"
+         |}
+         |""".stripMargin)
+
+    EmailHandler.Send(
+      Mail(
+        from = (fromEmail, fromName),
+        to = Seq(account.email),
+        subject = subject,
+        message = body,
+        richMessage = Some(body)))
+  }
+
+  def notifyAccountConfirmed(account: Account, vendor: Option[Account], fromName: String, fromEmail: String, locale: Option[String]): Unit = {
+    val (companyName, companyWebsite) = vendor.map { vendor => (vendor.company.getOrElse(""), vendor.website.getOrElse("")) } getOrElse (("", ""))
+    val (subject, body) = templateHandler.mustache(vendor, "mail-signup-validation", locale,
+      s"""
+         |{
+         |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
+         |"email" :"${account.email}",
+         |"name" :"${account.firstName.getOrElse("")} ${account.lastName.getOrElse("")}",
+         |"civility" :"${account.civility.map(_.toString).getOrElse("")}",
+         |"companyWebsite" : "$companyWebsite",
+         |"companyName":"$companyName"
          |}
          |""".stripMargin)
 

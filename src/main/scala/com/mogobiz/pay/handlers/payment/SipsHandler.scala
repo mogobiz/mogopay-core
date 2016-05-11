@@ -66,8 +66,7 @@ import scala.util.control.NonFatal
  */
 class SipsHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
-  implicit val formats = new org.json4s.DefaultFormats {
-  }
+  implicit val formats = new org.json4s.DefaultFormats {}
   val paymentType = PaymentType.CREDIT_CARD
 
   import SipsHandler._
@@ -126,7 +125,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
           Right(finishPayment(sessionData, resultat))
         } else {
           // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult()))
+          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
         }
       } else {
         val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
@@ -136,7 +135,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   def callbackPayment(sessionData: SessionData, params: Map[String, String], vendorUuid: Document): PaymentResult = {
-    handleResponse(vendorUuid, params("DATA"), sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
+    handleResponse(sessionData, vendorUuid, params("DATA"), sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
     //Uri(Settings.Mogopay.EndPoint)
   }
 
@@ -177,7 +176,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val successURL = sessionData.successURL
     var resultatPaiement: PaymentResult =
       if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.PAYMENT_REFUSED) {
-        handleResponse(vendorId, params("DATA"), sessionData.locale, TransactionStep.DONE)
+        handleResponse(sessionData, vendorId, params("DATA"), sessionData.locale, TransactionStep.DONE)
       } else {
         PaymentResult(
           newUUID, null, -1L, "", null, null, "", "", null, "", "",
@@ -187,13 +186,14 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
             PaymentStatus.FAILED
           },
           transaction.errorCodeOrigin.getOrElse(""),
-          transaction.errorMessageOrigin, "", "", Some(""), "")
+          transaction.errorMessageOrigin, "", "", Some(""), "", None)
+
       }
     finishPayment(sessionData, resultatPaiement)
 
   }
 
-  private def handleResponse(vendorUuid: Document, cypheredtxt: String, locale: Option[String],
+  private def handleResponse(sessionData: SessionData, vendorUuid: Document, cypheredtxt: String, locale: Option[String],
     step: TransactionStep): PaymentResult = {
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
     val targetFile: File = new File(dir, "pathfile")
@@ -286,12 +286,12 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       data = null,
       bankErrorCode = resp.getValue("bank_response_code"),
       bankErrorMessage = Option(BankErrorCodes.getErrorMessage(resp.getValue("bank_response_code"))),
-      token = null)
+      token = null,
+      errorShipment = None)
 
-    transactionHandler.finishPayment(transactionUuid,
+    transactionHandler.finishPayment(this, sessionData, transactionUuid,
       if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult, resp.getValue("response_code"), locale, Option(resp.getValue("transaction_id")))
-    paymentResult
   }
 
   private[payment] def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
@@ -428,11 +428,11 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       authorizationId = authorisation_id,
       status = if (diag_response_code == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
       token = null,
-      data = null
+      data = null,
+      errorShipment = None
     )
-    transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
+    transactionHandler.finishPayment(this, sessionData, transactionUuid, computeTransactionStatus(paymentResult.status),
       paymentResult, paymentResult.errorCodeOrigin, sessionData.locale, Option(transaction_id))
-    paymentResult
   }
 
   private[payment] def submit(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
@@ -489,7 +489,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         authorizationId = null,
         status = null,
         token = null,
-        data = htmlToDsiplay
+        data = htmlToDsiplay,
+        errorShipment = None
       )
     } else {
       val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
@@ -561,7 +562,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         authorizationId = authorisation_id,
         status = if (bank_response_code == "00") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
         token = null,
-        data = null
+        data = null,
+        errorShipment = None
       )
       val creditCard = BOCreditCard(
         number = paymentResult.ccNumber,
@@ -571,9 +573,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       )
       boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), refresh = false)
 
-      transactionHandler.finishPayment(transactionUuid, computeTransactionStatus(paymentResult.status),
+      transactionHandler.finishPayment(this, sessionData, transactionUuid, computeTransactionStatus(paymentResult.status),
         paymentResult, paymentResult.errorCodeOrigin, sessionData.locale, Option(transaction_id))
-      paymentResult
     }
   }
 

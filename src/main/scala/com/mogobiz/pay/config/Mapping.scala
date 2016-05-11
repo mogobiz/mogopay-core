@@ -27,7 +27,7 @@ object Mapping {
     val pipeline: HttpRequest => scala.concurrent.Future[HttpResponse] = sendReceive
 
     mappingNames foreach { name =>
-      val url = s"/${Settings.Mogopay.EsIndex}/$name/_mapping"
+      val url = s"/${Settings.Mogopay.EsIndex}/_mapping/$name"
       val mapping = scala.io.Source.fromInputStream(mappingFor(name)).mkString
       val updatedMapping = mapping.replaceAllLiterally("{{ttl}}", Settings.TransactionRequestDuration.toString + "m")
       val x: Future[Any] = pipeline(Post(route(url), updatedMapping)) map { response: HttpResponse =>

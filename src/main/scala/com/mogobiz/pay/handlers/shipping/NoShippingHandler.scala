@@ -16,7 +16,7 @@ class NoShippingHandler extends ShippingHandler {
 
   val NO_SHIPPING_PREFIX = "NONE_"
 
-  override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
 
     val shippingContent = extractShippingContent(cart)
 
@@ -25,7 +25,7 @@ class NoShippingHandler extends ShippingHandler {
     else Seq()
   }
 
-  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(NO_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(NO_SHIPPING_PREFIX)
 
   override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = shippingPrice.copy(confirm = true)
 }

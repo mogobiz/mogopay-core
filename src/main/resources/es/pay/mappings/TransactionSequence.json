@@ -2,11 +2,11 @@
   "TransactionSequence": {
     "properties": {
       "dateCreated": {
-        "type": "long",
+        "type": "date",
         "format": "dateOptionalTime"
       },
       "lastUpdated": {
-        "type": "long",
+        "type": "date",
         "format": "dateOptionalTime"
       },
       "transactionId": {

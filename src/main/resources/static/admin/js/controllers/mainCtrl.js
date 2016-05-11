@@ -56,6 +56,61 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 				"RETURN_REFUSED": $rootScope.resourceBundle.return_refused,
 				"RETURN_ACCEPTED": $rootScope.resourceBundle.return_accepted
 			};
+
+			$rootScope.transactionStatusValues = [{
+				value: "",
+				label: $rootScope.resourceBundle.option_all
+			},{
+				value: "INITIATED",
+				label: $rootScope.resourceBundle.transactionStatus_initiated,
+			},{
+				value: "VERIFICATION_THREEDS",
+				label: $rootScope.resourceBundle.transactionStatus_verification_threeds,
+			},{
+				value: "THREEDS_TESTED",
+				label: $rootScope.resourceBundle.transactionStatus_threeds_tested,
+			},{
+				value: "PAYMENT_REQUESTED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_requested,
+			},{
+				value: "PAYMENT_CONFIRMED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_confirmed,
+			},{
+				value: "PAYMENT_REFUSED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_refused,
+			},{
+				value: "CANCEL_REQUESTED",
+				label: $rootScope.resourceBundle.transactionStatus_cancel_requested,
+			},{
+				value: "CANCEL_FAILED",
+				label: $rootScope.resourceBundle.transactionStatus_cancel_failed,
+			},{
+				value: "CANCEL_CONFIRMED",
+				label: $rootScope.resourceBundle.transactionStatus_cancel_confirmed,
+			},{
+				value: "CUSTOMER_REFUNDED",
+				label: $rootScope.resourceBundle.transactionStatus_customer_refunded
+			}];
+
+			$rootScope.deliveryStatusValues = [{
+				value: "",
+				label: $rootScope.resourceBundle.option_all,
+			},{
+				value: "NOT_STARTED",
+				label: $rootScope.resourceBundle.deliveryStatus_not_started,
+			},{
+				value: "IN_PROGRESS",
+				label: $rootScope.resourceBundle.deliveryStatus_in_progress,
+			},{
+				value: "DELIVERED",
+				label: $rootScope.resourceBundle.deliveryStatus_delivered,
+			},{
+				value: "RETURNED",
+				label: $rootScope.resourceBundle.deliveryStatus_returned,
+			},{
+				value: "CANCELED",
+				label: $rootScope.resourceBundle.deliveryStatus_canceled
+			}];
 		}).error(function (resourceBundle) {
 			$rootScope.i18n = {language: "en"};
 			$rootScope.$watch("i18n.language", function (language) {
@@ -110,7 +165,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 
 	$rootScope.logout = function () {
 		var success = function(response) {
-			$rootScope.xtoken = null;
+			xtoken = null;
 			$rootScope.isMerchant = null;
 			$rootScope.userProfile = null;
 			$rootScope.transactions = null;
@@ -120,7 +175,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			if(merchantPage == true || customerPage == true)
 				navigateToPage($scope, $location, $rootScope, $route, "login");
 		}
-		callServer("account/logout", "", success, function (response) {}, "GET", true, true, true);
+		callServer("account/logout", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
 	};
 
 	$rootScope.isPageActive = function (route) {
@@ -131,7 +186,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 		var success = function (response) {
 			$scope.$apply(function () {
 				$rootScope.allStores = response;
-				$rootScope.selectedStore = response[0];
+				selectedStore = response[0];
 				$rootScope.transactions = null;
 				$rootScope.customers = null;
 				if($rootScope.mogopayGoToProfile){
@@ -142,7 +197,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 					navigateToPage($scope, $location, $rootScope, $route, "listTransactions");
 			});
 		};
-		callServer("account/list-compagnies", "", success, function (response) {}, "GET", false, false, false);
+		callServer("account/list-compagnies", "", success, emptyFunc, "GET", "params", "pay", false, false, false);
 	};
 	$scope.urlHistory = [];
 	$scope.$on("$routeChangeSuccess", function () {
@@ -199,7 +254,7 @@ function validationConfirmSignUp(scope, location, rootScope, route){
 		scope.validationError = true;
 		scope.$apply();
 	}
-	callServer("account/confirm-signup", dataToSend, success, error, "GET", true, false, true);
+	callServer("account/confirm-signup", dataToSend, success, error, "GET", "params", "pay", true, false, true);
 }
 
 function validationGetUserProfile(scope, location, rootScope, route){
@@ -210,5 +265,5 @@ function validationGetUserProfile(scope, location, rootScope, route){
 			window.location.href = deployUrl + "customer.html";
 	}
 	var error = function(response){}
-	callServer("account/profile-info", "", success, error, "GET", true, true, true);
+	callServer("account/profile-info", "", success, error, "GET", "params", "pay", true, true, true);
 }

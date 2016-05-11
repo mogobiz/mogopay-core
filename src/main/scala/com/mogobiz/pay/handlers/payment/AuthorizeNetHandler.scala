@@ -14,7 +14,7 @@ import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
-import com.mogobiz.utils.GlobalUtil
+import com.mogobiz.utils.{ GlobalUtil, HashTools }
 import com.mogobiz.utils.GlobalUtil._
 import net.authorize.sim._
 import net.authorize.{ Merchant, TransactionType, aim }
@@ -64,8 +64,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val transactionKey = cbParam("transactionKey")
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amountFloat)
 
-    val relayURL = s"${Settings.Mogopay.EndPoint}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
-    val cancelURL = s"${Settings.Mogopay.EndPoint}authorizenet/cancel/${sessionData.uuid}"
+    val relayURL = s"${Settings.Mogopay.EndPointNoPort}authorizenet/relay/${sessionData.uuid}" // without port because Authorize.net doesn't hit "exotic" ports :)
+    val cancelURL = s"${Settings.Mogopay.EndPointNoPort}authorizenet/cancel/${sessionData.uuid}"
     val formAction = Settings.AuthorizeNet.formAction
 
     if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
@@ -185,7 +185,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
   }
 
   def relay(sessionData: SessionData, params: Map[String, String]) = {
-    val action = s"${Settings.Mogopay.EndPoint}authorizenet/done/${sessionData.uuid}"
+    val action = s"${Settings.Mogopay.EndPointNoPort}authorizenet/done/${sessionData.uuid}"
     val form = {
       <form action={ action } id="redirectForm" method="GET">
         {
@@ -202,33 +202,25 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
   }
 
   def done(sessionData: SessionData, params: Map[String, String]) = {
-    val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
-      transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params), step = TransactionStep.FINISH)
-    EsClient.index(Settings.Mogopay.EsIndex, log, false)
-
     val paymentConfig = sessionData.paymentConfig.get
-    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-
+    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map.empty[String, String])
     val paymentRequest = sessionData.paymentRequest.get
-
     val amount = paymentRequest.amount.toString
     val currency: Int = paymentRequest.currency.numericCode
     val apiLoginID: String = cbParam("apiLoginID")
     val transactionKey: String = cbParam("transactionKey")
-
-    //    val query = Map(
-    //      "amount" -> amount,
-    //      "apiLoginID" -> apiLoginID,
-    //      "transactionKey" -> GlobalUtil.hideStringExceptLastN(transactionKey, 3),
-    //      "currency" -> currency,
-    //      "cc_holder" -> paymentRequest.holder,
-    //      "cc_number" -> GlobalUtil.hideStringExceptLastN(paymentRequest.ccNumber, 4, "X"),
-    //      "cc_cvv" -> paymentRequest.cvv,
-    //      "cc_expirationDate" -> paymentRequest.expirationDate
-    //    )
-    //    val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-    //      transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query))
-    //    EsClient.index(Settings.Mogopay.EsIndex, log1, false)
+    val md5_salt = cbParam.getOrElse("md5Key", "")
+    val md5 = params("x_MD5_Hash")
+    val x_trans_id = params("x_trans_id")
+    val x_amount = params("x_amount")
+    val md5Input = s"$md5_salt$apiLoginID$x_trans_id$x_amount"
+    val isValid = HashTools.hashString(md5Input).map(_.toLowerCase == md5.toLowerCase).getOrElse(false)
+    if (!isValid) {
+      throw new InvalidSignatureException(s"$md5")
+    }
+    val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "IN",
+      transaction = sessionData.transactionUuid.getOrElse("None"), log = mapToQueryString(params), step = TransactionStep.FINISH)
+    EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
     val transaction: BOTransaction = sessionData.transactionUuid.flatMap { txUUID =>
       EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, txUUID)
@@ -255,17 +247,18 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
       data = "",
       bankErrorCode = "",
       bankErrorMessage = None,
-      token = ""
+      token = "",
+      None
     )
 
     val anetTransactionId = params("x_trans_id")
     val gatewayData = s"$anetTransactionId"
 
-    transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
+    val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, sessionData.transactionUuid.getOrElse(""),
       if (status == PaymentStatus.COMPLETE) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
       paymentResult,
       params("x_response_code"), sessionData.locale, Some(gatewayData))
-    finishPayment(sessionData, paymentResult)
+    finishPayment(sessionData, paymentResultWithShippingResult)
   }
 
   def cancel(sessionData: SessionData): Uri = {
@@ -277,11 +270,11 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val paymentResult = PaymentResult(
       newUUID, null, -1L, "", null, null, "", "", null, "", "", PaymentStatus.CANCELED,
       transaction.errorCodeOrigin.getOrElse(""),
-      transaction.errorMessageOrigin, "", "", Some(""), "")
+      transaction.errorMessageOrigin, "", "", Some(""), "", None)
 
-    transactionHandler.finishPayment(sessionData.transactionUuid.getOrElse(""),
+    val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, sessionData.transactionUuid.getOrElse(""),
       TransactionStatus.CANCEL_CONFIRMED, paymentResult, "", sessionData.locale)
-    finishPayment(sessionData, paymentResult)
+    finishPayment(sessionData, paymentResultWithShippingResult)
   }
 
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {

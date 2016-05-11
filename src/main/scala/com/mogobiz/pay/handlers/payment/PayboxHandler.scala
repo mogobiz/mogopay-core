@@ -109,7 +109,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           data = "",
           bankErrorCode = bankErrorCode,
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(bankErrorCode)),
-          token = ""
+          token = "",
+          errorShipment = None
         )
         val creditCard = BOCreditCard(
           number = ccNumber,
@@ -119,10 +120,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         )
         boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
 
-        transactionHandler.finishPayment(transactionUuid,
+        val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUuid,
           if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult, codeReponse, sessionData.locale, Some(GlobalUtil.mapToQueryString(params)))
-        finishPayment(sessionData, paymentResult)
+        finishPayment(sessionData, paymentResultWithShippingResult)
       } else {
         throw InvalidSignatureException(s"$signature")
       }
@@ -145,7 +146,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         data = "",
         bankErrorCode = "",
         bankErrorMessage = Some(""),
-        token = ""
+        token = "",
+        errorShipment = None
       )
       finishPayment(sessionData, paymentResult)
     }
@@ -201,7 +203,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
           data = "",
           bankErrorCode = errorCode,
           bankErrorMessage = Some(BankErrorCodes.getErrorMessage(errorCode)),
-          token = ""
+          token = "",
+          errorShipment = None
         )
         finishPayment(sessionData, paymentResult)
       }
@@ -268,7 +271,8 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       data = "",
       bankErrorCode = "",
       bankErrorMessage = Some(""),
-      token = ""
+      token = "",
+      errorShipment = None
     )
     val currency: Int = paymentRequest.currency.numericCode
     val site: String = parametres("payboxSite")
@@ -399,14 +403,14 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             authorizationId = authorisation,
             transactionCertificate = null)
         }
-        transactionHandler.finishPayment(transactionUUID,
+        val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUUID,
           if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
           paymentResult,
           errorCode,
           sessionData.locale,
           Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
-        Right(finishPayment(sessionData, paymentResult))
+        Right(finishPayment(sessionData, paymentResultWithShippingResult))
       }
     } else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
       val hmackey = idMerchant

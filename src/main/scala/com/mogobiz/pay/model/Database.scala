@@ -4,19 +4,15 @@
 
 package com.mogobiz.pay.model
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import com.fasterxml.jackson.module.scala.{ JsonScalaEnumeration, DefaultScalaModule }
-import com.mogobiz.pay.common.{ Coupon, CartItem, CartRate, Cart }
-import com.mogobiz.pay.handlers.shipping.ShippingPrice
-import com.mogobiz.pay.model.Mogopay._
-import java.util.{ Date, Calendar }
-import com.mogobiz.pay.model.Mogopay.Account
-import com.mogobiz.pay.model.Mogopay.AccountAddress
-import com.mogobiz.pay.model.Mogopay.Telephone
-import com.mogobiz.pay.model.Mogopay.AccountStatus
+import java.util.{ Calendar, Date }
+
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.fasterxml.jackson.databind.{ ObjectWriter, ObjectMapper }
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
+import com.fasterxml.jackson.module.scala.{ DefaultScalaModule, JsonScalaEnumeration }
+import com.mogobiz.pay.common.{ Cart, CartItem, CartRate, Coupon }
+import com.mogobiz.pay.handlers.shipping.ShippingPrice
+import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, Telephone, _ }
 import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
 import scala.util.control.NonFatal
@@ -335,9 +331,7 @@ object Mogopay {
       hasRoleName(RoleName.MERCHANT)
     }
 
-    private def hasRoleName(roleName: RoleName): Boolean = {
-      roles.find { r: RoleName => roleName == r }.map { r: RoleName => true }.getOrElse(false)
-    }
+    private def hasRoleName(roleName: RoleName): Boolean = roles.contains(roleName)
   }
 
   case class ShippingAddress(uuid: String,
@@ -397,7 +391,7 @@ object Mogopay {
     description: Option[String],
     gatewayData: Option[String],
     creditCard: Option[BOCreditCard],
-    shipping: Option[String],
+    shippingInfo: Option[String],
     shippingTrackingNumber: Option[String],
     vendor: Option[Account],
     customer: Option[Account],
@@ -412,7 +406,7 @@ object Mogopay {
     groupPaymentRefundPercentage: Int = 100,
     amount: Long,
     currency: CartRate,
-    vendor: Document,
+    vendorUuid: Document,
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -452,7 +446,8 @@ object Mogopay {
     data: String,
     bankErrorCode: String,
     bankErrorMessage: Option[String],
-    token: String)
+    token: String,
+    errorShipment: Option[String])
 
   case class PaymentRequest(uuid: String,
     transactionSequence: String,

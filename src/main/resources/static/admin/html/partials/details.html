@@ -54,7 +54,7 @@
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="cartDetailsPrice">{{resourceBundle.details_order_price}}</label>
-						<input type="text" class="form-control" id="cartDetailsPrice" autofocus readonly value="{{cartDetails.price * cartDetails.currencyRate}}"/>
+						<input type="text" class="form-control" id="cartDetailsPrice" autofocus readonly value="{{cartDetails.price * cartDetails.currencyRate | priceFilter}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="cartDetailsCurrency">{{resourceBundle.details_order_currency}}</label>
@@ -105,8 +105,8 @@
 										<span style="padding-left: 10px;"><i class="glyphicon glyphicon-calendar"></i>{{card.birthdate | date:'dd/MM/yyyy'}}</span>
 									</div>
 								</td>
-								<td>{{item.totalPrice * cartDetails.currencyRate}}</td>
-								<td>{{item.totalEndPrice * cartDetails.currencyRate}}</td>
+								<td>{{item.totalPrice * cartDetails.currencyRate | priceFilter}}</td>
+								<td>{{item.totalEndPrice * cartDetails.currencyRate | priceFilter}}</td>
 								<td>{{item.quantity}}</td>
 								<td>
 									<span ng-if="item.principal.product.calendarType != NO_DATE">
@@ -202,7 +202,7 @@
 							</td>
 							<td>{{record.customer.email}}</td>
 							<td>{{record.transactionDate | date:'dd/MM/yyyy'}}</td>
-							<td>{{record.currency.code}} {{record.amount * record.currency.rate}}</td>
+							<td>{{record.currency.code}} {{record.amount * record.currency.rate | priceFilter}}</td>
 							<td>
 								<a href="javascript:void(0)" rel="popoverCard">{{record.creditCard.number}}</a>
 								<div ng-if="record.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">

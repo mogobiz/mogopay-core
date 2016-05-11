@@ -112,7 +112,7 @@ object Exceptions {
 
   case class NotACreditCardTransactionException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
+  case class SomeParameterIsMissingException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
   case class InvalidParameterException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
@@ -124,9 +124,6 @@ object Exceptions {
 
   case class InvalidTokenException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class NotAuthentifiedException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
-
-  // Paybox
   case class InvalidSignatureException(message: String) extends MogopayException(StatusCodes.Unauthorized, message)
 
   case class InvalidPhoneNumberException(message: String) extends MogopayException(StatusCodes.BadRequest, message)

@@ -13,6 +13,9 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
 import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
+import com.typesafe.scalalogging.slf4j.Logger
+import org.apache.commons.lang.StringUtils
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -20,11 +23,13 @@ import scala.util.control.NonFatal
 
 class EasyPostHandler extends ShippingHandler {
 
+  private val logger = Logger(LoggerFactory.getLogger("EasyPostHandler"))
+
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
 
   EasyPost.apiKey = Settings.Shipping.EasyPost.ApiKey
 
-  override def calculatePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
     cart.compagnyAddress.map { compagnyAddress =>
       val shippingContent = extractShippingContent(cart)
       computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
@@ -39,23 +44,22 @@ class EasyPostHandler extends ShippingHandler {
   }
 
   private def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingPrice] = {
-    val easyPostRates = rate(
+    val shipment = rate(
       compagnyAddress,
       shippingAddress.address,
       parcel,
       cart
     )
 
-    val filterRates = easyPostRates.span(rate => {
-      val shipment = Shipment.retrieve(rate.getShipmentId)
-      (shipment.getMessages != null && shipment.getMessages.size() > 0)
-    })
+    val easyPostRates = shipment.getRates.toList
 
-    if (filterRates._1.size > 0 && filterRates._2.size == 0) {
+    if (easyPostRates.size == 0) {
+      val message = StringUtils.join(shipment.getMessages.toList.map { m => m.getCarrier + " " + m.getType + " => " + m.getMessage }, ", ")
+      logger.info("EasyPost Messages : " + message)
       throw ShippingException()
     }
-    filterRates._2.map { easyPostRate =>
-      var rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
+    easyPostRates.map { easyPostRate =>
+      val rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
       val currencyFractionDigits: Integer = rate.map {
         _.currencyFractionDigits
       }.getOrElse(2)
@@ -66,7 +70,7 @@ class EasyPostHandler extends ShippingHandler {
     }
   }
 
-  override def isManageShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
 
   override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = {
     if (shippingPrice.confirm) shippingPrice
@@ -142,7 +146,7 @@ class EasyPostHandler extends ShippingHandler {
 
   case class ShippingParcelAndFixAmount(amount: Long, fixParcel: Option[ShippingParcel], parcel: Option[ShippingParcel])
 
-  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Seq[Rate] = {
+  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Shipment = {
     val parcelMap = mutable.HashMap[String, AnyRef](
       "height" -> parcel.height.asInstanceOf[AnyRef],
       "width" -> parcel.width.asInstanceOf[AnyRef],
@@ -161,8 +165,7 @@ class EasyPostHandler extends ShippingHandler {
     if (Settings.Shipping.EasyPost.UpsCostCenter.length > 0)
       shipmentMap.put("options", mutable.HashMap[String, AnyRef]("cost_center" -> Settings.Shipping.EasyPost.UpsCostCenter))
 
-    val shipment = Shipment.create(shipmentMap)
-    shipment.getRates
+    Shipment.create(shipmentMap)
   }
 
   private def cartToMap(cart: Cart): CustomsInfo = {

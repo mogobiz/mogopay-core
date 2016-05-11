@@ -5,15 +5,17 @@
 function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 	if(!isConnectedUser($scope, $location, $rootScope, $route))
 		return;
-	$rootScope.selectedStore = $rootScope.allStores[0];
+	selectedStore = $rootScope.allStores[0];
 	$scope.transactionsSelectedStore = $rootScope.selectedStore;
+	$scope.listTransactionsStatus = "";
+	$scope.listTransactionsDelivery = "";
 	$scope.goToProfile = function () {
 		var success = function (response) {
 			$rootScope.userProfile = response;
 			$scope.$apply();
 			navigateToPage($scope, $location, $rootScope, $route, "profile");
 		};
-		callServer("account/profile-info", "", success, function (response) {});
+		callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
 	};
 	$scope.goToListCustomers = function () {
 		navigateToPage($scope, $location, $rootScope, $route, "listCustomers");
@@ -28,7 +30,12 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 function listTransactionsSearch (scope, location, rootScope, route) {
 	var success = function (response) {
 		rootScope.transactions = response.list;
-		listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
+		if(rootScope.transactions.length > 0)
+			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
+		else{
+			scope.$apply();
+			$("body").removeClass("loading");
+		}
 	};
 	var dataToSend = "";
 
@@ -42,16 +49,16 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		dataToSend += "price=" + $("#listTransactionsAmount").val();
 	}
 
-	if ($.trim($("#listTransactionsStatus").val()) != ""){
+	if (scope.listTransactionsStatus != ""){
 		if(dataToSend != "")
 			dataToSend += "&";
-		dataToSend += "transactionStatus=" + $("#listTransactionsStatus").val();
+		dataToSend += "transactionStatus=" + scope.listTransactionsStatus;
 	}
 
-	if ($.trim($("#listTransactionsDelivery").val()) != ""){
+	if (scope.listTransactionsDelivery != ""){
 		if(dataToSend != "")
 			dataToSend += "&";
-		dataToSend += "deliveryStatus=" + $("#listTransactionsDelivery").val();
+		dataToSend += "deliveryStatus=" + scope.listTransactionsDelivery;
 	}
 
 	if ($("#listTransactionsStartDate").val() != ""){
@@ -89,7 +96,7 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 		dataToSend += "endDate=" + encodeURIComponent(endDate);
 	}
 
-	callStoreServer("backoffice/listOrders", dataToSend, success, function (response) {}, rootScope.selectedStore, "GET");
+	callServer("backoffice/listOrders", dataToSend, success, emptyFunc, "GET", "params", "store", true, false, true);
 }
 
 function listTransactionsGetCartItems(scope, location, rootScope, route, transactionUUID, index){
@@ -109,13 +116,25 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 		rootScope.transactions[index].listRetunedStatus = listRetunedStatus;
 		if(index == rootScope.transactions.length - 1){
 			scope.$apply();
+			$("body").removeClass("loading");
 		}
 		else{
 			index++;
 			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[index].uuid, index)
 		}
 	}
-	callStoreServer("backoffice/cartDetails/" + transactionUUID, "", success, function (response) {}, rootScope.selectedStore, "GET");
+	var error = function(response){
+		rootScope.transactions[index].listRetunedStatus = [{value: "None"}];
+		if(index == rootScope.transactions.length - 1){
+			scope.$apply();
+			$("body").removeClass("loading");
+		}
+		else{
+			index++;
+			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[index].uuid, index)
+		}
+	}
+	callServer("backoffice/cartDetails/" + transactionUUID, "", success, error, "GET", "params", "store", false, false, false);
 }
 
 function zerosAutoComplete(number, length){
@@ -165,5 +184,5 @@ function refreshReturnStatusPopover() {
 }
 
 function transactionsChangeStore(scope, location, rootScope, route){
-	rootScope.selectedStore = scope.transactionsSelectedStore;
+	selectedStore = scope.transactionsSelectedStore;
 }

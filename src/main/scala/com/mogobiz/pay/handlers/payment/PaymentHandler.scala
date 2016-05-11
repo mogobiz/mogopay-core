@@ -6,25 +6,22 @@ package com.mogobiz.pay.handlers.payment
 
 import java.util.{ Date, UUID }
 
-import akka.actor.Props
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.handlers.EmailHandler.Mail
-import com.mogobiz.pay.handlers.EmailingActor
-import com.mogobiz.pay.handlers.shipping.ShippingHandler
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.system.ActorSystemLocator
-import com.mogobiz.utils.{ GlobalUtil, SymmetricCrypt }
+import com.mogobiz.utils.EmailHandler.Mail
+import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
 import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
+import Settings.Mail.Smtp.MailSettings
 
 import scala.collection.mutable
-import scala.util.{ Failure, Success, Try }
 
 trait PaymentHandler {
   implicit val system = ActorSystemLocator()
@@ -33,6 +30,7 @@ trait PaymentHandler {
   def paymentType: PaymentType
 
   def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult
+
   /**
    * Returns the redirection page's URL
    */
@@ -42,25 +40,7 @@ trait PaymentHandler {
     val transactionUUID = sessionData.transactionUuid.getOrElse("")
     val transactionSequence = if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
     val success = paymentResult.status == PaymentStatus.COMPLETE
-
-    val errorShipment = if (success) {
-      val transaction = boTransactionHandler.find(transactionUUID)
-        .getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
-
-      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
-        case Success(_) => None
-        case Failure(f) => {
-          val newTx = transaction.copy(
-            errorCodeOrigin = Option("SHIPMENT_ERROR"),
-            errorMessageOrigin = Some(f.getMessage)
-          )
-          boTransactionHandler.update(newTx, false)
-          //TODO faire l'appel à l'annulation du paiement
-          refund(sessionData.paymentConfig.get, newTx, sessionData.amount.get, paymentResult)
-          Some(f.getMessage)
-        }
-      }
-    } else None
+    val errorShipment = paymentResult.errorShipment
 
     val query = Query(
       "result" -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),
@@ -137,8 +117,6 @@ trait PaymentHandler {
           val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
           val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
 
-          val template = templateHandler.loadTemplateByVendor(Option(merchant), "mail-group-payment", locale)
-
           val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
           val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
 
@@ -147,25 +125,25 @@ trait PaymentHandler {
           val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
           val data =
             s"""
-              |{
-              |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
-              |  "firstPayer":  "$payerName",
-              |  "url":         "$uri",
-              |  "amount":      "$amount",
-              |  "transaction": $jsonTx
-              |}
-              |""".stripMargin
-          val (subject, body) = templateHandler.mustache(template, data)
+               |{
+               |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
+               |  "firstPayer":  "$payerName",
+               |  "url":         "$uri",
+               |  "amount":      "$amount",
+               |  "transaction": $jsonTx
+               |}
+               |""".stripMargin
+          val (subject, body) = templateHandler.mustache(Option(merchant), "mail-group-payment", locale, data)
 
           val senderName = merchant.paymentConfig.get.senderName
           val senderEmail = merchant.paymentConfig.get.senderEmail
 
-          val emailingActor = system.actorOf(Props[EmailingActor])
-          emailingActor ! Mail(
-            from = (senderEmail.getOrElse(""), senderName.get),
-            to = Seq(account.email),
-            subject = subject,
-            message = body)
+          EmailHandler.Send(
+            Mail(
+              from = (senderEmail.getOrElse(throw new Exception("No Sender Email configured for merchant")), senderName.getOrElse(throw new Exception("No Sender Name configured for Merchant"))),
+              to = Seq(account.email),
+              subject = subject,
+              message = body))
         }
         sendEmail()
     }
@@ -173,9 +151,9 @@ trait PaymentHandler {
 
   def startPayment(sessionData: SessionData): Either[String, Uri]
 
-  def createThreeDSNotEnrolledResult(): PaymentResult = {
+  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResult = {
     PaymentResult(
-      transactionSequence = GlobalUtil.newUUID,
+      transactionSequence = paymentRequest.transactionSequence,
       orderDate = null,
       amount = -1L,
       ccNumber = "",
@@ -192,7 +170,8 @@ trait PaymentHandler {
       data = "",
       bankErrorCode = "12",
       bankErrorMessage = Some(BankErrorCodes.getErrorMessage("12")),
-      token = ""
+      token = "",
+      None
     )
   }
 }

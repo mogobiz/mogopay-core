@@ -52,3 +52,14 @@ mogopay.directive('ngFileChange', function() {
 		}
 	};
 });
+
+mogopay.filter("priceFilter", [
+function() { // should be altered to suit your needs
+    return function(input) {
+		if(isNaN(input))
+			return "";
+		input = parseFloat(input);
+		input = input.toFixed(2);
+		return input.toString();
+	};
+}]);

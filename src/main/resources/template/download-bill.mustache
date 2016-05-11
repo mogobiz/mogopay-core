@@ -16,16 +16,16 @@ subject: ignore
             <th>Px Unit. TTC</th>
             <th>Px Total</th>
         </tr>
-        <tr>
-            {{#cartItems}}
+        {{#cartItems}}
+            <tr>
                 <td style="width: 50%">{{productName}} -&gt; {{skuName}}</td>
                 <td style="text-align: right;" nowrap="true">{{quantity}}</td>
                 <td style="text-align: right;" nowrap="true">{{salePrice}}</td>
                 <td style="text-align: right;" nowrap="true">{{tax}}%</td>
                 <td style="text-align: right;" nowrap="true">{{saleEndPrice}}</td>
                 <td style="text-align: right;" nowrap="true">{{saleTotalEndPrice}}</td>
-            {{/cartItems}}
-        </tr>
+            </tr>
+        {{/cartItems}}
     </table>
     <table>
         <tr>

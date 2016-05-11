@@ -4,10 +4,11 @@
 
 var serverUrl = "/api/pay/";
 var storeUrl = "/api/store/";
+var selectedStore = "";
+var xtoken = null;
 var deployUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/") + 1);
 
-function callServer(action, dataToSend, success, error, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
-    var data = type != "POST" ? dataToSend : encodeURI(dataToSend);
+function callServer(action, dataToSend, success, error, type, sentDataType, server, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
 	if(showLoading){
 		$("body").addClass("loading");
 	}
@@ -23,118 +24,30 @@ function callServer(action, dataToSend, success, error, type, showLoading, hideL
 		}
         error(response);
     };
-	$.ajax({
-        url :  serverUrl + action,
-        type : type,
-        data : data,
-        cache : false,
-        async : true,
-        success : afterCallingSuccess,
+	var options = {
+		type : type,
+		cache : false,
+		async : true,
+		success : afterCallingSuccess,
         error: afterCallingError
-    });
-}
-
-function callServerJson(action, dataToSend, success, error, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
-	if(showLoading){
-		$("body").addClass("loading");
 	}
-	var afterCallingSuccess = function (response) {
-		if(hideLoadingOnSuccess){
-			$("body").removeClass("loading");
-		}
-        success(response);
-    };
-    var afterCallingError = function (response) {
-		if(hideLoadingOnError){
-			$("body").removeClass("loading");
-		}
-        error(response);
-    };
-    $.ajax({
-        url :  serverUrl + action,
-        type : type,
-        data : JSON.stringify(dataToSend),
-        contentType: "application/json; charset=utf-8",
-        cache : false,
-        async : true,
-        success : afterCallingSuccess,
-        error: afterCallingError
-    });
-}
-
-function callStoreServer(action, dataToSend, success, error, storeCode, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
-	if(showLoading){
-		$("body").addClass("loading");
+	if(xtoken != null){
+		options.headers = { "X-CSRF-Token": xtoken };
 	}
-	var afterCallingSuccess = function (response) {
-		if(hideLoadingOnSuccess){
-			$("body").removeClass("loading");
-		}
-        success(response);
-    };
-    var afterCallingError = function (response) {
-		if(hideLoadingOnError){
-			$("body").removeClass("loading");
-		}
-        error(response);
-    };
-    $.ajax({
-        url :  storeUrl + storeCode + "/" + action,
-        type : type,
-        data : dataToSend,
-        cache : false,
-        async : true,
-        success : afterCallingSuccess,
-        error: afterCallingError
-    });
-}
-
-function callStoreServerJson(action, dataToSend, success, error, storeCode, type, showLoading, hideLoadingOnSuccess, hideLoadingOnError){
-	if(showLoading){
-		$("body").addClass("loading");
+	if(server == "store"){
+		options.url = storeUrl + selectedStore + "/" + action;
 	}
-	var afterCallingSuccess = function (response) {
-		if(hideLoadingOnSuccess){
-			$("body").removeClass("loading");
-		}
-        success(response);
-    };
-    var afterCallingError = function (response) {
-		if(hideLoadingOnError){
-			$("body").removeClass("loading");
-		}
-        error(response);
-    };
-    $.ajax({
-        url :  storeUrl + storeCode + "/" + action,
-        type : type,
-        data : JSON.stringify(dataToSend),
-        contentType: "application/json; charset=utf-8",
-        cache : false,
-        async : true,
-        success : afterCallingSuccess,
-        error: afterCallingError
-    });
-}
-
-function dateToString(date, withHours){
-    var dateString = "";
-    if(date){
-        var day = ""+(parseInt(date.getDate()));
-        if(day.length == 1)
-            dateString += "0"+day;
-        else
-            dateString += day;
-        var month = ""+(parseInt(date.getMonth())+1);
-        if(month.length == 1)
-            dateString += "/0"+month;
-        else
-            dateString += "/"+month;
-        dateString += "/"+date.getFullYear();
-        if(withHours)
-            dateString +=" "+date.getHours()+":"+date.getSeconds();
-    }
-    return dateString;
+	else{
+		options.url = serverUrl + action;
+	}
+	if(sentDataType == "JSON"){
+		options.data = JSON.stringify(dataToSend);
+		options.contentType = "application/json; charset=utf-8";
+	}
+	else if(sentDataType == "params"){
+		options.data = (type != "POST") ? dataToSend : encodeURI(dataToSend);
+	}
+	$.ajax(options);
 }
 
 function dateToDateValue(date){
@@ -217,3 +130,5 @@ function isConnectedUser(scope, location, rootScope, route){
     }
 	return true;
 }
+
+var emptyFunc = function () {}

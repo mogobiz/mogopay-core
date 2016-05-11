@@ -25,6 +25,8 @@ import com.mogobiz.pay.model.ParamRequest.{ TransactionInit, SelectShippingPrice
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.{ SessionESDirectives, Session }
 import com.mogobiz.session.SessionESDirectives._
+import com.mogobiz.system.ActorSystemLocator
+import com.mogobiz.utils.CustomSslConfiguration
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
@@ -34,10 +36,15 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import scala.util.{ Failure, Success }
 
-class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration {
   implicit val timeout = Timeout(40 seconds)
 
-  implicit val system = ActorSystem()
+  //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
+  //  val responseFuture = pipeline {
+  //    Get("http://maps.googleapis.com/maps/api/elevation/json?locations=27.988056,86.925278&sensor=false")
+  //  }
+
+  implicit val system = ActorSystemLocator()
 
   // execution context for futures
 
@@ -45,7 +52,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   val route = {
     pathPrefix(serviceName) {
-      //      searchByCustomer ~
       init ~
         selectShipping ~
         verify ~
@@ -56,15 +62,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
         refund
     }
   }
-
-  /*
-  lazy val searchByCustomer = path("by-customer" / JavaUUID) { uuid =>
-    import Implicits._
-    get {
-      handleCall(transactionHandler.searchByCustomer(uuid.toString),
-        (res: Seq[BOTransaction]) => complete(res))
-    }
-  }*/
 
   lazy val init = path("init") {
     post {
@@ -196,8 +193,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val refund = path("refund") {
     post {
-      formFields('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid) { (merchantSecret, amount, boTransactionUUID) =>
-        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount)),
+      formFields('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid, 'locale.?) { (merchantSecret, amount, boTransactionUUID, locale) =>
+        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount), locale),
           (_: Any) => complete(200 -> "")
         )
       }
@@ -288,7 +285,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           import Implicits._
           session.sessionData.accountId match {
             case Some(accountId: String) =>
-              handleCall(transactionHandler.download(accountId, transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
+              handleCall(transactionHandler.download(transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
                 getFromFile(pdfFile)
               })
             case _ => completeException(new UnauthorizedException("Not logged in"))
@@ -322,11 +319,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           val (serviceName, methodName) = t
           setSession(session) {
             val sessionId = session.id
-            val pipeline: Future[SendReceive] =
-              for (
-                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
-
-              ) yield sendReceive(connector)
             val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
             def cleanSession(session: Session) {
               val authenticated = session.sessionData.authenticated
@@ -335,7 +327,12 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               session.sessionData.authenticated = authenticated
               session.sessionData.accountId = customerId
             }
-            val response = pipeline.flatMap(_(request))
+            val response = if (Settings.Mogopay.isHTTPS) sslPipeline(request.uri.authority.host).flatMap(_(request)) else {
+              val pipeline: Future[SendReceive] = for (
+                Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
+              ) yield sendReceive(connector)
+              pipeline.flatMap(_(request))
+            }
             onComplete(response) {
               case Failure(t) =>
                 t.printStackTrace()

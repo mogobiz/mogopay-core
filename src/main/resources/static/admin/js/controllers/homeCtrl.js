@@ -5,36 +5,34 @@
 function HomeCtrl($scope, $location, $rootScope, $route) {
     $scope.customerLogin =  function () {
 		var success = function (response) {
-			$rootScope.xtoken = response;
 			$rootScope.isMerchant = false;
-			$rootScope.xtoken = response;
+			xtoken = response.token;
 			$scope.$apply();
 			navigateToPage($scope, $location, $rootScope, $route, "login");
 		}
-        callServer("account/customer-token", "", success, function (response) {}, "GET", true, true, true);
+        callServer("account/customer-token", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
     }
     $scope.merchantLogin =  function () {
 		var success = function (response) {
-                $rootScope.xtoken = response;
 				$rootScope.isMerchant = true;
-				$rootScope.xtoken = response;
+				xtoken = response.token;
 				$scope.$apply();
 				navigateToPage($scope, $location, $rootScope, $route, "login");
             }
-        callServer("account/merchant-token", "", success, function (response) {}, "GET", true, true, true);
+        callServer("account/merchant-token", "", success, emptyFunc, "GET", "params", "pay", true, true, true);
     }
 	
 	var success = function (){};
-	var failure = function (){};
+	var error = function (){};
 	if(indexPage == true){
 		success = function (response) {
 			$rootScope.isMerchant = response.isMerchant;
 			$rootScope.userProfile = response;
 			$rootScope.getAllStores();
 		};
-		failure = function (response) {
+		error = function (response) {
 			$("#homeContainer").show();
 		};
 	}
-	callServer("account/profile-info", "", success, failure, "GET", false, false, false);
+	callServer("account/profile-info", "", success, error, "GET", "params", "pay", false, false, false);
 }

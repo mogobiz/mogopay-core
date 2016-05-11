@@ -75,6 +75,23 @@
 	"transactions_uuid": "UUID",
 	"transactions_group_uuid": "UUID du groupe",
 
+	"transactionStatus_initiated": "Initié",
+	"transactionStatus_verification_threeds": "Fil de vérification",
+	"transactionStatus_threeds_tested": "Fil testé",
+	"transactionStatus_payment_requested": "Paiement demandé",
+	"transactionStatus_payment_confirmed": "Paiement accepté",
+	"transactionStatus_payment_refused": "Paiement refusé",
+	"transactionStatus_cancel_requested": "Annuler la demande",
+	"transactionStatus_cancel_failed": "Annulation échoué",
+	"transactionStatus_cancel_confirmed": "Annulation confirmé",
+	"transactionStatus_customer_refunded": "Remboursements du client",
+
+	"deliveryStatus_not_started": "Pas démarré",
+	"deliveryStatus_in_progress": "En cours",
+	"deliveryStatus_delivered": "Livré",
+	"deliveryStatus_returned": "Revenu",
+	"deliveryStatus_canceled": "Annulé",
+
 	"details_customer_title": "Details du client",
 	"details_customer_fName": "Prénom",
 	"details_customer_lName": "Nom",
@@ -165,6 +182,7 @@
 
 	"authorizenet_api_login_id": "API Login ID",
 	"authorizenet_transaction_key": "Clef de transaction",
+	"authorizenet_md5": "Clef MD5",
 	"authorizenet_error": "Autorize.net API ID de connexion et Transaction Key sont liés !",
 
 	"paybox_contract_type": "Type de contrat",
@@ -265,7 +283,7 @@
 	"error_invalid_website": "Site web invalide !",
 	"error_invalid_birthdate": "Date de naissance invalide !",
 	"error_invalid_date": "Date invalide!",
-	"error_invalid_company_name": "Nom de la compagnie invalide !",
+	"error_invalid_company_name": "Code de la compagnie invalide !",
 	"error_invalid_phone": "Numéro de téléphone invalide !",
 	"error_invalid_card": "Numéro de carte de credit invalide !",
 	"error_invalid_regex": "Expression régulière invalide !",
@@ -282,6 +300,7 @@
 	"error_invalid_quantity": "Quantité invalide !",
 	"error_password_match": "Les deux mots de passe doivent être identiques !",
 	"error_account_exist": "Le compte existe déjà",
+	"error_details_not_found": "Détails de la commande introuvable !",
 
 	"message_new_password": "Un lien avec un un nouveau mot de passe a été envoyé",
 	"message_change_password": "Votre mot de passe est modifié avec succès",

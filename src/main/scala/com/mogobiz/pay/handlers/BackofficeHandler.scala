@@ -15,6 +15,7 @@ import com.mogobiz.pay.model.Mogopay._
 import org.elasticsearch.search.sort.SortOrder._
 
 class BackofficeHandler {
+
   def listCustomers(sessionData: SessionData, page: Int, max: Int): Seq[Account] = {
     if (!sessionData.isMerchant)
       throw InvalidContextException("User not a merchant")
@@ -39,7 +40,7 @@ class BackofficeHandler {
     endDate: Option[String], endTime: Option[String],
     amount: Option[Int], transactionUUID: Option[String],
     transactionStatus: Option[String], deliveryStatus: Option[String]): Seq[BOTransaction] = {
-    def parseDateAndTime(date: Option[String], time: Option[String]) = date.map { d =>
+    def parseDateAndTime(date: Option[String], time: Option[String]): Option[Date] = date.map { d =>
       val date = new SimpleDateFormat("yyyy-MM-dd").parse(d)
       time match {
         case None => date
@@ -71,9 +72,9 @@ class BackofficeHandler {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       and(filters: _*)
     } query {
-      range("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime.map(_.getTime).orNull
+      rangeQuery("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime.map(_.getTime).orNull
     } sort {
-      by field "transactionDate" order DESC
+      field sort "transactionDate" order DESC
     } start 0 limit Settings.MaxQueryResults
 
     EsClient.searchAll[BOTransaction](req)

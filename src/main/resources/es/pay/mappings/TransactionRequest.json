@@ -42,7 +42,7 @@
           }
         }
       },
-      "vendor": {
+      "vendorUuid": {
         "type": "string",
         "index": "not_analyzed"
       },
