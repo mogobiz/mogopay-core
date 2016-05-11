@@ -6,7 +6,6 @@ package com.mogobiz.pay.services
 
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.exceptions.Exceptions.{ NotAuthentifiedException, InvalidContextException }
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
 import com.mogobiz.pay.model.Mogopay.{ SessionData, BOTransaction, Account, BOTransactionLog }
@@ -31,19 +30,15 @@ class BackofficeService extends Directives with DefaultComplete {
   val route = customers ~ transactions
 
   lazy val customers = pathPrefix("customers") {
-    path(JavaUUID / "transactions") { uuid =>
-      handleCall(transactionHandler.searchByCustomer(uuid.toString),
-        (res: Seq[BOTransaction]) => complete(res))
-    } ~
-      get {
-        parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
-          session { session =>
-            handleCall(backofficeHandler.listCustomers(session.sessionData, page, max),
-              (accounts: Seq[Account]) => complete(StatusCodes.OK -> accounts)
-            )
-          }
+    get {
+      parameters('page.as[Int], 'max.as[Int]) { (page, max) =>
+        session { session =>
+          handleCall(backofficeHandler.listCustomers(session.sessionData, page, max),
+            (accounts: Seq[Account]) => complete(StatusCodes.OK -> accounts)
+          )
         }
       }
+    }
   }
 
   /**
