@@ -353,7 +353,12 @@ class TransactionHandler {
 
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
-    address.map(addr => ShippingHandler.computePrice(addr, cart)).getOrElse(Seq[ShippingPrice]())
+    address.map { addr =>
+      cart.compagnyAddress.map { compagnyAddr =>
+        if (!compagnyAddr.shippingInternational && addr.address.country.getOrElse("") != compagnyAddr.country) throw new ShippingInternationalUnauthorized
+      }
+      ShippingHandler.computePrice(addr, cart)
+    }.getOrElse(Seq[ShippingPrice]())
   }
 
   def selectShippingPrice(sessionData: SessionData, accountId: String, shipmentId: String, rateId: String): ShippingPrice = {
