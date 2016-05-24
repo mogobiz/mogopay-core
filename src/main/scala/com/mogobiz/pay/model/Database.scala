@@ -6,6 +6,7 @@ package com.mogobiz.pay.model
 
 import java.util.{ Calendar, Date }
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
@@ -371,6 +372,7 @@ object Mogopay {
 
   case class TransactionUser(email: String, amount: Long, status: PaymentStatus, master: Boolean)
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   case class BOTransaction(uuid: String,
     transactionUUID: String,
     groupTransactionUUID: Option[String] = None,
