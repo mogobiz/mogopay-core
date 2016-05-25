@@ -31,7 +31,14 @@ trait MogopayRoutes extends Directives {
 
   private val adminIndex = new File(new File(new File(s"${Settings.ResourcesPath}", "admin"), "html"), "index.html")
 
-  def bootstrap() = DBInitializer(Settings.Demo)
+  def bootstrap() = {
+    com.mogobiz.session.boot.DBInitializer()
+    com.mogobiz.notify.boot.DBInitializer()
+    com.mogobiz.pay.jobs.ImportRatesJob.start(system)
+    com.mogobiz.pay.jobs.ImportCountriesJob.start(system)
+    com.mogobiz.pay.jobs.CleanAccountsJob.start(system)
+    DBInitializer(Settings.Demo)
+  }
 
   def routes =
     logRequestResponse(showRequest _) {
