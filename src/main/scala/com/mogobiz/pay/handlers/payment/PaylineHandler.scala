@@ -8,11 +8,10 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.xml.namespace.QName
-import javax.xml.ws.{ Binding, BindingProvider }
+import javax.xml.ws.{Binding, BindingProvider}
 
 import com.experian.payline.ws.impl._
 import com.experian.payline.ws.obj._
-
 import com.experian.payline.ws.wrapper.WebPayment
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
@@ -22,9 +21,10 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay.{ ResponseCode3DS, TransactionStatus, _ }
-import com.mogobiz.utils.{ GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory }
+import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
+import com.mogobiz.utils.{GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory}
 import com.mogobiz.utils.GlobalUtil._
+import com.typesafe.scalalogging.LazyLogging
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
 
@@ -78,7 +78,7 @@ object PaylineHandler {
   val ServiceName: QName = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
 }
 
-class PaylineHandler(handlerName: String) extends PaymentHandler {
+class PaylineHandler(handlerName: String) extends PaymentHandler with LazyLogging{
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {
   }
@@ -327,7 +327,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       //      w.setEmail("test@test.fr")
       //      cwr.setWallet(w)
       //      val cwresp: CreateWalletResponse = createProxy(transaction, parametres).createWallet(cwr)
-      //      println(cwresp.getCard)
+      //      logger.info(cwresp.getCard)
       //    }
       ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     }
