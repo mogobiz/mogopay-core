@@ -36,7 +36,7 @@ import scala.collection.mutable
 import scala.util._
 import scala.util.control.NonFatal
 
-class SystempayHandler(handlerName: String) extends PaymentHandler with LazyLogging {
+class SystempayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {}
   val systempayClient = new SystempayClient
@@ -350,7 +350,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler with LazyLogg
   }
 }
 
-class SystempayClient {
+class SystempayClient extends LazyLogging {
   implicit val formats = new DefaultFormats {}
 
   def submit(paymentHandler: SystempayHandler, sessionData: SessionData, sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,

@@ -22,15 +22,13 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
-class EasyPostHandler extends ShippingHandler with LazyLogging {
-
-  private val logger = Logger(LoggerFactory.getLogger("EasyPostHandler"))
+class EasyPostHandler extends ShippingHandler {
 
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
 
   EasyPost.apiKey = Settings.Shipping.EasyPost.ApiKey
 
-  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData] = {
     cart.compagnyAddress.map { compagnyAddress =>
       val shippingContent = extractShippingContent(cart)
       computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
@@ -44,7 +42,7 @@ class EasyPostHandler extends ShippingHandler with LazyLogging {
     }.getOrElse(Seq())
   }
 
-  protected def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingPrice] = {
+  protected def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingData] = {
     val shipment = rate(
       compagnyAddress,
       shippingAddress.address,
@@ -71,15 +69,15 @@ class EasyPostHandler extends ShippingHandler with LazyLogging {
     }
   }
 
-  override def isValidShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingData): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
 
-  override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = {
-    if (shippingPrice.confirm) shippingPrice
+  override def confirmShipmentId(shippingData: ShippingData): ShippingData = {
+    if (shippingData.confirm) shippingData
     else {
-      val shipment = Shipment.retrieve(shippingPrice.shipmentId.substring(EASYPOST_SHIPPING_PREFIX.length))
-      val rate = Rate.retrieve(shippingPrice.rateId)
+      val shipment = Shipment.retrieve(shippingData.shipmentId.substring(EASYPOST_SHIPPING_PREFIX.length))
+      val rate = Rate.retrieve(shippingData.rateId)
       val s = shipment.buy(rate)
-      shippingPrice.copy(confirm = true)
+      shippingData.copy(confirm = true, trackingCode = Some(s.getTrackingCode))
     }
   }
 

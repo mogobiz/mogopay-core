@@ -16,7 +16,7 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ DefaultComplete, Settings }
 import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayException, UnauthorizedException }
 import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
-import com.mogobiz.pay.handlers.shipping.ShippingPrice
+import com.mogobiz.pay.handlers.shipping.ShippingData
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay.{ Account, BOTransaction, TransactionRequest, TransactionStatus }
 import com.mogobiz.pay.model.ParamRequest.{ SelectShippingPriceParam, TransactionInit }
@@ -53,6 +53,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     pathPrefix(serviceName) {
       init ~
         selectShipping ~
+        shippingWebhook ~
         verify ~
         submit ~
         submitWithSession ~
@@ -109,7 +110,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 }
                 case Some(id) =>
                   handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shipmentId, params.rateId),
-                    (shippingPrice: ShippingPrice) => {
+                    (shippingPrice: ShippingData) => {
                       setSession(session) {
                         complete(StatusCodes.OK -> shippingPrice)
                       }
@@ -121,34 +122,52 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
   }
 
-  lazy val verify = path("verify") {
-    import Implicits._
-    get {
-      val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
-      params { (secret, amount, transactionUUID) =>
-        handleCall(transactionHandler.verify(secret, amount, transactionUUID),
-          (result: (BOTransaction, Seq[TransactionRequest])) => {
-            val transaction = result._1
-            val transactions = result._2
-            val shipmentError = "SHIPMENT_ERROR".equals(transaction.errorCodeOrigin.getOrElse(""))
-            complete(
-              StatusCodes.OK -> Map(
-                'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED && !shipmentError) "success" else "error"),
-                'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
-                'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
-                'transaction_email -> Option(transaction.email).getOrElse(""),
-                'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
-                'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
-                'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated), "UTF-8"),
-                'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
-                'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
-                'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),
-                'group_transactions -> transactions,
-                'error_shipment -> (if (shipmentError) transaction.errorMessageOrigin.getOrElse("") else "")
-              )
-            )
+  lazy val shippingWebhook = path("shipping-webhook") {
+    post {
+      def rawData: Directive1[String] = extract {
+        _.request.entity.asString
+      }
+      rawData { postData =>
+        handleCall(transactionHandler.shippingWebhook(postData),
+          (_: Unit) => {
+            complete(StatusCodes.OK)
           }
         )
+      }
+    }
+  }
+
+  lazy val verify = path("verify") {
+
+    import Implicits._
+
+    get {
+      val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
+      params {
+        (secret, amount, transactionUUID) =>
+          handleCall(transactionHandler.verify(secret, amount, transactionUUID),
+            (result: (BOTransaction, Seq[TransactionRequest])) => {
+              val transaction = result._1
+              val transactions = result._2
+              val shipmentError = "SHIPMENT_ERROR".equals(transaction.errorCodeOrigin.getOrElse(""))
+              complete(
+                StatusCodes.OK -> Map(
+                  'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED && !shipmentError) "success" else "error"),
+                  'transaction_id -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
+                  'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
+                  'transaction_email -> Option(transaction.email).getOrElse(""),
+                  'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
+                  'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
+                  'transaction_start -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated), "UTF-8"),
+                  'transaction_end -> URLEncoder.encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get), "UTF-8"),
+                  'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
+                  'transaction_type -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),
+                  'group_transactions -> transactions,
+                  'error_shipment -> (if (shipmentError) transaction.errorMessageOrigin.getOrElse("") else "")
+                )
+              )
+            }
+          )
       }
     }
   }
@@ -156,35 +175,37 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val initGroupPayment = path("init-group-payment") {
     get {
       val params = parameters('token, 'transaction_type, 'card_cvv, 'card_month, 'card_year, 'card_type, 'card_number)
-      params { (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
-        session { session =>
-          handleCall(transactionHandler.initGroupPayment(token),
-            (result: (Account, TransactionRequest, String, String, String)) => {
-              ServicesUtil.authenticateSession(session, account = result._1)
+      params {
+        (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
+          session {
+            session =>
+              handleCall(transactionHandler.initGroupPayment(token),
+                (result: (Account, TransactionRequest, String, String, String)) => {
+                  ServicesUtil.authenticateSession(session, account = result._1)
 
-              setSession(session) {
-                val form = buildFormForInitGroupPayment(
-                  account = result._1,
-                  transaction = result._2,
-                  groupTxUUID = result._3,
-                  transactionType = transactionType,
-                  successURL = result._4,
-                  failureURL = result._5,
-                  ccCVV,
-                  ccMonth,
-                  ccYear,
-                  ccType,
-                  ccNumber
-                )
-                respondWithMediaType(MediaTypes.`text/html`) {
-                  complete {
-                    new HttpResponse(StatusCodes.OK, HttpEntity(form))
+                  setSession(session) {
+                    val form = buildFormForInitGroupPayment(
+                      account = result._1,
+                      transaction = result._2,
+                      groupTxUUID = result._3,
+                      transactionType = transactionType,
+                      successURL = result._4,
+                      failureURL = result._5,
+                      ccCVV,
+                      ccMonth,
+                      ccYear,
+                      ccType,
+                      ccNumber
+                    )
+                    respondWithMediaType(MediaTypes.`text/html`) {
+                      complete {
+                        new HttpResponse(StatusCodes.OK, HttpEntity(form))
+                      }
+                    }
                   }
                 }
-              }
-            }
-          )
-        }
+              )
+          }
       }
     }
   }
@@ -192,10 +213,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   lazy val refund = path("refund") {
     get {
       val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid, 'locale.?)
-      params { (merchantSecret, amount, boTransactionUUID, locale) =>
-        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount), locale),
-          (_: Any) => complete(200 -> "")
-        )
+      params {
+        (merchantSecret, amount, boTransactionUUID, locale) =>
+          handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount), locale),
+            (_: Any) => complete(200 -> "")
+          )
       }
     }
   }
@@ -232,60 +254,70 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                 400 -> "The total amount and the payers amounts don't match."
               }
             } else {
-              session { session =>
-                import Implicits._
+              session {
+                session =>
 
-                if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
-                  complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
-                } else {
-                  //clientIP { ip =>
-                  session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
-                  session.sessionData.payers = submitParams.payers.toMap[String, Long]
-                  session.sessionData.groupTxUUID = submitParams.groupTxUUID
+                  import Implicits._
 
-                  setSession(session) {
-                    doSubmit(submitParams, session)
+                  if (submitParams.payers.nonEmpty && !submitParams.payers.keys.toList.contains(session.sessionData.email.get)) {
+                    complete(StatusCodes.BadRequest -> "The payers' list doesn't contain the current user.")
+                  } else {
+                    //clientIP { ip =>
+                    session.sessionData.ipAddress = Some("192.168.1.1") //Some(ip.toString)
+                    session.sessionData.payers = submitParams.payers.toMap[String, Long]
+                    session.sessionData.groupTxUUID = submitParams.groupTxUUID
+
+                    setSession(session) {
+                      doSubmit(submitParams, session)
+                    }
+                    //}
                   }
-                  //}
-                }
               }
             }
         }
     }
   }
 
-  lazy val submitWithSession = path("submit" / Segment) { sessionUuid =>
-    post {
-      formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
-        'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
-        'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
-        'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
-          submitParams =>
-            val session = SessionESDirectives.load(sessionUuid).get
-            doSubmit(submitParams, session)
-        }
-    }
+  lazy val submitWithSession = path("submit" / Segment) {
+    sessionUuid =>
+      post {
+        formFields('callback_success, 'callback_error, 'callback_cardinfo.?, 'callback_auth.?, 'callback_cvv.?, 'transaction_id,
+          'transaction_amount.as[Long], 'merchant_id, 'transaction_type,
+          'card_cvv.?, 'card_number.?, 'user_email.?, 'user_password.?, 'transaction_desc.?, 'gateway_data.?,
+          'card_month.?, 'card_year.?, 'card_type.?, 'card_store.?.as[Option[Boolean]], 'payers.?, 'group_tx_uuid.?, 'locale.?).as(SubmitParams) {
+            submitParams =>
+              val session = SessionESDirectives.load(sessionUuid).get
+              doSubmit(submitParams, session)
+          }
+      }
   }
 
-  lazy val download = path("download" / Segment) { transactionUuid =>
-    get {
-      parameters('page ? "A4", 'langCountry) { (pageFormat, langCountry) =>
-        session { session =>
-          import Implicits._
-          session.sessionData.accountId match {
-            case Some(accountId: String) =>
-              handleCall(transactionHandler.download(transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
-                getFromFile(pdfFile)
-              })
-            case _ => completeException(new UnauthorizedException("Not logged in"))
-          }
+  lazy val download = path("download" / Segment) {
+    transactionUuid =>
+      get {
+        parameters('page ? "A4", 'langCountry) {
+          (pageFormat, langCountry) =>
+            session {
+              session =>
+
+                import Implicits._
+
+                session.sessionData.accountId match {
+                  case Some(accountId: String) =>
+                    handleCall(transactionHandler.download(transactionUuid, pageFormat, langCountry), (pdfFile: File) => {
+                      getFromFile(pdfFile)
+                    })
+                  case _ => completeException(new UnauthorizedException("Not logged in"))
+                }
+            }
         }
       }
-    }
   }
 
   protected def doSubmit(submitParams: SubmitParams, session: Session): Route = {
+
     import Implicits._
+
     def isNewSession: Boolean = {
       val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
       val incomingTrans = submitParams.transactionUUID
@@ -308,7 +340,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           val (serviceName, methodName) = t
           setSession(session) {
             val sessionId = session.id
-            val request = Get(s"${Settings.Mogopay.EndPoint}$serviceName/$methodName/$sessionId")
+            val request = Get(s"${
+              Settings.Mogopay.EndPoint
+            }$serviceName/$methodName/$sessionId")
             def cleanSession(session: Session) {
               val authenticated = session.sessionData.authenticated
               val customerId = session.sessionData.accountId
@@ -316,7 +350,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               session.sessionData.authenticated = authenticated
               session.sessionData.accountId = customerId
             }
-            val response = if (Settings.Mogopay.isHTTPS) sslPipeline(request.uri.authority.host).flatMap(_(request)) else {
+            val response = if (Settings.Mogopay.isHTTPS) sslPipeline(request.uri.authority.host).flatMap(_(request))
+            else {
               val pipeline: Future[SendReceive] = for (
                 Http.HostConnectorInfo(connector, _) <- IO(Http) ? Http.HostConnectorSetup(Settings.Mogopay.Host, Settings.Mogopay.Port)
               ) yield sendReceive(connector)
@@ -365,7 +400,11 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     )
 
     val form =
-      <form id="form" action={ s"${Settings.Mogopay.EndPoint}transaction/submit" } method="POST">
+      <form id="form" action={
+        s"${
+          Settings.Mogopay.EndPoint
+        }transaction/submit"
+      } method="POST">
         {
           submitParams.map {
             case (key, value) =>
@@ -373,7 +412,9 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
           }
         }
       </form>
-      <script>document.getElementById('form').submit();</script>
+      <script>
+        document.getElementById('form').submit();
+      </script>
 
     //    if (Settings.Env == Environment.DEV) {
     //      // Just `open /tmp/mogopay-submit-form.html` to start the payment

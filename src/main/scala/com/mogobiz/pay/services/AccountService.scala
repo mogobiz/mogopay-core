@@ -704,6 +704,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('sips_merchant_parcom_file_content.?) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
                 ('anet_api_login_id ?) :: ('anet_transaction_key ?) :: ('anet_md5 ?) ::
+                ('custom_provider_name ?) :: ('custom_provider_data ?) ::
                 ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
                 ('apple_pay_anet_api_login_id ?) :: ('apple_pay_anet_transaction_key ?) ::
@@ -721,6 +722,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
                   systempayShopId :: systempayContractNumber :: systempayCertificate ::
                   anetAPILoginID :: anetTransactionKey :: anetMD5 ::
+                  customProviderName :: customProviderData ::
                   senderName :: senderEmail :: passwordPattern :: callbackPrefix ::
                   paypalUser :: paypalPassword :: paypalSignature ::
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
@@ -739,6 +741,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     sipsMerchantParcomFileContent, sipsMerchantLogoPath,
                     systempayShopId, systempayContractNumber, systempayCertificate,
                     anetAPILoginID, anetTransactionKey, anetMD5,
+                    customProviderName, customProviderData,
                     senderName, senderEmail, passwordPattern, callbackPrefix,
                     paypalUser, paypalPassword, paypalSignature,
                     applePayAnetAPILoginID, applePayAnetTransactionKey,
@@ -774,6 +777,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('sips_merchant_parcom_file_content.?) :: ('sips_merchant_logo_path ?) ::
                 ('systempay_shop_id ?) :: ('systempay_contract_number ?) :: ('systempay_certificate ?) ::
                 ('anet_api_login_id ?) :: ('anet_transaction_key ?) :: ('anet_md5 ?) ::
+                ('custom_provider_name ?) :: ('custom_provider_data ?) ::
                 ('sender_name ?) :: ('sender_email ?) :: ('password_pattern ?) :: ('callback_prefix ?) ::
                 ('paypal_user ?) :: ('paypal_password ?) :: ('paypal_signature ?) ::
                 ('apple_pay_anet_api_login_id ?) :: ('apple_pay_anet_transaction_key ?) ::
@@ -793,6 +797,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   sipsMerchantParcomFileContent :: sipsMerchantLogoPath ::
                   systempayShopId :: systempayContractNumber :: systempayCertificate ::
                   anetAPILoginID :: anetTransactionKey :: anet_md5 ::
+                  customProviderName :: customProviderData ::
                   senderName :: senderEmail :: passwordPattern :: callbackPrefix ::
                   paypalUser :: paypalPassword :: paypalSignature ::
                   applePayAnetAPILoginID :: applePayAnetTransactionKey ::
@@ -811,6 +816,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     sipsMerchantParcomFileContent, sipsMerchantLogoPath,
                     systempayShopId, systempayContractNumber, systempayCertificate,
                     anetAPILoginID, anetTransactionKey, anet_md5,
+                    customProviderName, customProviderData,
                     senderName, senderEmail, passwordPattern, callbackPrefix,
                     paypalUser, paypalPassword, paypalSignature,
                     applePayAnetAPILoginID, applePayAnetTransactionKey,
@@ -840,6 +846,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     sipsMerchantParcomFileContent: Option[String], sipsMerchantLogoPath: Option[String],
     systempayShopId: Option[String], systempayContractNumber: Option[String], systempayCertificate: Option[String],
     anetAPILoginID: Option[String], anetTransactionKey: Option[String], anetMD5: Option[String],
+    customProviderName: Option[String], customProviderData: Option[String],
     senderName: Option[String], senderEmail: Option[String], passwordPattern: Option[String], callbackPrefix: Option[String],
     paypalUser: Option[String], paypalPassword: Option[String], paypalSignature: Option[String],
     applePayAnetAPILoginID: Option[String], applePayAnetTransactionKey: Option[String],
@@ -875,6 +882,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
           sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)
         case CBPaymentProvider.SYSTEMPAY => SystempayParams(systempayShopId.get, systempayContractNumber.get, systempayCertificate.get)
         case CBPaymentProvider.AUTHORIZENET => AuthorizeNetParams(anetAPILoginID.get, anetTransactionKey.get, anetMD5.get)
+        case CBPaymentProvider.CUSTOM => CustomProviderParams(customProviderName.get, customProviderData.get)
       }
     }
 

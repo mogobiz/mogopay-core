@@ -164,6 +164,8 @@ object Exceptions {
 
   case class RefundException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
 
+  case class InvalidPaymentHandlerException(message: String) extends MogopayException(StatusCodes.BadRequest, message)
+
   case class MissingGroupPaymentInfoValues() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
   case class PaymentAlreadyRefundedException() extends MogopayMessagelessException(StatusCodes.BadRequest)
@@ -185,4 +187,5 @@ object Exceptions {
   case class NoCBPaymentMethodSpecified() extends MogopayMessagelessException(StatusCodes.BadRequest)
 
   case class ShippingException() extends MogopayMessagelessException(StatusCodes.BadRequest, false)
+
 }

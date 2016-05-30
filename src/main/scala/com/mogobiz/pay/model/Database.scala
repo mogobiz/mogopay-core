@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
 import com.fasterxml.jackson.module.scala.{ DefaultScalaModule, JsonScalaEnumeration }
 import com.mogobiz.pay.common.{ Cart, CartItem, CartRate, Coupon }
-import com.mogobiz.pay.handlers.shipping.ShippingPrice
+import com.mogobiz.pay.handlers.shipping.ShippingData
 import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, Telephone, _ }
 import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
@@ -144,6 +144,7 @@ object Mogopay {
     val PAYBOX = Value("PAYBOX")
     val SIPS = Value("SIPS")
     val SYSTEMPAY = Value("SYSTEMPAY")
+    val CUSTOM = Value("CUSTOM")
   }
 
   class CBPaymentProviderRef extends TypeReference[CBPaymentProvider.type]
@@ -497,8 +498,8 @@ object Mogopay {
     var cardSave: Boolean = false,
     var waitFor3DS: Boolean = false,
     var pageNum: Integer = 0,
-    var shippingPrices: Option[List[ShippingPrice]] = None,
-    var selectShippingPrice: Option[ShippingPrice] = None,
+    var shippingPrices: Option[List[ShippingData]] = None,
+    var selectShippingPrice: Option[ShippingData] = None,
     var id3d: Option[String] = None,
     var payers: Map[String, Long] = Map(),
     var groupTxUUID: Option[String] = None,

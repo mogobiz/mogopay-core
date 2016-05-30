@@ -8,26 +8,31 @@ import com.mogobiz.pay.common.{ Cart, ShippingWithQuantity }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.Seq
 
-case class ShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
-  currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false)
+case class ShippingData(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
+  currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false, trackingCode: Option[String] = None, extra: Option[String] = None)
 
-trait ShippingHandler {
+trait ShippingHandler extends LazyLogging {
   // return a list of shipping price. Each shipping price is related to a level of service, for example : Same day delivery, 3 days, ...
-  def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice]
+  def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData]
 
-  def isValidShipmentId(shippingPrice: ShippingPrice): Boolean
+  def isValidShipmentId(shippingPrice: ShippingData): Boolean
 
-  def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice
+  def confirmShipmentId(shippingPrice: ShippingData): ShippingData
 
   //def confirmPrice()
 
   def convertStorePrice(price: Long, cart: Cart): Long = {
     var rate: Option[Rate] = rateHandler.findByCurrencyCode(cart.rate.code)
-    val currencyFractionDigits: Integer = rate.map { _.currencyFractionDigits }.getOrElse(2)
-    (price * rate.map { _.currencyRate }.getOrElse(0.01) * Math.pow(10, currencyFractionDigits.doubleValue())).asInstanceOf[Long]
+    val currencyFractionDigits: Integer = rate.map {
+      _.currencyFractionDigits
+    }.getOrElse(2)
+    (price * rate.map {
+      _.currencyRate
+    }.getOrElse(0.01) * Math.pow(10, currencyFractionDigits.doubleValue())).asInstanceOf[Long]
   }
 
   def extractShippingContent(cart: Cart): List[ShippingWithQuantity] = {
@@ -44,9 +49,9 @@ trait ShippingHandler {
     } toList
   }
 
-  def createShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String): ShippingPrice = {
+  def createShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String): ShippingData = {
     var rate: Option[Rate] = rateHandler.findByCurrencyCode(currencyCode)
-    ShippingPrice(shipmentId, rateId, provider, service, rateType, price, currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2)
+    ShippingData(shipmentId, rateId, provider, service, rateType, price, currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2)
   }
 }
 
@@ -54,15 +59,15 @@ object ShippingHandler {
   val servicesList: Seq[ShippingHandler] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHander)
   else Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
 
-  def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingData] = {
     servicesList.flatMap {
       service =>
         service.computePrice(address, cart)
     }
   }
 
-  def confirmShippingPrice(shippingPriceOpt: Option[ShippingPrice]): Option[ShippingPrice] = {
-    shippingPriceOpt.map { shippingPrice =>
+  def confirmShippingPrice(shippingDataOpt: Option[ShippingData]): Option[ShippingData] = {
+    shippingDataOpt.map { shippingPrice =>
       val serviceOpt = servicesList.find {
         _.isValidShipmentId(shippingPrice)
       }

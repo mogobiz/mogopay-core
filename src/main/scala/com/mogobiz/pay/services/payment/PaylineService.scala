@@ -42,7 +42,7 @@ class PaylineService extends Directives with DefaultComplete with LazyLogging {
                 case Left(content) =>
                   complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
                 case Right(url) =>
-                  logger.debug(url)
+                  logger.debug(url.toString())
                   redirect(url, StatusCodes.TemporaryRedirect)
               }
             }

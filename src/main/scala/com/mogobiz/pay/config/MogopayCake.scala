@@ -73,6 +73,9 @@ trait MogopayCake {
   def pdfHandler: PdfHandler
 
   def templateHandler: TemplateHandler
+
+  def customPaymentHandler: PaymentHandler = null
+
 }
 
 class DefaultMogopayCake extends MogopayCake {

@@ -172,6 +172,8 @@ case class SIPSParams(sipsMerchantId: String, sipsMerchantCountry: String,
 
 case class AuthorizeNetParams(apiLoginID: String, transactionKey: String, md5Key: String) extends CBParams
 
+case class CustomProviderParams(customProviderName: String, customProviderData: String) extends CBParams
+
 case class SystempayParams(systempayShopId: String, systempayContractNumber: String, systempayCertificate: String) extends CBParams
 
 case class SendNewPassword(accountId: String)

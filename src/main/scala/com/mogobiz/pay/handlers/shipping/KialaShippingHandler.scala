@@ -16,11 +16,11 @@ class KialaShippingHandler extends ShippingHandler {
   val KIALA_PRICE = 400
   val KIALA_SHIPPING_PREFIX = "KIALA_"
 
-  def computeFixPrice(price: Long, currencyCode: String): Seq[ShippingPrice] = {
+  def computeFixPrice(price: Long, currencyCode: String): Seq[ShippingData] = {
     Seq(createShippingPrice(KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", price, currencyCode))
   }
 
-  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData] = {
 
     val shippingContent = extractShippingContent(cart)
 
@@ -42,7 +42,7 @@ class KialaShippingHandler extends ShippingHandler {
     }.getOrElse(Seq())
   }
 
-  override def isValidShipmentId(shippingPrice: ShippingPrice): Boolean = shippingPrice.shipmentId.startsWith(KIALA_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingData): Boolean = shippingPrice.shipmentId.startsWith(KIALA_SHIPPING_PREFIX)
 
-  override def confirmShipmentId(shippingPrice: ShippingPrice): ShippingPrice = shippingPrice.copy(confirm = true)
+  override def confirmShipmentId(shippingPrice: ShippingData): ShippingData = shippingPrice.copy(confirm = true)
 }
