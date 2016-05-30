@@ -6,37 +6,36 @@ package com.mogobiz.pay.services.payment
 
 import java.io.File
 import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 
-import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.common.{ CartRate, Cart }
-import com.mogobiz.pay.config.{ Environment, Settings, DefaultComplete }
+import com.mogobiz.pay.common.{ Cart, CartRate }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.config.{ DefaultComplete, Settings }
 import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayException, UnauthorizedException }
 import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
 import com.mogobiz.pay.handlers.shipping.ShippingPrice
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{ TransactionRequest, Account, BOTransaction, TransactionStatus }
-import com.mogobiz.pay.model.ParamRequest.{ TransactionInit, SelectShippingPriceParam, ListShippingPriceParam }
+import com.mogobiz.pay.model.Mogopay.{ Account, BOTransaction, TransactionRequest, TransactionStatus }
+import com.mogobiz.pay.model.ParamRequest.{ SelectShippingPriceParam, TransactionInit }
 import com.mogobiz.pay.services.ServicesUtil
-import com.mogobiz.session.{ SessionESDirectives, Session }
 import com.mogobiz.session.SessionESDirectives._
+import com.mogobiz.session.{ Session, SessionESDirectives }
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.CustomSslConfiguration
+import com.typesafe.scalalogging.LazyLogging
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
 import spray.routing._
 
-import scala.concurrent.duration._
 import scala.concurrent._
+import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
-class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration {
+class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration with LazyLogging {
   implicit val timeout = Timeout(40 seconds)
 
   //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
@@ -155,7 +154,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
   }
 
   lazy val initGroupPayment = path("init-group-payment") {
-    import com.mogobiz.pay.implicits.Implicits._
     get {
       val params = parameters('token, 'transaction_type, 'card_cvv, 'card_month, 'card_year, 'card_type, 'card_number)
       params { (token, transactionType, ccCVV, ccMonth, ccYear, ccType, ccNumber) =>
@@ -286,7 +284,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     }
   }
 
-  private def doSubmit(submitParams: SubmitParams, session: Session): Route = {
+  protected def doSubmit(submitParams: SubmitParams, session: Session): Route = {
     import Implicits._
     def isNewSession: Boolean = {
       val sessionTrans = session.sessionData.transactionUuid.getOrElse("__SESSION_UNDEFINED__")
@@ -325,22 +323,21 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
               pipeline.flatMap(_(request))
             }
             onComplete(response) {
-              case Failure(t) =>
-                t.printStackTrace()
+              case Failure(exception) =>
+                exception.printStackTrace()
                 cleanSession(session)
                 setSession(session) {
-                  def toHTTPResponse(t: Throwable): StatusCode = t match {
+                  def toHTTPResponse(t: Throwable): StatusCode = exception match {
                     case e: MogopayException => e.code
                     case _ => StatusCodes.InternalServerError
                   }
-                  complete(toHTTPResponse(t), t.toString)
+                  complete(toHTTPResponse(exception), exception.toString)
 
                 }
-              case Success(response) =>
-
-                println("success->" + response.entity.data.asString)
+              case Success(resp) =>
+                logger.debug("success->" + resp.entity.data.asString)
                 complete {
-                  response.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), response.entity.data))
+                  resp.withEntity(HttpEntity(ContentType(MediaTypes.`text/html`), resp.entity.data))
                 }
             }
           }
@@ -378,12 +375,12 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
       </form>
       <script>document.getElementById('form').submit();</script>
 
-    if (Settings.Env == Environment.DEV) {
-      // Just `open /tmp/mogopay-submit-form.html` to start the payment
-      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
-        form.mkString.getBytes(StandardCharsets.UTF_8))
-    }
-
+    //    if (Settings.Env == Environment.DEV) {
+    //      // Just `open /tmp/mogopay-submit-form.html` to start the payment
+    //      java.nio.file.Files.write(java.nio.file.Paths.get("/tmp/mogopay-submit-form.html"),
+    //        form.mkString.getBytes(StandardCharsets.UTF_8))
+    //    }
+    //
     form.mkString.replace("\n", "")
   }
 }

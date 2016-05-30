@@ -4,20 +4,19 @@
 
 package com.mogobiz.pay.services.payment
 
-import akka.actor.ActorRef
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.implicits.Implicits
-import Implicits._
+import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
+import com.typesafe.scalalogging.LazyLogging
 import spray.http.HttpHeaders.`Content-Type`
-import spray.http.{ MediaTypes, HttpResponse, StatusCodes, Uri }
+import spray.http.{ HttpResponse, MediaTypes, StatusCodes, Uri }
 import spray.routing.Directives
 
 import scala.util._
 
-class MogopayService extends Directives with DefaultComplete {
+class MogopayService extends Directives with DefaultComplete with LazyLogging {
 
   val route = {
     pathPrefix("mogopay") {
@@ -36,7 +35,7 @@ class MogopayService extends Directives with DefaultComplete {
               case Left(content) =>
                 complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
               case Right(url) =>
-                println(url)
+                logger.debug(url.toString())
                 redirect(url, StatusCodes.TemporaryRedirect)
             }
           }
@@ -52,7 +51,7 @@ class MogopayService extends Directives with DefaultComplete {
           setSession(session) {
             data match {
               case Left(content) =>
-                println(content)
+                logger.debug(content)
                 complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
               case Right(url) =>
                 redirect(url, StatusCodes.TemporaryRedirect)

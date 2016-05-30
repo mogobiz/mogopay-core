@@ -8,6 +8,7 @@ import akka.actor.{ Actor, ActorSystem, Props }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import scala.concurrent.duration._
+import akka.event.Logging
 
 object RefundJob {
   def start(system: ActorSystem) {
@@ -25,10 +26,11 @@ object RefundJob {
 }
 
 class RefundJob extends Actor {
+  val log = Logging(context.system, this)
   def receive = {
     case _ =>
-      println(" == RefundJob: start.")
+      log.info(" == RefundJob: start.")
       transactionHandler.refundGroupPayments()
-      println(" == RefundJob: done.")
+      log.info(" == RefundJob: done.")
   }
 }

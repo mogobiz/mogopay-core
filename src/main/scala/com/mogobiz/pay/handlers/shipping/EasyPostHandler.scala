@@ -13,6 +13,7 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
 import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
+import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.slf4j.Logger
 import org.apache.commons.lang.StringUtils
 import org.slf4j.LoggerFactory
@@ -21,7 +22,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
-class EasyPostHandler extends ShippingHandler {
+class EasyPostHandler extends ShippingHandler with LazyLogging {
 
   private val logger = Logger(LoggerFactory.getLogger("EasyPostHandler"))
 
@@ -43,7 +44,7 @@ class EasyPostHandler extends ShippingHandler {
     }.getOrElse(Seq())
   }
 
-  private def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingPrice] = {
+  protected def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingPrice] = {
     val shipment = rate(
       compagnyAddress,
       shippingAddress.address,
@@ -82,7 +83,7 @@ class EasyPostHandler extends ShippingHandler {
     }
   }
 
-  private def computeShippingParcelAndFixAmount(cart: Cart, shippingList: List[ShippingWithQuantity]): Option[ShippingParcelAndFixAmount] = {
+  protected def computeShippingParcelAndFixAmount(cart: Cart, shippingList: List[ShippingWithQuantity]): Option[ShippingParcelAndFixAmount] = {
     if (shippingList.isEmpty) None
     else {
       val parcelPriceTail = computeShippingParcelAndFixAmount(cart, shippingList.tail).getOrElse(ShippingParcelAndFixAmount(0, None, None))
@@ -118,7 +119,7 @@ class EasyPostHandler extends ShippingHandler {
    * @param unit
    * @return
    */
-  private def convertLinear(linear: Long, unit: String): Double = {
+  protected def convertLinear(linear: Long, unit: String): Double = {
     unit match {
       case "CM" => linear / 2.54d
       case _ => linear
@@ -135,7 +136,7 @@ class EasyPostHandler extends ShippingHandler {
    * @param unit
    * @return
    */
-  private def convertWeight(weight: Long, unit: String): Double = {
+  protected def convertWeight(weight: Long, unit: String): Double = {
     unit match {
       case "KG" => weight * 1000 / 28.3495231d
       case "G" => weight / 28.3495231d
@@ -168,7 +169,7 @@ class EasyPostHandler extends ShippingHandler {
     Shipment.create(shipmentMap)
   }
 
-  private def cartToMap(cart: Cart): CustomsInfo = {
+  protected def cartToMap(cart: Cart): CustomsInfo = {
     val originCountry = cart.compagnyAddress.map {
       _.country
     }.getOrElse("US")
@@ -209,7 +210,7 @@ class EasyPostHandler extends ShippingHandler {
 
   }
 
-  private def accountAddressToMap(addr: AccountAddress): Address = {
+  protected def accountAddressToMap(addr: AccountAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "name" -> (addr.civility.map {
         _.toString + " "
@@ -228,7 +229,7 @@ class EasyPostHandler extends ShippingHandler {
 
   lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
 
-  private def formatPhone(phone: String): String = {
+  protected def formatPhone(phone: String): String = {
     try {
       phoneUtil.format(phoneUtil.parse(phone, null), PhoneNumberFormat.NATIONAL) //.replaceAll("\\s","")
     } catch {
@@ -237,7 +238,7 @@ class EasyPostHandler extends ShippingHandler {
     }
   }
 
-  private def companyAddressToMap(addr: CompanyAddress): Address = {
+  protected def companyAddressToMap(addr: CompanyAddress): Address = {
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "company" -> addr.company,
       "name" -> addr.company,
@@ -253,7 +254,7 @@ class EasyPostHandler extends ShippingHandler {
   }
 }
 
-object EasyPostHandler extends App {
+object EasyPostHandler extends App with LazyLogging {
 
   EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
 
@@ -315,5 +316,5 @@ object EasyPostHandler extends App {
   val rate: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
     "id" -> shipment.getRates.get(0).getId())
   val newShipment = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()))
-  println(newShipment.getStatus)
+  logger.debug(newShipment.getStatus)
 }

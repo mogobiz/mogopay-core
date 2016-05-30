@@ -15,6 +15,7 @@ case class ShippingPrice(shipmentId: String, rateId: String, provider: String, s
   currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false)
 
 trait ShippingHandler {
+  // return a list of shipping price. Each shipping price is related to a level of service, for example : Same day delivery, 3 days, ...
   def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingPrice]
 
   def isValidShipmentId(shippingPrice: ShippingPrice): Boolean
@@ -71,3 +72,4 @@ object ShippingHandler {
     }.getOrElse(None)
   }
 }
+

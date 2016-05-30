@@ -25,6 +25,7 @@ import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
+import com.typesafe.scalalogging.LazyLogging
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{ DefaultFormats, StringInput }
 import spray.http.Uri
@@ -35,7 +36,7 @@ import scala.collection.mutable
 import scala.util._
 import scala.util.control.NonFatal
 
-class SystempayHandler(handlerName: String) extends PaymentHandler {
+class SystempayHandler(handlerName: String) extends PaymentHandler with LazyLogging {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {}
   val systempayClient = new SystempayClient
@@ -674,7 +675,7 @@ class SystempayClient {
             <script>document.getElementById("formpay").submit();</script>
           </body>
         </html>"""
-        println(form)
+        logger.debug(form)
 
         if (Settings.Env == Environment.DEV)
           result = result.copy(url = result.url + ";jsessionid=" + sessionId)
@@ -789,7 +790,7 @@ class SystempayClient {
   }
 }
 
-object SystempayClient {
+object SystempayClient extends LazyLogging {
   val QUERY_STRING_SEP = "&"
   val QUERY_STRING_ELEMENTS_SEP = "="
 

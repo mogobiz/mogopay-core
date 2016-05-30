@@ -179,7 +179,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     result
   }
 
-  private def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
+  protected def submit(vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
     paymentRequest: PaymentRequest, token: String, payerId: String,
     sessionData: SessionData, step: TransactionStep): PaymentResult = {
     accountHandler.load(vendorId).map {

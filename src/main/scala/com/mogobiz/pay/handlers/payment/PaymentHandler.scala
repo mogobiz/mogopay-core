@@ -20,10 +20,11 @@ import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
 import Settings.Mail.Smtp.MailSettings
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 import scala.collection.mutable
 
-trait PaymentHandler {
+trait PaymentHandler extends LazyLogging {
   implicit val system = ActorSystemLocator()
   implicit val _ = system.dispatcher
 
@@ -108,7 +109,7 @@ trait PaymentHandler {
           SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
         }
 
-        if (Settings.Env == Environment.DEV) println(s"==== Group payment token: $token")
+        if (Settings.Env == Environment.DEV) logger.debug(s"==== Group payment token: $token")
 
         val url = groupPaymentInfo.returnURLforNextPayers
         val uri = Uri(url).withQuery(("token", token))

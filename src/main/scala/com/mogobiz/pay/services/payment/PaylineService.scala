@@ -11,6 +11,7 @@ import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
+import com.typesafe.scalalogging.LazyLogging
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
 import spray.routing.Directives
@@ -18,7 +19,7 @@ import spray.routing.Directives
 import scala.concurrent.ExecutionContext
 import scala.util._
 
-class PaylineService extends Directives with DefaultComplete {
+class PaylineService extends Directives with DefaultComplete with LazyLogging {
 
   val route = {
     pathPrefix("payline") {
@@ -41,7 +42,7 @@ class PaylineService extends Directives with DefaultComplete {
                 case Left(content) =>
                   complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
                 case Right(url) =>
-                  println(url)
+                  logger.debug(url)
                   redirect(url, StatusCodes.TemporaryRedirect)
               }
             }

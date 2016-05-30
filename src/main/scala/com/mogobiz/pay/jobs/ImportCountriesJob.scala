@@ -5,11 +5,10 @@
 package com.mogobiz.pay.jobs
 
 import akka.actor.{ Actor, ActorSystem, Props }
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import akka.event.Logging
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
+
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
@@ -31,9 +30,10 @@ object ImportCountriesJob {
  * Periodically import countries into the database
  */
 class ImportCountriesJob extends Actor {
+  val log = Logging(context.system, this)
   def receive = {
     case _ => try {
-      println(" == ImportCountriesJob: start.")
+      log.info(" == ImportCountriesJob: start.")
 
       val currencies = Settings.Import.CurrenciesFile
       val countries = Settings.Import.CountriesFile
@@ -45,14 +45,14 @@ class ImportCountriesJob extends Actor {
         countryImportHandler.importAdmins1(admins1)
         countryImportHandler.importAdmins2(admins2)
         countryImportHandler.importCities(cities)
-        println(" == ImportCountriesJob: done.")
+        log.info(" == ImportCountriesJob: done.")
       } else {
-        println(" == ImportCountriesJob: skipped.")
+        log.info(" == ImportCountriesJob: skipped.")
       }
     } catch {
       case NonFatal(e) =>
         e.printStackTrace()
-        println(" == ImportCountriesJob: files missing, skipping…")
+        log.info(" == ImportCountriesJob: files missing, skipping…")
     }
   }
 }

@@ -10,13 +10,14 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
+import com.typesafe.scalalogging.LazyLogging
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
 import spray.routing._
 
 import scala.util._
 
-class PayboxService extends Directives with DefaultComplete {
+class PayboxService extends Directives with DefaultComplete with LazyLogging {
 
   val route = {
     pathPrefix("paybox") {
@@ -40,7 +41,7 @@ class PayboxService extends Directives with DefaultComplete {
                 case Left(content) =>
                   complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
                 case Right(url) =>
-                  println(url)
+                  logger.debug(url.toString())
                   redirect(url, StatusCodes.TemporaryRedirect)
               }
             }

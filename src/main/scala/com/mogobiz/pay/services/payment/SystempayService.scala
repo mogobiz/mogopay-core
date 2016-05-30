@@ -10,13 +10,14 @@ import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
+import com.typesafe.scalalogging.LazyLogging
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
 import spray.routing.Directives
 
 import scala.util._
 
-class SystempayService extends Directives with DefaultComplete {
+class SystempayService extends Directives with DefaultComplete with LazyLogging {
 
   val route = {
     pathPrefix("systempay") {
@@ -54,7 +55,7 @@ class SystempayService extends Directives with DefaultComplete {
     xtoken =>
       import Implicits._
       get {
-        println("done:" + xtoken)
+        logger.debug("done:" + xtoken)
         parameterMap {
           params =>
             val session = SessionESDirectives.load(xtoken).get

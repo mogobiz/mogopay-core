@@ -9,6 +9,7 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import akka.event.Logging
 
 object ImportRatesJob {
   def start(system: ActorSystem) {
@@ -28,16 +29,17 @@ object ImportRatesJob {
  * Periodically import countries into the database
  */
 class ImportRatesJob extends Actor {
+  val log = Logging(context.system, this)
   def receive = {
     case _ => try {
-      println(" == ImportRatesJob: start.")
+      log.info(" == ImportRatesJob: start.")
       val rates = Settings.Import.RatesFile
       rateImportHandler.importRates(rates)
-      println(" == ImportRatesJob: end.")
+      log.info(" == ImportRatesJob: end.")
     } catch {
       case NonFatal(e) =>
         e.printStackTrace()
-        println(" == ImportRatesJob: files missing, skipping…")
+        log.info(" == ImportRatesJob: files missing, skipping…")
     }
   }
 }
