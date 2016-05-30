@@ -395,7 +395,7 @@ object Mogopay {
     gatewayData: Option[String],
     creditCard: Option[BOCreditCard],
     shippingInfo: Option[String],
-    shippingTrackingNumber: Option[String],
+    shippingData: Option[ShippingData],
     vendor: Option[Account],
     customer: Option[Account],
     modifications: List[ModificationStatus],

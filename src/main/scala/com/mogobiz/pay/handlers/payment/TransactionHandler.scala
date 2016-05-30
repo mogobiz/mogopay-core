@@ -210,7 +210,7 @@ class TransactionHandler {
       Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
         case Success(shippingData) => {
           val finalTransWithShippingInfo = shippingData.map { shippingData =>
-            val finalTransWithShippingInfo = finalTrans.copy(shippingInfo = Some(write(shippingData)), shippingTrackingNumber = shippingData.trackingCode)
+            val finalTransWithShippingInfo = finalTrans.copy(shippingData = Some(shippingData))
             boTransactionHandler.update(finalTransWithShippingInfo, refresh = false)
             finalTransWithShippingInfo
           }

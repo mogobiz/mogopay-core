@@ -310,7 +310,7 @@ object DBInitializer {
       gatewayData = None,
       creditCard = Some(creditCard),
       shippingInfo = None,
-      shippingTrackingNumber = None,
+      shippingData = None,
       vendor = Some(vendor),
       customer = Some(customer),
       modifications = Nil

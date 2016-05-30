@@ -26,8 +26,10 @@ import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.Logger
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{ DefaultFormats, StringInput }
+import org.slf4j.LoggerFactory
 import spray.http.Uri
 
 import scala.collection.JavaConverters._
@@ -790,7 +792,8 @@ class SystempayClient extends LazyLogging {
   }
 }
 
-object SystempayClient extends LazyLogging {
+object SystempayClient {
+  val logger = Logger(LoggerFactory.getLogger("com.mogobiz.pay.handlers.payment.SystempayClient"))
   val QUERY_STRING_SEP = "&"
   val QUERY_STRING_ELEMENTS_SEP = "="
 
