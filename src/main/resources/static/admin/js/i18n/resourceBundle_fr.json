@@ -89,6 +89,7 @@
 	"deliveryStatus_not_started": "Pas démarré",
 	"deliveryStatus_in_progress": "En cours",
 	"deliveryStatus_delivered": "Livré",
+    "deliveryStatus_errord": "Erreur",
 	"deliveryStatus_returned": "Revenu",
 	"deliveryStatus_canceled": "Annulé",
 

@@ -101,9 +101,12 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 			},{
 				value: "IN_PROGRESS",
 				label: $rootScope.resourceBundle.deliveryStatus_in_progress,
-			},{
-				value: "DELIVERED",
-				label: $rootScope.resourceBundle.deliveryStatus_delivered,
+            },{
+                value: "DELIVERED",
+                label: $rootScope.resourceBundle.deliveryStatus_delivered,
+            },{
+                value: "ERROR",
+                label: $rootScope.resourceBundle.deliveryStatus_error,
 			},{
 				value: "RETURNED",
 				label: $rootScope.resourceBundle.deliveryStatus_returned,
