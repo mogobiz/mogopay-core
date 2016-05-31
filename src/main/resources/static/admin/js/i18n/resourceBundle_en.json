@@ -210,6 +210,9 @@
 	"systempay_contract": "Contract",
 	"systempay_certificate": "Certificate",
 
+	"custom_provider_name": "Provider name",
+	"custom_provider_data": "Provider data",
+
 	"paypal_user": "User",
 	"paypal_password": "Password",
 	"paypal_signature": "Signature",
