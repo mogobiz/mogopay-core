@@ -258,7 +258,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
           val map = Map("result" -> MogopayConstant.Error, "error.code" -> MogopayConstant.InvalidPassword)
           buildURL(errorURL, map)
         case "Y" | "A" =>
-          val resultatPaiement = systempayClient.submit(this, sessionData, sessionData.uuid, vendorId, transactionUUID, paymentConfig, newPReq, sessionData.locale)
+          val resultatPaiement = systempayClient.submit(this, sessionData, sessionData.uuid, vendorId, transactionUUID, paymentConfig, getCreditCardConfig(paymentConfig), newPReq, sessionData.locale)
           finishPayment(sessionData, resultatPaiement)
         case _ =>
           throw new InvalidContextException(s"Invalid status $status")

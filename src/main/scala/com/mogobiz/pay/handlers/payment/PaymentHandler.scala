@@ -4,18 +4,18 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.config.{Environment, Settings}
+import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.EmailHandler.Mail
-import com.mogobiz.utils.{EmailHandler, GlobalUtil, SymmetricCrypt}
+import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
 import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
@@ -31,7 +31,8 @@ trait PaymentHandler extends StrictLogging {
 
   def paymentType: PaymentType
 
-  def getCreditCardConfig(paymentConfig: PaymentConfig) : Map[String, String] = {
+  def getCreditCardConfig(paymentConfig: PaymentConfig): Map[String, String] = {
+    import com.mogobiz.pay.implicits.Implicits._
     paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
   }
 
