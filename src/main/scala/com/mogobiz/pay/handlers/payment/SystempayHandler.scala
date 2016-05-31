@@ -7,18 +7,18 @@ package com.mogobiz.pay.handlers.payment
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util
-import java.util.{Date, GregorianCalendar}
-import javax.xml.datatype.{DatatypeFactory, XMLGregorianCalendar}
+import java.util.{ Date, GregorianCalendar }
+import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 import javax.xml.namespace.QName
 import javax.xml.ws.BindingProvider
 import javax.xml.ws.handler.MessageContext
 
 import com.lyra.vads.ws.stub._
-import com.lyra.vads.ws3ds.stub.{PaResInfo, ThreeDSecure, VeResPAReqInfo}
+import com.lyra.vads.ws3ds.stub.{ PaResInfo, ThreeDSecure, VeResPAReqInfo }
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.config.{Environment, Settings}
+import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
@@ -28,7 +28,7 @@ import com.mogobiz.utils.GlobalUtil._
 import com.typesafe.scalalogging.StrictLogging
 import com.typesafe.scalalogging.Logger
 import org.json4s.jackson.JsonMethods._
-import org.json4s.{DefaultFormats, StringInput}
+import org.json4s.{ DefaultFormats, StringInput }
 import org.slf4j.LoggerFactory
 import spray.http.Uri
 
@@ -45,9 +45,9 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
   val paymentType = PaymentType.CREDIT_CARD
 
   /**
-    * Right for a redirect, Left for a complete
-    * Returns either raw html of url to be redirected to
-    */
+   * Right for a redirect, Left for a complete
+   * Returns either raw html of url to be redirected to
+   */
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val transactionUUID = sessionData.transactionUuid.get
 
@@ -139,7 +139,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     handleResponse(sessionData, params, sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
 
   private def handleResponse(sessionData: SessionData, params: Map[String, String], locale: Option[String],
-                             step: TransactionStep): PaymentResult = {
+    step: TransactionStep): PaymentResult = {
     val names: Seq[String] = params.filter({ case (k, v) => k.indexOf("vads_") == 0 }).keys.toList.sorted
     val values: Seq[String] = names.map(params)
 
@@ -356,7 +356,7 @@ class SystempayClient extends StrictLogging {
   implicit val formats = new DefaultFormats {}
 
   def submit(paymentHandler: SystempayHandler, sessionData: SessionData, sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-             parametres: Map[String, String], paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
+    parametres: Map[String, String], paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
 
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
@@ -593,7 +593,7 @@ class SystempayClient extends StrictLogging {
   }
 
   def check3DSecure(sessionData: SessionData, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-                    parametres: Map[String, String], paymentRequest: PaymentRequest): ThreeDSResult = {
+    parametres: Map[String, String], paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = boTransactionHandler.find(transactionUUID).orNull
     if (transaction == null) throw new BOTransactionNotFoundException("")
 
@@ -689,7 +689,7 @@ class SystempayClient extends StrictLogging {
   }
 
   def cancel(paymentHandler: SystempayHandler, sessionData: SessionData, sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
-             parametres : Map[String,String],  paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
+    parametres: Map[String, String], paymentRequest: PaymentRequest, locale: Option[String]): PaymentResult = {
     val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
     val ctxMode = context
     transactionHandler.updateStatus(transactionUUID, None, TransactionStatus.CANCEL_REQUESTED)

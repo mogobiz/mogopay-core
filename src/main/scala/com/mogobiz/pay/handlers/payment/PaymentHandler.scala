@@ -32,7 +32,7 @@ trait PaymentHandler extends StrictLogging {
   def paymentType: PaymentType
 
   def getCreditCardConfig(paymentConfig: PaymentConfig) : Map[String, String] = {
-    paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map()))
+    paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
   }
 
   def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult
