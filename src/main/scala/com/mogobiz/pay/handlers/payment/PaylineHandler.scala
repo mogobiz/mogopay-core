@@ -198,7 +198,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     val numeroContrat: String = parametres("paylineContract")
     var logdata: String = null
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
@@ -290,7 +290,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     step: TransactionStep): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     var logdata: String = ""
     val formatDatePayline = new SimpleDateFormat("MMyy")
 
@@ -450,7 +450,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   private def cancel(vendorUuid: Document, transactionUuid: String, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.CANCEL_REQUESTED)
 
     val requete: DoResetRequest = new DoResetRequest
@@ -499,7 +499,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     val payment: Payment = new Payment
     payment.setAmount("" + paymentRequest.amount)
     payment.setCurrency("" + paymentRequest.currency.numericCode)
@@ -643,7 +643,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     val url: URL = classOf[WebPaymentAPI].getResource("/wsdl/WebPaymentAPI_v4.38.wsdl")
     val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, ServiceName)
     val proxy: WebPaymentAPI = ss.getWebPaymentAPI
@@ -748,7 +748,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
-    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parameters = getCreditCardConfig(paymentConfig)
 
     val payment = new Payment
     payment.setAmount(amount.toString)

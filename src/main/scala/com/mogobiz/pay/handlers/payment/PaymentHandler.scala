@@ -4,23 +4,24 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.util.{ Date, UUID }
+import java.util.{Date, UUID}
 
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.config.{ Environment, Settings }
+import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.EmailHandler.Mail
-import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
+import com.mogobiz.utils.{EmailHandler, GlobalUtil, SymmetricCrypt}
 import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
 import Settings.Mail.Smtp.MailSettings
 import com.typesafe.scalalogging.StrictLogging
+import org.json4s.jackson.JsonMethods._
 
 import scala.collection.mutable
 
@@ -29,6 +30,10 @@ trait PaymentHandler extends StrictLogging {
   implicit val _ = system.dispatcher
 
   def paymentType: PaymentType
+
+  def getCreditCardConfig(paymentConfig: PaymentConfig) : Map[String, String] = {
+    paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map()))
+  }
 
   def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult
 

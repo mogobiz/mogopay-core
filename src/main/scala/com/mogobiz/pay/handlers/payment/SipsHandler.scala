@@ -298,7 +298,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val vendor = accountHandler.load(vendorUuid).get
 
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
     val targetFile: File = new File(dir, "pathfile")
@@ -356,7 +356,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[immutable.Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
 
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
@@ -439,7 +439,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     paymentRequest: PaymentRequest): PaymentResult = {
     val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.PAYMENT_REQUESTED)
     val merchantCountry: String = parametres("sipsMerchantCountry")
     val merchantId: String = parametres("sipsMerchantId")
@@ -607,7 +607,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   def cancel(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, infosPaiement: CancelRequest): CancelResult = {
     val vendor = accountHandler.load(vendorUuid).get
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
     val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
     val targetFile: File = new File(dir, "pathfile")
@@ -671,7 +671,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
     val vendor = boTx.vendor.get
-    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parameters = getCreditCardConfig(paymentConfig)
     val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
     val targetFile: File = new File(dir, "pathfile")
     val merchantCountry: String = parameters("sipsMerchantCountry")

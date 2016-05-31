@@ -239,7 +239,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val paymentConfig = sessionData.paymentConfig.get
     val paymentRequest = sessionData.paymentRequest.get
     val id3d = sessionData.id3d.getOrElse(null)
-    val parametres = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parametres = getCreditCardConfig(paymentConfig)
 
     val transaction =
       if (id3d != null)
@@ -479,7 +479,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   }
 
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
-    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val parameters = getCreditCardConfig(paymentConfig)
 
     val gatewayData = GlobalUtil.queryStringToMap(boTx.gatewayData.getOrElse(""))
 

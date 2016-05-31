@@ -43,8 +43,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val paymentConfig = sessionData.paymentConfig.get
     val paymentRequest = sessionData.paymentRequest.get
     val id3d = sessionData.id3d.orNull
-    val parameters = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-
     val transaction =
       if (id3d != null)
         EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionRequestUUID).get
@@ -59,7 +57,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val amount = paymentRequest.amount.toString
     val amountFloat = (paymentRequest.amount.toFloat / 100).toString
     val currency: Int = paymentRequest.currency.numericCode
-    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val cbParam = getCreditCardConfig(paymentConfig)
     val apiLoginID = cbParam("apiLoginID")
     val transactionKey = cbParam("transactionKey")
     val fingerprint = Fingerprint.createFingerprint(apiLoginID, transactionKey, 0, amountFloat)
@@ -282,7 +280,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     import net.authorize.data.creditcard.CreditCard
     def longToBigDecimal(n: Long): java.math.BigDecimal = new java.math.BigDecimal(n * 1.0)
 
-    val cbParam = paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+    val cbParam = getCreditCardConfig(paymentConfig)
 
     val apiLoginID = cbParam("apiLoginID")
     val transactionKey = cbParam("transactionKey")
