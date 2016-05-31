@@ -8,14 +8,14 @@ import com.mogobiz.pay.common.{ Cart, ShippingWithQuantity }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.Seq
 
 case class ShippingData(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
   currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false, trackingCode: Option[String] = None, extra: Option[String] = None)
 
-trait ShippingHandler extends LazyLogging {
+trait ShippingHandler extends StrictLogging {
   // return a list of shipping price. Each shipping price is related to a level of service, for example : Same day delivery, 3 days, ...
   def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData]
 

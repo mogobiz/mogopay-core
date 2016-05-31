@@ -20,11 +20,11 @@ import org.apache.commons.lang.LocaleUtils
 import spray.http.Uri
 import spray.http.Uri.Query
 import Settings.Mail.Smtp.MailSettings
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.mutable
 
-trait PaymentHandler extends LazyLogging {
+trait PaymentHandler extends StrictLogging {
   implicit val system = ActorSystemLocator()
   implicit val _ = system.dispatcher
 

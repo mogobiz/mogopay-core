@@ -24,7 +24,7 @@ import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay.{ ResponseCode3DS, TransactionStatus, _ }
 import com.mogobiz.utils.{ GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory }
 import com.mogobiz.utils.GlobalUtil._
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
 

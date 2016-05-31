@@ -13,8 +13,8 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
 import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
-import com.typesafe.scalalogging.LazyLogging
-import com.typesafe.scalalogging.slf4j.Logger
+import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang.StringUtils
 import org.slf4j.LoggerFactory
 

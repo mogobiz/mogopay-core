@@ -10,14 +10,14 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
 import spray.routing._
 
 import scala.util._
 
-class PayboxService extends Directives with DefaultComplete with LazyLogging {
+class PayboxService extends Directives with DefaultComplete with StrictLogging {
 
   val route = {
     pathPrefix("paybox") {

@@ -25,7 +25,7 @@ import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.session.{ Session, SessionESDirectives }
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.CustomSslConfiguration
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 import spray.can.Http
 import spray.client.pipelining._
 import spray.http._
@@ -35,7 +35,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
-class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration with LazyLogging {
+class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration with StrictLogging {
   implicit val timeout = Timeout(40 seconds)
 
   //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive

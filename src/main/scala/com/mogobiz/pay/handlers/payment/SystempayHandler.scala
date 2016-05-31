@@ -25,8 +25,8 @@ import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
-import com.typesafe.scalalogging.LazyLogging
-import com.typesafe.scalalogging.slf4j.Logger
+import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.Logger
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{ DefaultFormats, StringInput }
 import org.slf4j.LoggerFactory
@@ -352,7 +352,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
   }
 }
 
-class SystempayClient extends LazyLogging {
+class SystempayClient extends StrictLogging {
   implicit val formats = new DefaultFormats {}
 
   def submit(paymentHandler: SystempayHandler, sessionData: SessionData, sessionUUID: String, vendorId: String, transactionUUID: String, paymentConfig: PaymentConfig,
