@@ -65,7 +65,7 @@ class EasyPostHandler extends ShippingHandler {
       val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
       val finalPrice = fixPrice.getOrElse(amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
 
-      createShippingPrice(EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
+      createShippingData(shippingAddress.address, EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
     }
   }
 

@@ -6,8 +6,8 @@ package com.mogobiz.pay.handlers.shipping
 
 import java.util.UUID
 
-import com.mogobiz.pay.common.{ ShippingWithQuantity, Shipping, Cart }
-import com.mogobiz.pay.model.Mogopay.ShippingAddress
+import com.mogobiz.pay.common.{ Cart, Shipping, ShippingWithQuantity }
+import com.mogobiz.pay.model.Mogopay.{ ShippingAddress, ShippingData }
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 
@@ -15,10 +15,6 @@ class KialaShippingHandler extends ShippingHandler {
 
   val KIALA_PRICE = 400
   val KIALA_SHIPPING_PREFIX = "KIALA_"
-
-  def computeFixPrice(price: Long, currencyCode: String): Seq[ShippingData] = {
-    Seq(createShippingPrice(KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", price, currencyCode))
-  }
 
   override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData] = {
 
@@ -37,9 +33,12 @@ class KialaShippingHandler extends ShippingHandler {
 
     computePrice(shippingContent).map { prixFixeAndKiala =>
       cart.shippingRulePrice.map { shippingPriceRule =>
-        computeFixPrice(convertStorePrice(shippingPriceRule, cart), cart.rate.code)
-      }.getOrElse(computeFixPrice(prixFixeAndKiala._1 + prixFixeAndKiala._2, cart.rate.code))
-    }.getOrElse(Seq())
+        val price = convertStorePrice(shippingPriceRule, cart)
+        Seq(createShippingData(shippingAddress.address, KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", price, cart.rate.code))
+      } getOrElse {
+        Seq(createShippingData(shippingAddress.address, KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString, UUID.randomUUID().toString, "KIALA", "KIALA", "KIALA", prixFixeAndKiala._1 + prixFixeAndKiala._2, cart.rate.code))
+      }
+    } getOrElse (Seq())
   }
 
   override def isValidShipmentId(shippingPrice: ShippingData): Boolean = shippingPrice.shipmentId.startsWith(KIALA_SHIPPING_PREFIX)

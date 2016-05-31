@@ -12,9 +12,6 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.Seq
 
-case class ShippingData(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long,
-  currencyCode: String, currencyFractionDigits: Int, confirm: Boolean = false, trackingCode: Option[String] = None, extra: Option[String] = None)
-
 trait ShippingHandler extends StrictLogging {
   // return a list of shipping price. Each shipping price is related to a level of service, for example : Same day delivery, 3 days, ...
   def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData]
@@ -49,9 +46,9 @@ trait ShippingHandler extends StrictLogging {
     } toList
   }
 
-  def createShippingPrice(shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String): ShippingData = {
+  def createShippingData(shippingAddress: AccountAddress, shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String): ShippingData = {
     var rate: Option[Rate] = rateHandler.findByCurrencyCode(currencyCode)
-    ShippingData(shipmentId, rateId, provider, service, rateType, price, currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2)
+    ShippingData(shippingAddress, shipmentId, rateId, provider, service, rateType, price, currencyCode, if (rate.isDefined) rate.get.currencyFractionDigits else 2)
   }
 }
 

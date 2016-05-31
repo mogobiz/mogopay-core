@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
 import com.fasterxml.jackson.module.scala.{ DefaultScalaModule, JsonScalaEnumeration }
 import com.mogobiz.pay.common.{ Cart, CartItem, CartRate, Coupon }
-import com.mogobiz.pay.handlers.shipping.ShippingData
 import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, Telephone, _ }
 import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
@@ -207,7 +206,9 @@ object Mogopay {
     val CALLBACK_PAYMENT = Value("CALLBACK_PAYMENT")
     val ORDER_THREEDS = Value("ORDER_THREEDS")
   }
+
   class TransactionStepRef extends TypeReference[TransactionStep.type]
+
   import TransactionStep._
 
   case class CreditCard(uuid: String,
@@ -339,6 +340,19 @@ object Mogopay {
   case class ShippingAddress(uuid: String,
     active: Boolean = false,
     address: AccountAddress)
+
+  case class ShippingData(shippingAddress: AccountAddress,
+    shipmentId: String,
+    rateId: String,
+    provider: String,
+    service: String,
+    rateType: String,
+    price: Long,
+    currencyCode: String,
+    currencyFractionDigits: Int,
+    confirm: Boolean = false,
+    trackingCode: Option[String] = None,
+    extra: Option[String] = None)
 
   case class ModificationStatus(uuid: String,
     xdate: java.util.Date,

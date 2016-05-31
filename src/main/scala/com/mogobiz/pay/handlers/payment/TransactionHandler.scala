@@ -16,7 +16,7 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
-import com.mogobiz.pay.handlers.shipping.{ ShippingData, ShippingHandler }
+import com.mogobiz.pay.handlers.shipping.ShippingHandler
 import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
