@@ -21,11 +21,14 @@ function ListCustomersCtrl($scope, $location, $rootScope, $route){
 	$scope.listCustomersSearch =  function () {listCustomersSearch($scope, $location, $rootScope, $route)};
 	$scope.gotToCustomerDetails =  function (index) {gotToCustomerDetails($scope, $location, $rootScope, $route, index)};
 	$scope.customersChangeStore =  function () {customersChangeStore($scope, $location, $rootScope, $route)};
+	$scope.listCustomersSortTable =  function (filed) {listCustomersSortTable($scope, $location, $rootScope, $route, filed)};
 }
 
 function listCustomersSearch(scope, location, rootScope, route){
 	var success = function (response) {
 		scope.$apply(function () {
+			scope.listCustomersSortField = "";
+			scope.listCustomersSortReverse = false;
 			rootScope.customers = response.list;
 		});
 	};
@@ -49,4 +52,17 @@ function gotToCustomerDetails(scope, location, rootScope, route, index){
 
 function customersChangeStore(scope, location, rootScope, route){
 	selectedStore = scope.customersSelectedStore;
+}
+
+function listCustomersSortTable(scope, location, rootScope, route, field){
+	scope.listCustomersSortField = field;
+	if($("#listCustomersTableResult th[name='" + field + "']").hasClass("asc")){
+		$("#listCustomersTableResult th[name='" + field + "']").removeClass("asc").addClass("desc");
+		scope.listCustomersSortReverse = true;
+	}
+	else{
+		$("#listCustomersTableResult th").removeClass("desc").removeClass("asc").addClass("both");
+		$("#listCustomersTableResult th[name='" + field + "']").removeClass("both").addClass("asc");
+		scope.listCustomersSortReverse = false;
+	}
 }

@@ -6,7 +6,7 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 	if(!isConnectedUser($scope, $location, $rootScope, $route))
 		return;
 	selectedStore = $rootScope.allStores[0];
-	$scope.transactionsSelectedStore = $rootScope.selectedStore;
+	$scope.transactionsSelectedStore = selectedStore;
 	$scope.listTransactionsStatus = "";
 	$scope.listTransactionsDelivery = "";
 	$scope.goToProfile = function () {
@@ -25,10 +25,13 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 	$scope.listTransactionsSearch =  function () {listTransactionsSearch($scope, $location, $rootScope, $route)};
 	$scope.gotToOrderDetails = function (index) {gotToOrderDetails($scope, $location, $rootScope, $route, index);};
 	$scope.transactionsChangeStore = function () {transactionsChangeStore($scope, $location, $rootScope, $route);};
+	$scope.listTransactionsSortTable = function (field) {listTransactionsSortTable($scope, $location, $rootScope, $route, field);};
 }
 
 function listTransactionsSearch (scope, location, rootScope, route) {
 	var success = function (response) {
+		scope.listTransactionsSortField = "";
+		scope.listTransactionsSortReverse = false;
 		rootScope.transactions = response.list;
 		if(rootScope.transactions.length > 0)
 			listTransactionsGetCartItems(scope, location, rootScope, route, rootScope.transactions[0].uuid, 0);
@@ -185,4 +188,17 @@ function refreshReturnStatusPopover() {
 
 function transactionsChangeStore(scope, location, rootScope, route){
 	selectedStore = scope.transactionsSelectedStore;
+}
+
+function listTransactionsSortTable(scope, location, rootScope, route, field){
+	scope.listTransactionsSortField = field;
+	if($("#listTransactionsTableResult th[name='" + field + "']").hasClass("asc")){
+		$("#listTransactionsTableResult th[name='" + field + "']").removeClass("asc").addClass("desc");
+		scope.listTransactionsSortReverse = true;
+	}
+	else{
+		$("#listTransactionsTableResult th").removeClass("desc").removeClass("asc").addClass("both");
+		$("#listTransactionsTableResult th[name='" + field + "']").removeClass("both").addClass("asc");
+		scope.listTransactionsSortReverse = false;
+	}
 }

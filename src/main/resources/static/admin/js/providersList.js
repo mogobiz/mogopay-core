@@ -8,5 +8,6 @@ var providersList = [
 	{"value": "paybox", "name": "PAYBOX"},
 	{"value": "sips", "name": "SIPS"},
 	{"value": "systempay", "name": "SYSTEMPAY"},
-	{"value": "authorizenet", "name": "AUTHORIZENET"}
+	{"value": "authorizenet", "name": "AUTHORIZENET"},
+	{"value": "custom", "name": "CUSTOM PROVIDER"}
 ];

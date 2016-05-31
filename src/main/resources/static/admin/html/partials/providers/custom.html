@@ -1,0 +1,24 @@
+<!--
+  ~ Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+  -->
+
+<div>
+	<form role="form" class="form-horizontal">
+		<div class="form-group">
+			<div style="padding:0px 3px;">
+				<label for="customProviderName">{{resourceBundle.custom_provider_name}}</label>
+			</div>
+			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+				<input type="text" class="form-control" id="customProviderName" placeholder="{{resourceBundle.custom_provider_name}}" value="{{cbParam.customProviderName}}" required errorMessage="{{resourceBundle.error_required}}"/>
+			</div>
+		</div>
+		<div class="form-group">
+			<div style="padding:0px 3px;">
+				<label for="customProviderData">{{resourceBundle.custom_provider_data}}</label>
+			</div>
+			<div class="col-xs-8 col-sm-6 col-md-6 col-lg-6" style="padding:0px 3px;">
+				<input type="text" class="form-control" id="customProviderData" placeholder="{{resourceBundle.custom_provider_data}}" value="{{cbParam.customProviderData}}" required errorMessage="{{resourceBundle.error_required}}"/>
+			</div>
+		</div>
+	</form>
+</div>

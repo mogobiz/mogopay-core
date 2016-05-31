@@ -210,6 +210,9 @@
 	"systempay_contract": "Contrat",
 	"systempay_certificate": "Certificat",
 
+	"custom_provider_name": "Nom du fournisseur",
+	"custom_provider_data": "Donnée(s) du fournisseur",
+
 	"paypal_user": "Utilisateur",
 	"paypal_password": "Mot de passe",
 	"paypal_signature": "Signature",

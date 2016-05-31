@@ -80,29 +80,29 @@
         </div>
     </div>
     <div class="table-responsive" ng-show="transactions.length > 0">
-        <table class="table table-bordered table-striped">
+        <table id="listTransactionsTableResult" class="table table-bordered table-striped">
 			<thead>
 				<tr>
-					<th>{{resourceBundle.transactions_name}}</th>
-					<th>{{resourceBundle.transactions_email}}</th>
-					<th>{{resourceBundle.transactions_date}}</th>
-					<th>{{resourceBundle.transactions_amount}}</th>
-					<th>{{resourceBundle.transactions_card}}</th>
-					<th>{{resourceBundle.transactions_trans_status}}</th>
+					<th class="sort both" name="customer.firstName" ng-click="listTransactionsSortTable('customer.firstName')">{{resourceBundle.transactions_name}}</th>
+					<th class="sort both" name="customer.email" ng-click="listTransactionsSortTable('customer.email')">{{resourceBundle.transactions_email}}</th>
+					<th class="sort both" name="transactionDate" ng-click="listTransactionsSortTable('transactionDate')">{{resourceBundle.transactions_date}}</th>
+					<th class="sort both" name="amount" ng-click="listTransactionsSortTable('amount')">{{resourceBundle.transactions_amount}}</th>
+					<th class="sort both" name="creditCard.number" ng-click="listTransactionsSortTable('creditCard.number')">{{resourceBundle.transactions_card}}</th>
+					<th class="sort both" name="status" ng-click="listTransactionsSortTable('status')">{{resourceBundle.transactions_trans_status}}</th>
 					<th>{{resourceBundle.transactions_return_status}}</th>
-					<th>{{resourceBundle.transactions_delivery_status}}</th>
-					<th>{{resourceBundle.transactions_uuid}}</th>
-					<th>{{resourceBundle.transactions_group_uuid}}</th>
+					<th class="sort both" name="deliveryStatus[0]" ng-click="listTransactionsSortTable('deliveryStatus[0]')">{{resourceBundle.transactions_delivery_status}}</th>
+					<th class="sort both" name="uuid" ng-click="listTransactionsSortTable('uuid')">{{resourceBundle.transactions_uuid}}</th>
+					<th class="sort both" name="groupTransactionUUID" ng-click="listTransactionsSortTable('groupTransactionUUID')">{{resourceBundle.transactions_group_uuid}}</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr ng-repeat="transaction in transactions">
+				<tr ng-repeat="transaction in transactions | orderBy:listTransactionsSortField:listTransactionsSortReverse">
 					<td><a href="javascript:void(0);" ng-click="gotToOrderDetails($index);">{{transaction.customer.firstName}} {{transaction.customer.lastName}}</a></td>
 					<td>{{transaction.customer.email}}</td>
 					<td>{{transaction.transactionDate | date:'dd/MM/yyyy'}}</td>
 					<td>{{transaction.currency.code}} {{transaction.amount * transaction.currency.rate | priceFilter}}</td>
 					<td>
-						<a href="javascript:void(0)" rel="popoverCard">{{transaction.creditCard.number}}</a>
+						<a ng-if="transaction.creditCard != null" href="javascript:void(0)" rel="popoverCard">{{transaction.creditCard.number}}</a>
 						<div ng-if="transaction.creditCard != null" class="dialog" style="display:none;" ng-init="refreshCardPopover()">
 							<div class="row">
 								<label class="col-xs-5 col-sm-5 col-md-5 col-lg-5" >{{resourceBundle.card_number}}:</label>

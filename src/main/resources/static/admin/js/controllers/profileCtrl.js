@@ -107,6 +107,9 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
             case "authorizenet":
                 $scope.creditCardProviderModel = $scope.creditCardProviderOptions[5];
                 break;
+            case "custom":
+                $scope.creditCardProviderModel = $scope.creditCardProviderOptions[6];
+                break;
             default:
                 break;
         }
@@ -614,6 +617,11 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
         data += "&zip_code=" + $("#profilePostalCode").val();
 
         if (rootScope.isMerchant) {
+            data += "&company=" + $("#profileCompanyName").val();
+            data += "&website=" + $("#profileWebsite").val();
+            data += "&payment_method=" + scope.creditCardModeModel.value;
+            data += "&cb_provider=" + ((scope.creditCardProviderModel != null) ? scope.creditCardProviderModel.value : "");
+
             switch (scope.creditCardProviderModel.value) {
                 case "payline":
                     data += "&payline_account=" + $("#paylineAccount").val();
@@ -649,19 +657,13 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
                     data += "&anet_md5=" + $("#authorizeNetMD5Key").val();
                     break;
                 case "custom":
+                    data += "&custom_provider_name=" + $("#customProviderName").val();
                     data += "&custom_provider_data=" + $("#customProviderData").val();
                     break;
                 default:
                     break;
             }
-            data += "&company=" + $("#profileCompanyName").val();
-            data += "&website=" + $("#profileWebsite").val();
-            data += "&payment_method=" + scope.creditCardModeModel.value;
-            var providerName = ((scope.creditCardProviderModel != null) ? scope.creditCardProviderModel.value : "");
-            if (providerName == "custom")
-                data += "&cb_provider=" + $("#customProviderName").val();
-            else
-                data += "&cb_provider=" + providerName;
+
 //PAYPAL INFO
             data += "&paypal_user=" + $("#paypalUser").val();
             data += "&paypal_password=" + $("#paypalPassword").val();
@@ -758,7 +760,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
                 return false;
             }
             if (!$("#authPasswordRegex")[0].checkValidity()) {
-                $(".nav-tabs a[data-target='#auth']").tab("show");
+                $(".nav-tabs a[data-target='#auth']").tab("show"); 
                 $("#authPasswordRegex").focus();
                 showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_invalid_pass_regex);
                 return false;
