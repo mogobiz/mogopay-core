@@ -20,6 +20,7 @@ var mogopay = angular.module("mogopay",  ["ngRoute","ngI18n"]).
             when("/forgetPassword",		{templateUrl: "partials/forgetPassword.html",		controller: ForgetPasswordCtrl}).
             when("/validation",			{templateUrl: "partials/validation.html",			controller: ValidationCtrl}).
             when("/return",				{templateUrl: "partials/return.html",				controller: ReturnCtrl}).
+            when("/trackingInfo",		{templateUrl: "partials/trackingInfo.html",			controller: TrackingInfoCtrl}).
             otherwise({redirectTo: "/home"} );
         $httpProvider.responseInterceptors.push(function($q, $rootScope) {
             return function (promise) {

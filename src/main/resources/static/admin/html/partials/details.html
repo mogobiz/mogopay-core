@@ -10,12 +10,12 @@
 			<form role="form" class="form-horizontal">
 				<div class="form-group" style="margin-bottom: 0px;">
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerName">{{resourceBundle.details_customer_fName}}</label>
-						<input type="text" class="form-control" id="detailsCustomerName" autofocus readonly value="{{selectedCustomer.firstName}}"/>
+						<label for="detailsCustomerFirstName">{{resourceBundle.details_customer_fName}}</label>
+						<input type="text" class="form-control" id="detailsCustomerFirstName" autofocus readonly value="{{selectedCustomer.firstName}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
-						<label for="detailsCustomerName">{{resourceBundle.details_customer_lName}}</label>
-						<input type="text" class="form-control" id="detailsCustomerName" autofocus readonly value="{{selectedCustomer.lastName}}"/>
+						<label for="detailsCustomerLastName">{{resourceBundle.details_customer_lName}}</label>
+						<input type="text" class="form-control" id="detailsCustomerLastName" autofocus readonly value="{{selectedCustomer.lastName}}"/>
 					</div>
 					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="detailsCustomerEmail">{{resourceBundle.details_customer_email}}</label>
@@ -37,7 +37,7 @@
 					</div>
 					<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6" style="padding:0px 5px; margin-bottom: 15px;">
 						<label for="detailsCustomerPhone">{{resourceBundle.details_customer_address}}</label>
-						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{selectedCustomer.address.city}}, {{selectedCustomer.address.zipCode}}, {{selectedCustomer.address.road}}"/>
+						<input type="text" class="form-control" id="detailsCustomerBirthdate" readonly value="{{customerAddress}}"/>
 					</div>
 				</div>
 			</form>
@@ -134,6 +134,48 @@
 					</div>
 				</div>
 			</div>
+		</div>
+	</div>
+	<div class="panel panel-default" ng-if="shippingDetails != null">
+		<div class="panel-heading"><h3 class="panel-title">{{resourceBundle.details_shipping_title}}</h3></div>
+		<div class="panel-body">
+			<form role="form" class="form-horizontal">
+				<div class="form-group" style="margin-bottom: 0px;">
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingService">{{resourceBundle.details_shipping_service}}</label>
+						<input type="text" class="form-control" id="detailsShippingService" autofocus readonly value="{{shippingProviderDetails}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingTrackingCode">{{resourceBundle.details_shipping_trackingCode}}</label>
+						<input type="text" class="form-control" id="detailsShippingTrackingCode" autofocus readonly value="{{shippingDetails.trackingCode}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingFirstName">{{resourceBundle.details_shipping_fName}}</label>
+						<input type="text" class="form-control" id="detailsShippingFirstName" readonly value="{{shippingDetails.shippingAddress.firstName}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingLastName">{{resourceBundle.details_shipping_lName}}</label>
+						<input type="text" class="form-control" id="detailsShippingLastName" readonly value="{{shippingDetails.shippingAddress.lastName}}"/>
+					</div>
+				</div>
+				<div class="form-group" style="margin-bottom: 0px;">
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingPhone">{{resourceBundle.details_shipping_phone}}</label>
+						<input type="text" class="form-control" id="detailsShippingPhone" readonly value="{{shippingDetails.shippingAddress.telephone.phone}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingCountry">{{resourceBundle.details_shipping_country}}</label>
+						<input type="text" class="form-control" id="detailsShippingCountry" readonly value="{{shippingDetails.shippingAddress.country}}"/>
+					</div>
+					<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6" style="padding:0px 5px; margin-bottom: 15px;">
+						<label for="detailsShippingAddress">{{resourceBundle.details_shipping_address}}</label>
+						<input type="text" class="form-control" id="detailsShippingAddress" readonly value="{{shippingAddressDetails}}"/>
+					</div>
+				</div>
+			</form>
+			<button class="btn btn-primary pull-right" ng-if="shippingDetails.trackingHistory.length > 0" ng-click="detailsGoToTrackingPage()">
+				{{resourceBundle.details_shipping_track}}
+			</button>
 		</div>
 	</div>
 <!-- Customer Block -->

@@ -20,21 +20,47 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
         callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
     };
 	$scope.historyDetails = null;
+	$scope.shippingDetails = null;
+	$scope.shippingProviderDetails = "";
+	$scope.shippingAddressDetails = "";
+	$scope.customerAddress = "";
 	$rootScope.returnDetails = null;
 	$rootScope.logsDetails = null;
 	$rootScope.itemsToBeReturned = [];
+	$rootScope.tracknigInfo = [];
 	$scope.detailsDisableReturn = true;
 	if($rootScope.selectedCustomer != null){
 		detailsGetCustomerHistory($scope, $location, $rootScope, $route);
+		$scope.customerAddress = "";
+		$scope.customerAddress += $scope.selectedCustomer.address.city != null ? $scope.selectedCustomer.address.city : "";
+		$scope.customerAddress += $scope.selectedCustomer.address.zipCode != null ? ", " + $scope.selectedCustomer.address.zipCode : "";
+		$scope.customerAddress += $scope.selectedCustomer.address.road != null ? ", " + $scope.selectedCustomer.address.road : "";
+		$scope.customerAddress += $scope.selectedCustomer.address.road2 != null ? ", " + $scope.selectedCustomer.address.road2 : "";
 	}
 	if($rootScope.selectedTransaction != null){
 		detailsGetOrderDetails($scope, $location, $rootScope, $route);
+		$scope.shippingDetails = $rootScope.selectedTransaction.shippingData;
+		if($scope.shippingDetails != null){
+			$scope.shippingProviderDetails = $scope.shippingDetails.provider;
+			if($scope.shippingDetails.service != $scope.shippingDetails.provider){
+				$scope.shippingProviderDetails += ", " + $scope.shippingDetails.service;
+			}
+			if($scope.shippingDetails.rateType != $scope.shippingDetails.provider && $scope.shippingDetails.rateType != $scope.shippingDetails.service){
+				$scope.shippingProviderDetails += ", " + $scope.shippingDetails.rateType;
+			}
+			$scope.shippingAddressDetails = "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.city != null ? $scope.shippingDetails.shippingAddress.city : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.zipCode != null ? ", " + $scope.shippingDetails.shippingAddress.zipCode : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.road != null ? ", " + $scope.shippingDetails.shippingAddress.road : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.road2 != null ? ", " + $scope.shippingDetails.shippingAddress.road2 : "";
+		}
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
 	$scope.detailsRefundCheckAll = function () {detailsRefundCheckAll($scope, $location, $rootScope, $route);};
 	$scope.detailsRefundCheckOne = function () {detailsRefundCheckOne($scope, $location, $rootScope, $route);};
 	$scope.detailsReturnSelectedItems = function () {detailsReturnSelectedItems($scope, $location, $rootScope, $route);};
 	$scope.detailsSelectReturn = function (index) {detailsSelectReturn($scope, $location, $rootScope, $route, index);};
+	$scope.detailsGoToTrackingPage = function () {detailsGoToTrackingPage($scope, $location, $rootScope, $route);};
 	$scope.refreshCardPopover = function () {refreshCardPopover();};
 	$scope.refreshProductsPopover = function () {refreshProductsPopover();};
 	$scope.refreshReturnPopover = function () {refreshReturnPopover();};
@@ -64,6 +90,21 @@ function detailsSelectOrder(scope, location, rootScope, route, index){
 	rootScope.logsDetails = null;
 	rootScope.selectedTransaction = scope.historyDetails[index];
 	detailsGetOrderDetails(scope, location, rootScope, route);
+	scope.shippingDetails = rootScope.selectedTransaction.shippingData;
+	if(scope.shippingDetails != null){
+		scope.shippingProviderDetails = scope.shippingDetails.provider;
+		if(scope.shippingDetails.service != scope.shippingDetails.provider){
+			scope.shippingProviderDetails += ", " + scope.shippingDetails.service;
+		}
+		if(scope.shippingDetails.rateType != scope.shippingDetails.provider && scope.shippingDetails.rateType != scope.shippingDetails.service){
+			scope.shippingProviderDetails += ", " + scope.shippingDetails.rateType;
+		}
+		scope.shippingAddressDetails = "";
+		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.city != null ? scope.shippingDetails.shippingAddress.city : "";
+		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.zipCode != null ? ", " + scope.shippingDetails.shippingAddress.zipCode : "";
+		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.road != null ? ", " + scope.shippingDetails.shippingAddress.road : "";
+		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.road2 != null ? ", " + scope.shippingDetails.shippingAddress.road2 : "";
+	}
 	$("html,body").animate({
 		scrollTop: $(".detailsOrderBlock").offset().top
 	}, 500);
@@ -152,6 +193,15 @@ function detailsReturnSelectedItems(scope, location, rootScope, route){
 		}
 	}
 	navigateToPage(scope, location, rootScope, route, "return");
+}
+
+function detailsGoToTrackingPage(scope, location, rootScope, route){
+	rootScope.tracknigInfo = [];
+	for(var i = 0; i < scope.shippingDetails.trackingHistory.length; i++){
+		var info = JSON.parse(scope.shippingDetails.trackingHistory[i]);
+		rootScope.tracknigInfo[rootScope.tracknigInfo.length] = JSON.stringify(info, null, 4);
+	}
+	navigateToPage(scope, location, rootScope, route, "trackingInfo");
 }
 
 function refreshCardPopover() {
