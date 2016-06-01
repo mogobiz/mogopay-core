@@ -87,39 +87,32 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   import com.mogobiz.pay.handlers.payment.PaylineHandler._
 
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
-    val transactionUUID = sessionData.transactionUuid.get
+    val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
 
-    val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
-    val vendorId = sessionData.merchantId.get
-    val paymentRequest = sessionData.paymentRequest.get
+    transactionHandler.startPayment(
+      vendor, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYLINE)
 
-    if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.PAYLINE) {
-      throw MogopayError(MogopayConstant.InvalidSystemPayConfig)
-    } else {
-      transactionHandler.startPayment(
-        vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.PAYLINE)
+    var threeDSResult: ThreeDSResult = null
 
-      var threeDSResult: ThreeDSResult = null
-
-      if (sessionData.mogopay) {
-        val paymentResult = submit(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest, true, sessionData.locale,
-          TransactionStep.START_PAYMENT)
+    if (sessionData.mogopay) {
+      val paymentResult = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest, true, sessionData.locale,
+        TransactionStep.START_PAYMENT)
+      Right(finishPayment(sessionData, paymentResult))
+    } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
+      val paymentResult = doWebPayment(vendor, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
+      sessionData.token = scala.Option(paymentResult.token)
+      if (paymentResult.data != null && paymentResult.data.nonEmpty) {
+        Left(paymentResult.data)
+      } else {
         Right(finishPayment(sessionData, paymentResult))
-      } else if (!sessionData.mogopay && paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val paymentResult = doWebPayment(vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.uuid)
-        sessionData.token = scala.Option(paymentResult.token)
-        if (paymentResult.data != null && paymentResult.data.nonEmpty) {
-          Left(paymentResult.data)
-        } else {
-          Right(finishPayment(sessionData, paymentResult))
-        }
-      } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
-        threeDSResult = check3DSecure(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest)
-        if (threeDSResult != null && threeDSResult.code == ResponseCode3DS.APPROVED) {
-          // 3DS approuve, redirection vers payline
-          sessionData.waitFor3DS = true
-          val form =
-            s"""
+      }
+    } else if (Array(CBPaymentMethod.THREEDS_IF_AVAILABLE, CBPaymentMethod.THREEDS_REQUIRED).contains(paymentConfig.paymentMethod)) {
+      threeDSResult = check3DSecure(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest)
+      if (threeDSResult != null && threeDSResult.code == ResponseCode3DS.APPROVED) {
+        // 3DS approuve, redirection vers payline
+        sessionData.waitFor3DS = true
+        val form =
+          s"""
             <html>
               <head>
               </head>
@@ -133,22 +126,21 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
                 <script>document.getElementById("formpay").submit();</script>
               </body>
             </html>"""
-          Left(form)
-        } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
-          // on lance un paiement classique
-          val paymentResult = submit(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
-            sessionData.locale, TransactionStep.START_PAYMENT)
-          Right(finishPayment(sessionData, paymentResult))
-        } else {
-          // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
-        }
-      } else {
+        Left(form)
+      } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
         // on lance un paiement classique
-        val paymentResult = submit(sessionData, vendorId, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
+        val paymentResult = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
           sessionData.locale, TransactionStep.START_PAYMENT)
         Right(finishPayment(sessionData, paymentResult))
+      } else {
+        // La carte n'est pas 3Ds alors que c'est obligatoire
+        Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
       }
+    } else {
+      // on lance un paiement classique
+      val paymentResult = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest, sessionData.mogopay,
+        sessionData.locale, TransactionStep.START_PAYMENT)
+      Right(finishPayment(sessionData, paymentResult))
     }
   }
 
@@ -162,11 +154,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def handleResponse(sessionData: SessionData, params: Map[String, String]): PaymentResult = {
-    val transactionUuid = sessionData.transactionUuid.get
-    val paymentConfig = sessionData.paymentConfig.get
-    val vendorId = sessionData.merchantId.get
-    val paymentRequest = sessionData.paymentRequest.get
-    getWebPaymentDetails(sessionData, vendorId, transactionUuid, paymentConfig, paymentRequest,
+    val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
+    getWebPaymentDetails(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest,
       sessionData.token.orNull, sessionData.locale)
   }
 
@@ -176,14 +165,11 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       throw InvalidContextException("Not expecting 3DSecure callback")
     } else {
       val errorURL = sessionData.errorURL.getOrElse("")
-      val transactionUUID = sessionData.transactionUuid.get
-      val vendorId = sessionData.merchantId.get
-      val paymentRequest = sessionData.paymentRequest.orNull
-      val paymentConfig = sessionData.paymentConfig
+      val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
       sessionData.waitFor3DS = false
       try {
         val paymentRequest2 = paymentRequest.copy(paylineMd = params("MD"), paylinePares = params("PaRes"))
-        val result = submit(sessionData, vendorId, transactionUUID, paymentConfig.orNull, paymentRequest2,
+        val result = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest2,
           sessionData.mogopay, sessionData.locale, TransactionStep.THREEDS_CALLBACK)
         finishPayment(sessionData, result)
       } catch {
@@ -194,9 +180,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document,
+  def check3DSecure(sessionData: SessionData, vendor: Account, transactionUuid: Document,
     paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
-    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = getCreditCardConfig(paymentConfig)
     val numeroContrat: String = parametres("paylineContract")
@@ -285,10 +270,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     retour
   }
 
-  private def submit(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+  private def submit(sessionData: SessionData, vendor: Account, transactionUuid: Document, paymentConfig: PaymentConfig,
     infosPaiement: PaymentRequest, mogopay: Boolean, locale: scala.Option[String],
     step: TransactionStep): PaymentResult = {
-    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = getCreditCardConfig(paymentConfig)
     var logdata: String = ""
@@ -495,9 +479,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     proxy
   }
 
-  def doWebPayment(vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+  def doWebPayment(vendor: Account, transactionUuid: Document, paymentConfig: PaymentConfig,
     paymentRequest: PaymentRequest, sessionId: String): PaymentResult = {
-    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = getCreditCardConfig(paymentConfig)
     val payment: Payment = new Payment
@@ -639,9 +622,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  def getWebPaymentDetails(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+  def getWebPaymentDetails(sessionData: SessionData, vendor: Account, transactionUuid: Document, paymentConfig: PaymentConfig,
     paymentRequest: PaymentRequest, token: String, locale: scala.Option[String]): PaymentResult = {
-    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = getCreditCardConfig(paymentConfig)
     val url: URL = classOf[WebPaymentAPI].getResource("/wsdl/WebPaymentAPI_v4.38.wsdl")

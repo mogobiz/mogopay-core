@@ -84,53 +84,45 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
-    val transactionUUID = sessionData.transactionUuid.get
-    val paymentConfig: PaymentConfig = sessionData.paymentConfig.orNull
-    val vendorUuid = sessionData.merchantId.get
-    val paymentRequest = sessionData.paymentRequest.get
-
-    if (paymentConfig == null || paymentConfig.cbProvider != CBPaymentProvider.SIPS) {
-      throw MogopayError(MogopayConstant.InvalidSipsConfig)
-    } else {
-      transactionHandler.startPayment(vendorUuid, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
-      if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
-        val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
-        if (resultat.data != null)
-          Left(resultat.data)
-        else
-          Right(finishPayment(sessionData, resultat))
-      } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED) {
-        val resultat3DS = check3DSecure(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
-        if (resultat3DS != null && resultat3DS.code == ResponseCode3DS.APPROVED) {
-          // 3DS approuve, redirection vers sips
-          // resultat3DS.termUrlValue = createLink(action: "threedsCallback", params:[xtoken:sessionData.csrfToken], absolute: true).toString();
-          sessionData.waitFor3DS = true
-          sessionData.o3dSessionId = Some(resultat3DS.mdValue)
-          val data =
-            s"""
-              |<html>
-              |    <head>
-              |    </head>
-              |    <body>
-              |    	<form id="formsips" action="${resultat3DS.url}" method="${resultat3DS.method}" >
-              |    	</form>
-              |    	<script>document.getElementById("formsips").submit();</script>
-              |    </body>
-              |</html>
-              |            """.stripMargin
-          Left(data)
-        } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
-          // on lance un paiement classique
-          val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
-          Right(finishPayment(sessionData, resultat))
-        } else {
-          // La carte n'est pas 3Ds alors que c'est obligatoire
-          Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
-        }
-      } else {
-        val resultat = submit(sessionData, vendorUuid, transactionUUID, paymentConfig, paymentRequest)
+    val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
+    transactionHandler.startPayment(vendor, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD, CBPaymentProvider.SIPS)
+    if (paymentConfig.paymentMethod == CBPaymentMethod.EXTERNAL) {
+      val resultat = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest)
+      if (resultat.data != null)
+        Left(resultat.data)
+      else
         Right(finishPayment(sessionData, resultat))
+    } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED) {
+      val resultat3DS = check3DSecure(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest)
+      if (resultat3DS != null && resultat3DS.code == ResponseCode3DS.APPROVED) {
+        // 3DS approuve, redirection vers sips
+        // resultat3DS.termUrlValue = createLink(action: "threedsCallback", params:[xtoken:sessionData.csrfToken], absolute: true).toString();
+        sessionData.waitFor3DS = true
+        sessionData.o3dSessionId = Some(resultat3DS.mdValue)
+        val data =
+          s"""
+             |<html>
+             |    <head>
+             |    </head>
+             |    <body>
+             |    	<form id="formsips" action="${resultat3DS.url}" method="${resultat3DS.method}" >
+             |    	</form>
+             |    	<script>document.getElementById("formsips").submit();</script>
+             |    </body>
+             |</html>
+             |            """.stripMargin
+        Left(data)
+      } else if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE) {
+        // on lance un paiement classique
+        val resultat = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest)
+        Right(finishPayment(sessionData, resultat))
+      } else {
+        // La carte n'est pas 3Ds alors que c'est obligatoire
+        Right(finishPayment(sessionData, createThreeDSNotEnrolledResult(paymentRequest)))
       }
+    } else {
+      val resultat = submit(sessionData, vendor, transactionUUID, paymentConfig, paymentRequest)
+      Right(finishPayment(sessionData, resultat))
     }
   }
 
@@ -294,13 +286,12 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       paymentResult, resp.getValue("response_code"), locale, Option(resp.getValue("transaction_id")))
   }
 
-  private[payment] def check3DSecure(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
+  private[payment] def check3DSecure(sessionData: SessionData, vendor: Account, transactionUuid: Document, paymentConfig: PaymentConfig, paymentRequest: PaymentRequest): ThreeDSResult = {
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
-    val vendor = accountHandler.load(vendorUuid).get
 
     val parametres = getCreditCardConfig(paymentConfig)
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
-    val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
+    val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
     val targetFile: File = new File(dir, "pathfile")
     val merchantCountry: String = parametres("sipsMerchantCountry")
     val merchantId: String = parametres("sipsMerchantId")
@@ -435,9 +426,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       paymentResult, paymentResult.errorCodeOrigin, sessionData.locale, Option(transaction_id))
   }
 
-  private[payment] def submit(sessionData: SessionData, vendorUuid: Document, transactionUuid: Document, paymentConfig: PaymentConfig,
+  private[payment] def submit(sessionData: SessionData, vendor: Account, transactionUuid: Document, paymentConfig: PaymentConfig,
     paymentRequest: PaymentRequest): PaymentResult = {
-    val vendor = accountHandler.load(vendorUuid).get
     val transaction = boTransactionHandler.find(transactionUuid).get
     val parametres = getCreditCardConfig(paymentConfig)
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.PAYMENT_REQUESTED)
@@ -446,7 +436,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val formatDateAtos: SimpleDateFormat = new SimpleDateFormat("yyyyMM")
 
     if (paymentConfig.paymentMethod eq CBPaymentMethod.EXTERNAL) {
-      val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
+      val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
       val targetFile: File = new File(dir, "pathfile")
       val merchantCountry: String = parametres("sipsMerchantCountry")
       val merchantId: String = parametres("sipsMerchantId")
@@ -461,16 +451,17 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
       sipsRequest.setValue("order_id", transactionUuid.split("-").mkString(""))
       sipsRequest.setValue("normal_return_url", Settings.Mogopay.EndPoint + s"sips/done/${sessionData.uuid}")
       sipsRequest.setValue("cancel_return_url", Settings.Mogopay.EndPoint + s"sips/done/${sessionData.uuid}")
-      sipsRequest.setValue("automatic_response_url", Settings.Mogopay.EndPoint + s"sips/callback/$vendorUuid/${sessionData.uuid}")
-      val htmlToDsiplay = """\
+      sipsRequest.setValue("automatic_response_url", Settings.Mogopay.EndPoint + s"sips/callback/${vendor.uuid}/${sessionData.uuid}")
+      val htmlToDsiplay =
+        """\
 			<HTML><HEAD><TITLE>SIPS - Paiement Securise sur Internet</TITLE></HEAD>
 			<BODY bgcolor=#ffffff>
 			<Font color=#000000>
 			<center><H1>Paiement SIPS</H1></center><br><br>
-                          			""" + api.sipsPaymentCallFunc(sipsRequest) +
-        """			</BODY>
+        			""" + api.sipsPaymentCallFunc(sipsRequest) +
+          """			</BODY>
 </HTML>
-        """
+          """
       PaymentResult(
         transactionSequence = paymentRequest.transactionSequence,
         orderDate = new Date,
@@ -493,7 +484,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
         errorShipment = None
       )
     } else {
-      val dir: File = new File(Settings.Sips.CertifDir, vendorUuid)
+      val dir: File = new File(Settings.Sips.CertifDir, vendor.uuid)
       val targetFile: File = new File(dir, "pathfile")
       val merchantCountry: String = parametres("sipsMerchantCountry")
       val merchantId: String = parametres("sipsMerchantId")

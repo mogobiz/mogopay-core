@@ -85,57 +85,55 @@ class TransactionHandler {
       params.transactionAmount, rate, merchant.uuid)
   }
 
-  def startPayment(vendorId: String, sessionData: SessionData, transactionRequestUUID: String,
-    paymentRequest: PaymentRequest, paymentType: PaymentType, cbProvider: CBPaymentProvider) = {
-    accountHandler.load(vendorId).map { account =>
-      val customer = sessionData.accountId.map { uuid => accountHandler.load(uuid) }.getOrElse(None)
-      val extra = serializeCart(paymentRequest.transactionExtra)
-      var transaction = BOTransaction(
-        transactionRequestUUID,
-        transactionRequestUUID,
-        sessionData.groupTxUUID,
-        paymentRequest.groupPaymentExpirationDate,
-        paymentRequest.groupPaymentRefundPercentage,
-        "",
-        Option(new Date),
-        paymentRequest.amount,
-        paymentRequest.transactionExtra.rate,
-        TransactionStatus.INITIATED,
-        None,
-        BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
-        merchantConfirmation = false,
-        Option(paymentRequest.transactionEmail),
-        None,
-        None,
-        Option(extra),
-        Option(paymentRequest.transactionDesc),
-        Option(paymentRequest.gatewayData),
-        None,
-        None,
-        None,
-        Option(account),
-        customer,
-        Nil)
+  def startPayment(account: Account, sessionData: SessionData, transactionRequestUUID: String,
+    paymentRequest: PaymentRequest, paymentType: PaymentType, cbProvider: CBPaymentProvider): BOTransaction = {
+    val customer = sessionData.accountId.map { uuid => accountHandler.load(uuid) }.getOrElse(None)
+    val extra = serializeCart(paymentRequest.transactionExtra)
+    var transaction = BOTransaction(
+      transactionRequestUUID,
+      transactionRequestUUID,
+      sessionData.groupTxUUID,
+      paymentRequest.groupPaymentExpirationDate,
+      paymentRequest.groupPaymentRefundPercentage,
+      "",
+      Option(new Date),
+      paymentRequest.amount,
+      paymentRequest.transactionExtra.rate,
+      TransactionStatus.INITIATED,
+      None,
+      BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
+      merchantConfirmation = false,
+      Option(paymentRequest.transactionEmail),
+      None,
+      None,
+      Option(extra),
+      Option(paymentRequest.transactionDesc),
+      Option(paymentRequest.gatewayData),
+      None,
+      None,
+      None,
+      Option(account),
+      customer,
+      Nil)
 
-      if (paymentType == PaymentType.CREDIT_CARD &&
-        account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
-        val creditCard = BOCreditCard(
-          number = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
-          holder = None,
-          expiryDate = paymentRequest.expirationDate,
-          cardType = paymentRequest.cardType
-        )
-        transaction = transaction.copy(creditCard = Option(creditCard))
-      }
-      transaction = transaction.copy(
-        paymentData = transaction.paymentData.copy(
-          transactionSequence = Option(paymentRequest.transactionSequence),
-          orderDate = Option(paymentRequest.orderDate)
-        )
+    if (paymentType == PaymentType.CREDIT_CARD &&
+      account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
+      val creditCard = BOCreditCard(
+        number = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+        holder = None,
+        expiryDate = paymentRequest.expirationDate,
+        cardType = paymentRequest.cardType
       )
-      boTransactionHandler.save(transaction, refresh = false)
-      Success(transaction)
-    }.getOrElse(Failure(new InvalidContextException("Vendor not found")))
+      transaction = transaction.copy(creditCard = Option(creditCard))
+    }
+    transaction = transaction.copy(
+      paymentData = transaction.paymentData.copy(
+        transactionSequence = Option(paymentRequest.transactionSequence),
+        orderDate = Option(paymentRequest.orderDate)
+      )
+    )
+    boTransactionHandler.save(transaction, refresh = false)
+    transaction
   }
 
   def updateStatus(transactionUUID: String, ipAddress: Option[String],

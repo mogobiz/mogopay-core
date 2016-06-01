@@ -12,7 +12,7 @@ import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.ParamRequest
+import com.mogobiz.pay.model.{ Mogopay, ParamRequest }
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
@@ -30,6 +30,15 @@ trait PaymentHandler extends StrictLogging {
   implicit val _ = system.dispatcher
 
   def paymentType: PaymentType
+
+  def getContext(sessionData: SessionData): (Mogopay.Document, Account, PaymentConfig, PaymentRequest) = {
+    val transactionUUID = sessionData.transactionUuid.getOrElse(throw new InvalidContextException("Transaction UUID not found in session data"))
+    val vendorId = sessionData.merchantId.getOrElse(throw new InvalidContextException("Merchant UUID not found in session data"))
+    val vendor = accountHandler.load(vendorId).getOrElse(throw new InvalidContextException("Vendor not found"))
+    val paymentConfig: PaymentConfig = sessionData.paymentConfig.getOrElse(throw new InvalidContextException("Payment Config not found in session data"))
+    val paymentRequest = sessionData.paymentRequest.getOrElse(throw new InvalidContextException("Payment Request not found in session data"))
+    (transactionUUID, vendor, paymentConfig, paymentRequest)
+  }
 
   def getCreditCardConfig(paymentConfig: PaymentConfig): Map[String, String] = {
     import com.mogobiz.pay.implicits.Implicits._

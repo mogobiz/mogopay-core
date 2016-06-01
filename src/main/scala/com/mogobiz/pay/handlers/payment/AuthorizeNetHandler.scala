@@ -38,19 +38,12 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
   val SESSION_UUID = "session_uuid"
 
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
-    val transactionRequestUUID = sessionData.transactionUuid.get
-    val vendorId = sessionData.merchantId.get
-    val paymentConfig = sessionData.paymentConfig.get
-    val paymentRequest = sessionData.paymentRequest.get
-    val id3d = sessionData.id3d.orNull
-    val transaction =
-      if (id3d != null)
-        EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionRequestUUID).get
-      else
-        transactionHandler.startPayment(vendorId, sessionData, transactionRequestUUID, paymentRequest,
-          PaymentType.CREDIT_CARD, CBPaymentProvider.AUTHORIZENET).get
+    val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
 
-    transactionHandler.updateStatus(transactionRequestUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
+    transactionHandler.startPayment(vendor, sessionData, transactionUUID, paymentRequest,
+      PaymentType.CREDIT_CARD, CBPaymentProvider.AUTHORIZENET)
+
+    transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
 
     paymentRequestHandler.save(paymentRequest, refresh = false)
 
@@ -88,8 +81,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
             <input type="hidden" name="x_relay_url" value={ relayURL }/>
             <input type="hidden" name="x_cancel_url" value={ cancelURL }/>
             <input type="submit" name="submit_button" value="Submit"/>
-            <input type="hidden" name={ VENDOR_UUID } value={ vendorId }/>
-            <input type="hidden" name={ BOTX_UUID } value={ transaction.uuid }/>
+            <input type="hidden" name={ VENDOR_UUID } value={ vendor.uuid }/>
+            <input type="hidden" name={ BOTX_UUID } value={ transactionUUID }/>
             <input type="hidden" name={ PAYREQ_UUID } value={ paymentRequest.uuid }/>
             <input type="hidden" name={ SESSION_UUID } value={ sessionData.uuid }/>
           </form>
@@ -111,7 +104,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
       )
 
       val log1 = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-        transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.START_PAYMENT)
+        transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.START_PAYMENT)
       EsClient.index(Settings.Mogopay.EsIndex, log1, false)
 
       Left(form.mkString)
@@ -153,8 +146,8 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
             <input type="hidden" name="x_type" value="AUTH_CAPTURE"/>
             <input type="hidden" name="x_amount" value={ amountFloat }/>
             <input type="hidden" name="x_test_request" value="FALSE"/>
-            <input type="hidden" name={ VENDOR_UUID } value={ vendorId }/>
-            <input type="hidden" name={ BOTX_UUID } value={ transaction.uuid }/>
+            <input type="hidden" name={ VENDOR_UUID } value={ vendor.uuid }/>
+            <input type="hidden" name={ BOTX_UUID } value={ transactionUUID }/>
             <input type="hidden" name={ PAYREQ_UUID } value={ paymentRequest.uuid }/>
             <input type="hidden" name={ SESSION_UUID } value={ sessionData.uuid }/>
             <input type="submit" name="buy_button" value="BUY"/>{
@@ -173,7 +166,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
       }
 
       val log = new BOTransactionLog(uuid = newUUID, provider = "AUTHORIZENET", direction = "OUT",
-        transaction = transactionRequestUUID, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.START_PAYMENT)
+        transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query), step = TransactionStep.START_PAYMENT)
       EsClient.index(Settings.Mogopay.EsIndex, log, false)
 
       Left(form.mkString)

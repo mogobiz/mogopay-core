@@ -15,7 +15,6 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.{ AccountDoesNotExistException, InvalidContextException, InvalidInputException, MogopayError }
-import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.system.ActorSystemLocator
@@ -47,16 +46,13 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
    * Return (Session, URL to redirect to)
    */
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
-    val paymentRequest = sessionData.paymentRequest.get
-    val vendorId = sessionData.merchantId.get
+    val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
     val successURL = Settings.Mogopay.EndPoint + s"paypal/success/${sessionData.uuid}"
     val failureURL = Settings.Mogopay.EndPoint + s"paypal/fail/${sessionData.uuid}"
-    val paymentConfig = sessionData.paymentConfig.get
     val amount = sessionData.amount.get
-    val transactionUUID = sessionData.transactionUuid.get
     val ipAddress = sessionData.ipAddress
-    transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
-    val maybeToken = getToken(transactionUUID, vendorId, ipAddress, successURL, failureURL, paymentConfig, amount, paymentRequest)
+    transactionHandler.startPayment(vendor, sessionData, transactionUUID, paymentRequest, PaymentType.PAYPAL, CBPaymentProvider.NONE)
+    val maybeToken = getToken(transactionUUID, vendor, ipAddress, successURL, failureURL, paymentConfig, amount, paymentRequest)
 
     maybeToken map { token =>
       sessionData.token = maybeToken
@@ -64,45 +60,43 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     } getOrElse (throw MogopayError(MogopayConstant.PaypalTokenError))
   }
 
-  private def getToken(transactionUUID: String, vendorId: String, ipAddress: Option[String], successURL: String, failureURL: String,
+  private def getToken(transactionUUID: String, vendor: Account, ipAddress: Option[String], successURL: String, failureURL: String,
     paymentConfig: PaymentConfig, amount: Long,
     paymentRequest: PaymentRequest): Option[String] = {
-    accountHandler.load(vendorId) map { vendor =>
-      val parameters: Map[String, String] = paymentConfig.paypalParam
-        .map(parse(_).extract[Map[String, String]])
-        .getOrElse(Map())
-      val user: String = parameters.getOrElse("paypalUser", "")
-      val password: String = parameters.getOrElse("paypalPassword", "")
-      val signature: String = parameters.getOrElse("paypalSignature", "")
-      transactionHandler.updateStatus(transactionUUID, ipAddress, TransactionStatus.PAYMENT_REQUESTED)
+    val parameters: Map[String, String] = paymentConfig.paypalParam
+      .map(parse(_).extract[Map[String, String]])
+      .getOrElse(Map())
+    val user: String = parameters.getOrElse("paypalUser", "")
+    val password: String = parameters.getOrElse("paypalPassword", "")
+    val signature: String = parameters.getOrElse("paypalSignature", "")
+    transactionHandler.updateStatus(transactionUUID, ipAddress, TransactionStatus.PAYMENT_REQUESTED)
 
-      val amount2 = amount.toDouble / 100.0
-      val query = Query(
-        "METHOD" -> "SetExpressCheckout",
-        "USER" -> user,
-        "PWD" -> password,
-        "SIGNATURE" -> signature,
-        "VERSION" -> Settings.PayPal.Version,
-        "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
-        "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount2.asInstanceOf[AnyRef]),
-        "PAYMENTREQUEST_0_CURRENCYCODE" -> paymentRequest.currency.code,
-        "RETURNURL" -> successURL,
-        "CANCELURL" -> failureURL)
-      val uri: Uri = Uri(Settings.PayPal.UrlNvpApi)
-      val response: Future[HttpResponse] = sslPipeline(uri.authority.host).flatMap(_(Get(uri.withQuery(query))))
-      val tuples = fromHttResponse(response)
-      val res = tuples map { tuples =>
-        tuples.get("ACK") flatMap { ack =>
-          if (ack.equals("Success") || ack.equals("SuccessWithWarning")) {
-            val token = tuples("TOKEN")
-            Some(URLDecoder.decode(token, "UTF-8"))
-          } else None
-        }
+    val amount2 = amount.toDouble / 100.0
+    val query = Query(
+      "METHOD" -> "SetExpressCheckout",
+      "USER" -> user,
+      "PWD" -> password,
+      "SIGNATURE" -> signature,
+      "VERSION" -> Settings.PayPal.Version,
+      "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
+      "PAYMENTREQUEST_0_AMT" -> String.format(Locale.US, "%5.2f%n", amount2.asInstanceOf[AnyRef]),
+      "PAYMENTREQUEST_0_CURRENCYCODE" -> paymentRequest.currency.code,
+      "RETURNURL" -> successURL,
+      "CANCELURL" -> failureURL)
+    val uri: Uri = Uri(Settings.PayPal.UrlNvpApi)
+    val response: Future[HttpResponse] = sslPipeline(uri.authority.host).flatMap(_(Get(uri.withQuery(query))))
+    val tuples = fromHttResponse(response)
+    val res = tuples map { tuples =>
+      tuples.get("ACK") flatMap { ack =>
+        if (ack.equals("Success") || ack.equals("SuccessWithWarning")) {
+          val token = tuples("TOKEN")
+          Some(URLDecoder.decode(token, "UTF-8"))
+        } else None
       }
-      import scala.concurrent.duration._
-      val result = Await.result(res, 30 seconds)
-      result
-    } getOrElse (throw AccountDoesNotExistException(""))
+    }
+    import scala.concurrent.duration._
+    val result = Await.result(res, 30 seconds)
+    result
   }
 
   /*
