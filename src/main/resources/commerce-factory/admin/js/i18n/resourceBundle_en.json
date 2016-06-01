@@ -127,6 +127,16 @@
 	"details_order_details": "Details",
 	"details_order_return_selected_items": "Return selected items",
 
+	"details_shipping_title": "Shipping Details",
+	"details_shipping_service": "Shipping Service",
+	"details_shipping_trackingCode": "Tracking Code",
+	"details_shipping_fName": "First Name",
+	"details_shipping_lName": "Last Name",
+	"details_shipping_phone": "Phone",
+	"details_shipping_country": "Country",
+	"details_shipping_address": "Address",
+	"details_shipping_track": "Delivery Tracking",
+
 	"details_logs_title": "Order Logs",
 	"details_logs_direction": "Direction",
 	"details_logs_provider": "Provider",
@@ -139,6 +149,8 @@
 	"details_return_refunded": "Refunded",
 	"details_return_total_refunded": "Total Refunded",
 	"details_return_status": "Status",
+
+	"tracking_title": "Delivery Tracking",
 
 	"validation_email": "A validation email has been sent to you, please check your inbox",
 	"validation_in_progress": "Validation in progress",
