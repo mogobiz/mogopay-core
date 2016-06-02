@@ -106,7 +106,7 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
                 label: $rootScope.resourceBundle.deliveryStatus_delivered,
             },{
                 value: "ERROR",
-                label: $rootScope.resourceBundle.deliveryStatus_error,
+                label: $rootScope.resourceBundle.deliveryStatus_errord,
 			},{
 				value: "RETURNED",
 				label: $rootScope.resourceBundle.deliveryStatus_returned,

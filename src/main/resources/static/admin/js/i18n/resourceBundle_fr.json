@@ -25,6 +25,7 @@
 	"btn_add": "Ajouter",
 	"btn_update": "Mettre à jour",
 	"btn_delete": "Supprimer",
+	"btn_back": "Retour",
 
 	"card_managment": "Gestion des cartes de crédit",
 	"card_number": "Numéro de carte",
@@ -52,7 +53,7 @@
 
 	"customers_title": "Requête",
 	"customers_store": "Boutique",
-	"customers_fName": "Prénnom",
+	"customers_fName": "Prénom",
 	"customers_lName": "Nom",
 	"customers_email": "Email",
 	"customers_phone_number": "Numéro de téléphone",
@@ -127,6 +128,16 @@
 	"details_order_details": "Details",
 	"details_order_return_selected_items": "Renvoyer les éléments sélectionnés",
 
+	"details_shipping_title": "Les détails d'expédition",
+	"details_shipping_service": "Service d'expédition",
+	"details_shipping_trackingCode": "Code de suivi",
+	"details_shipping_fName": "Prénom",
+	"details_shipping_lName": "Nom",
+	"details_shipping_phone": "Téléphone",
+	"details_shipping_country": "Pays",
+	"details_shipping_address": "Adresse",
+	"details_shipping_track": "Informations de suivi",
+
 	"details_logs_title": "Logs de la commande",
 	"details_logs_direction": "Sens",
 	"details_logs_provider": "Prestataire",
@@ -139,6 +150,8 @@
 	"details_return_refunded": "Remboursé",
 	"details_return_total_refunded": "Remboursement total",
 	"details_return_status": "Statut",
+
+	"tracking_title": "Information de suivi",
 
 	"validation_email": "Un email de validation vous a été transmis, Veuillez vérifier votre courriel",
 	"validation_in_progress": "Validation en cours",

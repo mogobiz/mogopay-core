@@ -39,6 +39,247 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   implicit val timeout: Timeout = 40.seconds
   val paymentType = PaymentType.CREDIT_CARD
 
+  def startPayment(sessionData: SessionData): Either[String, Uri] = {
+    val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
+
+    val id3d = sessionData.id3d.getOrElse(null)
+    val parametres = getCreditCardConfig(paymentConfig)
+
+    val transaction =
+      if (id3d != null)
+        boTransactionHandler.find(transactionUUID).get
+      else
+        transactionHandler.startPayment(vendor, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD,
+          CBPaymentProvider.PAYBOX)
+
+    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
+    val ctxMode = context
+    transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
+    var paymentResult: PaymentResult = PaymentResult(
+      transactionSequence = paymentRequest.transactionSequence,
+      orderDate = paymentRequest.orderDate,
+      amount = paymentRequest.amount,
+      ccNumber = paymentRequest.ccNumber,
+      cardType = paymentRequest.cardType,
+      expirationDate = paymentRequest.expirationDate,
+      cvv = paymentRequest.cvv,
+      gatewayTransactionId = transactionUUID,
+      transactionDate = null,
+      transactionCertificate = null,
+      authorizationId = null,
+      status = null,
+      errorCodeOrigin = "",
+      errorMessageOrigin = Some(""),
+      data = "",
+      bankErrorCode = "",
+      bankErrorMessage = Some(""),
+      token = "",
+      errorShipment = None
+    )
+    val currency: Int = paymentRequest.currency.numericCode
+    val site: String = parametres("payboxSite")
+    val key: String = parametres("payboxKey")
+    val rank: String = parametres("payboxRank")
+    val idMerchant: String = parametres("payboxMerchantId")
+    val transDate: String = new SimpleDateFormat("yyyyMMddHHmmss").format(paymentRequest.orderDate)
+
+    val action = Settings.Paybox.MPIEndPoint
+    val IdMerchant = idMerchant
+    val IdSession = vendor.uuid + "--" + transactionUUID
+    val Amount = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
+    val XCurrency = currency.toString
+    val CCNumber = paymentRequest.ccNumber
+    val CVVCode = paymentRequest.cvv
+    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds/${sessionData.uuid}"
+    val URLHttpDirect = s"${Settings.Mogopay.EndPoint}paybox/callback-3ds/${sessionData.uuid}"
+    if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
+      val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
+      if (id3d == null && (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)) {
+        val query = Map(
+          "IdMerchant=" -> idMerchant,
+          "IdSession" -> IdSession,
+          "Amount" -> Amount,
+          "Currency" -> XCurrency,
+          "CCNumber" -> CCNumber,
+          "CCExpDate" -> CCExpDate,
+          "CVVCode" -> CVVCode,
+          "URLRetour" -> URLRetour,
+          "URLHttpDirect" -> URLHttpDirect)
+        val form =
+          s"""
+              <html>
+                  <head>
+                  </head>
+                  <body>
+                <FORM id="formpaybox" ACTION = "$action" METHOD="POST">
+                  <INPUT TYPE="hidden" NAME ="IdMerchant" VALUE = "${IdMerchant}"><br>
+                  <INPUT TYPE="hidden" NAME ="IdSession" VALUE = "${IdSession}"><br>
+                  <INPUT TYPE="hidden" NAME ="Amount" VALUE = "${Amount}"><br>
+                  <INPUT TYPE="hidden" NAME ="Currency" VALUE = "${XCurrency}"><br>
+                  <INPUT TYPE="hidden" NAME ="CCNumber" VALUE = "${CCNumber}"><br>
+                  <INPUT TYPE="hidden" NAME ="CCExpDate" VALUE = "${CCExpDate}"><br>
+                  <INPUT TYPE="hidden" NAME ="CVVCode" VALUE = "${CVVCode}"><br>
+                  <INPUT TYPE="hidden" NAME ="URLRetour" VALUE = "${URLRetour}"><br>
+                  <INPUT TYPE="hidden" NAME ="URLHttpDirect" VALUE = "${URLHttpDirect}"><br>
+                </FORM>
+                    <script>document.getElementById("formpaybox").submit();</script>
+                  </body>
+              </html>
+              """
+        // We redirect the user to the paybox payment form
+        Left(form)
+      } else {
+        // Group payment allowed only when using DIRECT_PLUS in PAYBOX and in 2D mode only
+        val query = scala.collection.mutable.Map(
+          "NUMQUESTION" -> String.format("%010d", paymentRequest.transactionSequence.toInt.asInstanceOf[AnyRef]),
+          "REFERENCE" -> IdSession,
+          "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date()),
+          "DEVISE" -> currency.toString,
+          "MONTANT" -> Amount,
+          "TYPE" -> "00003",
+          "SITE" -> site,
+          "RANG" -> rank,
+          "CLE" -> key,
+          "ACTIVITE" -> "024",
+          "PORTEUR" -> CCNumber,
+          "DATEVAL" -> CCExpDate,
+          "CVV" -> CVVCode,
+          "DIFFERE" -> "000",
+          //          "ARCHIVAGE" -> "",
+          //          "NUMAPPEL" -> "",
+          //          "NUMTRANS" -> "",
+          //          "AUTORISATION" -> "",
+          "VERSION" -> (if (parametres("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
+        if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED)
+          query += "ID3D" -> id3d
+        else if (id3d != "" && paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
+          query += "ID3D" -> id3d
+
+        val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+          transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap),
+          step = TransactionStep.START_PAYMENT)
+        boTransactionLogHandler.save(botlog, false)
+
+        val uri = Uri(Settings.Paybox.DirectEndPoint)
+
+        //        query.put("TYPE", "00056")
+        //        query.put("SITE", "1999888")
+        //        query.put("RANG", "069")
+        //        query.put("CLE", "200932363")
+        //        query.put("MONTANT", "100")
+        //        val refAbonne = ""+(new Date().getTime)
+        //        query.put("REFABONNE", refAbonne)
+        //        val request0 = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
+        //        val response0 = pipeline.flatMap(_(request0))
+        //
+        //        val tuples0 = Await.result(GlobalUtil.fromHttResponse(response0), Duration.Inf)
+        //        tuples0.foreach(println)
+        //
+        //        query.put("TYPE", "00053")
+        //        query.put("MONTANT", Amount)
+        val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
+        val response = sslPipeline(uri.authority.host).flatMap(_(request))
+
+        val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
+        tuples.foreach(println)
+        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+          transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples),
+          step = TransactionStep.START_PAYMENT)
+        boTransactionLogHandler.save(bolog, false)
+        val errorCode = tuples.getOrElse("CODEREPONSE", "")
+        val errorMessage = tuples.get("COMMENTAIRE")
+        paymentResult = paymentResult.copy(
+          ccNumber = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+          status = PaymentStatus.FAILED,
+          errorCodeOrigin = errorCode,
+          errorMessageOrigin = errorMessage,
+          bankErrorCode = errorCode,
+          bankErrorMessage = errorMessage)
+        if (errorCode.equals("00000")) {
+          val transaction = tuples("NUMQUESTION")
+          val authorisation = tuples("AUTORISATION")
+          paymentResult = paymentResult.copy(
+            status = PaymentStatus.COMPLETE,
+            transactionDate = new Date(),
+            gatewayTransactionId = transaction,
+            authorizationId = authorisation,
+            transactionCertificate = null)
+        }
+        val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUUID,
+          if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+          paymentResult,
+          errorCode,
+          sessionData.locale,
+          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
+        // We redirect the user to the merchant website
+        Right(finishPayment(sessionData, paymentResultWithShippingResult))
+      }
+    } else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
+      val hmackey = idMerchant
+      val pbxtime = ISODateTimeFormat.dateTimeNoMillis().print(org.joda.time.DateTime.now())
+      val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
+      val queryList = List(
+        "PBX_SITE" -> site,
+        "PBX_RANG" -> rank,
+        "PBX_IDENTIFIANT" -> key,
+        "PBX_TOTAL" -> amountString,
+        "PBX_DEVISE" -> s"${paymentRequest.currency.numericCode}",
+        "PBX_CMD" -> s"${vendor.uuid}--${transactionUUID}",
+        "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
+        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:S;NUMAPPEL:T;TYPEPAIE:P;CARTE:C;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
+        "PBX_HASH" -> "SHA512",
+        "PBX_TIME" -> pbxtime,
+        "PBX_EFFECTUE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
+        "PBX_REFUSE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
+        "PBX_ANNULE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
+        "PBX_REPONDRE_A" -> s"${Settings.Mogopay.EndPoint}paybox/callback/${sessionData.uuid}"
+      )
+
+      val queryString = mapToQueryStringNoEncode(queryList)
+      val hmac = Sha512.hmacDigest(queryString, hmackey)
+      val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
+        transaction = transactionUUID, log = queryString, step = TransactionStep.START_PAYMENT)
+      boTransactionLogHandler.save(botlog, false)
+      val action = Settings.Paybox.SystemEndPoint
+      val query = queryList.toMap
+
+      //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
+      //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
+      val form =
+        s"""
+<html>
+    <head>
+    </head>
+    <body>
+    	Veuillez patienter...
+	<FORM id="formpaybox" ACTION = "${action}" METHOD="POST">
+	  <INPUT TYPE="hidden" NAME ="PBX_SITE" VALUE = "${site}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_RANG" VALUE = "${rank}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_IDENTIFIANT" VALUE =  "${key}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_TOTAL" VALUE = "${query("PBX_TOTAL")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_DEVISE" VALUE = "${query("PBX_DEVISE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_CMD" VALUE = "${query("PBX_CMD")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_PORTEUR" VALUE = "${query("PBX_PORTEUR")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_RETOUR" VALUE = "${query("PBX_RETOUR")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_HASH" VALUE = "SHA512"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_TIME" VALUE = "${query("PBX_TIME")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_EFFECTUE" VALUE = "${query("PBX_EFFECTUE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_REFUSE" VALUE = "${query("PBX_REFUSE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_ANNULE" VALUE = "${query("PBX_ANNULE")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_REPONDRE_A" VALUE = "${query("PBX_REPONDRE_A")}"><br>
+		<INPUT TYPE="hidden" NAME ="PBX_HMAC" VALUE = "${hmac}"><br>
+	</FORM>
+    	<script>document.getElementById("formpaybox").submit();</script>
+    </body>
+</html>
+"""
+      // We redirect the user to the payment server
+      Left(form)
+    } else {
+      throw InvalidContextException(s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
+    }
+  }
+
   def verifySha1(data: String, sign: String): Boolean = {
     val Charset = "UTF-8"
     val HashEncryptionAlgorithm = "SHA1withRSA"
@@ -231,251 +472,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
   implicit val formats = new org.json4s.DefaultFormats {
-  }
-
-  def startPayment(sessionData: SessionData): Either[String, Uri] = {
-    val transactionUUID = sessionData.transactionUuid.get
-    val vendorId = sessionData.merchantId.get
-    val paymentConfig = sessionData.paymentConfig.get
-    val paymentRequest = sessionData.paymentRequest.get
-    val id3d = sessionData.id3d.getOrElse(null)
-    val parametres = getCreditCardConfig(paymentConfig)
-
-    val transaction =
-      if (id3d != null)
-        boTransactionHandler.find(transactionUUID).get
-      else
-        transactionHandler.startPayment(vendorId, sessionData, transactionUUID, paymentRequest, PaymentType.CREDIT_CARD,
-          CBPaymentProvider.PAYBOX).get
-
-    val vendor = accountHandler.load(vendorId).get
-
-    val context = if (Settings.Env == Environment.DEV) "TEST" else "PRODUCTION"
-    val ctxMode = context
-    transactionHandler.updateStatus(transactionUUID, sessionData.ipAddress, TransactionStatus.PAYMENT_REQUESTED)
-    var paymentResult: PaymentResult = PaymentResult(
-      transactionSequence = paymentRequest.transactionSequence,
-      orderDate = paymentRequest.orderDate,
-      amount = paymentRequest.amount,
-      ccNumber = paymentRequest.ccNumber,
-      cardType = paymentRequest.cardType,
-      expirationDate = paymentRequest.expirationDate,
-      cvv = paymentRequest.cvv,
-      gatewayTransactionId = transactionUUID,
-      transactionDate = null,
-      transactionCertificate = null,
-      authorizationId = null,
-      status = null,
-      errorCodeOrigin = "",
-      errorMessageOrigin = Some(""),
-      data = "",
-      bankErrorCode = "",
-      bankErrorMessage = Some(""),
-      token = "",
-      errorShipment = None
-    )
-    val currency: Int = paymentRequest.currency.numericCode
-    val site: String = parametres("payboxSite")
-    val key: String = parametres("payboxKey")
-    val rank: String = parametres("payboxRank")
-    val idMerchant: String = parametres("payboxMerchantId")
-    val transDate: String = new SimpleDateFormat("yyyyMMddHHmmss").format(paymentRequest.orderDate)
-
-    val action = Settings.Paybox.MPIEndPoint
-    val IdMerchant = idMerchant
-    val IdSession = vendorId + "--" + transactionUUID
-    val Amount = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
-    val XCurrency = currency.toString
-    val CCNumber = paymentRequest.ccNumber
-    val CVVCode = paymentRequest.cvv
-    val URLRetour = s"${Settings.Mogopay.EndPoint}paybox/done-3ds/${sessionData.uuid}"
-    val URLHttpDirect = s"${Settings.Mogopay.EndPoint}paybox/callback-3ds/${sessionData.uuid}"
-    if (parametres("payboxContract") == "PAYBOX_DIRECT" || parametres("payboxContract") == "PAYBOX_DIRECT_PLUS") {
-      val CCExpDate = new SimpleDateFormat("MMyy").format(paymentRequest.expirationDate)
-      if (id3d == null && (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)) {
-        val query = Map(
-          "IdMerchant=" -> idMerchant,
-          "IdSession" -> IdSession,
-          "Amount" -> Amount,
-          "Currency" -> XCurrency,
-          "CCNumber" -> CCNumber,
-          "CCExpDate" -> CCExpDate,
-          "CVVCode" -> CVVCode,
-          "URLRetour" -> URLRetour,
-          "URLHttpDirect" -> URLHttpDirect)
-        val form =
-          s"""
-              <html>
-                  <head>
-                  </head>
-                  <body>
-                <FORM id="formpaybox" ACTION = "$action" METHOD="POST">
-                  <INPUT TYPE="hidden" NAME ="IdMerchant" VALUE = "${IdMerchant}"><br>
-                  <INPUT TYPE="hidden" NAME ="IdSession" VALUE = "${IdSession}"><br>
-                  <INPUT TYPE="hidden" NAME ="Amount" VALUE = "${Amount}"><br>
-                  <INPUT TYPE="hidden" NAME ="Currency" VALUE = "${XCurrency}"><br>
-                  <INPUT TYPE="hidden" NAME ="CCNumber" VALUE = "${CCNumber}"><br>
-                  <INPUT TYPE="hidden" NAME ="CCExpDate" VALUE = "${CCExpDate}"><br>
-                  <INPUT TYPE="hidden" NAME ="CVVCode" VALUE = "${CVVCode}"><br>
-                  <INPUT TYPE="hidden" NAME ="URLRetour" VALUE = "${URLRetour}"><br>
-                  <INPUT TYPE="hidden" NAME ="URLHttpDirect" VALUE = "${URLHttpDirect}"><br>
-                </FORM>
-                    <script>document.getElementById("formpaybox").submit();</script>
-                  </body>
-              </html>
-              """
-        // We redirect the user to the paybox payment form
-        Left(form)
-      } else {
-        // Group payment allowed only when using DIRECT_PLUS in PAYBOX and in 2D mode only
-        val query = scala.collection.mutable.Map(
-          "NUMQUESTION" -> String.format("%010d", paymentRequest.transactionSequence.toInt.asInstanceOf[AnyRef]),
-          "REFERENCE" -> IdSession,
-          "DATEQ" -> new SimpleDateFormat("ddMMyyyyhhmmss").format(new Date()),
-          "DEVISE" -> currency.toString,
-          "MONTANT" -> Amount,
-          "TYPE" -> "00003",
-          "SITE" -> site,
-          "RANG" -> rank,
-          "CLE" -> key,
-          "ACTIVITE" -> "024",
-          "PORTEUR" -> CCNumber,
-          "DATEVAL" -> CCExpDate,
-          "CVV" -> CVVCode,
-          "DIFFERE" -> "000",
-          //          "ARCHIVAGE" -> "",
-          //          "NUMAPPEL" -> "",
-          //          "NUMTRANS" -> "",
-          //          "AUTORISATION" -> "",
-          "VERSION" -> (if (parametres("payboxContract") == "PAYBOX_DIRECT") "00103" else "00104"))
-        if (paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_REQUIRED)
-          query += "ID3D" -> id3d
-        else if (id3d != "" && paymentConfig.paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
-          query += "ID3D" -> id3d
-
-        val botlog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
-          transaction = transactionUUID, log = GlobalUtil.mapToQueryString(query.toMap),
-          step = TransactionStep.START_PAYMENT)
-        boTransactionLogHandler.save(botlog, false)
-
-        val uri = Uri(Settings.Paybox.DirectEndPoint)
-
-        //        query.put("TYPE", "00056")
-        //        query.put("SITE", "1999888")
-        //        query.put("RANG", "069")
-        //        query.put("CLE", "200932363")
-        //        query.put("MONTANT", "100")
-        //        val refAbonne = ""+(new Date().getTime)
-        //        query.put("REFABONNE", refAbonne)
-        //        val request0 = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
-        //        val response0 = pipeline.flatMap(_(request0))
-        //
-        //        val tuples0 = Await.result(GlobalUtil.fromHttResponse(response0), Duration.Inf)
-        //        tuples0.foreach(println)
-        //
-        //        query.put("TYPE", "00053")
-        //        query.put("MONTANT", Amount)
-        val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
-        val response = sslPipeline(uri.authority.host).flatMap(_(request))
-
-        val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
-        tuples.foreach(println)
-        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
-          transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples),
-          step = TransactionStep.START_PAYMENT)
-        boTransactionLogHandler.save(bolog, false)
-        val errorCode = tuples.getOrElse("CODEREPONSE", "")
-        val errorMessage = tuples.get("COMMENTAIRE")
-        paymentResult = paymentResult.copy(
-          ccNumber = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
-          status = PaymentStatus.FAILED,
-          errorCodeOrigin = errorCode,
-          errorMessageOrigin = errorMessage,
-          bankErrorCode = errorCode,
-          bankErrorMessage = errorMessage)
-        if (errorCode.equals("00000")) {
-          val transaction = tuples("NUMQUESTION")
-          val authorisation = tuples("AUTORISATION")
-          paymentResult = paymentResult.copy(
-            status = PaymentStatus.COMPLETE,
-            transactionDate = new Date(),
-            gatewayTransactionId = transaction,
-            authorizationId = authorisation,
-            transactionCertificate = null)
-        }
-        val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUUID,
-          if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult,
-          errorCode,
-          sessionData.locale,
-          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
-        // We redirect the user to the merchant website
-        Right(finishPayment(sessionData, paymentResultWithShippingResult))
-      }
-    } else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
-      val hmackey = idMerchant
-      val pbxtime = ISODateTimeFormat.dateTimeNoMillis().print(org.joda.time.DateTime.now())
-      val amountString = String.format("%010d", paymentRequest.amount.asInstanceOf[AnyRef])
-      val queryList = List(
-        "PBX_SITE" -> site,
-        "PBX_RANG" -> rank,
-        "PBX_IDENTIFIANT" -> key,
-        "PBX_TOTAL" -> amountString,
-        "PBX_DEVISE" -> s"${paymentRequest.currency.numericCode}",
-        "PBX_CMD" -> s"${vendorId}--${transactionUUID}",
-        "PBX_PORTEUR" -> transaction.email.getOrElse(vendor.email),
-        "PBX_RETOUR" -> "AMOUNT:M;REFERENCE:R;AUTO:A;NUMTRANS:S;NUMAPPEL:T;TYPEPAIE:P;CARTE:C;THREEDS:G;CARTEFIN:J;DATEFIN:D;DTPBX:W;CODEREPONSE:E;EMPREINTE:H;SIGNATURE:K",
-        "PBX_HASH" -> "SHA512",
-        "PBX_TIME" -> pbxtime,
-        "PBX_EFFECTUE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
-        "PBX_REFUSE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
-        "PBX_ANNULE" -> s"${Settings.Mogopay.EndPoint}paybox/done/${sessionData.uuid}",
-        "PBX_REPONDRE_A" -> s"${Settings.Mogopay.EndPoint}paybox/callback/${sessionData.uuid}"
-      )
-
-      val queryString = mapToQueryStringNoEncode(queryList)
-      val hmac = Sha512.hmacDigest(queryString, hmackey)
-      val botlog = BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "OUT",
-        transaction = transactionUUID, log = queryString, step = TransactionStep.START_PAYMENT)
-      boTransactionLogHandler.save(botlog, false)
-      val action = Settings.Paybox.SystemEndPoint
-      val query = queryList.toMap
-
-      //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
-      //NUMTRANS=0003149638&NUMAPPEL=0005000280&NUMQUESTION=0000645802&SITE=5983130&RANG=01&AUTO=XXXXXX&CODEREPONSE=00000&COMMENTAIRE=Demande traitee avec succes&REFABONNE=&PORTEUR=&PAYS=???
-      val form =
-        s"""
-<html>
-    <head>
-    </head>
-    <body>
-    	Veuillez patienter...
-	<FORM id="formpaybox" ACTION = "${action}" METHOD="POST">
-	  <INPUT TYPE="hidden" NAME ="PBX_SITE" VALUE = "${site}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_RANG" VALUE = "${rank}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_IDENTIFIANT" VALUE =  "${key}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_TOTAL" VALUE = "${query("PBX_TOTAL")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_DEVISE" VALUE = "${query("PBX_DEVISE")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_CMD" VALUE = "${query("PBX_CMD")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_PORTEUR" VALUE = "${query("PBX_PORTEUR")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_RETOUR" VALUE = "${query("PBX_RETOUR")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_HASH" VALUE = "SHA512"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_TIME" VALUE = "${query("PBX_TIME")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_EFFECTUE" VALUE = "${query("PBX_EFFECTUE")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_REFUSE" VALUE = "${query("PBX_REFUSE")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_ANNULE" VALUE = "${query("PBX_ANNULE")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_REPONDRE_A" VALUE = "${query("PBX_REPONDRE_A")}"><br>
-		<INPUT TYPE="hidden" NAME ="PBX_HMAC" VALUE = "${hmac}"><br>
-	</FORM>
-    	<script>document.getElementById("formpaybox").submit();</script>
-    </body>
-</html>
-"""
-      // We redirect the user to the payment server
-      Left(form)
-    } else {
-      throw InvalidContextException(s"""Invalid Paybox payment mode ${parametres("payboxContract")}""")
-    }
   }
 
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
