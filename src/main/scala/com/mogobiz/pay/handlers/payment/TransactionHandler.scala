@@ -799,8 +799,6 @@ class TransactionHandler {
   protected def serializeCart(cart: CartWithShipping): String = {
     JacksonConverter.serialize(cart)
   }
-
-  def shippingWebhook(data: String): Unit = {}
 }
 
 object BOTransactionJsonTransform {

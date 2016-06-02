@@ -11,10 +11,14 @@ import com.mogobiz.pay.model.Mogopay.{ ShippingAddress, ShippingData }
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 
-class KialaShippingHandler extends ShippingHandler {
-
+object KialaShippingHandler {
   val KIALA_PRICE = 400
   val KIALA_SHIPPING_PREFIX = "KIALA_"
+}
+
+class KialaShippingHandler extends ShippingHandler {
+
+  import KialaShippingHandler._
 
   override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData] = {
 

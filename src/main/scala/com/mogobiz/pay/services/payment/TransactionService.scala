@@ -52,7 +52,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
     pathPrefix(serviceName) {
       init ~
         selectShipping ~
-        shippingWebhook ~
         verify ~
         submit ~
         submitWithSession ~
@@ -117,21 +116,6 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                   )
               }
           }
-      }
-    }
-  }
-
-  lazy val shippingWebhook = path("shipping-webhook") {
-    post {
-      def rawData: Directive1[String] = extract {
-        _.request.entity.asString
-      }
-      rawData { postData =>
-        handleCall(transactionHandler.shippingWebhook(postData),
-          (_: Unit) => {
-            complete(StatusCodes.OK)
-          }
-        )
       }
     }
   }

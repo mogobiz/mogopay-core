@@ -22,9 +22,15 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.control.NonFatal
 
-class EasyPostHandler extends ShippingHandler {
+object EasyPostHandler {
 
   val EASYPOST_SHIPPING_PREFIX = "EASYPOST_"
+
+}
+
+class EasyPostHandler extends ShippingHandler {
+
+  import EasyPostHandler._
 
   EasyPost.apiKey = Settings.Shipping.EasyPost.ApiKey
 
@@ -252,7 +258,7 @@ class EasyPostHandler extends ShippingHandler {
   }
 }
 
-object EasyPostHandler extends App {
+object EasyPostHandlerTest extends App {
   val logger = Logger(LoggerFactory.getLogger("com.mogobiz.pay.handlers.shipping.EasyPostHandler"))
   EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
 

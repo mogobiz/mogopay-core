@@ -21,6 +21,11 @@ class BOTransactionHandler {
     EsClient.searchAll[BOTransaction](req)
   }
 
+  def findByShipmentId(shipmentId: String): Option[BOTransaction] = {
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" query matchQuery("shippingData.shipmentId", shipmentId)
+    EsClient.search[BOTransaction](req)
+  }
+
   def findOtherGroupBOTx(uuid: String): Seq[BOTransaction] = {
     find(uuid)
       .flatMap(_.groupTransactionUUID)
