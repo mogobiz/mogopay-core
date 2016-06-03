@@ -35,6 +35,7 @@ class TransactionRequestHandler {
     val req = del from Settings.Mogopay.EsIndex -> "TransactionRequest" where {
       range("dateCreated") from 0 to xMillisAgo.getTime
     }
-    EsClient().execute(req)
+    import EsClient.secureRequest
+    EsClient().execute(secureRequest(req))
   }
 }

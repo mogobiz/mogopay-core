@@ -24,9 +24,10 @@ class RateImportHandler {
 
     EsClient.search[Rate](req) map (_.lastUpdated.getTime) orElse Some(ratesFile.lastModified) foreach { lastUpdated =>
       if (lastUpdated <= ratesFile.lastModified) {
-        EsClient().client
+        import EsClient.secureActionRequest
+        secureActionRequest(EsClient().client
           .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "Rate"))
+          .setQuery(new TermQueryBuilder("_type", "Rate")))
           .execute
           .actionGet
 

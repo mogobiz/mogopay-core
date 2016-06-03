@@ -230,7 +230,8 @@ class AccountHandler {
 
   def alreadyExistEmail(email: String, merchantId: Option[String]): Boolean = {
     val req = buildFindAccountRequest(email, merchantId)
-    val res = EsClient().execute(req).await
+    import EsClient.secureRequest
+    val res = EsClient().execute(secureRequest(req)).await
     res.getHits.totalHits() == 1
   }
 
@@ -242,7 +243,8 @@ class AccountHandler {
           missingFilter("company") includeNull false
         )
       }
-    val res = EsClient().execute(req).await
+    import EsClient.secureRequest
+    val res = EsClient().execute(secureRequest(req)).await
     res.getHits.totalHits() == 1
   }
 

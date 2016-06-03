@@ -4,6 +4,7 @@
 
 package com.mogobiz.pay.services
 
+import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.{ Settings, DefaultComplete }
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.handlers._
@@ -554,7 +555,8 @@ class AccountService extends Directives with DefaultComplete {
         val req = com.sksamuel.elastic4s.ElasticDsl.delete
           .from(Settings.Mogopay.EsIndex -> "Account")
           .where(regexQuery("email", "newuser"))
-        com.mogobiz.es.EsClient().execute(req).await
+        import com.mogobiz.es.EsClient.secureRequest
+        com.mogobiz.es.EsClient().execute(secureRequest(req)).await
 
         StatusCodes.OK -> Map()
       }

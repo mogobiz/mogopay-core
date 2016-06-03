@@ -29,7 +29,8 @@ import scala.util.parsing.json.JSONObject
 object DBInitializer {
   def apply(fillWithFixtures: Boolean) = {
     try {
-      //EsClient().execute(delete index Settings.Mogopay.EsIndex).await
+      import EsClient.secureRequest
+      //EsClient().execute(secureRequest(delete index Settings.Mogopay.EsIndex)).await
       if (Settings.DerbySequence.length > 0) {
         import scalikejdbc._
         DB autoCommit { implicit session =>
@@ -42,7 +43,7 @@ object DBInitializer {
           }
         }
       }
-      EsClient().execute(create index Settings.Mogopay.EsIndex).await
+      EsClient().execute(secureRequest(create index Settings.Mogopay.EsIndex)).await
       Mapping.set
       if (fillWithFixtures) fillDB()
     } catch {
@@ -509,12 +510,13 @@ __FIN__*/
 
 object DbInitMain extends App {
   try {
-    EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account")).execute.actionGet
-    EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction")).execute.actionGet
-    EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransactionLog")).execute.actionGet
-    EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "ESSession")).execute.actionGet
-    EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionSequence")).execute.actionGet
-    EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionRequest")).execute.actionGet
+    import EsClient.secureActionRequest
+    secureActionRequest(EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Account"))).execute.actionGet
+    secureActionRequest(EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransaction"))).execute.actionGet
+    secureActionRequest(EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "BOTransactionLog"))).execute.actionGet
+    secureActionRequest(EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "ESSession"))).execute.actionGet
+    secureActionRequest(EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionSequence"))).execute.actionGet
+    secureActionRequest(EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "TransactionRequest"))).execute.actionGet
   } catch {
     case NonFatal(_) => println()
   }
