@@ -4,16 +4,14 @@
 
 <header ng-include src="'partials/header.html'"></header>
 <div class="tracknigInfo">
-	<div class="panel panel-default" ng-repeat="info in tracknigInfo">
+	<div class="panel panel-default" ng-repeat="info in formattedTracknig">
 		<div class="panel-heading">
 			<h3 class="panel-title">
 				<a href="javascript:void(0)" data-target="#tracknigInfo-{{$index}}" data-toggle="collapse" ng-class="{collapsed: $index != 0}">{{resourceBundle.tracking_title}} {{$index + 1}}</a>
 			</h3>
 		</div>
 		<div id="tracknigInfo-{{$index}}" class="panel-collapse collapse" ng-class="{in: $index == 0}">
-			<div class="panel-body">
-				<pre>{{info}}</pre>
-			</div>
+			<div class="panel-body" ng-bind-html="info | to_trusted"></div>
 		</div>
 	</div>
 	<button class="btn btn-default" ng-click="navigateBack()">

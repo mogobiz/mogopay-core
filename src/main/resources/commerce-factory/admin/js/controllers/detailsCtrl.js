@@ -196,11 +196,7 @@ function detailsReturnSelectedItems(scope, location, rootScope, route){
 }
 
 function detailsGoToTrackingPage(scope, location, rootScope, route){
-	rootScope.tracknigInfo = [];
-	for(var i = 0; i < scope.shippingDetails.trackingHistory.length; i++){
-		var info = JSON.parse(scope.shippingDetails.trackingHistory[i]);
-		rootScope.tracknigInfo[rootScope.tracknigInfo.length] = JSON.stringify(info, null, 4);
-	}
+	rootScope.tracknigInfo = scope.shippingDetails.trackingHistory;
 	navigateToPage(scope, location, rootScope, route, "trackingInfo");
 }
 

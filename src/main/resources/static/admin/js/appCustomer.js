@@ -31,6 +31,10 @@ var mogopay = angular.module("mogopay",  ["ngRoute","ngI18n"]).
                 });
             };
         });
+    }]).filter("to_trusted", ["$sce", function($sce){
+        return function(text) {
+            return $sce.trustAsHtml(text);
+        };
     }]);
 
 mogopay.value("ngI18nConfig", {

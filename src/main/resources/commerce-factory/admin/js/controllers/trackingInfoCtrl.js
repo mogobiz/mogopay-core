@@ -20,4 +20,9 @@ function TrackingInfoCtrl($scope, $location, $rootScope, $route) {
         };
         callServer("account/profile-info", "", success, emptyFunc, "GET", "params", "pay", true, false, true);
     };
+	$scope.formattedTracknig = [];
+	for(var i = 0; i < $rootScope.tracknigInfo.length; i++){
+		var info = JSON.parse($rootScope.tracknigInfo[i]);
+		$scope.formattedTracknig[$scope.formattedTracknig.length]  = $("<div>").html(JsonHuman.format(info, {showArrayIndex: true})).html();
+	}
 }
