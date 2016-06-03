@@ -215,6 +215,11 @@ class EasyPostHandler extends ShippingHandler {
   }
 
   protected def accountAddressToMap(addr: AccountAddress): Address = {
+    val country = addr.country.getOrElse("US")
+    val state = addr.admin1.getOrElse("US.CA")
+    val stateName = countryAdminHandler.getAdmin1ByCode(country, state).map {
+      admin1: CountryAdmin => admin1.name.getOrElse(state)
+    }.getOrElse(state)
     val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
       "name" -> (addr.civility.map {
         _.toString + " "
@@ -223,8 +228,8 @@ class EasyPostHandler extends ShippingHandler {
       "street1" -> addr.road,
       "street2" -> addr.road2.getOrElse(""),
       "city" -> addr.city,
-      "state" -> addr.admin1.getOrElse("CA"),
-      "country" -> addr.country.getOrElse("US"),
+      "state" -> stateName,
+      "country" -> country,
       "zip" -> addr.zipCode.getOrElse(""),
       "phone" -> formatPhone(addr.telephone.map(_.lphone).getOrElse(""))).filter(_._2.length > 0)
 

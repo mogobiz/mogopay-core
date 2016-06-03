@@ -215,6 +215,7 @@ class TransactionHandler {
           (finalTransWithShippingInfo.getOrElse(finalTrans), None)
         }
         case Failure(f) => {
+          logger.error(f.getMessage)
           val refundFinalTrans = finalTrans.copy(status = TransactionStatus.CUSTOMER_REFUNDED, errorCodeOrigin = Option("SHIPMENT_ERROR"), errorMessageOrigin = Some(f.getMessage))
           boTransactionHandler.update(refundFinalTrans, false)
           paymentHandler.refund(sessionData.paymentConfig.get, refundFinalTrans, sessionData.amount.get, paymentResult)
