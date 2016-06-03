@@ -53,8 +53,8 @@ trait ShippingHandler extends StrictLogging {
 }
 
 object ShippingHandler {
-  val servicesList: Seq[ShippingHandler] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHander)
-  else Seq(noShippingHandler, kialaShippingHandler, easyPostHander)
+  val servicesList: Seq[ShippingHandler] = if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHandler)
+  else Seq(noShippingHandler, kialaShippingHandler, easyPostHandler)
 
   def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingData] = {
     servicesList.flatMap {

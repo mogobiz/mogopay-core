@@ -52,7 +52,7 @@ trait MogopayCake {
 
   def kialaShippingHandler: KialaShippingHandler
 
-  def easyPostHander: EasyPostHandler
+  def easyPostHandler: EasyPostHandler
 
   def systempayHandler: SystempayHandler
 
@@ -100,7 +100,7 @@ class DefaultMogopayCake extends MogopayCake {
 
   val noShippingHandler = new NoShippingHandler
   val kialaShippingHandler = new KialaShippingHandler
-  val easyPostHander = new EasyPostHandler
+  val easyPostHandler = new EasyPostHandler
   val userHandler = new UserHandler
   val pdfHandler = new PdfHandler
   val templateHandler = new TemplateHandler
