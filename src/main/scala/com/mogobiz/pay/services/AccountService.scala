@@ -15,6 +15,7 @@ import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
 import shapeless.HNil
 import spray.http.MediaTypes._
+import spray.http.StatusCodes.ClientError
 import spray.http._
 import spray.routing.Directives
 import shapeless._
@@ -158,15 +159,13 @@ class AccountService extends Directives with DefaultComplete {
 
   lazy val isValidAccountId = path("is-valid-account-id") {
     get {
-      parameters('id) { id =>
-        handleCall(accountHandler.load(id).nonEmpty,
-          (res: Boolean) =>
-            complete(
-              res match {
-                case true => StatusCodes.OK -> Map('result -> true)
-                case false => StatusCodes.NotFound -> Map('result -> false)
-              }
-            )
+      parameters('id, 'storeCode?) { (id, storeCodeParam) =>
+        handleCall(accountHandler.isValidAccountId(id, storeCodeParam),
+          (res: (Option[Boolean])) =>
+            complete(res match {
+              case Some(result) => StatusCodes.OK -> Map('result -> result)
+              case _ => StatusCodes.NotFound -> Map('result -> false)
+            })
         )
       }
     }
