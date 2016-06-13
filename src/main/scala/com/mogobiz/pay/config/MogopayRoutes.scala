@@ -7,22 +7,16 @@ package com.mogobiz.pay.config
 import java.io.File
 import java.net.UnknownHostException
 
-import akka.actor.{ Actor, ActorLogging, Props }
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.{Directives, Route}
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
-import com.mogobiz.pay.exceptions.Exceptions.{ MogopayMessagelessException, MogopayException }
-import com.mogobiz.pay.implicits.Implicits
+import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, MogopayMessagelessException}
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.system.MogobizSystem
-import spray.http.StatusCodes._
-import spray.http.{ HttpEntity, StatusCode, _ }
-import spray.routing.{ Directives, _ }
-import spray.util.LoggingContext
-import com.mogobiz.system.RoutedHttpService
 
-import scala.util.control.NonFatal
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 trait MogopayRoutes extends Directives {
   this: MogobizSystem =>
@@ -41,7 +35,7 @@ trait MogopayRoutes extends Directives {
   }
 
   def routes =
-    logRequestResponse(showRequest _) {
+    logRequestResult("com.mogobiz.pay.config.RestAll") {
       path("static" / "admin") {
         //compressResponse() {
         redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
@@ -82,9 +76,6 @@ trait MogopayRoutes extends Directives {
             new PdfService().route
         }
     }
-
-  def routesServices = system.actorOf(Props(new RoutedHttpService(routes)))
-
 }
 
 trait DefaultComplete {
@@ -97,7 +88,6 @@ trait DefaultComplete {
   }
 
   def completeException(t: Throwable): Route = {
-    import Implicits._
     t match {
       case (ex: MogopayException) =>
         if (ex.printTrace) ex.printStackTrace()

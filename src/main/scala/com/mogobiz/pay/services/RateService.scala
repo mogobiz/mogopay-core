@@ -4,13 +4,12 @@
 
 package com.mogobiz.pay.services
 
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.pay.model.Mogopay.Rate
-import spray.http.StatusCodes
-import spray.routing.Directives
+import de.heikoseeberger.akkahttpjson4s.Json4sSupport
 
 class RateService extends Directives with DefaultComplete {
 
@@ -22,6 +21,8 @@ class RateService extends Directives with DefaultComplete {
   lazy val list = path("list") {
     get {
       dynamic {
+        import Json4sSupport._
+        import com.mogobiz.json.Implicits._
         handleCall(rateHandler.list,
           (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
       }
@@ -30,6 +31,8 @@ class RateService extends Directives with DefaultComplete {
 
   lazy val format = path("format") {
     get {
+      import Json4sSupport._
+      import com.mogobiz.json.Implicits._
       parameters('amount.as[Long], 'currency, 'country) { (amount, currency, country) =>
         handleCall(rateHandler.format(amount, currency, country),
           (res: Option[String]) => complete(StatusCodes.OK -> res))
