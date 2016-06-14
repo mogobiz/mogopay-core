@@ -4,23 +4,23 @@
 
 package com.mogobiz.pay.handlers.payment
 
+import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, Uri }
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.util.Timeout
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.utils.CustomSslConfiguration
+import com.mogobiz.utils.HttpRequestor
 import net.authorize.api.contract.v1.{ CreditCardType => _, _ }
 import net.authorize.api.controller.CreateTransactionController
 import net.authorize.api.controller.base.ApiOperationBase
 import org.json4s.jackson.JsonMethods._
-import spray.client.pipelining._
-import spray.http.{ Uri, _ }
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
 import scala.util._
 
-class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
+class ApplePayHandler(handlerName: String) extends PaymentHandler with HttpRequestor {
   PaymentHandler.register(handlerName, this)
   implicit val timeout: Timeout = 40.seconds
 
@@ -72,9 +72,12 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
       val result = response.getTransactionResponse
       if (result.getResponseCode == "1") {
         val successURL: String = sessionData.successURL.getOrElse(throw new NoSuccessURLProvided)
-        val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-        val successResponse = Await.result(pipeline(Get(Uri(successURL))), Duration.Inf)
-        Right(successResponse.entity.asString)
+        val request = HttpRequest(
+          method = HttpMethods.GET,
+          uri = Uri(successURL))
+        val successData = Await.result(doRequest(request).flatMap(rep => Unmarshal(rep.entity).to[String]), Duration.Inf)
+
+        Right(successData)
       } else {
         throw new AuthorizeNetErrorException(result.getResponseCode)
       }

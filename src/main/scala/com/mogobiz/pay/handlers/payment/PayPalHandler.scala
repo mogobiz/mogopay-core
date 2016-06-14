@@ -9,6 +9,8 @@ import java.util.{ Date, Locale }
 import javax.xml.datatype.{ DatatypeFactory, XMLGregorianCalendar }
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.Uri.Query
+import akka.http.scaladsl.model.{ HttpMethods, HttpRequest, HttpResponse, Uri }
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.codes.MogopayConstant
@@ -19,26 +21,20 @@ import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil }
+import com.mogobiz.utils.{ GlobalUtil, HttpRequestor }
 import org.json4s.jackson.JsonMethods._
-import spray.client.pipelining._
-import spray.http.Uri.Query
-import spray.http.{ Uri, _ }
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.util._
 
-class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
+class PayPalHandler(handlerName: String) extends PaymentHandler with HttpRequestor {
   PaymentHandler.register(handlerName, this)
 
   implicit val timeout: Timeout = 40.seconds
 
   // execution context for futures
-
-  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-
-  implicit val formats = new org.json4s.DefaultFormats {}
+  import com.mogobiz.json.Implicits._
 
   val paymentType = PaymentType.PAYPAL
 
@@ -56,7 +52,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
     maybeToken map { token =>
       sessionData.token = maybeToken
-      Right(Uri(Settings.PayPal.UrlExpresschout).withQuery(Map("cmd" -> "_express-checkout", "token" -> token)))
+      Right(Uri(Settings.PayPal.UrlExpresschout).withQuery(Query("cmd" -> "_express-checkout", "token" -> token)))
     } getOrElse (throw MogopayError(MogopayConstant.PaypalTokenError))
   }
 
@@ -84,7 +80,12 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       "RETURNURL" -> successURL,
       "CANCELURL" -> failureURL)
     val uri: Uri = Uri(Settings.PayPal.UrlNvpApi)
-    val response: Future[HttpResponse] = sslPipeline(uri.authority.host).flatMap(_(Get(uri.withQuery(query))))
+
+    val request = HttpRequest(
+      method = HttpMethods.GET,
+      uri = uri.withQuery(query))
+
+    val response: Future[HttpResponse] = this.doRequest(request)
     val tuples = fromHttResponse(response)
     val res = tuples map { tuples =>
       tuples.get("ACK") flatMap { ack =>
@@ -157,7 +158,12 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       "SIGNATURE" -> signature,
       "VERSION" -> Settings.PayPal.Version,
       "TOKEN" -> token)
-    val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(query)))
+
+    val request = HttpRequest(
+      method = HttpMethods.GET,
+      uri = Uri(Settings.PayPal.UrlNvpApi).withQuery(query))
+
+    val response = doRequest(request)
     val tuples = GlobalUtil.fromHttResponse(response)
     val res = tuples map { tuples =>
       tuples.get("ACK") flatMap { ack =>
@@ -230,7 +236,11 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         )
         boTransactionLogHandler.save(bot1)
 
-        val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(Query(paramMap))))
+        val request = HttpRequest(
+          method = HttpMethods.GET,
+          uri = Uri(Settings.PayPal.UrlNvpApi).withQuery(Query(paramMap)))
+
+        val response: Future[HttpResponse] = doRequest(request)
         val tuples = fromHttResponse(response)
         val res = tuples map { tuples =>
           val bot2 = BOTransactionLog(
@@ -288,7 +298,12 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       "METHOD" -> "RefundTransaction",
       "TRANSACTIONID" -> paymentResult.gatewayTransactionId,
       "REFUNDTYPE" -> "Full")
-    val response: Future[HttpResponse] = pipeline(Get(Uri(Settings.PayPal.UrlNvpApi).withQuery(query)))
+
+    val request = HttpRequest(
+      method = HttpMethods.GET,
+      uri = Uri(Settings.PayPal.UrlNvpApi).withQuery(query))
+
+    val response = doRequest(request)
     val tuples = GlobalUtil.fromHttResponse(response)
     val res = tuples map { tuples =>
       tuples.get("ACK") flatMap { ack =>
@@ -306,11 +321,27 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   }
 }
 
-object Test extends App with CustomSslConfiguration {
+object Test extends App with HttpRequestor {
   implicit val timeout: Timeout = 40.seconds
   ActorSystemLocator(ActorSystem("Test"))
   implicit val _ = ActorSystemLocator().dispatcher
   val uri: Uri = Uri("https://api-3t.sandbox.paypal.com/nvp")
-  val response: Future[HttpResponse] = sslPipeline(uri.authority.host).flatMap(_(Get("https://api-3t.sandbox.paypal.com/nvp?METHOD=SetExpressCheckout&USER=hayssams-facilitator_api1.yahoo.com&PWD=1365940711&SIGNATURE=An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG&VERSION=78&PAYMENTREQUEST_0_PAYMENTACTION=SALE&PAYMENTREQUEST_0_AMT=27.50%0A&PAYMENTREQUEST_0_CURRENCYCODE=EUR&RETURNURL=http://mogobiz.ebiznext.com:80/api/pay/paypal/success/23601e5c-f921-4c09-8c16-d73c12fbfd38&CANCELURL=http://mogobiz.ebiznext.com:80/api/pay/paypal/fail/23601e5c-f921-4c09-8c16-d73c12fbfd38")))
-  response.foreach(x => println(x.entity.toString))
+
+  val request = HttpRequest(
+    method = HttpMethods.GET,
+    uri = uri.withQuery(Query(
+      "METHOD" -> "SetExpressCheckout",
+      "USER" -> "hayssams-facilitator_api1.yahoo.com",
+      "PWD" -> "1365940711",
+      "SIGNATURE" -> "An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG",
+      "VERSION" -> "78",
+      "PAYMENTREQUEST_0_PAYMENTACTION" -> "SALE",
+      "PAYMENTREQUEST_0_AMT" -> "27.50",
+      "PAYMENTREQUEST_0_CURRENCYCODE" -> "EUR",
+      "RETURNURL" -> "http://mogobiz.ebiznext.com:80/api/pay/paypal/success/23601e5c-f921-4c09-8c16-d73c12fbfd38",
+      "CANCELURL" -> "http://mogobiz.ebiznext.com:80/api/pay/paypal/fail/23601e5c-f921-4c09-8c16-d73c12fbfd38"
+    )))
+
+  val response: Future[HttpResponse] = this.doRequest(request)
+  response.foreach(x => println(x.entity.toStrict(10 seconds).toString))
 }

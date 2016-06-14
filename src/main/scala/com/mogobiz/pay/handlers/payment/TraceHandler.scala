@@ -4,20 +4,14 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.util
-import javax.xml.namespace.QName
-import javax.xml.soap.SOAPEnvelope
-import javax.xml.soap.SOAPHeader
-import javax.xml.soap.SOAPMessage
-import javax.xml.ws.handler.MessageContext
-import javax.xml.ws.handler.soap.SOAPHandler
-import javax.xml.ws.handler.soap.SOAPMessageContext
-import java.io.ByteArrayOutputStream
-import java.io.IOException
+import java.io.{ ByteArrayOutputStream, IOException }
 import java.net.URLEncoder
-import java.util.Iterator
-import java.util.LinkedHashMap
-import java.util.Set
+import java.util
+import java.util.{ Iterator, Set }
+import javax.xml.namespace.QName
+import javax.xml.soap.{ SOAPEnvelope, SOAPHeader, SOAPMessage }
+import javax.xml.ws.handler.MessageContext
+import javax.xml.ws.handler.soap.{ SOAPHandler, SOAPMessageContext }
 
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.model.Mogopay._

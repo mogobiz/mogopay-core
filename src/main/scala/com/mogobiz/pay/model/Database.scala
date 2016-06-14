@@ -6,6 +6,7 @@ package com.mogobiz.pay.model
 
 import java.util.{ Calendar, Date }
 
+import akka.http.scaladsl.unmarshalling.{ Unmarshaller, _ }
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
@@ -13,9 +14,8 @@ import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
 import com.fasterxml.jackson.module.scala.{ DefaultScalaModule, JsonScalaEnumeration }
 import com.mogobiz.pay.common.{ Cart, CartItem, CartRate, Coupon }
 import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, Telephone, _ }
-import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
-import scala.util.control.NonFatal
+import scala.concurrent.Future
 
 object Mogopay {
   type Document = String
@@ -66,14 +66,7 @@ object Mogopay {
 
   import RoleName._
 
-  implicit def RoleNameUnmarshaller = new FromStringDeserializer[RoleName] {
-    def apply(value: String) =
-      try
-        Right(RoleName.withName(value))
-      catch {
-        case NonFatal(ex) => Left(MalformedContent(s"Cannot parse: $value", ex))
-      }
-  }
+  implicit def RoleNameUnmarshaller: FromStringUnmarshaller[RoleName] = Unmarshaller(ex ⇒ value ⇒ Future.successful(RoleName.withName(value)))
 
   object TelephoneStatus extends Enumeration {
     type TelephoneStatus = Value

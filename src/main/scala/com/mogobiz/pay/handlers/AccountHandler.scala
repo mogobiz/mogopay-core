@@ -6,6 +6,7 @@ package com.mogobiz.pay.handlers
 
 import java.io.File
 import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
@@ -13,14 +14,15 @@ import java.util.{ Calendar, UUID }
 
 import com.atosorigin.services.cad.common.util.FileParamReader
 import com.mogobiz.es.{ EsClient, _ }
-import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
+import com.mogobiz.pay.config.Settings.Mail.Smtp.MailSettings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
+import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.sql.BOAccountDAO
@@ -29,18 +31,15 @@ import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ EmailHandler, SymmetricCrypt }
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.SearchDefinition
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
 import org.json4s.JsonAST.{ JString, JValue }
 import org.json4s.jackson.Serialization.{ read, write }
-import spray.http.StatusCodes
-import spray.http.StatusCodes.ClientError
 
 import scala.util._
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
-import Settings.Mail.Smtp.MailSettings
-import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
 
 class LoginException(msg: String) extends Exception(msg)
 
@@ -180,7 +179,7 @@ case class SystempayParams(systempayShopId: String, systempayContractNumber: Str
 
 case class SendNewPassword(accountId: String)
 
-class AccountHandler {
+class AccountHandler extends StrictLogging {
   implicit val formats = new org.json4s.DefaultFormats {}
 
   lazy val birthDayDateFormat = new SimpleDateFormat("yyyy-MM-dd")
@@ -361,11 +360,25 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
+  def multiSource(dbOp: => Try[Any], esOp: => Unit) = {
+    dbOp match {
+      case Success(_) =>
+        esOp
+      case Failure(e) =>
+        throw (e)
+    }
+  }
+
   def save(account: Account, refresh: Boolean = true) = findByEmail(account.email, account.owner) match {
     case Some(_) => throw AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}")
     case None =>
-      BOAccountDAO.upsert(account)
-      EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
+      BOAccountDAO.upsert(account) match {
+        case Success(_) =>
+          EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
+        case Failure(e) =>
+          logger.error(e.getStackTrace.toList.toString)
+
+      }
   }
 
   def update(account: Account, refresh: Boolean): Boolean = {
@@ -664,13 +677,15 @@ class AccountHandler {
 
   type ActiveCountryStateShipping = Map[Symbol, Option[String]]
 
+  import com.mogobiz.json.Implicits._
+
   def getActiveCountryStateShipping(accountId: String): Option[ActiveCountryStateShipping] = {
     load(accountId).map {
       account =>
         val addr = account.shippingAddresses.find(_.active).map(_.address).orElse(account.address)
         addr.map {
           addr =>
-            Map('countryCode -> addr.country, 'stateCode -> addr.admin1, 'shippingAddress -> Some(JacksonConverter.serialize(addr)))
+            Map('countryCode -> addr.country, 'stateCode -> addr.admin1, 'shippingAddress -> Some(serialization.write(addr)))
         }
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
   }
@@ -784,7 +799,7 @@ class AccountHandler {
                 val parcomTargetFile = new File(dir, "parcom." + params.sipsMerchantId)
                 if (params.sipsMerchantParcomFileContent.getOrElse("").length > 0 && params.sipsMerchantParcomFileName.getOrElse("").length > 0) {
                   parcomTargetFile.delete()
-                  scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(params.sipsMerchantParcomFileContent.get)
+                  java.nio.file.Files.write(java.nio.file.Paths.get(parcomTargetFile.getAbsolutePath), params.sipsMerchantParcomFileContent.get.getBytes(StandardCharsets.UTF_8))
                 }
               } else {
                 try {
@@ -810,36 +825,35 @@ class AccountHandler {
                 val certificateTargetFile = new File(dir, "certif." + params.sipsMerchantCountry + "." + params.sipsMerchantId)
                 if (params.sipsMerchantCertificateFileContent.getOrElse("").length > 0 && params.sipsMerchantCertificateFileName.getOrElse("").length > 0) {
                   certificateTargetFile.delete()
-                  scala.tools.nsc.io.File(certificateTargetFile.getAbsolutePath).writeAll(params.sipsMerchantCertificateFileContent.get)
+                  java.nio.file.Files.write(java.nio.file.Paths.get(certificateTargetFile.getAbsolutePath), params.sipsMerchantCertificateFileContent.get.getBytes(StandardCharsets.UTF_8))
                 }
 
                 val targetFile = new File(dir, "pathfile")
                 val isJSP = params.sipsMerchantCertificateFileContent.map(_.indexOf("!jsp") > 0).getOrElse(false) ||
                   (targetFile.exists() && (new FileParamReader(targetFile.getAbsolutePath)).getParam("F_CTYPE") == "jsp")
                 targetFile.delete()
-                scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
-                  s"""
-                     |D_LOGO!${
-                    Settings.Mogopay.BaseEndPoint
-                  }${
-                    Settings.ImagesPath
-                  }sips/logo/!
-                     |F_DEFAULT!${
-                    Settings.Sips.CertifDir
-                  }${
-                    File.separator
-                  }parcom.default!
-                     |F_PARAM!${
-                    new File(dir, "parcom").getAbsolutePath
-                  }!
-                     |F_CERTIFICATE!${
-                    new File(dir, "certif").getAbsolutePath
-                  }!
-                     |${
-                    if (isJSP) "F_CTYPE!jsp!" else ""
-                  }"
+                val targetContent = s"""
+                   |D_LOGO!${
+                  Settings.Mogopay.BaseEndPoint
+                }${
+                  Settings.ImagesPath
+                }sips/logo/!
+                   |F_DEFAULT!${
+                  Settings.Sips.CertifDir
+                }${
+                  File.separator
+                }parcom.default!
+                   |F_PARAM!${
+                  new File(dir, "parcom").getAbsolutePath
+                }!
+                   |F_CERTIFICATE!${
+                  new File(dir, "certif").getAbsolutePath
+                }!
+                   |${
+                  if (isJSP) "F_CTYPE!jsp!" else ""
+                }"
            """.stripMargin.trim
-                )
+                java.nio.file.Files.write(java.nio.file.Paths.get(targetFile.getAbsolutePath), targetContent.getBytes(StandardCharsets.UTF_8))
 
                 if (isJSP)
                   certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))

@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.exceptions
 
-import spray.http.{ StatusCode, StatusCodes }
+import akka.http.scaladsl.model.{ StatusCode, StatusCodes }
 
 object Exceptions {
 

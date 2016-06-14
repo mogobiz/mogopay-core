@@ -5,6 +5,8 @@
 package com.mogobiz.pay.boot
 
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.{ Files, Paths }
 import java.util.{ Calendar, Currency, Date, UUID }
 
 import com.mogobiz.es.EsClient
@@ -380,13 +382,13 @@ BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
 
     val certifTargetFile = new File(certifDir, "certif.fr.011223344553333")
     certifTargetFile.delete()
-    scala.tools.nsc.io.File(certifTargetFile.getAbsolutePath).writeAll(content1)
+    Files.write(Paths.get(certifTargetFile.getAbsolutePath), content1.getBytes(StandardCharsets.UTF_8))
 
     val content2 = "F_CERTIFICATE!" +
       new File(certifDir, "certif").getAbsolutePath + "!\n"
     val targetFile = new File(certifDir, "pathfile")
     targetFile.delete()
-    scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(content2)
+    Files.write(Paths.get(targetFile.getAbsolutePath), content2.getBytes(StandardCharsets.UTF_8))
   }
 
   private def createParcom(merchant: Account) = {
@@ -480,15 +482,15 @@ __FIN__*/
 
     val parcomTargetFile = new File(certifDir, "parcom.011223344551112")
     parcomTargetFile.delete()
-    scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(parcomContent)
+    Files.write(Paths.get(parcomTargetFile.getAbsolutePath), parcomContent.getBytes(StandardCharsets.UTF_8))
 
     val parcomDefaultTargetFile = new File(certifDir, "parcom.default")
     parcomDefaultTargetFile.delete()
-    scala.tools.nsc.io.File(parcomDefaultTargetFile.getAbsolutePath).writeAll(parcomDefaultContent)
+    Files.write(Paths.get(parcomDefaultTargetFile.getAbsolutePath), parcomDefaultContent.getBytes(StandardCharsets.UTF_8))
 
     var certifTargetFile = new File(certifDir, "certif.fr.011223344551112.jsp")
     certifTargetFile.delete()
-    scala.tools.nsc.io.File(certifTargetFile.getAbsolutePath).writeAll(certifContent)
+    Files.write(Paths.get(certifTargetFile.getAbsolutePath), certifContent.getBytes(StandardCharsets.UTF_8))
 
     val targetFile = new File(certifDir, "pathfile")
     targetFile.delete()
@@ -499,7 +501,7 @@ __FIN__*/
                                                                                                                                                                                         |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
                                                                                                                                                                                                                                                          |F_CTYPE!jsp!
                                                                                                                                                                                                                                                          |""".stripMargin
-    scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(targetContent)
+    Files.write(Paths.get(targetFile.getAbsolutePath), targetContent.getBytes(StandardCharsets.UTF_8))
   }
 
   private def getCertifDir(merchant: Account): File = {

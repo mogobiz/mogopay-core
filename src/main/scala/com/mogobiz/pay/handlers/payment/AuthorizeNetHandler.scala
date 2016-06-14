@@ -7,6 +7,7 @@ package com.mogobiz.pay.handlers.payment
 import java.nio.charset.StandardCharsets
 import java.util.Date
 
+import akka.http.scaladsl.model.Uri
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
@@ -14,12 +15,11 @@ import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
-import com.mogobiz.utils.{ GlobalUtil, HashTools }
 import com.mogobiz.utils.GlobalUtil._
+import com.mogobiz.utils.{ GlobalUtil, HashTools }
 import net.authorize.sim._
 import net.authorize.{ Merchant, TransactionType, aim }
 import org.json4s.jackson.JsonMethods._
-import spray.http.Uri
 
 import scala.concurrent.duration._
 import scala.util._

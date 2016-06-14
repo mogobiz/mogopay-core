@@ -11,6 +11,9 @@ import com.mogobiz.pay.model.Mogopay.Account
 import Sql.BOAccount
 import scalikejdbc._
 
+import scala.util.Try
+import scalikejdbc.TxBoundary.Try._
+
 object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
   override val tableName = "b_o_account"
 
@@ -45,10 +48,12 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     }
   }
 
-  def upsert(account: Account): Unit = {
+  def upsert(account: Account): Try[Unit] = {
     DB localTx { implicit session =>
-      val updateResult = update(account)
-      if (updateResult == 0) create(account)
+      Try {
+        val updateResult = update(account)
+        if (updateResult == 0) create(account)
+      }
     }
   }
 

@@ -6,14 +6,15 @@ package com.mogobiz.pay.handlers.payment
 
 import java.text.SimpleDateFormat
 
-import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.codes.MogopayConstant
+import akka.http.scaladsl.model.Uri
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.codes.MogopayConstant
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
 import com.mogobiz.pay.model.Mogopay._
+import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
-import spray.http.Uri
+
 import scala.util.Left
 
 class MogopayHandler(handlerName: String) extends PaymentHandler {

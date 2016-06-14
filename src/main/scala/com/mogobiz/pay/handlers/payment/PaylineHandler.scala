@@ -10,23 +10,20 @@ import java.util.Date
 import javax.xml.namespace.QName
 import javax.xml.ws.{ Binding, BindingProvider }
 
+import akka.http.scaladsl.model.Uri
 import com.experian.payline.ws.impl._
 import com.experian.payline.ws.obj._
 import com.experian.payline.ws.wrapper.WebPayment
-import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay.{ ResponseCode3DS, TransactionStatus, _ }
-import com.mogobiz.utils.{ GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory }
 import com.mogobiz.utils.GlobalUtil._
-import com.typesafe.scalalogging.StrictLogging
-import org.json4s.jackson.JsonMethods._
-import spray.http.Uri
+import com.mogobiz.utils.{ GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory }
 
 import scala.util._
 import scala.util.control.NonFatal

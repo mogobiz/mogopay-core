@@ -11,6 +11,9 @@ import java.security.spec.X509EncodedKeySpec
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.util.Timeout
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
@@ -20,20 +23,17 @@ import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.{ TransactionStatus, _ }
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{ CustomSslConfiguration, GlobalUtil, Sha512 }
+import com.mogobiz.utils.{ GlobalUtil, HttpRequestor, Sha512 }
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
 import org.joda.time.format.ISODateTimeFormat
-import org.json4s.jackson.JsonMethods._
-import spray.client.pipelining._
-import spray.http.{ HttpResponse, Uri, _ }
 import sun.misc.BASE64Decoder
 
+import scala.concurrent.Await
 import scala.concurrent.duration.{ Duration, _ }
-import scala.concurrent.{ Await, Future }
 import scala.util._
 
-class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
+class PayboxHandler(handlerName: String) extends PaymentHandler with HttpRequestor {
   PaymentHandler.register(handlerName, this)
 
   implicit val timeout: Timeout = 40.seconds
@@ -177,42 +177,47 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
         //
         //        query.put("TYPE", "00053")
         //        query.put("MONTANT", Amount)
-        val request = Post(uri.path.toString()).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryStringNoEncode(query.toMap)))
-        val response = sslPipeline(uri.authority.host).flatMap(_(request))
 
-        val tuples = Await.result(GlobalUtil.fromHttResponse(response), Duration.Inf)
-        tuples.foreach(println)
-        val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
-          transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples),
-          step = TransactionStep.START_PAYMENT)
-        boTransactionLogHandler.save(bolog, false)
-        val errorCode = tuples.getOrElse("CODEREPONSE", "")
-        val errorMessage = tuples.get("COMMENTAIRE")
-        paymentResult = paymentResult.copy(
-          ccNumber = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
-          status = PaymentStatus.FAILED,
-          errorCodeOrigin = errorCode,
-          errorMessageOrigin = errorMessage,
-          bankErrorCode = errorCode,
-          bankErrorMessage = errorMessage)
-        if (errorCode.equals("00000")) {
-          val transaction = tuples("NUMQUESTION")
-          val authorisation = tuples("AUTORISATION")
+        val tuples = for {
+          formdata <- Marshal(FormData(query.toMap)).to[RequestEntity]
+          response <- GlobalUtil.fromHttResponse(doRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = formdata)))
+        } yield response
+
+        val result = tuples.map { tuples =>
+          tuples.foreach(println)
+          val bolog = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+            transaction = transactionUUID, log = GlobalUtil.mapToQueryStringNoEncode(tuples),
+            step = TransactionStep.START_PAYMENT)
+          boTransactionLogHandler.save(bolog, false)
+          val errorCode = tuples.getOrElse("CODEREPONSE", "")
+          val errorMessage = tuples.get("COMMENTAIRE")
           paymentResult = paymentResult.copy(
-            status = PaymentStatus.COMPLETE,
-            transactionDate = new Date(),
-            gatewayTransactionId = transaction,
-            authorizationId = authorisation,
-            transactionCertificate = null)
+            ccNumber = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
+            status = PaymentStatus.FAILED,
+            errorCodeOrigin = errorCode,
+            errorMessageOrigin = errorMessage,
+            bankErrorCode = errorCode,
+            bankErrorMessage = errorMessage)
+          if (errorCode.equals("00000")) {
+            val transaction = tuples("NUMQUESTION")
+            val authorisation = tuples("AUTORISATION")
+            paymentResult = paymentResult.copy(
+              status = PaymentStatus.COMPLETE,
+              transactionDate = new Date(),
+              gatewayTransactionId = transaction,
+              authorizationId = authorisation,
+              transactionCertificate = null)
+          }
+          val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUUID,
+            if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+            paymentResult,
+            errorCode,
+            sessionData.locale,
+            Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
+          // We redirect the user to the merchant website
+          Right(finishPayment(sessionData, paymentResultWithShippingResult))
         }
-        val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUUID,
-          if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult,
-          errorCode,
-          sessionData.locale,
-          Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
-        // We redirect the user to the merchant website
-        Right(finishPayment(sessionData, paymentResultWithShippingResult))
+        Await.result(result, Duration.Inf)
       }
     } else if (parametres("payboxContract") == "PAYBOX_SYSTEM") {
       val hmackey = idMerchant
@@ -470,10 +475,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     boTransactionHandler.update(transaction, refresh = false)
   }
 
-  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-  implicit val formats = new org.json4s.DefaultFormats {
-  }
-
   override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = {
     val parameters = getCreditCardConfig(paymentConfig)
 
@@ -500,16 +501,22 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     EsClient.index(Settings.Mogopay.EsIndex, logOUT, false)
 
     val uri = Uri(Settings.Paybox.DirectEndPoint)
-    val post = Post(uri).withEntity(HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), GlobalUtil.mapToQueryString(query)))
-    val response = Await.result(sslPipeline(uri.authority.host).flatMap(_(post)), Duration.Inf)
+    val entity = for {
+      formdata <- Marshal(FormData(query)).to[RequestEntity]
+      response <- doRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = formdata))
+      entity <- Unmarshal(response.entity).to[String]
+    } yield entity
 
-    val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
-      transaction = boTx.uuid, log = response.entity.data.asString, step = TransactionStep.REFUND)
-    EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
+    val result = entity.map { entity =>
+      val logIN = new BOTransactionLog(uuid = newUUID, provider = "PAYBOX", direction = "IN",
+        transaction = boTx.uuid, log = entity, step = TransactionStep.REFUND)
+      EsClient.index(Settings.Mogopay.EsIndex, logIN, false)
 
-    val responseCode = GlobalUtil.queryStringToMap(response.entity.data.asString)("CODEREPONSE")
-    val status = if (responseCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
-    RefundResult(status, responseCode, PayboxHandler.errorMessages.get(responseCode))
+      val responseCode = GlobalUtil.queryStringToMap(entity)("CODEREPONSE")
+      val status = if (responseCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+      RefundResult(status, responseCode, PayboxHandler.errorMessages.get(responseCode))
+    }
+    Await.result(result, Duration.Inf)
   }
 }
 

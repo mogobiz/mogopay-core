@@ -13,6 +13,7 @@ import javax.xml.namespace.QName
 import javax.xml.ws.BindingProvider
 import javax.xml.ws.handler.MessageContext
 
+import akka.http.scaladsl.model.Uri
 import com.lyra.vads.ws.stub._
 import com.lyra.vads.ws3ds.stub.{ PaResInfo, ThreeDSecure, VeResPAReqInfo }
 import com.mogobiz.es.EsClient
@@ -25,15 +26,12 @@ import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
-import com.typesafe.scalalogging.StrictLogging
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{ Logger, StrictLogging }
+import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods._
-import org.json4s.{ DefaultFormats, StringInput }
 import org.slf4j.LoggerFactory
-import spray.http.Uri
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.util._
 import scala.util.control.NonFatal

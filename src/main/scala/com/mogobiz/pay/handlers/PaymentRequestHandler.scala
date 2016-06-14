@@ -14,6 +14,6 @@ class PaymentRequestHandler {
   }
 
   def save(pr: PaymentRequest, refresh: Boolean = false) = {
-    EsClient.index(Settings.Mogopay.EsIndex, pr, refresh = refresh)
+    EsClient.index[PaymentRequest](Settings.Mogopay.EsIndex, pr, refresh = refresh)
   }
 }

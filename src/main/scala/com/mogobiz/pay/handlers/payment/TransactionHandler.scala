@@ -9,11 +9,11 @@ import java.text.{ NumberFormat, SimpleDateFormat }
 import java.util.{ List => _, _ }
 
 import com.mogobiz.es.EsClient
-import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.common._
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
+import com.mogobiz.pay.config.Settings.Mail.Smtp.MailSettings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.handlers.shipping.ShippingHandler
@@ -34,8 +34,6 @@ import org.joda.time.DateTime
 import org.json4s.JsonAST.{ JField, JObject }
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import Settings.Mail.Smtp.MailSettings
-import org.json4s.jackson.Serialization._
 
 import scala.collection.{ Map, _ }
 import scala.util._
@@ -796,7 +794,8 @@ class TransactionHandler {
   }
 
   protected def serializeCart(cart: CartWithShipping): String = {
-    JacksonConverter.serialize(cart)
+    import com.mogobiz.json.Implicits._
+    serialization.write(cart)
   }
 }
 

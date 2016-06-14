@@ -8,15 +8,15 @@ import java.io.File
 import java.net.UnknownHostException
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.server.{ Directives, Route }
 import com.mogobiz.auth.services._
 import com.mogobiz.pay.boot.DBInitializer
-import com.mogobiz.pay.exceptions.Exceptions.{MogopayException, MogopayMessagelessException}
+import com.mogobiz.pay.exceptions.Exceptions.{ MogopayException, MogopayMessagelessException }
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.system.MogobizSystem
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 trait MogopayRoutes extends Directives {
   this: MogobizSystem =>

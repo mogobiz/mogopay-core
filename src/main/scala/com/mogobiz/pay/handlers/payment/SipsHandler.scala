@@ -4,41 +4,28 @@
 
 package com.ebiznext.mogopay.payment
 
-import java.io.{ StringWriter, File, IOException }
+import java.io.{ File, StringWriter }
 import java.net.URLEncoder
-import java.text.DecimalFormat
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Enumeration
-import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import java.text.{ DecimalFormat, SimpleDateFormat }
+import java.util.{ Calendar, Date, Enumeration }
+
+import akka.http.scaladsl.model.Uri
 import com.atosorigin.services.cad.apipayment.SIPSCallParm
 import com.atosorigin.services.cad.apipayment.web.SIPSApiWeb
-import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeApi
-import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeRequestParm
-import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeResponseParm
-import com.atosorigin.services.cad.apiserver.components.service.checkout.{ SIPSCheckoutResponseParm, SIPSCheckoutRequestParm, SIPSCheckoutApi }
+import com.atosorigin.services.cad.apiserver.components.service.checkout.{ SIPSCheckoutApi, SIPSCheckoutRequestParm, SIPSCheckoutResponseParm }
+import com.atosorigin.services.cad.apiserver.components.service.office.{ SIPSOfficeApi, SIPSOfficeRequestParm, SIPSOfficeResponseParm }
 import com.atosorigin.services.cad.common.SIPSDataObject
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model.Mogopay.PaymentStatus
+import com.mogobiz.pay.exceptions.Exceptions.InvalidContextException
+import com.mogobiz.pay.handlers.payment.{ BankErrorCodes, PaymentHandler, ThreeDSResult }
 import com.mogobiz.pay.model.Mogopay.PaymentStatus._
-import com.mogobiz.pay.model.Mogopay.TransactionStatus
 import com.mogobiz.pay.model.Mogopay.TransactionStatus._
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{ RefundException, InvalidContextException, MogopayError }
-import com.mogobiz.pay.handlers.payment.{ BankErrorCodes, ThreeDSResult, PaymentHandler }
-import com.mogobiz.pay.model.Mogopay.ResponseCode3DS
-import com.mogobiz.pay.model.Mogopay.ResponseCode3DS._
 import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.utils.{ GlobalUtil, CustomSslConfiguration }
+import com.mogobiz.pay.model.Mogopay.{ PaymentStatus, ResponseCode3DS, TransactionStatus, _ }
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
-import spray.http.Uri
 
-import scala.collection.immutable
 import scala.util._
 import scala.util.control.NonFatal
 

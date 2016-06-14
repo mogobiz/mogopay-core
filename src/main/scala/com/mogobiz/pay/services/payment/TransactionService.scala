@@ -23,7 +23,7 @@ import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.SessionESDirectives._
 import com.mogobiz.session.{ Session, SessionESDirectives }
 import com.mogobiz.system.ActorSystemLocator
-import com.mogobiz.utils.CustomSslConfiguration
+import com.mogobiz.utils.HttpRequestor
 import com.typesafe.scalalogging.StrictLogging
 import spray.can.Http
 import spray.client.pipelining._
@@ -34,7 +34,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
-class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with CustomSslConfiguration with StrictLogging {
+class TransactionService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete with HttpRequestor with StrictLogging {
   implicit val timeout = Timeout(40 seconds)
 
   //  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
