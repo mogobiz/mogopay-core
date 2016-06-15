@@ -80,8 +80,8 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                       taxAmount = 0,
                       reduction = 0,
                       finalPrice = 0,
-                      cartItems = Array(),
-                      coupons = Array(),
+                      cartItems = Nil,
+                      coupons = Nil,
                       customs = Map[String, Any]())
                   else
                     throw InvalidContextException("Cart isn't set.")

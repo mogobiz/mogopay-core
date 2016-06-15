@@ -473,8 +473,8 @@ class TransactionHandler {
           taxAmount = 0,
           reduction = 0,
           finalPrice = 0,
-          cartItems = Array(),
-          coupons = Array(),
+          cartItems = Nil,
+          coupons = Nil,
           customs = immutable.Map[String, Any]())
       else
         throw InvalidContextException("Cart isn't set.")
