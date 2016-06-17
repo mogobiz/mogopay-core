@@ -1,67 +1,94 @@
-Your command {{transactionUuid}}
+Your order number {{transactionUUID}}.
+
 <html>
-<head>
-    <title>Votre facture</title>
-</head>
 <body>
-<h1>Votre facture n&deg; {{transactionUuid}}<br/>du {{#fn_format_date}}{{transactionDate}}|dd/MM/yyyy{{/fn_format_date}}</h1>
+
+
 
 {{#customer}}
-<p><label>Lastname : </label>{{lastName}}</p>
-<p><label>Firstname : </label>{{firstName}}</p>
+    Dear {{firstName}} {{lastName}}, <br/>
 {{/customer}}
+
+Thank you for your order with our shop, placed on our site the {{#fn_format_date}}{{transactionDate}}|yyyy MM dd {{/fn_format_date}} at {{#fn_format_date}}{{transactionDate}}|HH:mm{{/fn_format_date}}.<br/>
+Your order has been received and will be processed as soon as possible by our teams.<br/>
+<br/>
 
 {{#cart}}
     <table>
         <tr>
             <th>&nbsp;</th>
-            <th>Designation</th>
+            <th style="width:50%">Designation</th>
             <th>Qty</th>
-            <th>Px Unit.</th>
-            <th>Tax</th>
-            <th>Px Unit. TTC</th>
-            <th>Px Total</th>
+            <th>Unit Price</th>
+            <th>Tax.</th>
+            <th>Price Before Reduction</th>
+            <th>Price</th>
         </tr>
         {{#cartItems}}
             <tr>
-                <td><img src="{{picture}}"  width="50px" height="50px"/></td>
+                <td><img src="{{picture}}" width="50px" height="50px"/></td>
                 <td style="width: 50%">
                     <a href="{{shopUrl}}">{{name}}</a>
                     {{#registeredCartItems}}
                         <br/>
-                        {{email}} {{firstname}} {{lastname}}<br/>
-                        <img src="{{qrCodeContent}}" /><br/>
+                        {{email}} {{firstname}} {{lastname}} <br/>
+                        <img src="{{qrCodeContent}}"/> <br/>
                     {{/registeredCartItems}}
                     {{#downloadableLink}}
-                        <br/>><a href="{{.}}">Download</a>
+                        <br/><a href="{{.}}">Download</a>
                     {{/downloadableLink}}
                 </td>
                 <td style="text-align: right;" nowrap="true">{{quantity}}</td>
-                <td style="text-align: right;" nowrap="true">{{salePrice}}</td>
-                <td style="text-align: right;" nowrap="true">{{tax}}%</td>
-                <td style="text-align: right;" nowrap="true">{{saleEndPrice}}</td>
-                <td style="text-align: right;" nowrap="true">{{saleTotalEndPrice}}</td>
+                <td style="text-align: right;" nowrap="true">{{#fn_format_display_price }}{{salePrice}}{{/fn_format_display_price }}</td>
+                <td style="text-align: right;" nowrap="true">{{#fn_format_display_price }}{{taxAmount}}{{/fn_format_display_price }}</td>
+                <td style="text-align: right;" nowrap="true">
+                    {{#totalEndPrice}}
+                        {{#fn_format_display_price }}{{.}}{{/fn_format_display_price }}
+                    {{/totalEndPrice}}
+                </td>
+                <td style="text-align: right;" nowrap="true">{{#fn_format_display_price }}{{saleTotalEndPrice}}{{/fn_format_display_price }}</td>
             </tr>
         {{/cartItems}}
     </table>
     <table>
+
+        <tr>
+            <td style="text-align: right; width:75%">Total excluding tax</td>
+            <td style="text-align: right; width:25%">{{#fn_format_display_price}}{{price}}{{/fn_format_display_price}}</td>
+        </tr>
+
         <tr>
             <td style="text-align: right; width:75%">Total TVA</td>
-            <td style="text-align: right; width:25%">{{taxAmount}}</td>
+            <td style="text-align: right; width:25%">{{#fn_format_display_price}}{{taxAmount}}{{/fn_format_display_price}}</td>
         </tr>
         <tr>
             <td style="text-align: right; width:75%">Reduction</td>
-            <td style="text-align: right; width:25%">{{reduction}}</td>
+            <td style="text-align: right; width:25%">{{#fn_format_display_price}}{{reduction}}{{/fn_format_display_price}}</td>
+        </tr>
+        <tr>
+            <td style="text-align: right; width:75%">Coupons List</td>
+            <td style="text-align: right; width:25%">
+                {{#coupons}}
+                    {{code}} <br/>
+                {{/coupons}}
+            </td>
         </tr>
         <tr>
             <td style="text-align: right; width:75%">Shipping</td>
-            <td style="text-align: right; width:25%">{{shipping}}</td>
+            <td style="text-align: right; width:25%">{{#fn_format_display_price}}{{shipping}}{{/fn_format_display_price }}</td>
         </tr>
         <tr>
             <td style="text-align: right; width:75%">Total</td>
-            <td style="text-align: right; width:25%">{{finalPrice}}</td>
+            <td style="text-align: right; width:25%">{{#fn_format_display_price}}{{finalPrice}}{{/fn_format_display_price}}</td>
         </tr>
     </table>
+    {{#fn_format_display_price}}{{finalPrice}}{{/fn_format_display_price}} paid by {{#fn_payment_method}} {{paymentData.paymentType}} {{/fn_payment_method}}  provided by {{paymentData.cbProvider}}  <br/>
 {{/cart}}
+
+We hope to see you again soon on our site. <br/>
+
+Yours,<br/>
+Our Team.<br/>
+
 </body>
 </html>
