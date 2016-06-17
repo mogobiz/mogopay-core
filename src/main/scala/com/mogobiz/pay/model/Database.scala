@@ -533,8 +533,8 @@ object Mogopay {
     taxAmount: Long = 0,
     reduction: Long = 0,
     finalPrice: Long = 0,
-    cartItems: Array[CartItem] = Array(),
-    coupons: Array[Coupon] = Array(),
+    cartItems: List[CartItem] = Nil,
+    coupons: List[Coupon] = Nil,
     customs: Map[String, Any])
 
 }
