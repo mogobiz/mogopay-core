@@ -15,7 +15,7 @@ class TransactionRequestHandler {
   def save(txRequest: TransactionRequest, refresh: Boolean = false) =
     EsClient.index(Settings.Mogopay.EsIndex, txRequest, refresh)
 
-  def update(txRequest: TransactionRequest) = EsClient.update(Settings.Mogopay.EsIndex, txRequest, true, false)
+  def update(txRequest: TransactionRequest) = EsClient.update[TransactionRequest](Settings.Mogopay.EsIndex, txRequest, true, false)
 
   def find(uuid: String) = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, uuid)
 
@@ -29,7 +29,7 @@ class TransactionRequestHandler {
 
   def recycle() = {
     val cal = Calendar.getInstance()
-    cal.add(Calendar.MILLISECOND, -1 * Settings.TransactionRequestDuration)
+    cal.add(Calendar.MILLISECOND, -1 * Settings.TransactionRequestDuration * 60 * 1000)
     val xMillisAgo = cal.getTime
 
     val req = del from Settings.Mogopay.EsIndex -> "TransactionRequest" where {

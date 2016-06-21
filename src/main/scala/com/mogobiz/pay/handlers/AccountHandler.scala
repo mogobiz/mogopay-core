@@ -33,6 +33,8 @@ import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
 import org.json4s.JsonAST.{ JString, JValue }
 import org.json4s.jackson.Serialization.{ read, write }
+import spray.http.StatusCodes
+import spray.http.StatusCodes.ClientError
 
 import scala.util._
 import scala.util.control.NonFatal
@@ -722,6 +724,16 @@ class AccountHandler {
   } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
 
   def load(uuid: String): Option[Account] = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
+
+  def isValidAccountId(id: String, storeCodeParam: Option[String]) = {
+    accountHandler.load(id).map { account =>
+      storeCodeParam.map { storeCode =>
+        account.company.map { company =>
+          company == storeCode
+        }.getOrElse(true)
+      }.getOrElse(true)
+    }
+  }
 
   def updateProfile(profile: UpdateProfile): Unit = {
     load(profile.id) match {
