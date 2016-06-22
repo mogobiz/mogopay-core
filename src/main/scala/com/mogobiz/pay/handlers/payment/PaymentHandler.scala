@@ -89,58 +89,59 @@ trait PaymentHandler extends StrictLogging {
   }
 
   private def handleGroupPayment(payers: Map[String, Long], firstPayerBOTx: BOTransaction, merchantId: String,
-    paymentConfig: PaymentConfig, firstPayer: Account, locale: Option[String]): Unit = if (payers.size > 1) {
-    val groupTxUUID = firstPayerBOTx.uuid
-    boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = Some(groupTxUUID)), refresh = false)
+    paymentConfig: PaymentConfig, firstPayer: Account, locale: Option[String]): Unit = {
+    if (payers.size > 1) {
+      val groupTxUUID = firstPayerBOTx.uuid
+      boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = Some(groupTxUUID)), refresh = false)
 
-    payers.filter(_._1 != firstPayer.email).foreach {
-      case (email, amount) =>
-        val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
-          val newAccount = Account(
-            uuid = UUID.randomUUID().toString,
-            email = email,
-            password = null,
-            owner = Some(merchantId),
-            secret = "",
-            status = AccountStatus.INACTIVE
-          )
-          accountHandler.save(newAccount, false)
-          newAccount
-        }
+      payers.filter(_._1 != firstPayer.email).foreach {
+        case (email, amount) =>
+          val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
+            val newAccount = Account(
+              uuid = UUID.randomUUID().toString,
+              email = email,
+              password = null,
+              owner = Some(merchantId),
+              secret = "",
+              status = AccountStatus.INACTIVE
+            )
+            accountHandler.save(newAccount, false)
+            newAccount
+          }
 
-        val merchant = accountHandler.find(merchantId).get
-        val params = ParamRequest.TransactionInit(merchant.secret, amount, None,
-          firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
-        val txReq = transactionHandler.createTxReqForInit(merchant, params, firstPayerBOTx.currency, Some(groupTxUUID),
-          firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
-        transactionRequestHandler.save(txReq, refresh = false)
+          val merchant = accountHandler.find(merchantId).get
+          val params = ParamRequest.TransactionInit(merchant.secret, amount, None,
+            firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
+          val txReq = transactionHandler.createTxReqForInit(merchant, params, firstPayerBOTx.currency, Some(groupTxUUID),
+            firstPayerBOTx.groupPaymentExpirationDate, Some(firstPayerBOTx.groupPaymentRefundPercentage))
+          transactionRequestHandler.save(txReq, refresh = false)
 
-        val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
+          val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
 
-        val token = {
-          val expirationDate = firstPayerBOTx.groupPaymentExpirationDate.getOrElse(throw NoExpirationTimeSpecifiedException())
-          val expirationTime: Long = new Date((new Date).getTime + expirationDate).getTime
-          val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
-          SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
-        }
+          val token = {
+            val expirationDate = firstPayerBOTx.groupPaymentExpirationDate.getOrElse(throw NoExpirationTimeSpecifiedException())
+            val expirationTime: Long = new Date((new Date).getTime + expirationDate).getTime
+            val clearToken = s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
+            SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
+          }
 
-        if (Settings.Env == Environment.DEV) logger.debug(s"==== Group payment token: $token")
+          if (Settings.Env == Environment.DEV) logger.debug(s"==== Group payment token: $token")
 
-        val url = groupPaymentInfo.returnURLforNextPayers
-        val uri = Uri(url).withQuery(("token", token))
+          val url = groupPaymentInfo.returnURLforNextPayers
+          val uri = Uri(url).withQuery(("token", token))
 
-        def sendEmail() {
-          val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
-          val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
+          def sendEmail() {
+            val merchant = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
+            val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
 
-          val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
-          val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
+            val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
+            val jsonTx = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
 
-          val amount = rateHandler.format(txReq.amount.toFloat / 100, txReq.currency.code, country).getOrElse(
-            throw new RateNotFoundException(txReq.currency.code))
-          val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
-          val data =
-            s"""
+            val amount = rateHandler.format(txReq.amount.toFloat / 100, txReq.currency.code, country).getOrElse(
+              throw new RateNotFoundException(txReq.currency.code))
+            val payerName = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
+            val data =
+              s"""
                |{
                |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
                |  "firstPayer":  "$payerName",
@@ -149,19 +150,20 @@ trait PaymentHandler extends StrictLogging {
                |  "transaction": $jsonTx
                |}
                |""".stripMargin
-          val (subject, body) = templateHandler.mustache(Option(merchant), "mail-group-payment", locale, data)
+            val (subject, body) = templateHandler.mustache(Option(merchant), "mail-group-payment", locale, data)
 
-          val senderName = merchant.paymentConfig.get.senderName
-          val senderEmail = merchant.paymentConfig.get.senderEmail
+            val senderName = merchant.paymentConfig.get.senderName
+            val senderEmail = merchant.paymentConfig.get.senderEmail
 
-          EmailHandler.Send(
-            Mail(
-              from = (senderEmail.getOrElse(throw new Exception("No Sender Email configured for merchant")), senderName.getOrElse(throw new Exception("No Sender Name configured for Merchant"))),
-              to = Seq(account.email),
-              subject = subject,
-              message = body))
-        }
-        sendEmail()
+            EmailHandler.Send(
+              Mail(
+                from = (senderEmail.getOrElse(throw new Exception("No Sender Email configured for merchant")), senderName.getOrElse(throw new Exception("No Sender Name configured for Merchant"))),
+                to = Seq(account.email),
+                subject = subject,
+                message = body))
+          }
+          sendEmail()
+      }
     }
   }
 

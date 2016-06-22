@@ -23,16 +23,19 @@ import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.{AccountChange, AccountWithChanges, UpdateAccountChange, NewAccountChange}
 import com.mogobiz.pay.sql.BOAccountDAO
+import com.mogobiz.pay.sql.Sql.BOAccount
 import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{ EmailHandler, SymmetricCrypt }
+import com.mogobiz.utils.{GlobalUtil, EmailHandler, SymmetricCrypt}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
 import org.json4s.JsonAST.{ JString, JValue }
 import org.json4s.jackson.Serialization.{ read, write }
+import scalikejdbc.DBSession
 import spray.http.StatusCodes
 import spray.http.StatusCodes.ClientError
 
@@ -269,7 +272,6 @@ class AccountHandler {
         userAccountToIndex.copy(password = "")
       }
     }.getOrElse(throw AccountDoesNotExistException(""))
-
   }
 
   def login(email: String, password: String, merchantId: Option[String], isCustomer: Boolean): Account = {
@@ -361,11 +363,18 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def save(account: Account, refresh: Boolean = true) = findByEmail(account.email, account.owner) match {
+  def save(account: Account, refresh: Boolean = true): AccountWithChanges = findByEmail(account.email, account.owner) match {
     case Some(_) => throw AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}")
-    case None =>
-      BOAccountDAO.upsert(account)
-      EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
+    case None => {
+      BOAccountDAO.load(account.uuid).map {boAccount : BOAccount =>
+        BOAccountDAO.update(account)
+      }.getOrElse {
+        BOAccountDAO.create(account)
+      }
+      AccountWithChanges(account, List(AccountChange(newAccount = Some(account))))
+    }
+      //TODO vérifier que la notification est bien faite pour chaque appel
+      //EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
   }
 
   def update(account: Account, refresh: Boolean): Boolean = {
@@ -997,132 +1006,144 @@ class AccountHandler {
   }
 
   def signup(signup: Signup): (Token, Account) = {
-    val owner = if (signup.isMerchant) {
-      None
-    } else {
-      Some(signup.vendor.getOrElse({
-        val account = findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
-          throw new VendorNotFoundException()
-        }
-        account.uuid
-      }))
-    }
-    if (alreadyExistEmail(signup.email, owner)) {
-      throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
-    }
-
-    signup.company match {
-      case None if signup.isMerchant => throw new CompanyNotSpecifiedException()
-      case Some(c) if signup.isMerchant => if (alreadyExistCompany(c, owner))
-        throw new AccountWithSameCompanyAlreadyExistsError(c)
-      case _ =>
-    }
-
-    val birthdate = getBirthDayDate(signup.birthDate)
-    val civility = Civility.withName(signup.civility)
-
-    if (signup.password.isEmpty)
-      throw NoPasswordProvidedError("****")
-
-    if (signup.password != signup.password2)
-      throw PasswordsDoNotMatchException("****")
-
-    val password = new Sha256Hash(signup.password).toHex
-
-    val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${
-      signup.address.country
-    }"))
-
-    val country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
-
-    def address(): AccountAddress = {
-      val phoneStatus = if ((signup.isMerchant && Settings.AccountValidateMerchantPhone) ||
-        (!signup.isMerchant && Settings.AccountValidateCustomerPhone)) {
-        TelephoneStatus.WAITING_ENROLLMENT
+    val transactionalBlock = { implicit session: DBSession =>
+      val owner = if (signup.isMerchant) {
+        None
       } else {
-        TelephoneStatus.ACTIVE
+        Some(signup.vendor.getOrElse({
+          val account = findByEmail(Settings.AccountValidateMerchantDefault, None).getOrElse {
+            throw new VendorNotFoundException()
+          }
+          account.uuid
+        }))
+      }
+      if (alreadyExistEmail(signup.email, owner)) {
+        throw new AccountWithSameEmailAddressAlreadyExistsError(s"${signup.email}")
       }
 
-      val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
+      signup.company match {
+        case None if signup.isMerchant => throw new CompanyNotSpecifiedException()
+        case Some(c) if signup.isMerchant => if (alreadyExistCompany(c, owner))
+          throw new AccountWithSameCompanyAlreadyExistsError(c)
+        case _ =>
+      }
 
-      val coords = UtilHandler.computeGeoCoords(signup.address.road, signup.address.zipCode,
-        signup.address.city, signup.address.country,
-        Settings.EnableGeoLocation, Settings.GoogleAPIKey)
+      val birthdate = getBirthDayDate(signup.birthDate)
+      val civility = Civility.withName(signup.civility)
 
-      signup.address.copy(
-        telephone = Some(tel),
-        geoCoordinates = coords
+      if (signup.password.isEmpty)
+        throw NoPasswordProvidedError("****")
+
+      if (signup.password != signup.password2)
+        throw PasswordsDoNotMatchException("****")
+
+      val password = new Sha256Hash(signup.password).toHex
+
+      val countryCode = signup.address.country.getOrElse(throw InvalidInputException(s"Country not found. ${
+        signup.address.country
+      }"))
+
+      val country = countryHandler.findByCode(countryCode) getOrElse (throw CountryDoesNotExistException(s"$countryCode"))
+
+      def address(): AccountAddress = {
+        val phoneStatus = if ((signup.isMerchant && Settings.AccountValidateMerchantPhone) ||
+          (!signup.isMerchant && Settings.AccountValidateCustomerPhone)) {
+          TelephoneStatus.WAITING_ENROLLMENT
+        } else {
+          TelephoneStatus.ACTIVE
+        }
+
+        val tel = telephoneHandler.buildTelephone(signup.lphone, country.code, phoneStatus)
+
+        val coords = UtilHandler.computeGeoCoords(signup.address.road, signup.address.zipCode,
+          signup.address.city, signup.address.country,
+          Settings.EnableGeoLocation, Settings.GoogleAPIKey)
+
+        signup.address.copy(
+          telephone = Some(tel),
+          geoCoordinates = coords
+        )
+      }
+
+      val addr = address()
+      val accountId = newUUID
+
+      val needEmailValidation = (signup.isMerchant && Settings.AccountValidateMerchantEmail) ||
+        (!signup.isMerchant && Settings.AccountValidateCustomerEmail)
+      val accountStatus = if (needEmailValidation) {
+        AccountStatus.WAITING_ENROLLMENT
+      } else {
+        AccountStatus.ACTIVE
+      }
+
+      val token = if (accountStatus == AccountStatus.ACTIVE) ""
+      else Token.generateToken(accountId, owner, TokenType.Signup)
+
+      val shippingAddressList = if (signup.withShippingAddress) {
+        List(new ShippingAddress(
+          uuid = UUID.randomUUID().toString,
+          active = true,
+          address = addr.copy(telephone = addr.telephone.map { tel => tel.copy()})
+        ))
+      } else Nil
+
+      val account = Account(
+        uuid = accountId,
+        email = signup.email,
+        password = password,
+        civility = Some(civility),
+        firstName = Some(signup.firstName),
+        lastName = Some(signup.lastName),
+        birthDate = Some(birthdate),
+        status = accountStatus,
+        secret = if (signup.isMerchant) newUUID else "",
+        owner = owner,
+        address = Some(addr),
+        shippingAddresses = shippingAddressList,
+        waitingPhoneSince = System.currentTimeMillis(),
+        waitingEmailSince = System.currentTimeMillis(),
+        country = Some(country),
+        roles = List(if (signup.isMerchant) RoleName.MERCHANT else RoleName.CUSTOMER),
+        company = signup.company,
+        website = signup.website,
+        emailingToken = Some(token)
       )
+
+      if (signup.isMerchant)
+        transactionSequenceHandler.nextTransactionId(account.uuid)
+
+      (save(account), owner, token, needEmailValidation)
     }
 
-    val addr = address()
-    val accountId = newUUID
+    val successBlock = { result: (AccountWithChanges, Option[String], String, Boolean) =>
+      val accountAndChanges = result._1
+      val owner = result._2
+      val token = result._3
+      val needEmailValidation = result._4
+      notifyESChanges(accountAndChanges.changes)
 
-    val needEmailValidation = (signup.isMerchant && Settings.AccountValidateMerchantEmail) ||
-      (!signup.isMerchant && Settings.AccountValidateCustomerEmail)
-    val accountStatus = if (needEmailValidation) {
-      AccountStatus.WAITING_ENROLLMENT
-    } else {
-      AccountStatus.ACTIVE
-    }
-
-    val token = if (accountStatus == AccountStatus.ACTIVE) ""
-    else Token.generateToken(accountId, owner, TokenType.Signup)
-
-    val shippingAddressList = if (signup.withShippingAddress) {
-      List(new ShippingAddress(
-        uuid = UUID.randomUUID().toString,
-        active = true,
-        address = addr.copy(telephone = addr.telephone.map { tel => tel.copy() })
-      ))
-    } else Nil
-
-    val account = Account(
-      uuid = accountId,
-      email = signup.email,
-      password = password,
-      civility = Some(civility),
-      firstName = Some(signup.firstName),
-      lastName = Some(signup.lastName),
-      birthDate = Some(birthdate),
-      status = accountStatus,
-      secret = if (signup.isMerchant) newUUID else "",
-      owner = owner,
-      address = Some(addr),
-      shippingAddresses = shippingAddressList,
-      waitingPhoneSince = System.currentTimeMillis(),
-      waitingEmailSince = System.currentTimeMillis(),
-      country = Some(country),
-      roles = List(if (signup.isMerchant) RoleName.MERCHANT else RoleName.CUSTOMER),
-      company = signup.company,
-      website = signup.website,
-      emailingToken = Some(token)
-    )
-
-    if (signup.isMerchant)
-      transactionSequenceHandler.nextTransactionId(account.uuid)
-
-    save(account, refresh = true)
-
-    if (needEmailValidation) {
-      val validationUrl = signup.validationUrl + (if (signup.validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
-      val vendor = account.owner.flatMap(load)
-      owner match {
-        case None =>
-          notifyNewAccount(account, vendor, validationUrl, token, Settings.EmailSenderName,
-            Settings.EmailSenderAddress, signup.locale)
-        case Some(acc) =>
-          val merchant = getMerchant(acc)
-          val paymentConfig = merchant.getOrElse(throw new Exception(s"Unknown merchant ID $acc")).paymentConfig.getOrElse(throw new Exception(s"No payment config found found merchant $acc"))
-          val paymentConfigSenderEmail = if (paymentConfig.senderEmail.getOrElse("").trim.length == 0) None else paymentConfig.senderEmail
-          val paymentConfigSenderName = if (paymentConfig.senderName.getOrElse("").trim.length == 0) None else paymentConfig.senderName
-          val senderEmail = paymentConfigSenderEmail.getOrElse(merchant.get.email)
-          val senderName = paymentConfigSenderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
-          notifyNewAccount(account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
+      if (needEmailValidation) {
+        val validationUrl = signup.validationUrl + (if (signup.validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
+        val vendor = accountAndChanges.account.owner.flatMap(load)
+        owner match {
+          case None =>
+            notifyNewAccount(accountAndChanges.account, vendor, validationUrl, token, Settings.EmailSenderName,
+              Settings.EmailSenderAddress, signup.locale)
+          case Some(acc) =>
+            val merchant = getMerchant(acc)
+            val paymentConfig = merchant.getOrElse(throw new Exception(s"Unknown merchant ID $acc")).paymentConfig.getOrElse(throw new Exception(s"No payment config found found merchant $acc"))
+            val paymentConfigSenderEmail = if (paymentConfig.senderEmail.getOrElse("").trim.length == 0) None else paymentConfig.senderEmail
+            val paymentConfigSenderName = if (paymentConfig.senderName.getOrElse("").trim.length == 0) None else paymentConfig.senderName
+            val senderEmail = paymentConfigSenderEmail.getOrElse(merchant.get.email)
+            val senderName = paymentConfigSenderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
+            notifyNewAccount(accountAndChanges.account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
+        }
       }
+
+      (token, accountAndChanges.account)
     }
 
-    (token, account)
+    GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   def listCompagnies(accountUuid: Option[String]): List[String] = {
@@ -1198,6 +1219,14 @@ class AccountHandler {
         subject = subject,
         message = body,
         richMessage = Some(body)))
+  }
+
+  def notifyESChanges(list: List[AccountChange], refresh: Boolean = true) = {
+    list.foreach { change: AccountChange =>
+      change.newAccount.map {EsClient.index(Settings.Mogopay.EsIndex, _, refresh)}
+
+      change.newAccount.map {EsClient.index(Settings.Mogopay.EsIndex, _, refresh)}
+    }
   }
 }
 

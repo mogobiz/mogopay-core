@@ -11,16 +11,19 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.common.CartRate
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Mapping, Settings }
+import com.mogobiz.pay.model.AccountWithChanges
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.utils.GlobalUtil
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.index.query.TermQueryBuilder
 import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.transport.RemoteTransportException
+import scalikejdbc.DBSession
 
 import scala.util.Random
 import scala.util.control.NonFatal
@@ -185,21 +188,27 @@ object DBInitializer {
   val franceCountry = Country(UUID.randomUUID.toString, "FR", "France", false, false, None, None, None, None, None)
 
   private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig: PaymentConfig): Account = {
-    val account = Account(uuid = uuid,
-      email = email,
-      company = Some(email),
-      password = new Sha256Hash("1234").toString,
-      civility = Some(Civility.MR),
-      firstName = Some(firstname),
-      lastName = Some(lastname),
-      address = Some(createAddress(firstname, lastname)),
-      status = AccountStatus.ACTIVE,
-      paymentConfig = Some(paymentConfig),
-      roles = List(RoleName.MERCHANT),
-      secret = uuid,
-      country = Some(franceCountry))
-    accountHandler.save(account)
-    account
+    val transactionalBlock = {implicit session: DBSession =>
+      val account = Account(uuid = uuid,
+        email = email,
+        company = Some(email),
+        password = new Sha256Hash("1234").toString,
+        civility = Some(Civility.MR),
+        firstName = Some(firstname),
+        lastName = Some(lastname),
+        address = Some(createAddress(firstname, lastname)),
+        status = AccountStatus.ACTIVE,
+        paymentConfig = Some(paymentConfig),
+        roles = List(RoleName.MERCHANT),
+        secret = uuid,
+        country = Some(franceCountry))
+      accountHandler.save(account)
+    }
+    val successBlock = {accountAndChanges: AccountWithChanges =>
+      accountHandler.notifyESChanges(accountAndChanges.changes)
+      accountAndChanges.account
+    }
+    GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   private def createClientAccount(uuid: String, email: String, firstname: String, lastname: String,
@@ -207,24 +216,30 @@ object DBInitializer {
     status: AccountStatus = AccountStatus.ACTIVE,
     telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE,
     geoCoords: Option[String] = None): Account = {
-    val birthDate = Calendar.getInstance()
-    birthDate.set(2000, 0, 1)
-    val account = Account(uuid = uuid,
-      email = email,
-      password = new Sha256Hash("1234").toString,
-      civility = Some(Civility.MR),
-      firstName = Some(firstname),
-      lastName = Some(lastname),
-      birthDate = Some(birthDate.getTime),
-      address = Some(createAddress(firstname = firstname, lastname = lastname, telephoneStatus = telephoneStatus, geoCoords = geoCoords)),
-      status = status,
-      roles = List(RoleName.CUSTOMER),
-      owner = Some(owner.uuid),
-      shippingAddresses = if (withShippingAddress) List(createShippingAddress(firstname, lastname, true), createShippingAddress(firstname, lastname, false)) else List(),
-      secret = uuid,
-      country = Some(franceCountry))
-    accountHandler.save(account)
-    account
+    val transactionalBlock = {implicit session: DBSession =>
+      val birthDate = Calendar.getInstance()
+      birthDate.set(2000, 0, 1)
+      val account = Account(uuid = uuid,
+        email = email,
+        password = new Sha256Hash("1234").toString,
+        civility = Some(Civility.MR),
+        firstName = Some(firstname),
+        lastName = Some(lastname),
+        birthDate = Some(birthDate.getTime),
+        address = Some(createAddress(firstname = firstname, lastname = lastname, telephoneStatus = telephoneStatus, geoCoords = geoCoords)),
+        status = status,
+        roles = List(RoleName.CUSTOMER),
+        owner = Some(owner.uuid),
+        shippingAddresses = if (withShippingAddress) List(createShippingAddress(firstname, lastname, true), createShippingAddress(firstname, lastname, false)) else List(),
+        secret = uuid,
+        country = Some(franceCountry))
+      accountHandler.save(account)
+    }
+    val successBlock = {accountAndChanges: AccountWithChanges =>
+      accountHandler.notifyESChanges(accountAndChanges.changes)
+      accountAndChanges.account
+    }
+    GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   private def createAddress(firstname: String, lastname: String,

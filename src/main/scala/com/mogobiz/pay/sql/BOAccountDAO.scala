@@ -9,6 +9,7 @@ import java.util.{ Date, UUID }
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model.Mogopay.Account
 import Sql.BOAccount
+import com.mogobiz.run.model.Mogobiz.BOCart
 import scalikejdbc._
 
 object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
@@ -28,6 +29,13 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     rs.date(rn.dateCreated),
     rs.date(rn.lastUpdated))
 
+  def load(uuid: String)(implicit session: DBSession): Option[BOAccount] = {
+    val t = BOAccountDAO.syntax("t")
+    withSQL {
+      select.from(BOAccountDAO as t).where.eq(t.uuid, uuid)
+    }.map(BOAccountDAO(t.resultName)).single().apply()
+  }
+
   def create(account: Account)(implicit session: DBSession): Unit = {
     val newBoAccount = new BOAccount(newId(), UUID.fromString(account.uuid), JacksonConverter.serialize(account),
       account.email, account.company.orNull, new Date, new Date)
@@ -45,14 +53,7 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     }
   }
 
-  def upsert(account: Account): Unit = {
-    DB localTx { implicit session =>
-      val updateResult = update(account)
-      if (updateResult == 0) create(account)
-    }
-  }
-
-  def update(account: Account): Int = {
+  def update(account: Account)(implicit session : DBSession): Int = {
     DB localTx { implicit session =>
       applyUpdate {
         QueryDSL.update(BOAccountDAO).set(
