@@ -109,7 +109,7 @@ trait PaymentHandler extends StrictLogging {
                 secret = "",
                 status = AccountStatus.INACTIVE
               )
-              accountHandler.save(newAccount, false)
+              accountHandler.save(newAccount)
             }
           }
 

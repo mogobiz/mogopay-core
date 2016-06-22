@@ -363,7 +363,7 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def save(account: Account, refresh: Boolean = true)(implicit session: DBSession): AccountWithChanges = findByEmail(account.email, account.owner) match {
+  def save(account: Account)(implicit session: DBSession): AccountWithChanges = findByEmail(account.email, account.owner) match {
     case Some(_) => throw AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}")
     case None => {
       BOAccountDAO.load(account.uuid).map { boAccount: BOAccount =>
@@ -373,8 +373,6 @@ class AccountHandler {
       }
       AccountWithChanges(account, List(AccountChange(newAccount = Some(account))))
     }
-    //TODO vérifier que la notification est bien faite pour chaque appel
-    //EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
   }
 
   def update(account: Account, refresh: Boolean): Boolean = {
