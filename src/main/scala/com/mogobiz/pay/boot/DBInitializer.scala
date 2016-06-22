@@ -188,7 +188,7 @@ object DBInitializer {
   val franceCountry = Country(UUID.randomUUID.toString, "FR", "France", false, false, None, None, None, None, None)
 
   private def createMerchantAccount(uuid: String, email: String, firstname: String, lastname: String, paymentConfig: PaymentConfig): Account = {
-    val transactionalBlock = {implicit session: DBSession =>
+    val transactionalBlock = { implicit session: DBSession =>
       val account = Account(uuid = uuid,
         email = email,
         company = Some(email),
@@ -204,7 +204,7 @@ object DBInitializer {
         country = Some(franceCountry))
       accountHandler.save(account)
     }
-    val successBlock = {accountAndChanges: AccountWithChanges =>
+    val successBlock = { accountAndChanges: AccountWithChanges =>
       accountHandler.notifyESChanges(accountAndChanges.changes)
       accountAndChanges.account
     }
@@ -216,7 +216,7 @@ object DBInitializer {
     status: AccountStatus = AccountStatus.ACTIVE,
     telephoneStatus: TelephoneStatus = TelephoneStatus.ACTIVE,
     geoCoords: Option[String] = None): Account = {
-    val transactionalBlock = {implicit session: DBSession =>
+    val transactionalBlock = { implicit session: DBSession =>
       val birthDate = Calendar.getInstance()
       birthDate.set(2000, 0, 1)
       val account = Account(uuid = uuid,
@@ -235,7 +235,7 @@ object DBInitializer {
         country = Some(franceCountry))
       accountHandler.save(account)
     }
-    val successBlock = {accountAndChanges: AccountWithChanges =>
+    val successBlock = { accountAndChanges: AccountWithChanges =>
       accountHandler.notifyESChanges(accountAndChanges.changes)
       accountAndChanges.account
     }

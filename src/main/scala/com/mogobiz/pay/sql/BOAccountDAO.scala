@@ -9,7 +9,6 @@ import java.util.{ Date, UUID }
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model.Mogopay.Account
 import Sql.BOAccount
-import com.mogobiz.run.model.Mogobiz.BOCart
 import scalikejdbc._
 
 object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
@@ -53,16 +52,14 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     }
   }
 
-  def update(account: Account)(implicit session : DBSession): Int = {
-    DB localTx { implicit session =>
-      applyUpdate {
-        QueryDSL.update(BOAccountDAO).set(
-          BOAccountDAO.column.extra -> JacksonConverter.serialize(account),
-          BOAccountDAO.column.email -> account.email,
-          BOAccountDAO.column.company -> account.company.orNull,
-          BOAccountDAO.column.lastUpdated -> new Date
-        ).where.eq(BOAccountDAO.column.uuid, account.uuid)
-      }
+  def update(account: Account)(implicit session: DBSession): Int = {
+    applyUpdate {
+      QueryDSL.update(BOAccountDAO).set(
+        BOAccountDAO.column.extra -> JacksonConverter.serialize(account),
+        BOAccountDAO.column.email -> account.email,
+        BOAccountDAO.column.company -> account.company.orNull,
+        BOAccountDAO.column.lastUpdated -> new Date
+      ).where.eq(BOAccountDAO.column.uuid, account.uuid)
     }
   }
 

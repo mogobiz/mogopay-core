@@ -23,19 +23,19 @@ import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.{AccountChange, AccountWithChanges, UpdateAccountChange, NewAccountChange}
+import com.mogobiz.pay.model.{ AccountChange, AccountWithChanges }
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.mogobiz.pay.sql.Sql.BOAccount
 import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{GlobalUtil, EmailHandler, SymmetricCrypt}
+import com.mogobiz.utils.{ GlobalUtil, EmailHandler, SymmetricCrypt }
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.search.SearchHit
 import org.json4s.JsonAST.{ JString, JValue }
 import org.json4s.jackson.Serialization.{ read, write }
-import scalikejdbc.DBSession
+import scalikejdbc.{ DB, DBSession }
 import spray.http.StatusCodes
 import spray.http.StatusCodes.ClientError
 
@@ -363,23 +363,25 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def save(account: Account, refresh: Boolean = true): AccountWithChanges = findByEmail(account.email, account.owner) match {
+  def save(account: Account, refresh: Boolean = true)(implicit session: DBSession): AccountWithChanges = findByEmail(account.email, account.owner) match {
     case Some(_) => throw AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}")
     case None => {
-      BOAccountDAO.load(account.uuid).map {boAccount : BOAccount =>
+      BOAccountDAO.load(account.uuid).map { boAccount: BOAccount =>
         BOAccountDAO.update(account)
       }.getOrElse {
         BOAccountDAO.create(account)
       }
       AccountWithChanges(account, List(AccountChange(newAccount = Some(account))))
     }
-      //TODO vérifier que la notification est bien faite pour chaque appel
-      //EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
+    //TODO vérifier que la notification est bien faite pour chaque appel
+    //EsClient.index(Settings.Mogopay.EsIndex, account, refresh)
   }
 
   def update(account: Account, refresh: Boolean): Boolean = {
-    BOAccountDAO.update(account)
-    EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert = false, refresh = refresh)
+    DB localTx { implicit session =>
+      BOAccountDAO.update(account)
+      EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert = false, refresh = refresh)
+    }
   }
 
   def getAccount(accountId: String, roleName: RoleName): Option[Account] = {
@@ -1083,7 +1085,7 @@ class AccountHandler {
         List(new ShippingAddress(
           uuid = UUID.randomUUID().toString,
           active = true,
-          address = addr.copy(telephone = addr.telephone.map { tel => tel.copy()})
+          address = addr.copy(telephone = addr.telephone.map { tel => tel.copy() })
         ))
       } else Nil
 
@@ -1223,9 +1225,9 @@ class AccountHandler {
 
   def notifyESChanges(list: List[AccountChange], refresh: Boolean = true) = {
     list.foreach { change: AccountChange =>
-      change.newAccount.map {EsClient.index(Settings.Mogopay.EsIndex, _, refresh)}
+      change.newAccount.map { EsClient.index(Settings.Mogopay.EsIndex, _, refresh) }
 
-      change.newAccount.map {EsClient.index(Settings.Mogopay.EsIndex, _, refresh)}
+      change.newAccount.map { EsClient.index(Settings.Mogopay.EsIndex, _, refresh) }
     }
   }
 }

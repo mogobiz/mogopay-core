@@ -10,7 +10,7 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.AccountWithChanges
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil._
-import com.mogobiz.utils.{GlobalUtil, RSA}
+import com.mogobiz.utils.{ GlobalUtil, RSA }
 import org.apache.shiro.crypto.hash.Sha256Hash
 import scalikejdbc.DBSession
 
@@ -32,7 +32,7 @@ class UserHandler {
 
   def register(successURL: String, errorURL: String, merchantId: String,
     email: String, password: String): Map[String, String] = {
-    val transactionalBlock = {implicit session: DBSession =>
+    val transactionalBlock = { implicit session: DBSession =>
       val vendor = accountHandler.load(merchantId).getOrElse(throw AccountDoesNotExistException(""))
       if (!vendor.roles.contains(RoleName.MERCHANT)) throw NotAVendorAccountException("")
 
