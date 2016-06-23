@@ -6,14 +6,23 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.exceptions.Exceptions.{ CreditCardDoesNotExistException, AccountDoesNotExistException }
+import com.mogobiz.pay.model.AccountWithChanges
 import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.utils.GlobalUtil
+import scalikejdbc.DBSession
 
 class CreditCardHandler {
   def delete(accountId: String, cardId: String): Unit = {
     accountHandler.load(accountId).map { account: Account =>
       account.creditCards.find(_.uuid == cardId).map { card =>
-        val newCards = account.creditCards.diff(Seq(card))
-        accountHandler.update(account.copy(creditCards = newCards), false)
+        val transactionalBlock = { implicit session: DBSession =>
+          val newCards = account.creditCards.diff(Seq(card))
+          accountHandler.update2(account.copy(creditCards = newCards))
+        }
+        val successBlock = { accountAndChanges: AccountWithChanges =>
+          accountHandler.notifyESChanges(accountAndChanges.changes, false)
+        }
+        GlobalUtil.runInTransaction(transactionalBlock, successBlock)
       } getOrElse {
         throw CreditCardDoesNotExistException("")
       }

@@ -24,7 +24,7 @@ import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.ParamRequest
+import com.mogobiz.pay.model.{ AccountWithChanges, ParamRequest }
 import com.mogobiz.utils.EmailHandler.{ Attachment, Mail }
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
@@ -36,6 +36,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import Settings.Mail.Smtp.MailSettings
 import org.json4s.jackson.Serialization._
+import scalikejdbc.DBSession
 
 import scala.collection.{ Map, _ }
 import scala.util._
@@ -434,7 +435,6 @@ class TransactionHandler {
 
     // The first time a user come, mogopay is false & cardinfo is true.
     // This definitely set the mogopay status for the whole session.
-
     val vendor =
       if (sessionData.accountId.isDefined && successURL.isEmpty && errorURL.isEmpty && cardinfoURL.isEmpty && authURL.isEmpty) {
         // user is authenticated and is coming back from the CVV screen.
@@ -464,178 +464,187 @@ class TransactionHandler {
       throw UnexpectedAmountException(s"${amount.get}")
     }
 
-    val cart = sessionData.cart.getOrElse {
-      if (Settings.Mogopay.Anonymous)
-        Cart(count = 0,
-          rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
-          price = 0,
-          endPrice = 0,
-          taxAmount = 0,
-          reduction = 0,
-          finalPrice = 0,
-          cartItems = Nil,
-          coupons = Nil,
-          customs = immutable.Map[String, Any]())
-      else
-        throw InvalidContextException("Cart isn't set.")
+    val transactionalBlock = { implicit session: DBSession =>
 
-    }
-    var selectedShippingPrice: Option[ShippingData] = sessionData.selectShippingPrice
+      val cart = sessionData.cart.getOrElse {
+        if (Settings.Mogopay.Anonymous)
+          Cart(count = 0,
+            rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
+            price = 0,
+            endPrice = 0,
+            taxAmount = 0,
+            reduction = 0,
+            finalPrice = 0,
+            cartItems = Nil,
+            coupons = Nil,
+            customs = immutable.Map[String, Any]())
+        else
+          throw InvalidContextException("Cart isn't set.")
 
-    if (!Settings.Mogopay.Anonymous) {
-      if (sessionData.shippingPrices.getOrElse(throw InvalidContextException("The shippings list wasn't computed.")).nonEmpty
-        && sessionData.selectShippingPrice.isEmpty) {
-        throw InvalidContextException("Shipping price cannot be empty")
       }
-    }
+      var selectedShippingPrice: Option[ShippingData] = sessionData.selectShippingPrice
 
-    val shippingPrice = sessionData.selectShippingPrice.map {
-      _.price
-    }.getOrElse(0L)
-
-    val cartWithShipping = CartWithShipping(cart.count,
-      shippingPrice,
-      cart.rate,
-      cart.price,
-      cart.endPrice,
-      cart.taxAmount,
-      cart.reduction,
-      cart.finalPrice + shippingPrice,
-      cart.cartItems,
-      cart.coupons,
-      cart.customs)
-
-    transactionRequestHandler.delete(transactionRequest.uuid, refresh = false)
-
-    val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
-    if (transaction.isDefined)
-      throw TheBOTransactionAlreadyExistsException(s"${transactionUUID.get}")
-
-    def checkParameters(vendor: Account): Boolean = {
-      def checkBCParameters(paymentConfig: PaymentConfig): Boolean = {
-        (CBPaymentProvider.NONE != paymentConfig.cbProvider
-          && paymentConfig.cbParam.isDefined
-          && paymentConfig.cbParam.exists(_ != ""))
-      }
-
-      val isMerchant = vendor.roles.contains(RoleName.MERCHANT)
-      if (isMerchant && vendor.paymentConfig != null && vendor.status == AccountStatus.ACTIVE) {
-        val paymentConfig = vendor.paymentConfig
-        paymentConfig.exists(checkBCParameters)
-      } else {
-        false
-      }
-    }
-
-    if (amount.getOrElse(0L) <= 0 && !mogopayAuth)
-      throw SomeParameterIsMissingException("Not a mogopay payment and amount is missing.")
-    if (transactionUUID.isEmpty)
-      throw SomeParameterIsMissingException("transactionUUID is missing.")
-    if (successURL.isEmpty)
-      throw SomeParameterIsMissingException("successURL is missing.")
-    if (errorURL.isEmpty)
-      throw SomeParameterIsMissingException("errorURL is missing.")
-    if (!checkParameters(vendor))
-      throw SomeParameterIsMissingException("Invalid vendor parameters.")
-
-    sessionData.amount = amount
-    sessionData.transactionUuid = transactionUUID
-    sessionData.errorURL = errorURL
-    sessionData.successURL = successURL
-    sessionData.cardinfoURL = submit.params.cardinfoURL
-    sessionData.cvvURL = submit.params.cvvURL
-    sessionData.transactionType = transactionType
-    sessionData.merchantId = Some(vendor.uuid)
-    sessionData.paymentConfig = vendor.paymentConfig
-    sessionData.locale = submit.params.locale
-    if (submit.params.customerEmail.isDefined) sessionData.email = submit.params.customerEmail
-    sessionData.password = submit.params.customerPassword
-
-    if (!sessionData.mogopay)
-      sessionData.mogopay = cardStore && (sessionData.authenticated || submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty))
-
-    sessionData.accountId.map {
-      customerId =>
-        // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
-        if (submit.params.ccNum.nonEmpty && cardStore) {
-          val customer = accountHandler.load(customerId).orNull
-          // Mogopay avec une nouvele carte
-          val ccNum = submit.params.ccNum.orNull
-          val ccMonth = submit.params.ccMonth.orNull
-          val ccYear = submit.params.ccYear.orNull
-          val ccType = toCardType(submit.params.ccType.orNull)
-          val simpleDateFormat = new SimpleDateFormat("ddMMyy")
-          val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
-          val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
-          val cust2 = customer.copy(creditCards = List(cc))
-          accountHandler.update(cust2, refresh = false)
+      if (!Settings.Mogopay.Anonymous) {
+        if (sessionData.shippingPrices.getOrElse(throw InvalidContextException("The shippings list wasn't computed.")).nonEmpty
+          && sessionData.selectShippingPrice.isEmpty) {
+          throw InvalidContextException("Shipping price cannot be empty")
         }
-    }
-    //    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
-    //      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
-    //      // Mogopay has to determine what to do.
-    //      // if user is authenticated, then route him to cvv
-    //      // if user is not authenticated then route him to auth screen
-    //      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
-    //      if (sessionData.authenticated) {
-    //        (null, cvvURL.get)
-    //      }
-    //      else {
-    //        (null, authURL.get)
-    //      }
-    //
-    //    }
-    if (sessionData.mogopay) {
-      // this is a mogopay payment
-      if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
-        // only credit card payments are supported through mogopay
-        if (submit.params.customerCVV.nonEmpty) {
-          val customer = accountHandler.load(sessionData.accountId.get).orNull
-          val card = customer.creditCards.head
-          val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.CardSecret, "AES")
-          val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)
-          val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
-          val paymentRequest = initPaymentRequest(vendor, transactionType, mogopay = true, transactionRequest.tid,
-            cartWithShipping, sessionData, submit.params.transactionDescription.orNull,
-            submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear,
-            card.cardType, transactionRequest.groupPaymentExpirationDate)
-          sessionData.paymentRequest = Some(paymentRequest)
+      }
 
-          // user is already authenticated. We check start the mogopayment
-          // the user has been authenticated at this step.
-          //forward(controller: "mogopay", action: "startPayment", params: params + [xtoken: sessionData.csrfToken])
-          //Success((buildNewSubmit(submit, newSession), "startPayment"))
-          ("mogopay", "start")
+      val shippingPrice = sessionData.selectShippingPrice.map {
+        _.price
+      }.getOrElse(0L)
+
+      val cartWithShipping = CartWithShipping(cart.count,
+        shippingPrice,
+        cart.rate,
+        cart.price,
+        cart.endPrice,
+        cart.taxAmount,
+        cart.reduction,
+        cart.finalPrice + shippingPrice,
+        cart.cartItems,
+        cart.coupons,
+        cart.customs)
+
+      transactionRequestHandler.delete(transactionRequest.uuid, refresh = false)
+
+      val transaction: Option[BOTransaction] = boTransactionHandler.find(transactionUUID.get)
+      if (transaction.isDefined)
+        throw TheBOTransactionAlreadyExistsException(s"${transactionUUID.get}")
+
+      def checkParameters(vendor: Account): Boolean = {
+        def checkBCParameters(paymentConfig: PaymentConfig): Boolean = {
+          (CBPaymentProvider.NONE != paymentConfig.cbProvider
+            && paymentConfig.cbParam.isDefined
+            && paymentConfig.cbParam.exists(_ != ""))
+        }
+
+        val isMerchant = vendor.roles.contains(RoleName.MERCHANT)
+        if (isMerchant && vendor.paymentConfig != null && vendor.status == AccountStatus.ACTIVE) {
+          val paymentConfig = vendor.paymentConfig
+          paymentConfig.exists(checkBCParameters)
         } else {
-          // User submitted a password we authenticate him
-          // we redirect the user to authentication screen
-          // but we need first to recreate the transaction request
-          transactionRequestHandler.save(transactionRequest, refresh = false)
-          ("mogopay", "authenticate")
+          false
         }
-      } else {
-        throw NotACreditCardTransactionException(s"$transactionType")
       }
-    } else {
-      val paymentRequest = initPaymentRequest(vendor, transactionType, mogopay = false, transactionRequest.tid,
-        cartWithShipping, sessionData, submit.params.transactionDescription.orNull,
-        submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, submit.params.ccNum.orNull,
-        submit.params.ccMonth.orNull, submit.params.ccYear.orNull, toCardType(submit.params.ccType.orNull),
-        transactionRequest.groupPaymentExpirationDate)
-      sessionData.paymentRequest = Some(paymentRequest)
-      val handler = if (submit.sessionData.transactionType.contains("CREDIT_CARD")) {
-        val providerName = sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
-        if (providerName == "custom") {
-          val params = sessionData.paymentConfig.get.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
-          params("customProviderName")
-        } else {
-          providerName
-        }
-      } else {
-        sessionData.transactionType.get.toLowerCase
-      }
-      (handler, "start")
+
+      if (amount.getOrElse(0L) <= 0 && !mogopayAuth)
+        throw SomeParameterIsMissingException("Not a mogopay payment and amount is missing.")
+      if (transactionUUID.isEmpty)
+        throw SomeParameterIsMissingException("transactionUUID is missing.")
+      if (successURL.isEmpty)
+        throw SomeParameterIsMissingException("successURL is missing.")
+      if (errorURL.isEmpty)
+        throw SomeParameterIsMissingException("errorURL is missing.")
+      if (!checkParameters(vendor))
+        throw SomeParameterIsMissingException("Invalid vendor parameters.")
+
+      sessionData.amount = amount
+      sessionData.transactionUuid = transactionUUID
+      sessionData.errorURL = errorURL
+      sessionData.successURL = successURL
+      sessionData.cardinfoURL = submit.params.cardinfoURL
+      sessionData.cvvURL = submit.params.cvvURL
+      sessionData.transactionType = transactionType
+      sessionData.merchantId = Some(vendor.uuid)
+      sessionData.paymentConfig = vendor.paymentConfig
+      sessionData.locale = submit.params.locale
+      if (submit.params.customerEmail.isDefined) sessionData.email = submit.params.customerEmail
+      sessionData.password = submit.params.customerPassword
+
+      if (!sessionData.mogopay)
+        sessionData.mogopay = cardStore && (sessionData.authenticated || submit.params.customerPassword.nonEmpty || (submit.params.ccNum.isEmpty && submit.params.customerCVV.nonEmpty))
+
+      val changes = sessionData.accountId.map {
+        customerId =>
+          // User is a mogopay user, he has authenticated and is coming back from the cardinfo screen
+          if (submit.params.ccNum.nonEmpty && cardStore) {
+            val customer = accountHandler.load(customerId).orNull
+            // Mogopay avec une nouvele carte
+            val ccNum = submit.params.ccNum.orNull
+            val ccMonth = submit.params.ccMonth.orNull
+            val ccYear = submit.params.ccYear.orNull
+            val ccType = toCardType(submit.params.ccType.orNull)
+            val simpleDateFormat = new SimpleDateFormat("ddMMyy")
+            val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
+            val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
+            val cust2 = customer.copy(creditCards = List(cc))
+            Some(accountHandler.update2(cust2))
+          } else None
+      }.flatten
+      (cartWithShipping, changes)
     }
+    val successBlock = { result: (CartWithShipping, Option[AccountWithChanges]) =>
+      result._2.map { accountWithChanges: AccountWithChanges => accountHandler.notifyESChanges(accountWithChanges.changes, false) }
+
+      //    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
+      //      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {
+      //      // Mogopay has to determine what to do.
+      //      // if user is authenticated, then route him to cvv
+      //      // if user is not authenticated then route him to auth screen
+      //      // from auth screen, he will be routed to cardinfo_url if the card is not present in his account
+      //      if (sessionData.authenticated) {
+      //        (null, cvvURL.get)
+      //      }
+      //      else {
+      //        (null, authURL.get)
+      //      }
+      //
+      //    }
+      if (sessionData.mogopay) {
+        // this is a mogopay payment
+        if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD") {
+          // only credit card payments are supported through mogopay
+          if (submit.params.customerCVV.nonEmpty) {
+            val customer = accountHandler.load(sessionData.accountId.get).orNull
+            val card = customer.creditCards.head
+            val cardNum = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.CardSecret, "AES")
+            val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)
+            val cardYear = new SimpleDateFormat("yyyy").format(card.expiryDate)
+            val paymentRequest = initPaymentRequest(vendor, transactionType, mogopay = true, transactionRequest.tid,
+              result._1, sessionData, submit.params.transactionDescription.orNull,
+              submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, cardNum, cardMonth, cardYear,
+              card.cardType, transactionRequest.groupPaymentExpirationDate)
+            sessionData.paymentRequest = Some(paymentRequest)
+
+            // user is already authenticated. We check start the mogopayment
+            // the user has been authenticated at this step.
+            //forward(controller: "mogopay", action: "startPayment", params: params + [xtoken: sessionData.csrfToken])
+            //Success((buildNewSubmit(submit, newSession), "startPayment"))
+            ("mogopay", "start")
+          } else {
+            // User submitted a password we authenticate him
+            // we redirect the user to authentication screen
+            // but we need first to recreate the transaction request
+            transactionRequestHandler.save(transactionRequest, refresh = false)
+            ("mogopay", "authenticate")
+          }
+        } else {
+          throw NotACreditCardTransactionException(s"$transactionType")
+        }
+      } else {
+        val paymentRequest = initPaymentRequest(vendor, transactionType, mogopay = false, transactionRequest.tid,
+          result._1, sessionData, submit.params.transactionDescription.orNull,
+          submit.params.gatewayData.orNull, submit.params.customerCVV.orNull, submit.params.ccNum.orNull,
+          submit.params.ccMonth.orNull, submit.params.ccYear.orNull, toCardType(submit.params.ccType.orNull),
+          transactionRequest.groupPaymentExpirationDate)
+        sessionData.paymentRequest = Some(paymentRequest)
+        val handler = if (submit.sessionData.transactionType.contains("CREDIT_CARD")) {
+          val providerName = sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
+          if (providerName == "custom") {
+            val params = sessionData.paymentConfig.get.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
+            params("customProviderName")
+          } else {
+            providerName
+          }
+        } else {
+          sessionData.transactionType.get.toLowerCase
+        }
+        (handler, "start")
+      }
+    }
+    GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   def download(transactionUuid: String, pageFormat: String, langCountry: String): File = {

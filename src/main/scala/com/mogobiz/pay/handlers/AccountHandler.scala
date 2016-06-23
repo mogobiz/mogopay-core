@@ -592,13 +592,22 @@ class AccountHandler {
   }
 
   def addCreditCard(accountId: String, ccId: Option[String], holder: String,
-    number: Option[String], expiryDate: String, ccType: String): CreditCard = ccId match {
-    case None => createCard(accountId, holder, number.get, expiryDate, ccType)
-    case Some(cardId) => updateCard(accountId, cardId, holder, expiryDate, ccType)
+    number: Option[String], expiryDate: String, ccType: String): CreditCard = {
+    val transactionalBlock = { implicit session: DBSession =>
+      ccId match {
+        case None => createCard(accountId, holder, number.get, expiryDate, ccType)
+        case Some(cardId) => updateCard(accountId, cardId, holder, expiryDate, ccType)
+      }
+    }
+    val successBlock = { result: (CreditCard, AccountWithChanges) =>
+      notifyESChanges(result._2.changes)
+      result._1
+    }
+    GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   private def updateCard(accountId: String, ccId: String, holder: String,
-    expiryDate: String, ccType: String): CreditCard = {
+    expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountWithChanges) = {
     val account = accountHandler.load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
@@ -610,13 +619,11 @@ class AccountHandler {
     )
 
     val newCards = account.creditCards.filter(_.uuid != ccId) :+ newCard
-    accountHandler.update(account.copy(creditCards = newCards), true)
-
-    newCard
+    (newCard, accountHandler.update2(account.copy(creditCards = newCards)))
   }
 
   private def createCard(accountId: String, holder: String, number: String,
-    expiryDate: String, ccType: String): CreditCard = {
+    expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountWithChanges) = {
     val account = load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val (hiddenN, cryptedN) =
@@ -636,8 +643,7 @@ class AccountHandler {
       account = accountId,
       hiddenNumber = hiddenN)
     val newCards = account.creditCards :+ newCard
-    accountHandler.update(account.copy(creditCards = newCards), true)
-    newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X"))
+    (newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X")), accountHandler.update2(account.copy(creditCards = newCards)))
   }
 
   def getBillingAddress(accountId: String): Option[AccountAddress] = load(accountId).flatMap(_.address)
@@ -824,188 +830,194 @@ class AccountHandler {
     load(profile.id) match {
       case None => Failure(new AccountAddressDoesNotExistException(""))
       case Some(account) =>
-        lazy val address = account.address.map {
-          address =>
-            val telephone = Telephone("", profile.lphone, "", None, TelephoneStatus.WAITING_ENROLLMENT)
-            address.copy(
-              telephone = Some(telephone),
-              road = profile.billingAddress.road,
-              road2 = profile.billingAddress.road2,
-              city = profile.billingAddress.city,
-              zipCode = profile.billingAddress.zipCode,
-              country = profile.billingAddress.country,
-              admin1 = profile.billingAddress.admin1,
-              admin2 = profile.billingAddress.admin2,
-              geoCoordinates = UtilHandler.computeGeoCoords(profile.billingAddress.road, profile.billingAddress.zipCode,
-                profile.billingAddress.city, profile.billingAddress.country, Settings.EnableGeoLocation,
-                Settings.GoogleAPIKey)
-            )
-        }
+        val transactionalBlock = { implicit session: DBSession =>
+          lazy val address = account.address.map {
+            address =>
+              val telephone = Telephone("", profile.lphone, "", None, TelephoneStatus.WAITING_ENROLLMENT)
+              address.copy(
+                telephone = Some(telephone),
+                road = profile.billingAddress.road,
+                road2 = profile.billingAddress.road2,
+                city = profile.billingAddress.city,
+                zipCode = profile.billingAddress.zipCode,
+                country = profile.billingAddress.country,
+                admin1 = profile.billingAddress.admin1,
+                admin2 = profile.billingAddress.admin2,
+                geoCoordinates = UtilHandler.computeGeoCoords(profile.billingAddress.road, profile.billingAddress.zipCode,
+                  profile.billingAddress.city, profile.billingAddress.country, Settings.EnableGeoLocation,
+                  Settings.GoogleAPIKey)
+              )
+          }
 
-        lazy val civility = Civility.withName(profile.civility)
+          lazy val civility = Civility.withName(profile.civility)
 
-        lazy val birthDate = Some(getBirthDayDate(profile.birthDate))
+          lazy val birthDate = Some(getBirthDayDate(profile.birthDate))
 
-        lazy val password = profile.password.map {
-          case (p1, p2) =>
-            if (p1 != p2) throw PasswordsDoNotMatchException("*****")
-            else new Sha256Hash(p1).toHex
-        } getOrElse account.password
+          lazy val password = profile.password.map {
+            case (p1, p2) =>
+              if (p1 != p2) throw PasswordsDoNotMatchException("*****")
+              else new Sha256Hash(p1).toHex
+          } getOrElse account.password
 
-        val updateCBParam: Option[CBParams] =
-          if (!profile.isMerchant)
-            None
+          val updateCBParam: Option[CBParams] =
+            if (!profile.isMerchant)
+              None
+            else {
+              val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
+              val cbParam = profile.cbParam
+
+              if (cbProvider == CBPaymentProvider.SIPS) {
+                var params = cbParam.get.asInstanceOf[SIPSParams]
+                val dir = new File(Settings.Sips.CertifDir, account.uuid)
+
+                dir.mkdirs()
+
+                if (params.sipsMerchantParcomFileName.isDefined && params.sipsMerchantParcomFileName != Some("")) {
+                  val parcomTargetFile = new File(dir, "parcom." + params.sipsMerchantId)
+                  if (params.sipsMerchantParcomFileContent.getOrElse("").length > 0 && params.sipsMerchantParcomFileName.getOrElse("").length > 0) {
+                    parcomTargetFile.delete()
+                    scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(params.sipsMerchantParcomFileContent.get)
+                  }
+                } else {
+                  try {
+                    val oldSIPSMerchantParcomFileContent: Option[String] = (for {
+                      pc <- account.paymentConfig
+                      cbp <- pc.cbParam
+                    } yield read[SIPSParams](cbp).sipsMerchantParcomFileContent).flatten
+                    val oldSIPSMerchantParcomFileName: Option[String] = (for {
+                      pc <- account.paymentConfig
+                      cbp <- pc.cbParam
+                    } yield read[SIPSParams](cbp).sipsMerchantParcomFileName).flatten
+
+                    params = params.copy(
+                      sipsMerchantParcomFileContent = oldSIPSMerchantParcomFileContent,
+                      sipsMerchantParcomFileName = oldSIPSMerchantParcomFileName
+                    )
+                  } catch {
+                    case _: Throwable => params
+                  }
+                }
+
+                if (params.sipsMerchantCertificateFileName.isDefined && params.sipsMerchantCertificateFileName != Some("")) {
+                  val certificateTargetFile = new File(dir, "certif." + params.sipsMerchantCountry + "." + params.sipsMerchantId)
+                  if (params.sipsMerchantCertificateFileContent.getOrElse("").length > 0 && params.sipsMerchantCertificateFileName.getOrElse("").length > 0) {
+                    certificateTargetFile.delete()
+                    scala.tools.nsc.io.File(certificateTargetFile.getAbsolutePath).writeAll(params.sipsMerchantCertificateFileContent.get)
+                  }
+
+                  val targetFile = new File(dir, "pathfile")
+                  val isJSP = params.sipsMerchantCertificateFileContent.map(_.indexOf("!jsp") > 0).getOrElse(false) ||
+                    (targetFile.exists() && (new FileParamReader(targetFile.getAbsolutePath)).getParam("F_CTYPE") == "jsp")
+                  targetFile.delete()
+                  scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
+                    s"""
+                     |D_LOGO!${
+                      Settings.Mogopay.BaseEndPoint
+                    }${
+                      Settings.ImagesPath
+                    }sips/logo/!
+                     |F_DEFAULT!${
+                      Settings.Sips.CertifDir
+                    }${
+                      File.separator
+                    }parcom.default!
+                     |F_PARAM!${
+                      new File(dir, "parcom").getAbsolutePath
+                    }!
+                     |F_CERTIFICATE!${
+                      new File(dir, "certif").getAbsolutePath
+                    }!
+                     |${
+                      if (isJSP) "F_CTYPE!jsp!" else ""
+                    }"
+           """.stripMargin.trim
+                  )
+
+                  if (isJSP)
+                    certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
+                } else {
+                  try {
+                    val oldSIPSMerchantCertificateFileContent: Option[String] = (for {
+                      pc <- account.paymentConfig
+                      cbp <- pc.cbParam
+                    } yield read[SIPSParams](cbp).sipsMerchantCertificateFileContent).flatten
+                    val oldSIPSMerchantCertificateFileName: Option[String] = (for {
+                      pc <- account.paymentConfig
+                      cbp <- pc.cbParam
+                    } yield read[SIPSParams](cbp).sipsMerchantCertificateFileName).flatten
+
+                    params = params.copy(
+                      sipsMerchantCertificateFileContent = oldSIPSMerchantCertificateFileContent,
+                      sipsMerchantCertificateFileName = oldSIPSMerchantCertificateFileName
+                    )
+                  } catch {
+                    case _: Throwable => params
+                  }
+                }
+
+                Option(params)
+              } else {
+                cbParam
+              }
+            }
+
+          val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers,
+            profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
+              case (None, None, None) => None
+              case (Some(""), Some(""), Some("")) => None
+              case (Some(a), Some(b), Some(c)) => Some(GroupPaymentInfo(a, b, c))
+              case _ => throw new MissingGroupPaymentInfoValues
+            }
+
+          val paymentConfig = if (!profile.isMerchant) None
           else {
             val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
-            val cbParam = profile.cbParam
+            val paymentMethod = CBPaymentMethod.withName(profile.paymentMethod.getOrElse(throw new NoCBPaymentMethodSpecified))
 
-            if (cbProvider == CBPaymentProvider.SIPS) {
-              var params = cbParam.get.asInstanceOf[SIPSParams]
-              val dir = new File(Settings.Sips.CertifDir, account.uuid)
+            Some(PaymentConfig(
+              paymentMethod = paymentMethod,
+              cbProvider = cbProvider,
+              kwixoParam = profile.kwixoParam.kwixoParams,
+              paypalParam = profile.payPalParam.map(p => write(caseClassToMap(p))),
+              applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
+              cbParam = Some(write(updateCBParam)),
+              emailField = profile.emailField.filter(_ != "").getOrElse("user_email"),
+              passwordField = profile.passwordField.filter(_ != "").getOrElse("user_password"),
+              senderEmail = profile.senderEmail,
+              senderName = profile.senderName,
+              callbackPrefix = profile.callbackPrefix,
+              passwordPattern = profile.passwordPattern,
+              groupPaymentInfo = newGroupPaymentInfo))
+          }
 
-              dir.mkdirs()
+          val newAccount = account.copy(
+            password = password,
+            company = profile.company,
+            website = profile.website,
+            civility = Some(civility),
+            firstName = Some(profile.firstName),
+            lastName = Some(profile.lastName),
+            birthDate = birthDate,
+            address = address,
+            paymentConfig = paymentConfig
+          )
 
-              if (params.sipsMerchantParcomFileName.isDefined && params.sipsMerchantParcomFileName != Some("")) {
-                val parcomTargetFile = new File(dir, "parcom." + params.sipsMerchantId)
-                if (params.sipsMerchantParcomFileContent.getOrElse("").length > 0 && params.sipsMerchantParcomFileName.getOrElse("").length > 0) {
-                  parcomTargetFile.delete()
-                  scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(params.sipsMerchantParcomFileContent.get)
-                }
-              } else {
-                try {
-                  val oldSIPSMerchantParcomFileContent: Option[String] = (for {
-                    pc <- account.paymentConfig
-                    cbp <- pc.cbParam
-                  } yield read[SIPSParams](cbp).sipsMerchantParcomFileContent).flatten
-                  val oldSIPSMerchantParcomFileName: Option[String] = (for {
-                    pc <- account.paymentConfig
-                    cbp <- pc.cbParam
-                  } yield read[SIPSParams](cbp).sipsMerchantParcomFileName).flatten
+          val validateMerchantPhone: Boolean = false
+          val validateCustomerPhone: Boolean = false
 
-                  params = params.copy(
-                    sipsMerchantParcomFileContent = oldSIPSMerchantParcomFileContent,
-                    sipsMerchantParcomFileName = oldSIPSMerchantParcomFileName
-                  )
-                } catch {
-                  case _: Throwable => params
-                }
-              }
-
-              if (params.sipsMerchantCertificateFileName.isDefined && params.sipsMerchantCertificateFileName != Some("")) {
-                val certificateTargetFile = new File(dir, "certif." + params.sipsMerchantCountry + "." + params.sipsMerchantId)
-                if (params.sipsMerchantCertificateFileContent.getOrElse("").length > 0 && params.sipsMerchantCertificateFileName.getOrElse("").length > 0) {
-                  certificateTargetFile.delete()
-                  scala.tools.nsc.io.File(certificateTargetFile.getAbsolutePath).writeAll(params.sipsMerchantCertificateFileContent.get)
-                }
-
-                val targetFile = new File(dir, "pathfile")
-                val isJSP = params.sipsMerchantCertificateFileContent.map(_.indexOf("!jsp") > 0).getOrElse(false) ||
-                  (targetFile.exists() && (new FileParamReader(targetFile.getAbsolutePath)).getParam("F_CTYPE") == "jsp")
-                targetFile.delete()
-                scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(
-                  s"""
-                     |D_LOGO!${
-                    Settings.Mogopay.BaseEndPoint
-                  }${
-                    Settings.ImagesPath
-                  }sips/logo/!
-                     |F_DEFAULT!${
-                    Settings.Sips.CertifDir
-                  }${
-                    File.separator
-                  }parcom.default!
-                     |F_PARAM!${
-                    new File(dir, "parcom").getAbsolutePath
-                  }!
-                     |F_CERTIFICATE!${
-                    new File(dir, "certif").getAbsolutePath
-                  }!
-                     |${
-                    if (isJSP) "F_CTYPE!jsp!" else ""
-                  }"
-           """.stripMargin.trim
-                )
-
-                if (isJSP)
-                  certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
-              } else {
-                try {
-                  val oldSIPSMerchantCertificateFileContent: Option[String] = (for {
-                    pc <- account.paymentConfig
-                    cbp <- pc.cbParam
-                  } yield read[SIPSParams](cbp).sipsMerchantCertificateFileContent).flatten
-                  val oldSIPSMerchantCertificateFileName: Option[String] = (for {
-                    pc <- account.paymentConfig
-                    cbp <- pc.cbParam
-                  } yield read[SIPSParams](cbp).sipsMerchantCertificateFileName).flatten
-
-                  params = params.copy(
-                    sipsMerchantCertificateFileContent = oldSIPSMerchantCertificateFileContent,
-                    sipsMerchantCertificateFileName = oldSIPSMerchantCertificateFileName
-                  )
-                } catch {
-                  case _: Throwable => params
-                }
-              }
-
-              Option(params)
-            } else {
-              cbParam
+          if ((profile.isMerchant && validateMerchantPhone) || (!profile.isMerchant && validateCustomerPhone)) {
+            val lphone: Option[String] = newAccount.address.flatMap(_.telephone.map(_.lphone))
+            val oldLPhone: Option[String] = account.address.flatMap(_.telephone.map(_.lphone))
+            if (newAccount.address.flatMap(_.telephone) != None && (oldLPhone == None || oldLPhone != lphone)) {
+              generateAndSendPincode3(newAccount.uuid)
             }
           }
-
-        val newGroupPaymentInfo = (profile.groupPaymentReturnURLforNextPayers,
-          profile.groupPaymentSuccessURL, profile.groupPaymentFailureURL) match {
-            case (None, None, None) => None
-            case (Some(""), Some(""), Some("")) => None
-            case (Some(a), Some(b), Some(c)) => Some(GroupPaymentInfo(a, b, c))
-            case _ => throw new MissingGroupPaymentInfoValues
-          }
-
-        val paymentConfig = if (!profile.isMerchant) None
-        else {
-          val cbProvider = CBPaymentProvider.withName(profile.cbProvider.getOrElse(throw new NoCBProviderSpecified))
-          val paymentMethod = CBPaymentMethod.withName(profile.paymentMethod.getOrElse(throw new NoCBPaymentMethodSpecified))
-
-          Some(PaymentConfig(
-            paymentMethod = paymentMethod,
-            cbProvider = cbProvider,
-            kwixoParam = profile.kwixoParam.kwixoParams,
-            paypalParam = profile.payPalParam.map(p => write(caseClassToMap(p))),
-            applePayParam = profile.applePayParam.map(p => write(caseClassToMap(p))),
-            cbParam = Some(write(updateCBParam)),
-            emailField = profile.emailField.filter(_ != "").getOrElse("user_email"),
-            passwordField = profile.passwordField.filter(_ != "").getOrElse("user_password"),
-            senderEmail = profile.senderEmail,
-            senderName = profile.senderName,
-            callbackPrefix = profile.callbackPrefix,
-            passwordPattern = profile.passwordPattern,
-            groupPaymentInfo = newGroupPaymentInfo))
+          accountHandler.update2(newAccount)
         }
-
-        val newAccount = account.copy(
-          password = password,
-          company = profile.company,
-          website = profile.website,
-          civility = Some(civility),
-          firstName = Some(profile.firstName),
-          lastName = Some(profile.lastName),
-          birthDate = birthDate,
-          address = address,
-          paymentConfig = paymentConfig
-        )
-
-        val validateMerchantPhone: Boolean = false
-        val validateCustomerPhone: Boolean = false
-
-        if ((profile.isMerchant && validateMerchantPhone) || (!profile.isMerchant && validateCustomerPhone)) {
-          val lphone: Option[String] = newAccount.address.flatMap(_.telephone.map(_.lphone))
-          val oldLPhone: Option[String] = account.address.flatMap(_.telephone.map(_.lphone))
-          if (newAccount.address.flatMap(_.telephone) != None && (oldLPhone == None || oldLPhone != lphone)) {
-            generateAndSendPincode3(newAccount.uuid)
-          }
+        val successBlock = { accountAndChanges: AccountWithChanges =>
+          notifyESChanges(accountAndChanges.changes, false)
         }
-        accountHandler.update(newAccount, false)
+        GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     }
   }
 
@@ -1323,16 +1335,6 @@ object Token {
     type TokenType = Value
     val Signup = Value(0)
     val BypassLogin = Value(1)
-  }
-
-  def generateAndSaveToken(accountId: String, tokenType: TokenType): Option[String] = {
-    val timestamp: Long = (new java.util.Date).getTime
-    val clearToken: String = tokenType.id + "-" + timestamp + "-" + accountId
-    val token = SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
-    accountHandler.load(accountId).map { account =>
-      accountHandler.update(account.copy(emailingToken = Some(token)), refresh = true)
-      token
-    }
   }
 
   val NoOwner = "********"
