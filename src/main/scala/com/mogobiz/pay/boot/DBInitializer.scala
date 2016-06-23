@@ -11,7 +11,7 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.common.CartRate
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{ Mapping, Settings }
-import com.mogobiz.pay.model.AccountWithChanges
+import com.mogobiz.pay.model.{ AccountChange }
 import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
 import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
 import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
@@ -204,9 +204,9 @@ object DBInitializer {
         country = Some(franceCountry))
       accountHandler.save(account)
     }
-    val successBlock = { accountAndChanges: AccountWithChanges =>
-      accountHandler.notifyESChanges(accountAndChanges.changes)
-      accountAndChanges.account
+    val successBlock = { result: AccountChange =>
+      accountHandler.notifyESChanges(result)
+      result.account
     }
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
@@ -235,9 +235,9 @@ object DBInitializer {
         country = Some(franceCountry))
       accountHandler.save(account)
     }
-    val successBlock = { accountAndChanges: AccountWithChanges =>
-      accountHandler.notifyESChanges(accountAndChanges.changes)
-      accountAndChanges.account
+    val successBlock = { result: AccountChange =>
+      accountHandler.notifyESChanges(result)
+      result.account
     }
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }

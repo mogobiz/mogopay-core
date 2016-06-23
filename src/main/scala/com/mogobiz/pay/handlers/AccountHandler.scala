@@ -23,7 +23,7 @@ import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{ Token, TokenType }
 import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.{ AccountChange, AccountWithChanges }
+import com.mogobiz.pay.model.{ AccountChange }
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.mogobiz.pay.sql.Sql.BOAccount
 import com.mogobiz.utils.EmailHandler.Mail
@@ -268,14 +268,13 @@ class AccountHandler {
         else if (userAccount.status == AccountStatus.INACTIVE)
           throw InactiveAccountException(s"${userAccount.email}")
         else {
-          val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
-          accountHandler.update2(userAccountToIndex)
+          update(userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime)))
         }
       }.getOrElse(throw AccountDoesNotExistException(""))
     }
-    val successBlock = { accountWithChanges: AccountWithChanges =>
-      notifyESChanges(accountWithChanges.changes)
-      accountWithChanges.account.copy(password = "")
+    val successBlock = { result: AccountChange =>
+      notifyESChanges(result)
+      result.account.copy(password = "")
     }
 
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
@@ -336,17 +335,17 @@ class AccountHandler {
         else if (userAccount.status == AccountStatus.INACTIVE)
           throw InactiveAccountException(s"${userAccount.email}")
         else if (userAccount.password != new Sha256Hash(password).toString) {
-          accountHandler.update2(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1))
-          throw InvalidPasswordErrorException(s"${userAccount.email}")
+          (update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1)), true)
         } else {
-          val userAccountToIndex = userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))
-          accountHandler.update2(userAccountToIndex)
+          val userAccountToIndex =
+            (update(userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))), false)
         }
       }.getOrElse(throw AccountDoesNotExistException(""))
     }
-    val successBlock = { accountWithChanges: AccountWithChanges =>
-      notifyESChanges(accountWithChanges.changes)
-      accountWithChanges.account.copy(password = "")
+    val successBlock = { result: (AccountChange, Boolean) =>
+      notifyESChanges(result._1)
+      if (result._2) throw InvalidPasswordErrorException(s"${result._1.account.email}")
+      else result._1.account.copy(password = "")
     }
 
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
@@ -377,7 +376,7 @@ class AccountHandler {
     EsClient.search[Account](req)
   }
 
-  def save(account: Account)(implicit session: DBSession): AccountWithChanges = findByEmail(account.email, account.owner) match {
+  def save(account: Account)(implicit session: DBSession): AccountChange = findByEmail(account.email, account.owner) match {
     case Some(_) => throw AccountWithSameEmailAddressAlreadyExistsError(s"${account.email}")
     case None => {
       BOAccountDAO.load(account.uuid).map { boAccount: BOAccount =>
@@ -385,20 +384,13 @@ class AccountHandler {
       }.getOrElse {
         BOAccountDAO.create(account)
       }
-      AccountWithChanges(account, List(AccountChange(newAccount = Some(account))))
+      AccountChange(account, false)
     }
   }
 
-  def update(account: Account, refresh: Boolean): Boolean = {
-    DB localTx { implicit session =>
-      BOAccountDAO.update(account)
-      EsClient.update[Account](Settings.Mogopay.EsIndex, account, upsert = false, refresh = refresh)
-    }
-  }
-
-  def update2(account: Account)(implicit session: DBSession): AccountWithChanges = {
+  def update(account: Account)(implicit session: DBSession): AccountChange = {
     BOAccountDAO.update(account)
-    AccountWithChanges(account, List(AccountChange(updateAccount = Some(account))))
+    AccountChange(account, true)
   }
 
   def getAccount(accountId: String, roleName: RoleName): Option[Account] = {
@@ -461,10 +453,10 @@ class AccountHandler {
       val matching: Boolean = `match`(pattern, password)
 
       if (!matching) throw PasswordDoesNotMatchPatternException("")
-      accountHandler.update2(account.copy(password = new Sha256Hash(password).toHex))
+      accountHandler.update(account.copy(password = new Sha256Hash(password).toHex))
     }
-    val successBlock = { accountWithChanges: AccountWithChanges =>
-      notifyESChanges(accountWithChanges.changes, false)
+    val successBlock = { result: AccountChange =>
+      notifyESChanges(result, false)
     }
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
@@ -477,11 +469,11 @@ class AccountHandler {
       // the user is no more waiting for enrollment since the only way to connect is through the newly sent password.
       //We are juste waiting for him to connect.
       val newStatus = if (account.status == AccountStatus.WAITING_ENROLLMENT) AccountStatus.ACTIVE else account.status
-      update2(account.copy(loginFailedCount = 0, status = newStatus, password = new Sha256Hash(newPassword).toHex))
+      update(account.copy(loginFailedCount = 0, status = newStatus, password = new Sha256Hash(newPassword).toHex))
     }
-    val successBlock = { accountWithChanges: AccountWithChanges =>
-      notifyESChanges(accountWithChanges.changes)
-      notifyNewPassword(accountWithChanges.account, newPassword, req.locale)
+    val successBlock = { result: AccountChange =>
+      notifyESChanges(result)
+      notifyNewPassword(result.account, newPassword, req.locale)
     }
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
@@ -539,11 +531,11 @@ class AccountHandler {
       val pinCode3 = new String(md.digest(), "UTF-8")
 
       val newTelephone = phoneNumber.copy(status = TelephoneStatus.WAITING_ENROLLMENT, pinCode3 = Some(pinCode3))
-      (accountHandler.update2(acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone))))), phoneNumber)
+      (update(acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone))))), phoneNumber)
 
     }
-    val successBlock = { result: (AccountWithChanges, Telephone) =>
-      notifyESChanges(result._1.changes, false)
+    val successBlock = { result: (AccountChange, Telephone) =>
+      notifyESChanges(result._1, false)
       def message = "Your 3 digits code is: " + plainTextPinCode
       smsHandler.sendSms(message, result._2.phone)
     }
@@ -564,29 +556,29 @@ class AccountHandler {
         } else {
           val account = load(accountId).map { a => a.copy(status = AccountStatus.ACTIVE) }
           account.map { account =>
-            accountHandler.update2(account)
+            update(account)
           } getOrElse (throw new InvalidTokenException(""))
         }
       }
     }
-    val successBlock = { accountWithChanges: AccountWithChanges =>
-      notifyESChanges(accountWithChanges.changes)
-      val vendor = accountWithChanges.account.owner.flatMap(load)
-      notifyAccountConfirmed(accountWithChanges.account, vendor, Settings.EmailSenderName, Settings.EmailSenderAddress, locale)
-      accountWithChanges.account
+    val successBlock = { result: AccountChange =>
+      notifyESChanges(result)
+      val vendor = result.account.owner.flatMap(load)
+      notifyAccountConfirmed(result.account, vendor, Settings.EmailSenderName, Settings.EmailSenderAddress, locale)
+      result.account
     }
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   def generateNewSecret(accountId: String): Option[String] = load(accountId).map {
     acc =>
-      val secret = UUID.randomUUID().toString
       val transactionalBlock = { implicit session: DBSession =>
-        accountHandler.update2(acc.copy(secret = secret))
+        val secret = UUID.randomUUID().toString
+        update(acc.copy(secret = secret))
       }
-      val successBlock = { accountWithChanges: AccountWithChanges =>
-        notifyESChanges(accountWithChanges.changes, false)
-        secret
+      val successBlock = { result: AccountChange =>
+        notifyESChanges(result, false)
+        result.account.secret
       }
       GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
@@ -599,15 +591,15 @@ class AccountHandler {
         case Some(cardId) => updateCard(accountId, cardId, holder, expiryDate, ccType)
       }
     }
-    val successBlock = { result: (CreditCard, AccountWithChanges) =>
-      notifyESChanges(result._2.changes)
+    val successBlock = { result: (CreditCard, AccountChange) =>
+      notifyESChanges(result._2)
       result._1
     }
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   private def updateCard(accountId: String, ccId: String, holder: String,
-    expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountWithChanges) = {
+    expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountChange) = {
     val account = accountHandler.load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
@@ -619,11 +611,11 @@ class AccountHandler {
     )
 
     val newCards = account.creditCards.filter(_.uuid != ccId) :+ newCard
-    (newCard, accountHandler.update2(account.copy(creditCards = newCards)))
+    (newCard, update(account.copy(creditCards = newCards)))
   }
 
   private def createCard(accountId: String, holder: String, number: String,
-    expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountWithChanges) = {
+    expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountChange) = {
     val account = load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val (hiddenN, cryptedN) =
@@ -643,7 +635,7 @@ class AccountHandler {
       account = accountId,
       hiddenNumber = hiddenN)
     val newCards = account.creditCards :+ newCard
-    (newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X")), accountHandler.update2(account.copy(creditCards = newCards)))
+    (newCard.copy(number = UtilHandler.hideCardNumber(newCard.number, "X")), update(account.copy(creditCards = newCards)))
   }
 
   def getBillingAddress(accountId: String): Option[AccountAddress] = load(accountId).flatMap(_.address)
@@ -677,10 +669,10 @@ class AccountHandler {
                 telephone = Some(telephone))
             }
           }
-          accountHandler.update2(account.copy(address = Some(newAddress)))
+          update(account.copy(address = Some(newAddress)))
         }
-        val successBlock = { accountWithChanges: AccountWithChanges =>
-          notifyESChanges(accountWithChanges.changes)
+        val successBlock = { result: AccountChange =>
+          notifyESChanges(result)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
@@ -692,10 +684,10 @@ class AccountHandler {
         val transactionalBlock = { implicit session: DBSession =>
           val newAddresses = account.shippingAddresses diff List(address)
           val newAccount = account.copy(shippingAddresses = newAddresses)
-          accountHandler.update2(newAccount)
+          update(newAccount)
         }
-        val successBlock = { accountWithChanges: AccountWithChanges =>
-          notifyESChanges(accountWithChanges.changes, false)
+        val successBlock = { result: AccountChange =>
+          notifyESChanges(result, false)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
       }
@@ -707,10 +699,10 @@ class AccountHandler {
         val transactionalBlock = { implicit session: DBSession =>
           val shippAddr = ShippingAddress(java.util.UUID.randomUUID().toString, active = true, address.getAddress)
           val newAddrs = account.shippingAddresses.map(_.copy(active = false)) :+ shippAddr
-          accountHandler.update2(account.copy(shippingAddresses = newAddrs))
+          update(account.copy(shippingAddresses = newAddrs))
         }
-        val successBlock = { accountWithChanges: AccountWithChanges =>
-          notifyESChanges(accountWithChanges.changes)
+        val successBlock = { result: AccountChange =>
+          notifyESChanges(result)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
@@ -738,10 +730,10 @@ class AccountHandler {
                   admin1 = Option(address.admin1),
                   admin2 = address.admin2,
                   telephone = Option(telephone)))
-              accountHandler.update2(account.copy(shippingAddresses = newAddrs))
+              update(account.copy(shippingAddresses = newAddrs))
             }
-            val successBlock = { accountWithChanges: AccountWithChanges =>
-              notifyESChanges(accountWithChanges.changes)
+            val successBlock = { result: AccountChange =>
+              notifyESChanges(result)
             }
             GlobalUtil.runInTransaction(transactionalBlock, successBlock)
         }
@@ -1320,11 +1312,12 @@ class AccountHandler {
   }
 
   def notifyESChanges(list: List[AccountChange], refresh: Boolean = true) = {
-    list.foreach { change: AccountChange =>
-      change.newAccount.map { EsClient.index(Settings.Mogopay.EsIndex, _, refresh) }
+    list.foreach { change: AccountChange => notifyESChanges(change, refresh) }
+  }
 
-      change.updateAccount.map { EsClient.update[Account](Settings.Mogopay.EsIndex, _, upsert = false, refresh = refresh) }
-    }
+  def notifyESChanges(change: AccountChange, refresh: Boolean = true) = {
+    if (change.update) EsClient.update[Account](Settings.Mogopay.EsIndex, change.account, upsert = false, refresh = refresh)
+    else EsClient.index(Settings.Mogopay.EsIndex, change.account, refresh)
   }
 }
 
