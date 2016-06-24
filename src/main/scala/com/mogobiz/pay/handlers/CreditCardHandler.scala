@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.exceptions.Exceptions.{ CreditCardDoesNotExistException, AccountDoesNotExistException }
-import com.mogobiz.pay.model.AccountWithChanges
+import com.mogobiz.pay.model.{ AccountChange }
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import scalikejdbc.DBSession
@@ -17,10 +17,10 @@ class CreditCardHandler {
       account.creditCards.find(_.uuid == cardId).map { card =>
         val transactionalBlock = { implicit session: DBSession =>
           val newCards = account.creditCards.diff(Seq(card))
-          accountHandler.update2(account.copy(creditCards = newCards))
+          accountHandler.update(account.copy(creditCards = newCards))
         }
-        val successBlock = { accountAndChanges: AccountWithChanges =>
-          accountHandler.notifyESChanges(accountAndChanges.changes, false)
+        val successBlock = { result: AccountChange =>
+          accountHandler.notifyESChanges(result, false)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
       } getOrElse {

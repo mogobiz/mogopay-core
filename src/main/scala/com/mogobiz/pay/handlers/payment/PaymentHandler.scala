@@ -12,7 +12,7 @@ import com.mogobiz.pay.config.{ Environment, Settings }
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.{ AccountWithChanges, Mogopay, ParamRequest }
+import com.mogobiz.pay.model.{ AccountChange, Mogopay, ParamRequest }
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
@@ -99,7 +99,7 @@ trait PaymentHandler extends StrictLogging {
         case (email, amount) =>
           val transactionalBlock = { implicit session: DBSession =>
             accountHandler.findByEmail(email, Some(merchantId)).map { account =>
-              AccountWithChanges(account)
+              (account, None)
             }.getOrElse {
               val newAccount = Account(
                 uuid = UUID.randomUUID().toString,
@@ -109,13 +109,13 @@ trait PaymentHandler extends StrictLogging {
                 secret = "",
                 status = AccountStatus.INACTIVE
               )
-              accountHandler.save(newAccount)
+              (newAccount, Some(accountHandler.save(newAccount)))
             }
           }
 
-          val successBlock = { accountAndChange: AccountWithChanges =>
-            val account = accountAndChange.account
-            accountHandler.notifyESChanges(accountAndChange.changes, false)
+          val successBlock = { result: (Account, Option[AccountChange]) =>
+            val account = result._2.map { _.account }.getOrElse(result._1)
+            result._2.map { accountHandler.notifyESChanges(_, false) }
 
             val merchant = accountHandler.find(merchantId).get
             val params = ParamRequest.TransactionInit(merchant.secret, amount, None,

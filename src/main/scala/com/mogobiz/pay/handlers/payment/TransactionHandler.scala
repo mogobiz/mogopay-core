@@ -24,7 +24,7 @@ import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.{ AccountWithChanges, ParamRequest }
+import com.mogobiz.pay.model.{ AccountChange, ParamRequest }
 import com.mogobiz.utils.EmailHandler.{ Attachment, Mail }
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ EmailHandler, GlobalUtil, SymmetricCrypt }
@@ -570,13 +570,13 @@ class TransactionHandler {
             val expiryDate = simpleDateFormat.parse(s"01$ccMonth$ccYear")
             val cc = CreditCard(GlobalUtil.newUUID, SymmetricCrypt.encrypt(ccNum, Settings.Mogopay.Secret, "AES"), submit.params.customerEmail.getOrElse(""), expiryDate, ccType, UtilHandler.hideCardNumber(ccNum, "X"), customer.uuid)
             val cust2 = customer.copy(creditCards = List(cc))
-            Some(accountHandler.update2(cust2))
+            Some(accountHandler.update(cust2))
           } else None
       }.flatten
       (cartWithShipping, changes)
     }
-    val successBlock = { result: (CartWithShipping, Option[AccountWithChanges]) =>
-      result._2.map { accountWithChanges: AccountWithChanges => accountHandler.notifyESChanges(accountWithChanges.changes, false) }
+    val successBlock = { result: (CartWithShipping, Option[AccountChange]) =>
+      result._2.map { accountHandler.notifyESChanges(_, false) }
 
       //    if (cardinfoURL.nonEmpty && authURL.nonEmpty && successURL.nonEmpty && errorURL.nonEmpty &&
       //      cvvURL.nonEmpty && submit.params.customerEmail.isEmpty && submit.params.customerCVV.isEmpty) {

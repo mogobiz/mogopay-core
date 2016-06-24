@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.AccountWithChanges
+import com.mogobiz.pay.model.AccountChange
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{ GlobalUtil, RSA }
@@ -79,8 +79,8 @@ class UserHandler {
       }
     }
 
-    val successBlock = { result: (AccountWithChanges, Map[String, String]) =>
-      accountHandler.notifyESChanges(result._1.changes)
+    val successBlock = { result: (AccountChange, Map[String, String]) =>
+      accountHandler.notifyESChanges(result._1)
       result._2
     }
 

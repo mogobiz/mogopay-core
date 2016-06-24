@@ -337,8 +337,7 @@ class AccountHandler {
         else if (userAccount.password != new Sha256Hash(password).toString) {
           (update(userAccount.copy(loginFailedCount = userAccount.loginFailedCount + 1)), true)
         } else {
-          val userAccountToIndex =
-            (update(userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))), false)
+          (update(userAccount.copy(loginFailedCount = 0, lastLogin = Some(Calendar.getInstance().getTime))), false)
         }
       }.getOrElse(throw AccountDoesNotExistException(""))
     }
@@ -394,7 +393,7 @@ class AccountHandler {
   }
 
   def getAccount(accountId: String, roleName: RoleName): Option[Account] = {
-    val account = accountHandler.load(accountId)
+    val account = load(accountId)
     account flatMap { account =>
       account.roles.find {
         role => role == roleName
@@ -444,7 +443,7 @@ class AccountHandler {
         }
       }
 
-      val account = accountHandler.load(accountId).getOrElse(throw AccountDoesNotExistException(""))
+      val account = load(accountId).getOrElse(throw AccountDoesNotExistException(""))
       if (account.password != new Sha256Hash(oldPassword).toHex)
         throw new UnauthorizedException("Invalid actual password")
       val merchant = getMerchant(vendorId).getOrElse(throw VendorNotFoundException())
@@ -453,7 +452,7 @@ class AccountHandler {
       val matching: Boolean = `match`(pattern, password)
 
       if (!matching) throw PasswordDoesNotMatchPatternException("")
-      accountHandler.update(account.copy(password = new Sha256Hash(password).toHex))
+      update(account.copy(password = new Sha256Hash(password).toHex))
     }
     val successBlock = { result: AccountChange =>
       notifyESChanges(result, false)
@@ -519,7 +518,7 @@ class AccountHandler {
   def generateAndSendPincode3(uuid: String): Unit = {
     val plainTextPinCode = UtilHandler.generatePincode3()
     val transactionalBlock = { implicit session: DBSession =>
-      val acc = accountHandler.load(uuid) getOrElse (throw AccountDoesNotExistException(""))
+      val acc = load(uuid) getOrElse (throw AccountDoesNotExistException(""))
       val phoneNumber: Telephone =
         (for {
           addr <- acc.address
@@ -600,7 +599,7 @@ class AccountHandler {
 
   private def updateCard(accountId: String, ccId: String, holder: String,
     expiryDate: String, ccType: String)(implicit session: DBSession): (CreditCard, AccountChange) = {
-    val account = accountHandler.load(accountId) getOrElse (throw AccountDoesNotExistException(""))
+    val account = load(accountId) getOrElse (throw AccountDoesNotExistException(""))
 
     val card = account.creditCards.find(_.uuid == ccId).getOrElse(throw CreditCardDoesNotExistException(""))
 
@@ -759,10 +758,10 @@ class AccountHandler {
           val newAddrs = account.shippingAddresses.map {
             addr => addr.copy(active = addr.uuid == addrId)
           }
-          accountHandler.update2(account.copy(shippingAddresses = newAddrs))
+          update(account.copy(shippingAddresses = newAddrs))
         }
-        val successBlock = { accountWithChanges: AccountWithChanges =>
-          notifyESChanges(accountWithChanges.changes)
+        val successBlock = { result: AccountChange =>
+          notifyESChanges(result)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     } getOrElse (throw AccountDoesNotExistException(s"$accountId"))
@@ -809,7 +808,7 @@ class AccountHandler {
   def load(uuid: String): Option[Account] = EsClient.load[Account](Settings.Mogopay.EsIndex, uuid)
 
   def isValidAccountId(id: String, storeCodeParam: Option[String]) = {
-    accountHandler.load(id).map { account =>
+    load(id).map { account =>
       storeCodeParam.map { storeCode =>
         account.company.map { company =>
           company == storeCode
@@ -1004,10 +1003,10 @@ class AccountHandler {
               generateAndSendPincode3(newAccount.uuid)
             }
           }
-          accountHandler.update2(newAccount)
+          update(newAccount)
         }
-        val successBlock = { accountAndChanges: AccountWithChanges =>
-          notifyESChanges(accountAndChanges.changes, false)
+        val successBlock = { result: AccountChange =>
+          notifyESChanges(result, false)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     }
@@ -1040,10 +1039,10 @@ class AccountHandler {
           birthDate = birthDate
         )
 
-        accountHandler.update2(newAccount)
+        update(newAccount)
       }
-      val successBlock = { accountWithChanges: AccountWithChanges =>
-        notifyESChanges(accountWithChanges.changes, false)
+      val successBlock = { result: AccountChange =>
+        notifyESChanges(result, false)
       }
       GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     }.getOrElse(new AccountAddressDoesNotExistException(""))
@@ -1073,7 +1072,7 @@ class AccountHandler {
             val newTel = user.address.get.telephone.get.copy(lphone = lPhone)
             val newAddr = user.address.get.copy(telephone = Some(newTel))
             val newUser = user.copy(address = Some(newAddr))
-            accountHandler.update2(newUser)
+            update(newUser)
           } else {
             load(accountId).map {
               account =>
@@ -1081,15 +1080,15 @@ class AccountHandler {
                 if (account.address.map(_.telephone.map(_.pinCode3)).flatten == Some(encryptedCode) &&
                   account.address.map(_.telephone.map(_.status)).flatten == Some(TelephoneStatus.WAITING_ENROLLMENT)) {
                   val newTel = Telephone("", lPhone, "", None, TelephoneStatus.ACTIVE)
-                  accountHandler.update2(account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))))
+                  update(account.copy(address = account.address.map(_.copy(telephone = Some(newTel)))))
                 } else {
                   throw new MogopayError(MogopayConstant.InvalidPhonePincode3)
                 }
             }.getOrElse(throw new AccountDoesNotExistException(""))
           }
         }
-        val successBlock = { accountWithChanges: AccountWithChanges =>
-          notifyESChanges(accountWithChanges.changes)
+        val successBlock = { result: AccountChange =>
+          notifyESChanges(result)
         }
         GlobalUtil.runInTransaction(transactionalBlock, successBlock)
     } getOrElse (throw new AccountDoesNotExistException(""))
@@ -1205,19 +1204,19 @@ class AccountHandler {
       (save(account), owner, token, needEmailValidation)
     }
 
-    val successBlock = { result: (AccountWithChanges, Option[String], String, Boolean) =>
-      val accountAndChanges = result._1
+    val successBlock = { result: (AccountChange, Option[String], String, Boolean) =>
+      val account = result._1.account
       val owner = result._2
       val token = result._3
       val needEmailValidation = result._4
-      notifyESChanges(accountAndChanges.changes)
+      notifyESChanges(result._1)
 
       if (needEmailValidation) {
         val validationUrl = signup.validationUrl + (if (signup.validationUrl.indexOf("?") == -1) "?" else "&") + "token=" + URLEncoder.encode(token, "UTF-8")
-        val vendor = accountAndChanges.account.owner.flatMap(load)
+        val vendor = account.owner.flatMap(load)
         owner match {
           case None =>
-            notifyNewAccount(accountAndChanges.account, vendor, validationUrl, token, Settings.EmailSenderName,
+            notifyNewAccount(account, vendor, validationUrl, token, Settings.EmailSenderName,
               Settings.EmailSenderAddress, signup.locale)
           case Some(acc) =>
             val merchant = getMerchant(acc)
@@ -1226,11 +1225,11 @@ class AccountHandler {
             val paymentConfigSenderName = if (paymentConfig.senderName.getOrElse("").trim.length == 0) None else paymentConfig.senderName
             val senderEmail = paymentConfigSenderEmail.getOrElse(merchant.get.email)
             val senderName = paymentConfigSenderName.getOrElse(s"${merchant.get.firstName.getOrElse(senderEmail)} ${merchant.get.lastName.getOrElse("")}")
-            notifyNewAccount(accountAndChanges.account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
+            notifyNewAccount(account, vendor, validationUrl, token, senderName, senderEmail, signup.locale)
         }
       }
 
-      (token, accountAndChanges.account)
+      (token, account)
     }
 
     GlobalUtil.runInTransaction(transactionalBlock, successBlock)
@@ -1309,10 +1308,6 @@ class AccountHandler {
         subject = subject,
         message = body,
         richMessage = Some(body)))
-  }
-
-  def notifyESChanges(list: List[AccountChange], refresh: Boolean = true) = {
-    list.foreach { change: AccountChange => notifyESChanges(change, refresh) }
   }
 
   def notifyESChanges(change: AccountChange, refresh: Boolean = true) = {
