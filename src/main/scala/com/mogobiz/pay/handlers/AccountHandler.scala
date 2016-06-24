@@ -1055,12 +1055,18 @@ class AccountHandler {
         rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.AccountRecycleDuration)
       )
     }
-    val ids = (EsClient searchAllRaw req).getHits map (_.getId) foreach delete
+    (EsClient searchAllRaw req).getHits map (_.getId) foreach delete
   }
 
   def delete(id: String) = {
-    BOAccountDAO.delete(id)
-    EsClient.delete[Account](Settings.Mogopay.EsIndex, id, refresh = false)
+    val transactionalBlock = { implicit session: DBSession =>
+      BOAccountDAO.delete(id)
+      id
+    }
+    val successBlock = { id: String =>
+      EsClient.delete[Account](Settings.Mogopay.EsIndex, id, refresh = false)
+    }
+    GlobalUtil.runInTransaction(transactionalBlock, successBlock)
   }
 
   def enroll(accountId: String, lPhone: String, pinCode: String): Unit = {

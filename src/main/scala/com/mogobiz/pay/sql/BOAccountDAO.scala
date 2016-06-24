@@ -63,10 +63,10 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
     }
   }
 
-  def delete(id: String): Unit = DB localTx { implicit session =>
+  def delete(id: String)(implicit session: DBSession): Unit =
     withSQL {
       QueryDSL.delete.from(BOAccountDAO).where.eq(BOAccountDAO.column.uuid, id)
     }.update().apply()
-  }
+
 }
 
