@@ -17,7 +17,8 @@ object Mapping {
 
   def mappingNames = List("Account", "BOTransaction", "BOTransactionLog", "Country", "CountryAdmin", "Rate", "TransactionRequest", "TransactionSequence")
 
-  def clear = EsClient().execute(delete index Settings.Mogopay.EsIndex).await
+  import EsClient.secureRequest
+  def clear = EsClient().execute(secureRequest(delete index Settings.Mogopay.EsIndex)).await
 
   def set() {
     def route(url: String) = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
