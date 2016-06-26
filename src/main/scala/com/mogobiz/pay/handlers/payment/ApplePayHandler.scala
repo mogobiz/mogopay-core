@@ -9,15 +9,15 @@ import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.CustomSslConfiguration
-import net.authorize.api.contract.v1.{ CreditCardType => _, _ }
+import net.authorize.api.contract.v1.{CreditCardType => _, _}
 import net.authorize.api.controller.CreateTransactionController
 import net.authorize.api.controller.base.ApiOperationBase
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
-import spray.http.{ Uri, _ }
+import spray.http.{Uri, _}
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 import scala.util._
 
 class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSslConfiguration {
@@ -29,15 +29,17 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
   implicit val formats = new org.json4s.DefaultFormats {}
 
   /**
-   * Returns a String to print, or a URL to redirect to
-   */
+    * Returns a String to print, or a URL to redirect to
+    */
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val paymentRequest = sessionData.paymentRequest.get
-    val amount = sessionData.amount.get
+    val amount         = sessionData.amount.get
 
     val paymentConfig = sessionData.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
-    val authorizeNetParams = paymentConfig.applePayParam.map(parse(_).extract[Map[String, String]]).orElse(throw new MissingAuthorizeNetParamException)
-    val anetAPILoginID = authorizeNetParams.get("anetAPILoginID")
+    val authorizeNetParams = paymentConfig.applePayParam
+      .map(parse(_).extract[Map[String, String]])
+      .orElse(throw new MissingAuthorizeNetParamException)
+    val anetAPILoginID     = authorizeNetParams.get("anetAPILoginID")
     val anetTransactionKey = authorizeNetParams.get("anetTransactionKey")
 
     val appleMerchAuthenticationType = new MerchantAuthenticationType()
@@ -71,9 +73,9 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
     } else {
       val result = response.getTransactionResponse
       if (result.getResponseCode == "1") {
-        val successURL: String = sessionData.successURL.getOrElse(throw new NoSuccessURLProvided)
+        val successURL: String                            = sessionData.successURL.getOrElse(throw new NoSuccessURLProvided)
         val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-        val successResponse = Await.result(pipeline(Get(Uri(successURL))), Duration.Inf)
+        val successResponse                               = Await.result(pipeline(Get(Uri(successURL))), Duration.Inf)
         Right(successResponse.entity.asString)
       } else {
         throw new AuthorizeNetErrorException(result.getResponseCode)
@@ -81,5 +83,8 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
     }
   }
 
-  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = ???
+  override def refund(paymentConfig: PaymentConfig,
+                      boTx: BOTransaction,
+                      amount: Long,
+                      paymentResult: PaymentResult): RefundResult = ???
 }

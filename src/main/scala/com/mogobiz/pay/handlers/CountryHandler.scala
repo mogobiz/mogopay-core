@@ -5,16 +5,16 @@
 package com.mogobiz.pay.handlers
 
 import com.google.i18n.phonenumbers.PhoneNumberUtil
-import com.google.i18n.phonenumbers.PhoneNumberUtil.{ PhoneNumberFormat, PhoneNumberType }
+import com.google.i18n.phonenumbers.PhoneNumberUtil.{PhoneNumberFormat, PhoneNumberType}
 import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
 
 case class PhoneVerification(isValid: Boolean,
-  nationalFormat: Option[String] = None,
-  internationalFormat: Option[String] = None,
-  phoneType: Option[PhoneNumberType] = None)
+                             nationalFormat: Option[String] = None,
+                             internationalFormat: Option[String] = None,
+                             phoneType: Option[PhoneNumberType] = None)
 
 class CountryHandler {
   def findCountriesForShipping(): Seq[Country] = {
@@ -42,9 +42,9 @@ class CountryHandler {
         PhoneVerification(isValid = false)
       } else {
         PhoneVerification(isValid = true,
-          Some(phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL)),
-          Some(phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL)),
-          Some(phoneUtil.getNumberType(phoneNumber)))
+                          Some(phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL)),
+                          Some(phoneUtil.format(phoneNumber, PhoneNumberFormat.INTERNATIONAL)),
+                          Some(phoneUtil.getNumberType(phoneNumber)))
       }
     } catch {
       case _: Throwable => PhoneVerification(isValid = false)

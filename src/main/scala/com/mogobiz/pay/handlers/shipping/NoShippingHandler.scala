@@ -7,11 +7,11 @@ package com.mogobiz.pay.handlers.shipping
 import java.util.UUID
 
 import com.mogobiz.pay.common.Cart
-import com.mogobiz.pay.model.Mogopay.{ ShippingAddress, ShippingData }
+import com.mogobiz.pay.model.Mogopay.{ShippingAddress, ShippingData}
 import org.json4s._
 
 /**
- */
+  */
 class NoShippingHandler extends ShippingHandler {
 
   val NO_SHIPPING_PREFIX = "NONE_"
@@ -21,11 +21,21 @@ class NoShippingHandler extends ShippingHandler {
     val shippingContent = extractShippingContent(cart)
 
     // aucun produit ne nécessite de livraison
-    if (shippingContent.isEmpty) Seq(createShippingData(shippingAddress.address, NO_SHIPPING_PREFIX + UUID.randomUUID().toString(), UUID.randomUUID().toString(), "NONE", "NONE", "NONE", 0, cart.rate.code))
+    if (shippingContent.isEmpty)
+      Seq(
+          createShippingData(shippingAddress.address,
+                             NO_SHIPPING_PREFIX + UUID.randomUUID().toString(),
+                             UUID.randomUUID().toString(),
+                             "NONE",
+                             "NONE",
+                             "NONE",
+                             0,
+                             cart.rate.code))
     else Seq()
   }
 
-  override def isValidShipmentId(shippingPrice: ShippingData): Boolean = shippingPrice.shipmentId.startsWith(NO_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingData): Boolean =
+    shippingPrice.shipmentId.startsWith(NO_SHIPPING_PREFIX)
 
   override def confirmShipmentId(shippingPrice: ShippingData): ShippingData = shippingPrice.copy(confirm = true)
 }

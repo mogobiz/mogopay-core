@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.sql
 
-import java.util.{ Date, UUID }
+import java.util.{Date, UUID}
 
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model
@@ -19,25 +19,30 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
   //    def apply(rs: ResultSet, index: Int): UUID = UUID.fromString(rs.getString(index))
   //  }
 
-  def apply(rn: ResultName[BOTransactionLog])(rs: WrappedResultSet): BOTransactionLog = BOTransactionLog(
-    rs.get(rn.id),
-    UUID.fromString(rs.get(rn.uuid)),
-    rs.get(rn.extra),
-    rs.date(rn.dateCreated),
-    rs.date(rn.lastUpdated))
+  def apply(rn: ResultName[BOTransactionLog])(rs: WrappedResultSet): BOTransactionLog =
+    BOTransactionLog(rs.get(rn.id),
+                     UUID.fromString(rs.get(rn.uuid)),
+                     rs.get(rn.extra),
+                     rs.date(rn.dateCreated),
+                     rs.date(rn.lastUpdated))
 
   def create(transactionLog: model.Mogopay.BOTransactionLog)(implicit session: DBSession): BOTransactionLog = {
-    val newBOTransactionLog = new BOTransactionLog(newId(), UUID.fromString(transactionLog.uuid), JacksonConverter.serialize(transactionLog),
-      new Date, new Date)
+    val newBOTransactionLog = new BOTransactionLog(newId(),
+                                                   UUID.fromString(transactionLog.uuid),
+                                                   JacksonConverter.serialize(transactionLog),
+                                                   new Date,
+                                                   new Date)
 
     applyUpdate {
-      insert.into(BOTransactionLogDAO).namedValues(
-        BOTransactionLogDAO.column.id -> newBOTransactionLog.id,
-        BOTransactionLogDAO.column.uuid -> newBOTransactionLog.uuid.toString,
-        BOTransactionLogDAO.column.extra -> newBOTransactionLog.extra,
-        BOTransactionLogDAO.column.dateCreated -> newBOTransactionLog.dateCreated,
-        BOTransactionLogDAO.column.lastUpdated -> newBOTransactionLog.lastUpdated
-      )
+      insert
+        .into(BOTransactionLogDAO)
+        .namedValues(
+            BOTransactionLogDAO.column.id          -> newBOTransactionLog.id,
+            BOTransactionLogDAO.column.uuid        -> newBOTransactionLog.uuid.toString,
+            BOTransactionLogDAO.column.extra       -> newBOTransactionLog.extra,
+            BOTransactionLogDAO.column.dateCreated -> newBOTransactionLog.dateCreated,
+            BOTransactionLogDAO.column.lastUpdated -> newBOTransactionLog.lastUpdated
+        )
     }
     newBOTransactionLog
   }
@@ -58,10 +63,14 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
   def update(transactionLog: model.Mogopay.BOTransactionLog): Int = {
     DB localTx { implicit session =>
       applyUpdate {
-        QueryDSL.update(BOTransactionLogDAO).set(
-          BOTransactionLogDAO.column.extra -> JacksonConverter.serialize(transactionLog),
-          BOTransactionLogDAO.column.lastUpdated -> new Date
-        ).where.eq(BOTransactionLogDAO.column.uuid, transactionLog.uuid)
+        QueryDSL
+          .update(BOTransactionLogDAO)
+          .set(
+              BOTransactionLogDAO.column.extra       -> JacksonConverter.serialize(transactionLog),
+              BOTransactionLogDAO.column.lastUpdated -> new Date
+          )
+          .where
+          .eq(BOTransactionLogDAO.column.uuid, transactionLog.uuid)
       }
     }
   }

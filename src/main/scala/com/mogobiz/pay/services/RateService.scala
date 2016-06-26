@@ -16,14 +16,13 @@ class RateService extends Directives with DefaultComplete {
 
   val route = pathPrefix("rate") {
     list ~
-      format
+    format
   }
 
   lazy val list = path("list") {
     get {
       dynamic {
-        handleCall(rateHandler.list,
-          (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
+        handleCall(rateHandler.list, (rates: Seq[Rate]) => complete(StatusCodes.OK -> rates))
       }
     }
   }
@@ -32,7 +31,7 @@ class RateService extends Directives with DefaultComplete {
     get {
       parameters('amount.as[Long], 'currency, 'country) { (amount, currency, country) =>
         handleCall(rateHandler.format(amount, currency, country),
-          (res: Option[String]) => complete(StatusCodes.OK -> res))
+                   (res: Option[String]) => complete(StatusCodes.OK -> res))
       }
     }
   }

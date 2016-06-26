@@ -3,8 +3,8 @@ package imp
 import org.apache.http.entity.StringEntity
 
 /**
- * Created by hayssams on 13/03/16.
- */
+  * Created by hayssams on 13/03/16.
+  */
 object Run extends App {
   import java.io.File
 
@@ -13,7 +13,7 @@ object Run extends App {
 
   def post(url: String, data: String) {
 
-    val post = new HttpPost(url)
+    val post   = new HttpPost(url)
     val client = new DefaultHttpClient
     post.setEntity(new StringEntity(data))
     //    println(data)
@@ -29,13 +29,17 @@ object Run extends App {
 
   }
   def indexType(typ: String): Unit = {
-    val dir = new File(s"/Users/hayssams/tmp/i/mogopay/$typ")
+    val dir   = new File(s"/Users/hayssams/tmp/i/mogopay/$typ")
     val files = dir.listFiles()
-    files.filter(_.getName.contains('-')).foreach {
-      file =>
-        val id = file.getName
-        val source = scala.io.Source.fromFile(new File(file, "_source")).mkString
-        post(s"http://elastic.ebiznext.com/mogopay/$typ/$id", source.replaceAll("é", "e").replaceAll("ö", "o").replaceAll("ü", "u").replace("\"shipping\":null", "\"shippingInfo\":null"))
+    files.filter(_.getName.contains('-')).foreach { file =>
+      val id     = file.getName
+      val source = scala.io.Source.fromFile(new File(file, "_source")).mkString
+      post(s"http://elastic.ebiznext.com/mogopay/$typ/$id",
+           source
+             .replaceAll("é", "e")
+             .replaceAll("ö", "o")
+             .replaceAll("ü", "u")
+             .replace("\"shipping\":null", "\"shippingInfo\":null"))
     }
   }
   indexType("BOTransactionLog")

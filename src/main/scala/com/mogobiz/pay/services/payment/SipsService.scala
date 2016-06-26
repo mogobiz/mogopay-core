@@ -22,9 +22,9 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
   val route = {
     pathPrefix("sips") {
       startPayment ~
-        done ~
-        callback ~
-        threeDSCallback
+      done ~
+      callback ~
+      threeDSCallback
     }
   }
 
@@ -34,17 +34,15 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
         logger.debug("start:" + session.sessionData.uuid)
-        handleCall(sipsHandler.startPayment(session.sessionData),
-          (data: Either[String, Uri]) =>
-            setSession(session) {
-              data match {
-                case Left(content) =>
-                  complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                case Right(url) =>
-                  redirect(url, StatusCodes.TemporaryRedirect)
-              }
+        handleCall(sipsHandler.startPayment(session.sessionData), (data: Either[String, Uri]) =>
+              setSession(session) {
+            data match {
+              case Left(content) =>
+                complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+              case Right(url) =>
+                redirect(url, StatusCodes.TemporaryRedirect)
             }
-        )
+        })
       }
     }
   }
@@ -54,26 +52,22 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
       entity(as[FormData]) { formData =>
         import Implicits._
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(sipsHandler.done(session.sessionData, formData.fields.toMap),
-          (data: Uri) =>
-            setSession(session) {
-              redirect(data, StatusCodes.TemporaryRedirect)
-            }
-        )
+        handleCall(sipsHandler.done(session.sessionData, formData.fields.toMap), (data: Uri) =>
+              setSession(session) {
+            redirect(data, StatusCodes.TemporaryRedirect)
+        })
       }
     } ~
-      get {
-        import Implicits._
-        parameterMap { params =>
-          val session = SessionESDirectives.load(xtoken).get
-          handleCall(sipsHandler.done(session.sessionData, params),
-            (data: Uri) =>
+    get {
+      import Implicits._
+      parameterMap { params =>
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(sipsHandler.done(session.sessionData, params), (data: Uri) =>
               setSession(session) {
-                redirect(data, StatusCodes.TemporaryRedirect)
-              }
-          )
-        }
+            redirect(data, StatusCodes.TemporaryRedirect)
+        })
       }
+    }
   }
 
   lazy val callback = path("callback" / Segment / Segment) { (vendorUuid, xtoken) =>
@@ -82,7 +76,7 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
         import Implicits._
         val session = SessionESDirectives.load(xtoken).get
         handleCall(sipsHandler.callbackPayment(session.sessionData, formData.fields.toMap, vendorUuid),
-          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+                   (pr: PaymentResult) => complete(StatusCodes.OK, pr))
       }
     }
   }
@@ -92,12 +86,10 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
       entity(as[FormData]) { formData =>
         val session = SessionESDirectives.load(xtoken).get
         import Implicits._
-        handleCall(sipsHandler.threeDSCallback(session.sessionData, formData.fields.toMap),
-          (data: Uri) =>
-            setSession(session) {
-              redirect(data, StatusCodes.TemporaryRedirect)
-            }
-        )
+        handleCall(sipsHandler.threeDSCallback(session.sessionData, formData.fields.toMap), (data: Uri) =>
+              setSession(session) {
+            redirect(data, StatusCodes.TemporaryRedirect)
+        })
       }
     }
   }

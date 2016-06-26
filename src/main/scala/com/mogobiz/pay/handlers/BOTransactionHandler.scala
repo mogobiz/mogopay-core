@@ -22,7 +22,8 @@ class BOTransactionHandler {
   }
 
   def findByShipmentId(shipmentId: String): Option[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" query matchQuery("shippingData.shipmentId", shipmentId)
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" query matchQuery("shippingData.shipmentId",
+                                                                                     shipmentId)
     EsClient.search[BOTransaction](req)
   }
 

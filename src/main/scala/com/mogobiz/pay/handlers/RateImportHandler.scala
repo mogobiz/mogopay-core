@@ -25,23 +25,21 @@ class RateImportHandler {
     EsClient.search[Rate](req) map (_.lastUpdated.getTime) orElse Some(ratesFile.lastModified) foreach { lastUpdated =>
       if (lastUpdated <= ratesFile.lastModified) {
         import EsClient.secureActionRequest
-        secureActionRequest(EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "Rate")))
-          .execute
-          .actionGet
+        secureActionRequest(
+            EsClient().client
+              .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
+              .setQuery(new TermQueryBuilder("_type", "Rate"))).execute.actionGet
 
-        val rates =
-          scala.io.Source.fromFile(ratesFile, "utf-8").getLines().flatMap {
-            case line if line.trim().length() > 0 =>
-              val field = line.trim.split('\t')
-              val code = field(0).trim
-              val rate = field(1).toDouble
-              val fractionDigits = field(2).toInt
-              val activationDate = format.parse(field(3).trim)
-              Some(Rate(newUUID, code, activationDate, rate, fractionDigits))
-            case _ => None
-          }
+        val rates = scala.io.Source.fromFile(ratesFile, "utf-8").getLines().flatMap {
+          case line if line.trim().length() > 0 =>
+            val field          = line.trim.split('\t')
+            val code           = field(0).trim
+            val rate           = field(1).toDouble
+            val fractionDigits = field(2).toInt
+            val activationDate = format.parse(field(3).trim)
+            Some(Rate(newUUID, code, activationDate, rate, fractionDigits))
+          case _ => None
+        }
         rates.foreach { rate =>
           println("indexing")
           EsClient.index(Settings.Mogopay.EsIndex, rate, true)
@@ -53,6 +51,10 @@ class RateImportHandler {
 
 object RateImportMain extends App {
   println("Start...\n")
-  EsClient().client.prepareDeleteByQuery(Settings.Mogopay.EsIndex).setQuery(new TermQueryBuilder("_type", "Rate")).execute.actionGet
+  EsClient().client
+    .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
+    .setQuery(new TermQueryBuilder("_type", "Rate"))
+    .execute
+    .actionGet
   rateImportHandler.importRates(Settings.Import.RatesFile)
 }

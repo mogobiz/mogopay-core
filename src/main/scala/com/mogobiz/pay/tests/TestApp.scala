@@ -4,12 +4,12 @@
 
 package com.mogobiz.pay.tests
 
-import java.util.{ Calendar, UUID }
+import java.util.{Calendar, UUID}
 
-import com.mogobiz.es.{ EsClient }
+import com.mogobiz.es.{EsClient}
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.session.{ ESBackend, Session }
+import com.mogobiz.session.{ESBackend, Session}
 import com.sksamuel.elastic4s.ElasticDsl._
 
 // Small Unit Test
@@ -27,49 +27,45 @@ object TestApp extends App {
 
   val Uuid = java.util.UUID.randomUUID().toString
   val account = Account(
-    Uuid,
-    "me@you.com",
-    Some("ebiznext"),
-    Some("http://www.ebiznext.com"),
-    "changeit",
-    Some(Civility.MR),
-    Some("Me"),
-    Some("You"),
-    Some(Calendar.getInstance().getTime),
-    Some(AccountAddress("Rue Meriau",
-      Some("Tour Panorama"),
-      "Paris",
-      Some("75015"),
-      None,
+      Uuid,
+      "me@you.com",
+      Some("ebiznext"),
+      Some("http://www.ebiznext.com"),
+      "changeit",
       Some(Civility.MR),
-      Some("Me2"),
-      Some("You2"),
+      Some("Me"),
+      Some("You"),
+      Some(Calendar.getInstance().getTime),
+      Some(
+          AccountAddress("Rue Meriau",
+                         Some("Tour Panorama"),
+                         "Paris",
+                         Some("75015"),
+                         None,
+                         Some(Civility.MR),
+                         Some("Me2"),
+                         Some("You2"),
+                         None,
+                         Some(Telephone("0102030405", "3314567890987", "987", Some("123"), TelephoneStatus.ACTIVE)),
+                         Some("FRANCE"),
+                         Some("Ile De France"),
+                         Some("Paris"))),
+      AccountStatus.ACTIVE,
+      0,
+      1000L,
+      10000L,
       None,
-      Some(Telephone(
-        "0102030405",
-        "3314567890987",
-        "987",
-        Some("123"),
-        TelephoneStatus.ACTIVE)),
-      Some("FRANCE"),
-      Some("Ile De France"),
-      Some("Paris"))),
-    AccountStatus.ACTIVE,
-    0,
-    1000L,
-    10000L,
-    None,
-    None,
-    None,
-    None,
-    List(RoleName.ADMINISTRATOR, RoleName.CUSTOMER),
-    None,
-    None,
-    Nil,
-    UUID.randomUUID().toString,
-    Nil)
+      None,
+      None,
+      None,
+      List(RoleName.ADMINISTRATOR, RoleName.CUSTOMER),
+      None,
+      None,
+      Nil,
+      UUID.randomUUID().toString,
+      Nil)
   EsClient.index(Settings.Mogopay.EsIndex, account, false)
-  val obj = EsClient.load[Account](Settings.Mogopay.EsIndex, account.uuid)
+  val obj     = EsClient.load[Account](Settings.Mogopay.EsIndex, account.uuid)
   val created = EsClient.update(Settings.Mogopay.EsIndex, account.copy(email = "you@you.com"), false, false)
   val deleted = EsClient.delete[Account](Settings.Mogopay.EsIndex, Uuid, false)
   println(obj)

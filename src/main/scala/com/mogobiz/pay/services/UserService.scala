@@ -24,7 +24,7 @@ class UserService extends Directives with DefaultComplete {
       val params = parameters('callback_success, 'callback_error, 'merchant_id, 'email, 'password)
       params { (callback_success, callback_error, merchant_id, email, password) =>
         handleCall(userHandler.register(callback_success, callback_error, merchant_id, email, password),
-          (data: Map[String, String]) => complete(StatusCodes.OK -> data))
+                   (data: Map[String, String]) => complete(StatusCodes.OK -> data))
       }
     }
   }

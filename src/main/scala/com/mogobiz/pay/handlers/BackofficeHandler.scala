@@ -35,11 +35,16 @@ class BackofficeHandler {
     EsClient.searchAll[BOTransactionLog](req)
   }
 
-  def listTransactions(sessionData: SessionData, email: Option[String],
-    startDate: Option[String], startTime: Option[String],
-    endDate: Option[String], endTime: Option[String],
-    amount: Option[Int], transactionUUID: Option[String],
-    transactionStatus: Option[String], deliveryStatus: Option[String]): Seq[BOTransaction] = {
+  def listTransactions(sessionData: SessionData,
+                       email: Option[String],
+                       startDate: Option[String],
+                       startTime: Option[String],
+                       endDate: Option[String],
+                       endTime: Option[String],
+                       amount: Option[Int],
+                       transactionUUID: Option[String],
+                       transactionStatus: Option[String],
+                       deliveryStatus: Option[String]): Seq[BOTransaction] = {
     def parseDateAndTime(date: Option[String], time: Option[String]): Option[Date] = date.map { d =>
       val date = new SimpleDateFormat("yyyy-MM-dd").parse(d)
       time match {
@@ -52,27 +57,28 @@ class BackofficeHandler {
     }
 
     val parsedStartDatetime = parseDateAndTime(startDate, startTime)
-    val parsedEndDatetime = parseDateAndTime(endDate, endTime)
+    val parsedEndDatetime   = parseDateAndTime(endDate, endTime)
 
-    val accountFilter =
-      if (sessionData.isMerchant) {
-        val accountId = sessionData.accountId.getOrElse(throw InvalidContextException("No logged user found"))
-        List(Some(termFilter("vendor.uuid", accountId)), email.map(termFilter("email", _))).flatten
-      } else {
-        val accountEmail = sessionData.email.getOrElse(throw InvalidContextException("No logged user found"))
-        List(termFilter("email", accountEmail))
-      }
+    val accountFilter = if (sessionData.isMerchant) {
+      val accountId = sessionData.accountId.getOrElse(throw InvalidContextException("No logged user found"))
+      List(Some(termFilter("vendor.uuid", accountId)), email.map(termFilter("email", _))).flatten
+    } else {
+      val accountEmail = sessionData.email.getOrElse(throw InvalidContextException("No logged user found"))
+      List(termFilter("email", accountEmail))
+    }
 
     val filters = accountFilter ++
-      transactionUUID.map(uuid => termFilter("transactionUUID", uuid)) ++
-      amount.map(x => termFilter("amount", x)) ++
-      transactionStatus.map(x => termFilter("status", x)) ++
-      deliveryStatus.map(x => termFilter("delivery.status", x))
+        transactionUUID.map(uuid => termFilter("transactionUUID", uuid)) ++
+        amount.map(x => termFilter("amount", x)) ++
+        transactionStatus.map(x => termFilter("status", x)) ++
+        deliveryStatus.map(x => termFilter("delivery.status", x))
 
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       and(filters: _*)
     } query {
-      rangeQuery("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime.map(_.getTime).orNull
+      rangeQuery("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime
+        .map(_.getTime)
+        .orNull
     } sort {
       field sort "transactionDate" order DESC
     } start 0 limit Settings.MaxQueryResults

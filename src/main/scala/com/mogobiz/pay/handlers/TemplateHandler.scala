@@ -4,9 +4,9 @@
 
 package com.mogobiz.pay.handlers
 
-import java.io.{ FileInputStream, File, InputStream }
+import java.io.{FileInputStream, File, InputStream}
 import java.util.Locale
-import javax.script.{ ScriptEngineFactory, Invocable, ScriptEngine, ScriptEngineManager }
+import javax.script.{ScriptEngineFactory, Invocable, ScriptEngine, ScriptEngineManager}
 
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Mogopay.Account
@@ -14,28 +14,33 @@ import com.mogobiz.template.Mustache
 import org.apache.commons.lang.LocaleUtils
 
 class TemplateHandler {
-  def mustache(vendor: Option[Account], templateName: String, locale: Option[String], jsonString: String): (String, String) = {
-    val customJS = loadCustomJsByVendor(vendor, locale)
-    val template = loadTemplateByVendor(vendor, templateName, locale)
+  def mustache(vendor: Option[Account],
+               templateName: String,
+               locale: Option[String],
+               jsonString: String): (String, String) = {
+    val customJS    = loadCustomJsByVendor(vendor, locale)
+    val template    = loadTemplateByVendor(vendor, templateName, locale)
     val mailContent = Mustache(template, customJS, jsonString)
-    val eol = mailContent.indexOf('\n')
+    val eol         = mailContent.indexOf('\n')
     require(eol > 0, "No new line found in mustache file to distinguish subject from body. Subject cannot be empty.")
     val subject = mailContent.substring(0, eol)
-    val body = mailContent.substring(eol + 1)
+    val body    = mailContent.substring(eol + 1)
     (subject, body)
 
   }
 
   private def loadCustomJsByVendor(vendor: Option[Account], locale: Option[String]): Option[InputStream] = {
     val standardName = "custom"
-    val prefixe = "js"
+    val prefixe      = "js"
     val file = vendor.map { v =>
       findExternalFileForCompanyAndLanguage(standardName, prefixe, v.company, locale)
     }.getOrElse {
       findExternalFileForCompanyAndLanguage(standardName, prefixe, None, locale)
     }
 
-    file.map { f => new FileInputStream(f) }
+    file.map { f =>
+      new FileInputStream(f)
+    }
   }
 
   private def loadTemplateByVendor(vendor: Option[Account], templateName: String, locale: Option[String]): String = {
@@ -48,21 +53,27 @@ class TemplateHandler {
 
     file.map { f =>
       val source = scala.io.Source.fromFile(f)
-      val lines = source.mkString
+      val lines  = source.mkString
       source.close()
       lines
     }.getOrElse {
-      scala.io.Source.fromInputStream(classOf[TemplateHandler].getResourceAsStream(s"/template/$templateName.mustache")).mkString
+      scala.io.Source
+        .fromInputStream(classOf[TemplateHandler].getResourceAsStream(s"/template/$templateName.mustache"))
+        .mkString
     }
   }
-  private def findExternalFileForCompanyAndLanguage(standardName: String, prefixe: String, company: Option[String], locale: Option[String]): Option[File] = {
+  private def findExternalFileForCompanyAndLanguage(standardName: String,
+                                                    prefixe: String,
+                                                    company: Option[String],
+                                                    locale: Option[String]): Option[File] = {
     // On cherche en fonction de la langue dans le répertoire de la compagnie
     val localeFile = locale.flatMap { l =>
       loadExistingExternalFile(company, s"${standardName}_$l.$prefixe").map { f =>
         Some(f)
       }.getOrElse {
-        loadExistingExternalFile(company, s"${standardName}_${LocaleUtils.toLocale(l).getLanguage}.$prefixe").map { f =>
-          Some(f)
+        loadExistingExternalFile(company, s"${standardName}_${LocaleUtils.toLocale(l).getLanguage}.$prefixe").map {
+          f =>
+            Some(f)
         }.getOrElse {
           None
         }
@@ -95,4 +106,3 @@ class TemplateHandler {
   }
 
 }
-

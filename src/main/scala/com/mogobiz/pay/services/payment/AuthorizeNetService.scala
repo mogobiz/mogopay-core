@@ -27,9 +27,9 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
   val route = {
     pathPrefix("authorizenet") {
       startPayment ~
-        cancel ~
-        done ~
-        relay
+      cancel ~
+      done ~
+      relay
       //      callbackPayment ~
       //      callback3DSecureCheck ~
       //      done3DSecureCheck ~
@@ -42,17 +42,15 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(authorizeNetHandler.startPayment(session.sessionData),
-          (data: Either[String, Uri]) =>
-            setSession(session) {
-              data match {
-                case Left(content) =>
-                  complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                case Right(url) =>
-                  redirect(url, StatusCodes.TemporaryRedirect)
-              }
+        handleCall(authorizeNetHandler.startPayment(session.sessionData), (data: Either[String, Uri]) =>
+              setSession(session) {
+            data match {
+              case Left(content) =>
+                complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+              case Right(url) =>
+                redirect(url, StatusCodes.TemporaryRedirect)
             }
-        )
+        })
       }
     }
   }
@@ -76,7 +74,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         }
       }
   }
-  */
+   */
 
   /*
   lazy val done3DSecureCheck = path("done-3ds") {
@@ -100,7 +98,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       }
     }
   }
-  */
+   */
 
   /*
   lazy val callback3DSecureCheck = path("callback-3ds" / Segment) {
@@ -118,21 +116,19 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         }
       }
   }
-  */
+   */
 
   lazy val relay = path("relay" / Segment) { xtoken =>
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(authorizeNetHandler.relay(session.sessionData, formData.fields.toMap),
-          (form: String) =>
-            respondWithMediaType(MediaTypes.`text/html`) {
-              complete {
-                new HttpResponse(StatusCodes.OK, HttpEntity(form))
-              }
+        handleCall(authorizeNetHandler.relay(session.sessionData, formData.fields.toMap), (form: String) =>
+              respondWithMediaType(MediaTypes.`text/html`) {
+            complete {
+              new HttpResponse(StatusCodes.OK, HttpEntity(form))
             }
-        )
+        })
       }
     }
   }
@@ -143,7 +139,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       val session = SessionESDirectives.load(xtoken).get
       parameterMap { params =>
         handleCall(authorizeNetHandler.cancel(session.sessionData),
-          (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
+                   (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
       }
     }
   }
@@ -154,7 +150,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
         handleCall(authorizeNetHandler.done(session.sessionData, params),
-          (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
+                   (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
       }
     }
   }

@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.sql
 
-import java.util.{ Date, UUID }
+import java.util.{Date, UUID}
 
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.model
@@ -19,25 +19,30 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
   //    def apply(rs: ResultSet, index: Int): UUID = UUID.fromString(rs.getString(index))
   //  }
 
-  def apply(rn: ResultName[BOTransaction])(rs: WrappedResultSet): BOTransaction = BOTransaction(
-    rs.get(rn.id),
-    UUID.fromString(rs.get(rn.uuid)),
-    rs.get(rn.extra),
-    rs.date(rn.dateCreated),
-    rs.date(rn.lastUpdated))
+  def apply(rn: ResultName[BOTransaction])(rs: WrappedResultSet): BOTransaction =
+    BOTransaction(rs.get(rn.id),
+                  UUID.fromString(rs.get(rn.uuid)),
+                  rs.get(rn.extra),
+                  rs.date(rn.dateCreated),
+                  rs.date(rn.lastUpdated))
 
   def create(transaction: model.Mogopay.BOTransaction)(implicit session: DBSession): BOTransaction = {
-    val newBoCart = new BOTransaction(newId(), UUID.fromString(transaction.uuid), JacksonConverter.serialize(transaction),
-      new Date, new Date)
+    val newBoCart = new BOTransaction(newId(),
+                                      UUID.fromString(transaction.uuid),
+                                      JacksonConverter.serialize(transaction),
+                                      new Date,
+                                      new Date)
 
     applyUpdate {
-      insert.into(BOTransactionDAO).namedValues(
-        BOTransactionDAO.column.id -> newBoCart.id,
-        BOTransactionDAO.column.uuid -> newBoCart.uuid.toString,
-        BOTransactionDAO.column.extra -> newBoCart.extra,
-        BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
-        BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
-      )
+      insert
+        .into(BOTransactionDAO)
+        .namedValues(
+            BOTransactionDAO.column.id          -> newBoCart.id,
+            BOTransactionDAO.column.uuid        -> newBoCart.uuid.toString,
+            BOTransactionDAO.column.extra       -> newBoCart.extra,
+            BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
+            BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
+        )
     }
 
     newBoCart
@@ -53,10 +58,14 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
   def update(transaction: model.Mogopay.BOTransaction): Int = {
     DB localTx { implicit session =>
       applyUpdate {
-        QueryDSL.update(BOTransactionDAO).set(
-          BOTransactionDAO.column.extra -> JacksonConverter.serialize(transaction),
-          BOTransactionDAO.column.lastUpdated -> new Date
-        ).where.eq(BOTransactionDAO.column.uuid, transaction.uuid)
+        QueryDSL
+          .update(BOTransactionDAO)
+          .set(
+              BOTransactionDAO.column.extra       -> JacksonConverter.serialize(transaction),
+              BOTransactionDAO.column.lastUpdated -> new Date
+          )
+          .where
+          .eq(BOTransactionDAO.column.uuid, transaction.uuid)
       }
     }
   }

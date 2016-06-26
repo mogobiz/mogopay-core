@@ -11,7 +11,7 @@ import Implicits._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
 import spray.http.HttpHeaders.`Content-Type`
-import spray.http.{ MediaTypes, HttpResponse, StatusCodes, Uri }
+import spray.http.{MediaTypes, HttpResponse, StatusCodes, Uri}
 import spray.routing.Directives
 
 import scala.util._
@@ -21,8 +21,8 @@ class PayPalService extends Directives with DefaultComplete {
   val route = {
     pathPrefix("paypal") {
       startPayment ~
-        fail ~
-        success
+      fail ~
+      success
     }
   }
 
@@ -30,47 +30,42 @@ class PayPalService extends Directives with DefaultComplete {
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(payPalHandler.startPayment(session.sessionData),
-          (data: Either[String, Uri]) => {
-            setSession(session) {
-              data match {
-                case Left(content) =>
-                  complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                case Right(url) =>
-                  redirect(url, StatusCodes.TemporaryRedirect)
-              }
+        handleCall(payPalHandler.startPayment(session.sessionData), (data: Either[String, Uri]) => {
+          setSession(session) {
+            data match {
+              case Left(content) =>
+                complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+              case Right(url) =>
+                redirect(url, StatusCodes.TemporaryRedirect)
             }
-          })
+          }
+        })
       }
     }
   }
 
   lazy val fail = path("fail" / Segment) { xtoken =>
     get {
-      parameters("token") {
-        token =>
-          val session = SessionESDirectives.load(xtoken).get
-          handleCall(payPalHandler.fail(session.sessionData, token),
-            (url: Uri) => {
-              setSession(session) {
-                redirect(url, StatusCodes.TemporaryRedirect)
-              }
-            })
+      parameters("token") { token =>
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(payPalHandler.fail(session.sessionData, token), (url: Uri) => {
+          setSession(session) {
+            redirect(url, StatusCodes.TemporaryRedirect)
+          }
+        })
       }
     }
   }
 
   lazy val success = path("success" / Segment) { xtoken =>
     get {
-      parameters("token") {
-        token =>
-          val session = SessionESDirectives.load(xtoken).get
-          handleCall(payPalHandler.success(session.sessionData, token),
-            (url: Uri) => {
-              setSession(session) {
-                redirect(url, StatusCodes.TemporaryRedirect)
-              }
-            })
+      parameters("token") { token =>
+        val session = SessionESDirectives.load(xtoken).get
+        handleCall(payPalHandler.success(session.sessionData, token), (url: Uri) => {
+          setSession(session) {
+            redirect(url, StatusCodes.TemporaryRedirect)
+          }
+        })
       }
     }
   }

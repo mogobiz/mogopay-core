@@ -8,11 +8,11 @@ import com.easypost.EasyPost
 import com.easypost.model._
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
-import com.mogobiz.pay.common.{ Cart, CompanyAddress, ShippingWithQuantity }
+import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
-import com.mogobiz.pay.model.Mogopay.{ Rate => PayRate, _ }
+import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
 import com.typesafe.scalalogging.StrictLogging
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang.StringUtils
@@ -38,8 +38,9 @@ class EasyPostHandler extends ShippingHandler {
     cart.compagnyAddress.map { compagnyAddress =>
       val shippingContent = extractShippingContent(cart)
       computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
-
-        val fixPrice = cart.shippingRulePrice.map { price => Some(convertStorePrice(price, cart)) }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
+        val fixPrice = cart.shippingRulePrice.map { price =>
+          Some(convertStorePrice(price, cart))
+        }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
         val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
         val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
 
@@ -48,18 +49,25 @@ class EasyPostHandler extends ShippingHandler {
     }.getOrElse(Seq())
   }
 
-  protected def computeRate(compagnyAddress: CompanyAddress, shippingAddress: ShippingAddress, cart: Cart, parcel: ShippingParcel, fixPrice: Option[Long], amount: Long): Seq[ShippingData] = {
+  protected def computeRate(compagnyAddress: CompanyAddress,
+                            shippingAddress: ShippingAddress,
+                            cart: Cart,
+                            parcel: ShippingParcel,
+                            fixPrice: Option[Long],
+                            amount: Long): Seq[ShippingData] = {
     val shipment = rate(
-      compagnyAddress,
-      shippingAddress.address,
-      parcel,
-      cart
+        compagnyAddress,
+        shippingAddress.address,
+        parcel,
+        cart
     )
 
     val easyPostRates = shipment.getRates.toList
 
     if (easyPostRates.size == 0) {
-      val message = StringUtils.join(shipment.getMessages.toList.map { m => m.getCarrier + " " + m.getType + " => " + m.getMessage }, ", ")
+      val message = StringUtils.join(shipment.getMessages.toList.map { m =>
+        m.getCarrier + " " + m.getType + " => " + m.getMessage
+      }, ", ")
       logger.info("EasyPost Messages : " + message)
       throw ShippingException()
     }
@@ -69,28 +77,40 @@ class EasyPostHandler extends ShippingHandler {
         _.currencyFractionDigits
       }.getOrElse(2)
       val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
-      val finalPrice = fixPrice.getOrElse(amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
+      val finalPrice = fixPrice.getOrElse(
+          amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
 
-      createShippingData(shippingAddress.address, EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId, easyPostRate.getId, easyPostRate.getCarrier, easyPostRate.getService, easyPostRate.getServiceCode, finalPrice, cart.rate.code)
+      createShippingData(shippingAddress.address,
+                         EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId,
+                         easyPostRate.getId,
+                         easyPostRate.getCarrier,
+                         easyPostRate.getService,
+                         easyPostRate.getServiceCode,
+                         finalPrice,
+                         cart.rate.code)
     }
   }
 
-  override def isValidShipmentId(shippingPrice: ShippingData): Boolean = shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
+  override def isValidShipmentId(shippingPrice: ShippingData): Boolean =
+    shippingPrice.shipmentId.startsWith(EASYPOST_SHIPPING_PREFIX)
 
   override def confirmShipmentId(shippingData: ShippingData): ShippingData = {
     if (shippingData.confirm) shippingData
     else {
       val shipment = Shipment.retrieve(shippingData.shipmentId.substring(EASYPOST_SHIPPING_PREFIX.length))
-      val rate = Rate.retrieve(shippingData.rateId)
-      val s = shipment.buy(rate)
+      val rate     = Rate.retrieve(shippingData.rateId)
+      val s        = shipment.buy(rate)
       shippingData.copy(confirm = true, trackingCode = Some(s.getTrackingCode))
     }
   }
 
-  protected def computeShippingParcelAndFixAmount(cart: Cart, shippingList: List[ShippingWithQuantity]): Option[ShippingParcelAndFixAmount] = {
+  protected def computeShippingParcelAndFixAmount(
+      cart: Cart,
+      shippingList: List[ShippingWithQuantity]): Option[ShippingParcelAndFixAmount] = {
     if (shippingList.isEmpty) None
     else {
-      val parcelPriceTail = computeShippingParcelAndFixAmount(cart, shippingList.tail).getOrElse(ShippingParcelAndFixAmount(0, None, None))
+      val parcelPriceTail =
+        computeShippingParcelAndFixAmount(cart, shippingList.tail).getOrElse(ShippingParcelAndFixAmount(0, None, None))
       val quantity = shippingList.head.quantity
       val shipping = shippingList.head.shipping
 
@@ -109,66 +129,75 @@ class EasyPostHandler extends ShippingHandler {
       }.getOrElse(0.0)
       val parcel = ShippingParcel(height, width, length, weight)
 
-      if (shipping.free) Some(ShippingParcelAndFixAmount(parcelPriceTail.amount, Some(parcelPriceTail.fixParcel.getOrElse(parcel)), parcelPriceTail.parcel))
-      else if (shipping.amount > 0) Some(ShippingParcelAndFixAmount(parcelPriceTail.amount + convertStorePrice(shipping.amount, cart) * quantity, Some(parcelPriceTail.fixParcel.getOrElse(parcel)), parcelPriceTail.parcel))
+      if (shipping.free)
+        Some(
+            ShippingParcelAndFixAmount(parcelPriceTail.amount,
+                                       Some(parcelPriceTail.fixParcel.getOrElse(parcel)),
+                                       parcelPriceTail.parcel))
+      else if (shipping.amount > 0)
+        Some(
+            ShippingParcelAndFixAmount(parcelPriceTail.amount + convertStorePrice(shipping.amount, cart) * quantity,
+                                       Some(parcelPriceTail.fixParcel.getOrElse(parcel)),
+                                       parcelPriceTail.parcel))
       else Some(ShippingParcelAndFixAmount(parcelPriceTail.amount, parcelPriceTail.fixParcel, Some(parcel)))
     }
   }
 
   /**
-   * convert the linear value into IN
-   * 1 in = 2.54 cm
-   *
-   * @param linear
-   * @param unit
-   * @return
-   */
+    * convert the linear value into IN
+    * 1 in = 2.54 cm
+    *
+    * @param linear
+    * @param unit
+    * @return
+    */
   protected def convertLinear(linear: Long, unit: String): Double = {
     unit match {
       case "CM" => linear / 2.54d
-      case _ => linear
+      case _    => linear
     }
   }
 
   /**
-   * convert te weight into OZ
-   * 1 OZ = 28.3495231 g
-   * 1 OZ = 28.3495231/1000 kg
-   * 1 OZ = 16.000 lb
-   *
-   * @param weight
-   * @param unit
-   * @return
-   */
+    * convert te weight into OZ
+    * 1 OZ = 28.3495231 g
+    * 1 OZ = 28.3495231/1000 kg
+    * 1 OZ = 16.000 lb
+    *
+    * @param weight
+    * @param unit
+    * @return
+    */
   protected def convertWeight(weight: Long, unit: String): Double = {
     unit match {
       case "KG" => weight * 1000 / 28.3495231d
-      case "G" => weight / 28.3495231d
+      case "G"  => weight / 28.3495231d
       case "LB" => weight / 16.0d
-      case _ => weight
+      case _    => weight
     }
   }
 
-  case class ShippingParcelAndFixAmount(amount: Long, fixParcel: Option[ShippingParcel], parcel: Option[ShippingParcel])
+  case class ShippingParcelAndFixAmount(amount: Long,
+                                        fixParcel: Option[ShippingParcel],
+                                        parcel: Option[ShippingParcel])
 
   def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Shipment = {
-    val parcelMap = mutable.HashMap[String, AnyRef](
-      "height" -> parcel.height.asInstanceOf[AnyRef],
-      "width" -> parcel.width.asInstanceOf[AnyRef],
-      "length" -> parcel.length.asInstanceOf[AnyRef],
-      "weight" -> parcel.weight.asInstanceOf[AnyRef])
+    val parcelMap = mutable.HashMap[String, AnyRef]("height" -> parcel.height.asInstanceOf[AnyRef],
+                                                    "width"  -> parcel.width.asInstanceOf[AnyRef],
+                                                    "length" -> parcel.length.asInstanceOf[AnyRef],
+                                                    "weight" -> parcel.weight.asInstanceOf[AnyRef])
 
     val parc = Parcel.create(parcelMap)
 
-    val shipmentMap = mutable.HashMap[String, AnyRef](
-      "from_address" -> companyAddressToMap(from),
-      "to_address" -> accountAddressToMap(to),
-      "parcel" -> parc,
-      "reference" -> cart.cartItems(0).id,
-      "customs_info" -> cartToMap(cart))
+    val shipmentMap = mutable.HashMap[String, AnyRef]("from_address" -> companyAddressToMap(from),
+                                                      "to_address"   -> accountAddressToMap(to),
+                                                      "parcel"       -> parc,
+                                                      "reference"    -> cart.cartItems(0).id,
+                                                      "customs_info" -> cartToMap(cart))
 
     if (Settings.Shipping.EasyPost.UpsCostCenter.length > 0)
-      shipmentMap.put("options", mutable.HashMap[String, AnyRef]("cost_center" -> Settings.Shipping.EasyPost.UpsCostCenter))
+      shipmentMap
+        .put("options", mutable.HashMap[String, AnyRef]("cost_center" -> Settings.Shipping.EasyPost.UpsCostCenter))
 
     Shipment.create(shipmentMap)
   }
@@ -184,16 +213,16 @@ class EasyPostHandler extends ShippingHandler {
 
     val customsItemsList: java.util.List[AnyRef] = cart.cartItems.flatMap { cartItem =>
       cartItem.shipping.map { shipping =>
-        val price = cartItem.saleTotalEndPrice
+        val price     = cartItem.saleTotalEndPrice
         val p: Double = Math.pow(10, currencyFractionDigits.doubleValue());
-        val priceUSD = rateHandler.convert(price, cart.rate.code, "USD").getOrElse(price) / p
+        val priceUSD  = rateHandler.convert(price, cart.rate.code, "USD").getOrElse(price) / p
 
         val map = mutable.HashMap[String, AnyRef](
-          "description" -> cartItem.name,
-          "quantity" -> cartItem.quantity.asInstanceOf[AnyRef],
-          "value" -> priceUSD.asInstanceOf[AnyRef],
-          "weight" -> convertWeight(shipping.weight, shipping.weightUnit).asInstanceOf[AnyRef],
-          "origin_country" -> originCountry
+            "description"    -> cartItem.name,
+            "quantity"       -> cartItem.quantity.asInstanceOf[AnyRef],
+            "value"          -> priceUSD.asInstanceOf[AnyRef],
+            "weight"         -> convertWeight(shipping.weight, shipping.weightUnit).asInstanceOf[AnyRef],
+            "origin_country" -> originCountry
         )
         CustomsItem.create(map)
       }
@@ -204,10 +233,10 @@ class EasyPostHandler extends ShippingHandler {
     //customs_items 	array 	CustomsItems included
 
     val map: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-      "customs_certify" -> false.asInstanceOf[AnyRef],
-      "contents_type" -> "merchandise",
-      "eel_pfc" -> "NOEEI 30.37(a)",
-      "customs_items" -> customsItemsList
+        "customs_certify" -> false.asInstanceOf[AnyRef],
+        "contents_type"   -> "merchandise",
+        "eel_pfc"         -> "NOEEI 30.37(a)",
+        "customs_items"   -> customsItemsList
     )
 
     CustomsInfo.create(map)
@@ -216,22 +245,26 @@ class EasyPostHandler extends ShippingHandler {
 
   protected def accountAddressToMap(addr: AccountAddress): Address = {
     val country = addr.country.getOrElse("US")
-    val state = addr.admin1.getOrElse("US.CA")
-    val stateName = countryAdminHandler.getAdmin1ByCode(country, state).map {
-      admin1: CountryAdmin => admin1.name.getOrElse(state)
-    }.getOrElse(state)
-    val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
-      "name" -> (addr.civility.map {
-        _.toString + " "
-      }.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
-      "company" -> addr.company.getOrElse(""),
-      "street1" -> addr.road,
-      "street2" -> addr.road2.getOrElse(""),
-      "city" -> addr.city,
-      "state" -> stateName,
-      "country" -> country,
-      "zip" -> addr.zipCode.getOrElse(""),
-      "phone" -> formatPhone(addr.telephone.map(_.lphone).getOrElse(""))).filter(_._2.length > 0)
+    val state   = addr.admin1.getOrElse("US.CA")
+    val stateName = countryAdminHandler
+      .getAdmin1ByCode(country, state)
+      .map { admin1: CountryAdmin =>
+        admin1.name.getOrElse(state)
+      }
+      .getOrElse(state)
+    val fromAddressMap: java.util.Map[String, AnyRef] = mutable
+      .HashMap[String, String]("name" -> (addr.civility.map {
+                                     _.toString + " "
+                                   }.getOrElse("") + addr.lastName.getOrElse("") + " " + addr.firstName.getOrElse("")),
+                               "company" -> addr.company.getOrElse(""),
+                               "street1" -> addr.road,
+                               "street2" -> addr.road2.getOrElse(""),
+                               "city"    -> addr.city,
+                               "state"   -> stateName,
+                               "country" -> country,
+                               "zip"     -> addr.zipCode.getOrElse(""),
+                               "phone"   -> formatPhone(addr.telephone.map(_.lphone).getOrElse("")))
+      .filter(_._2.length > 0)
 
     Address.create(fromAddressMap)
   }
@@ -248,16 +281,17 @@ class EasyPostHandler extends ShippingHandler {
   }
 
   protected def companyAddressToMap(addr: CompanyAddress): Address = {
-    val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, String](
-      "company" -> addr.company,
-      "name" -> addr.company,
-      "street1" -> addr.road,
-      "street2" -> addr.road2,
-      "city" -> addr.city,
-      "state" -> addr.state.getOrElse("CA"),
-      "country" -> addr.country,
-      "zip" -> addr.zipCode,
-      "phone" -> formatPhone(addr.phone.getOrElse(""))).filter(_._2.length > 0)
+    val fromAddressMap: java.util.Map[String, AnyRef] = mutable
+      .HashMap[String, String]("company" -> addr.company,
+                               "name"    -> addr.company,
+                               "street1" -> addr.road,
+                               "street2" -> addr.road2,
+                               "city"    -> addr.city,
+                               "state"   -> addr.state.getOrElse("CA"),
+                               "country" -> addr.country,
+                               "zip"     -> addr.zipCode,
+                               "phone"   -> formatPhone(addr.phone.getOrElse("")))
+      .filter(_._2.length > 0)
 
     Address.create(fromAddressMap)
   }
@@ -268,62 +302,59 @@ object EasyPostHandlerTest extends App {
   EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
 
   val customsItemMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "description" -> "T-shirt",
-    "quantity" -> 1.asInstanceOf[AnyRef],
-    "value" -> 11.asInstanceOf[AnyRef],
-    "weight" -> 6.asInstanceOf[AnyRef],
-    "origin_country" -> "US",
-    "hs_tariff_number" -> "610910")
+      "description"      -> "T-shirt",
+      "quantity"         -> 1.asInstanceOf[AnyRef],
+      "value"            -> 11.asInstanceOf[AnyRef],
+      "weight"           -> 6.asInstanceOf[AnyRef],
+      "origin_country"   -> "US",
+      "hs_tariff_number" -> "610910")
 
   val customsItem1 = CustomsItem.create(customsItemMap);
 
   var customsItemsList: java.util.List[AnyRef] = Array(customsItem1).toList;
 
   val customsInfoMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "customs_certify" -> false.asInstanceOf[AnyRef],
-    //"customs_signer" -> "Jarrett Streebin",
-    "contents_type" -> "gift",
-    "eel_pfc" -> "NOEEI 30.37(a)",
-    "customs_items" -> customsItemsList)
+      "customs_certify" -> false.asInstanceOf[AnyRef],
+      //"customs_signer" -> "Jarrett Streebin",
+      "contents_type" -> "gift",
+      "eel_pfc"       -> "NOEEI 30.37(a)",
+      "customs_items" -> customsItemsList)
 
   val customsInfo = CustomsInfo.create(customsInfoMap);
 
-  val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "name" -> "acmesports",
-    "company" -> "acmesports",
-    "street1" -> "179 N Harbor Dr",
-    "city" -> "Redondo Beach",
-    "country" -> "US",
-    "state" -> "CA",
-    "zip" -> "90277",
-    "phone" -> "(248) 123-7654");
+  val fromAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef]("name" -> "acmesports",
+                                                                                      "company" -> "acmesports",
+                                                                                      "street1" -> "179 N Harbor Dr",
+                                                                                      "city"    -> "Redondo Beach",
+                                                                                      "country" -> "US",
+                                                                                      "state"   -> "CA",
+                                                                                      "zip"     -> "90277",
+                                                                                      "phone"   -> "(248) 123-7654");
   val fromAddress = Address.create(fromAddressMap)
 
   val toAddressMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "name" -> "Yoann Baudy",
-    "company" -> "acmesports",
-    "street1" -> "14 rue de la récré",
-    "city" -> "Saint Christophe des Bois",
-    "country" -> "FR",
-    "zip" -> "35210")
+      "name"    -> "Yoann Baudy",
+      "company" -> "acmesports",
+      "street1" -> "14 rue de la récré",
+      "city"    -> "Saint Christophe des Bois",
+      "country" -> "FR",
+      "zip"     -> "35210")
   val toAddress = Address.create(toAddressMap)
 
-  val parcelMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "height" -> 3.asInstanceOf[AnyRef],
-    "width" -> 6.asInstanceOf[AnyRef],
-    "length" -> 9.asInstanceOf[AnyRef],
-    "weight" -> 20.asInstanceOf[AnyRef])
+  val parcelMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef]("height" -> 3.asInstanceOf[AnyRef],
+                                                                                 "width"  -> 6.asInstanceOf[AnyRef],
+                                                                                 "length" -> 9.asInstanceOf[AnyRef],
+                                                                                 "weight" -> 20.asInstanceOf[AnyRef])
 
   val shipmentMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "to_address" -> toAddress,
-    "from_address" -> fromAddress,
-    "parcel" -> Parcel.create(parcelMap),
-    "customs_info" -> customsInfo)
+      "to_address"   -> toAddress,
+      "from_address" -> fromAddress,
+      "parcel"       -> Parcel.create(parcelMap),
+      "customs_info" -> customsInfo)
 
   val shipment = Shipment.create(shipmentMap)
 
-  val rate: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
-    "id" -> shipment.getRates.get(0).getId())
-  val newShipment = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()))
+  val rate: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef]("id" -> shipment.getRates.get(0).getId())
+  val newShipment                         = Shipment.retrieve(shipment.getId).buy(Rate.retrieve(shipment.getRates.get(0).getId()))
   logger.debug(newShipment.getStatus)
 }

@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers
 import java.util.Calendar
 
 import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl.{ delete => del, _ }
+import com.sksamuel.elastic4s.ElasticDsl.{delete => del, _}
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay.TransactionRequest
 
@@ -15,12 +15,15 @@ class TransactionRequestHandler {
   def save(txRequest: TransactionRequest, refresh: Boolean = false) =
     EsClient.index(Settings.Mogopay.EsIndex, txRequest, refresh)
 
-  def update(txRequest: TransactionRequest) = EsClient.update[TransactionRequest](Settings.Mogopay.EsIndex, txRequest, true, false)
+  def update(txRequest: TransactionRequest) =
+    EsClient.update[TransactionRequest](Settings.Mogopay.EsIndex, txRequest, true, false)
 
   def find(uuid: String) = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, uuid)
 
   def findByGroupTxUUID(uuid: String): Seq[TransactionRequest] = {
-    val req = search in Settings.Mogopay.EsIndex -> "TransactionRequest" postFilter termFilter("groupTransactionUUID", uuid) from 0 size EsClient.MAX_SIZE
+    val req = search in Settings.Mogopay.EsIndex -> "TransactionRequest" postFilter termFilter(
+          "groupTransactionUUID",
+          uuid) from 0 size EsClient.MAX_SIZE
     EsClient.searchAll[TransactionRequest](req)
   }
 

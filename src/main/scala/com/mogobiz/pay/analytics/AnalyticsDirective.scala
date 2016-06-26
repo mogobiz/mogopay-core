@@ -5,7 +5,7 @@
 package com.mogobiz.pay.analytics
 
 import shapeless.HNil
-import spray.http.{ HttpMethods, HttpRequest }
+import spray.http.{HttpMethods, HttpRequest}
 import spray.routing.Directives._
 import spray.routing._
 
@@ -16,8 +16,7 @@ object AnalyticsDirective {
       val params = request.uri.query.toMultiMap
       if (request.method == HttpMethods.POST) {
         request.entity.data
-      } else {
-      }
+      } else {}
       pass
     }
   }

@@ -7,11 +7,11 @@ package com.mogobiz.pay.handlers
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.mogobiz.pay.config.{ Environment, Settings }
+import com.mogobiz.pay.config.{Environment, Settings}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model.Mogopay._
-import org.joda.time.{ DateTime, DateTimeComparator }
+import org.joda.time.{DateTime, DateTimeComparator}
 
 import scala.util._
 
@@ -40,14 +40,15 @@ class TransactionSequenceHandler {
 
         tryUpdate match {
           case Success(id) => id
-          case Failure(_) => nextTransactionId(vendorId)
+          case Failure(_)  => nextTransactionId(vendorId)
         }
     } getOrElse {
       // TODO should not be done here. It should be at vendor creation time
-      val seq = if (Settings.Env == Environment.DEV)
-        new SimpleDateFormat("HHmmss").format(new Date()).toLong
-      else
-        1L
+      val seq =
+        if (Settings.Env == Environment.DEV)
+          new SimpleDateFormat("HHmmss").format(new Date()).toLong
+        else
+          1L
       EsClient.index(Settings.Mogopay.EsIndex, TransactionSequence(vendorId, seq), false)
       seq
     }

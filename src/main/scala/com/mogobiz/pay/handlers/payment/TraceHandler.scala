@@ -31,7 +31,7 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
   }
 
   def handleFault(smc: SOAPMessageContext): Boolean = {
-    val message: SOAPMessage = smc.getMessage
+    val message: SOAPMessage           = smc.getMessage
     val soapReq: ByteArrayOutputStream = new ByteArrayOutputStream
     try {
       message.writeTo(soapReq)
@@ -48,32 +48,31 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
         }
       }
       val log: BOTransactionLog = BOTransactionLog(
-        uuid = newUUID,
-        direction = "IN",
-        log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
-        provider = provider,
-        transaction = transaction.uuid,
-        step = null
+          uuid = newUUID,
+          direction = "IN",
+          log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
+          provider = provider,
+          transaction = transaction.uuid,
+          step = null
       )
       boTransactionLogHandler.save(log)
     }
     true
   }
 
-  def close(messageContext: MessageContext) {
-  }
+  def close(messageContext: MessageContext) {}
 
   def handleMessage(smc: SOAPMessageContext): Boolean = {
-    val outboundProperty: Boolean = smc.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY).asInstanceOf[Boolean]
-    val message: SOAPMessage = smc.getMessage
+    val outboundProperty: Boolean      = smc.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY).asInstanceOf[Boolean]
+    val message: SOAPMessage           = smc.getMessage
     val soapReq: ByteArrayOutputStream = new ByteArrayOutputStream
-    val direction: String = if (outboundProperty) "Outgoing" else "Incoming"
+    val direction: String              = if (outboundProperty) "Outgoing" else "Incoming"
     try {
       if (!outboundProperty) {
-        val soapMsg: SOAPMessage = smc.getMessage
-        val soapEnv: SOAPEnvelope = soapMsg.getSOAPPart.getEnvelope
+        val soapMsg: SOAPMessage   = smc.getMessage
+        val soapEnv: SOAPEnvelope  = soapMsg.getSOAPPart.getEnvelope
         val soapHeader: SOAPHeader = soapEnv.getHeader
-        val ite: Iterator[_] = soapHeader.extractAllHeaderElements
+        val ite: Iterator[_]       = soapHeader.extractAllHeaderElements
         while (ite.hasNext) {
           val header: SOAPHeader = ite.next.asInstanceOf[SOAPHeader]
           //          getProperty("log").invokeMethod("info", Array[AnyRef](header.getLocalName + "=" + header.getValue))
@@ -95,12 +94,12 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
       //      getProperty("log").invokeMethod("info", Array[AnyRef]("soapbody=" + new String(soapReq.toByteArray)))
       try {
         val log: BOTransactionLog = BOTransactionLog(
-          uuid = newUUID,
-          direction = if (outboundProperty) "OUT" else "IN",
-          log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
-          provider = provider,
-          transaction = transaction.uuid,
-          step = null
+            uuid = newUUID,
+            direction = if (outboundProperty) "OUT" else "IN",
+            log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
+            provider = provider,
+            transaction = transaction.uuid,
+            step = null
         )
         boTransactionLogHandler.save(log)
       } catch {
@@ -133,6 +132,6 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
   }
 
   private var transaction: BOTransaction = null
-  private var provider: String = null
+  private var provider: String           = null
   private final val headers: Set[QName] = null
 }

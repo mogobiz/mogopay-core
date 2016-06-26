@@ -22,21 +22,23 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
 
   def authenticate(sessionData: SessionData): Left[String, Nothing] = {
     val ownerFilter =
-      sessionData.merchantId.map {
-        vendorId => termFilter("owner", vendorId)
+      sessionData.merchantId.map { vendorId =>
+        termFilter("owner", vendorId)
       } getOrElse {
         missingFilter("owner") existence true includeNull true
       }
 
     val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter {
       and(
-        termFilter("status", AccountStatus.ACTIVE),
-        termFilter("email", sessionData.email.get),
-        termFilter("password", new Sha256Hash(sessionData.password.get)),
-        ownerFilter
+          termFilter("status", AccountStatus.ACTIVE),
+          termFilter("email", sessionData.email.get),
+          termFilter("password", new Sha256Hash(sessionData.password.get)),
+          ownerFilter
       ) cache (false)
     }
-    val account = if (sessionData.authenticated) EsClient.load[Account](Settings.Mogopay.EsIndex, sessionData.accountId.get) else EsClient.search[Account](req)
+    val account =
+      if (sessionData.authenticated) EsClient.load[Account](Settings.Mogopay.EsIndex, sessionData.accountId.get)
+      else EsClient.search[Account](req)
     account map { account =>
       sessionData.authenticated = true
       sessionData.accountId = Some(account.uuid)
@@ -70,9 +72,12 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
                 <input type="hidden" name="transaction_id" value="${sessionData.transactionUuid}" />
                 <input type="hidden" name="transaction_type" value="CREDIT_CARD" />
                 <input type="hidden" name="card_type" value="${card.cardType}" />
-                <input type="hidden" name="card_expiry_date" value="${new SimpleDateFormat("MMyyyy").format(card.expiryDate)}" />
-                <input type="hidden" name="card_expiry_month" value="${new SimpleDateFormat("MM").format(card.expiryDate)}" />
-                <input type="hidden" name="card_expiry_year" value="${new SimpleDateFormat("yyyy").format(card.expiryDate)}" />
+                <input type="hidden" name="card_expiry_date" value="${new SimpleDateFormat("MMyyyy")
+          .format(card.expiryDate)}" />
+                <input type="hidden" name="card_expiry_month" value="${new SimpleDateFormat("MM")
+          .format(card.expiryDate)}" />
+                <input type="hidden" name="card_expiry_year" value="${new SimpleDateFormat("yyyy")
+          .format(card.expiryDate)}" />
                 <input type="hidden" name="card_number" value="${card.hiddenNumber}" />
                 <input type="hidden" name="card_holder" value="${card.holder}" />
                 </form>
@@ -110,5 +115,8 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  override def refund(paymentConfig: PaymentConfig, boTx: BOTransaction, amount: Long, paymentResult: PaymentResult): RefundResult = ???
+  override def refund(paymentConfig: PaymentConfig,
+                      boTx: BOTransaction,
+                      amount: Long,
+                      paymentResult: PaymentResult): RefundResult = ???
 }

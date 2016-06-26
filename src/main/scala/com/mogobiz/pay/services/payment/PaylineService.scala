@@ -24,9 +24,9 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
   val route = {
     pathPrefix("payline") {
       startPayment ~
-        done ~
-        callback ~
-        threeDSCallback
+      done ~
+      callback ~
+      threeDSCallback
     }
   }
 
@@ -35,18 +35,16 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.startPayment(session.sessionData),
-          (data: Either[String, Uri]) =>
-            setSession(session) {
-              data match {
-                case Left(content) =>
-                  complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-                case Right(url) =>
-                  logger.debug(url.toString())
-                  redirect(url, StatusCodes.TemporaryRedirect)
-              }
+        handleCall(paylineHandler.startPayment(session.sessionData), (data: Either[String, Uri]) =>
+              setSession(session) {
+            data match {
+              case Left(content) =>
+                complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+              case Right(url) =>
+                logger.debug(url.toString())
+                redirect(url, StatusCodes.TemporaryRedirect)
             }
-        )
+        })
       }
     }
   }
@@ -56,12 +54,10 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.done(session.sessionData, params),
-          (data: Uri) =>
-            setSession(session) {
-              redirect(data, StatusCodes.TemporaryRedirect)
-            }
-        )
+        handleCall(paylineHandler.done(session.sessionData, params), (data: Uri) =>
+              setSession(session) {
+            redirect(data, StatusCodes.TemporaryRedirect)
+        })
       }
     }
   }
@@ -72,7 +68,7 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
         handleCall(paylineHandler.callbackPayment(session.sessionData, params),
-          (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+                   (pr: PaymentResult) => complete(StatusCodes.OK, pr))
       }
     }
   }
@@ -82,12 +78,10 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
       entity(as[FormData]) { formData =>
         import Implicits._
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.threeDSCallback(session.sessionData, formData.fields.toMap),
-          (data: Uri) =>
-            setSession(session) {
-              redirect(data, StatusCodes.TemporaryRedirect)
-            }
-        )
+        handleCall(paylineHandler.threeDSCallback(session.sessionData, formData.fields.toMap), (data: Uri) =>
+              setSession(session) {
+            redirect(data, StatusCodes.TemporaryRedirect)
+        })
       }
     }
   }

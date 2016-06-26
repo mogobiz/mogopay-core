@@ -8,7 +8,7 @@ import java.io.File
 
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import spray.http.{ ContentType, HttpData, HttpEntity, MediaTypes }
+import spray.http.{ContentType, HttpData, HttpEntity, MediaTypes}
 import spray.routing.Directives
 
 class PdfService extends Directives with DefaultComplete {
@@ -20,10 +20,9 @@ class PdfService extends Directives with DefaultComplete {
     post {
       var fields = formFields('page, 'xhtml)
       fields { (page, xhtml) =>
-        handleCall(pdfHandler.convertToPdf(page, xhtml),
-          (pdfFile: File) => {
-            complete(HttpEntity(ContentType(MediaTypes.`application/pdf`), HttpData(pdfFile)))
-          })
+        handleCall(pdfHandler.convertToPdf(page, xhtml), (pdfFile: File) => {
+          complete(HttpEntity(ContentType(MediaTypes.`application/pdf`), HttpData(pdfFile)))
+        })
       }
     }
   }

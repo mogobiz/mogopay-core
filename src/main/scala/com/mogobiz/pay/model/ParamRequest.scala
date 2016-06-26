@@ -5,14 +5,15 @@
 package com.mogobiz.pay.model
 
 /**
- */
+  */
 object ParamRequest {
-  case class TransactionInit(merchantSecret: String, transactionAmount: Long,
-    returnUrl: Option[String],
-    groupPaymentExpirationDate: Option[Long], groupPaymentRefundPercentage: Option[Int])
+  case class TransactionInit(merchantSecret: String,
+                             transactionAmount: Long,
+                             returnUrl: Option[String],
+                             groupPaymentExpirationDate: Option[Long],
+                             groupPaymentRefundPercentage: Option[Int])
 
   case class ListShippingPriceParam(cartProvider: String, cartKeys: String)
 
   case class SelectShippingPriceParam(shipmentId: String, rateId: String)
 }
-
