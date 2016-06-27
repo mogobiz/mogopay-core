@@ -1,3 +1,25 @@
-{{status}}
-Final Price : {{amount}}
-Thank You
+{{status.name}}.
+
+<html>
+<head>
+    <title>Your command {{transactionUuid}}</title>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-15">
+</head>
+<body>
+
+
+
+{{#customer}}
+    Dear {{firstName}} {{lastName}}, <br/>
+{{/customer}}
+Thank you for your order with our shop.<br/>
+The payment you proceed has the status : {{status.name}}. <br/>
+Your payment has been proceed on our site the {{#fn_format_date}}{{transactionDate}}|yyyy MM dd {{/fn_format_date}} at {{#fn_format_date}}{{transactionDate}}|HH:mm{{/fn_format_date}}.<br/>
+Total Amount : <strong>  {{#fn_format_display_price }} {{amount}} {{/fn_format_display_price}}  </strong>
+
+
+Yours,<br/>
+Your Team.<br/>
+
+</body>
+</html>
