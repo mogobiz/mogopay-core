@@ -16,6 +16,7 @@ import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, T
 import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
 import scala.util.control.NonFatal
+import scala.xml.parsing.ExternalSources
 
 object Mogopay {
   type Document = String
@@ -353,6 +354,7 @@ object Mogopay {
     confirm: Boolean = false,
     trackingCode: Option[String] = None,
     extra: Option[String] = None,
+    externalCode: Option[String] = None,
     trackingHistory: List[String] = Nil)
 
   case class ModificationStatus(uuid: String,

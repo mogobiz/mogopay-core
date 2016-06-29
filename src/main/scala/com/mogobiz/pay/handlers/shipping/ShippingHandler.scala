@@ -33,17 +33,15 @@ trait ShippingHandler extends StrictLogging {
   }
 
   def extractShippingContent(cart: Cart): List[ShippingWithQuantity] = {
-    (for {
-      cartItem <- cart.cartItems
-      shipping <- cartItem.shipping
-    } yield ShippingWithQuantity(cartItem.quantity, shipping)).flatMap { shippingWithQuantity: ShippingWithQuantity =>
-      val shipping = shippingWithQuantity.shipping
-      if (shipping.height == 0 || shipping.width == 0 || shipping.weight == 0 || shipping.weightUnit == null || shipping.weightUnit.isEmpty
-        || shipping.linearUnit == null || shipping.linearUnit.isEmpty)
-        None
-      else
-        Some(shippingWithQuantity)
-    } toList
+    cart.cartItems.map { cartItem =>
+      if (cartItem.externalCodes.isDefined) None
+      else {
+        cartItem.shipping.map { shipping =>
+          if (shipping.isDefine) Some(ShippingWithQuantity(cartItem.quantity, shipping))
+          else None
+        }.flatten
+      }
+    }.flatten.toList
   }
 
   def createShippingData(shippingAddress: AccountAddress, shipmentId: String, rateId: String, provider: String, service: String, rateType: String, price: Long, currencyCode: String): ShippingData = {

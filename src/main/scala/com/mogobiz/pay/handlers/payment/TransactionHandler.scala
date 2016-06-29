@@ -348,7 +348,7 @@ class TransactionHandler {
     }
   }
 
-  def shippingPrices(cart: Cart, accountId: String): Seq[ShippingData] = {
+  def shippingPrices(cart: Cart, accountId: String): (Option[AccountAddress], Seq[ShippingData]) = {
     val maybeCustomer = accountHandler.load(accountId)
 
     val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
@@ -359,8 +359,8 @@ class TransactionHandler {
       cart.compagnyAddress.foreach { compagnyAddr =>
         if (!compagnyAddr.shippingInternational && addr.address.country.getOrElse("") != compagnyAddr.country) throw new ShippingInternationalUnauthorized
       }
-      ShippingHandler.computePrice(addr, cart)
-    }.getOrElse(Seq[ShippingData]())
+      (Some(addr.address), ShippingHandler.computePrice(addr, cart))
+    }.getOrElse((None, Seq[ShippingData]()))
   }
 
   def selectShippingPrice(sessionData: SessionData, accountId: String, shipmentId: String, rateId: String): ShippingData = {
