@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
 import com.fasterxml.jackson.module.scala.{ DefaultScalaModule, JsonScalaEnumeration }
-import com.mogobiz.pay.common.{ Cart, CartItem, CartRate, Coupon }
+import com.mogobiz.pay.common._
 import com.mogobiz.pay.model.Mogopay.{ Account, AccountAddress, AccountStatus, Telephone, _ }
 import spray.httpx.unmarshalling.{ FromStringDeserializer, MalformedContent }
 
@@ -343,12 +343,12 @@ object Mogopay {
     address: AccountAddress)
 
   case class ShippingCart(shippingPrices: List[ShippingData],
-      externalShippingPrices: Map[String, List[ShippingData]]) {
+      externalShippingPrices: Map[ExternalCode, List[ShippingData]]) {
     val nonEmpty = shippingPrices.nonEmpty
   }
 
   case class SelectShippingCart(shippingPrices: ShippingData,
-      externalShippingPrices: Map[String, ShippingData]) {
+      externalShippingPrices: Map[ExternalCode, ShippingData]) {
     val price = shippingPrices.price + externalShippingPrices.map { _._2.price }.sum
   }
 
