@@ -205,7 +205,7 @@ class TransactionHandler {
 
     // commit du shipping
     val transactionAndErrorShipment = if (paymentResult.status == PaymentStatus.COMPLETE) {
-      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
+      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingCart)) match {
         case Success(shippingData) => {
           val finalTransWithShippingInfo = shippingData.map { shippingData =>
             val finalTransWithShippingInfo = finalTrans.copy(shippingData = Some(shippingData))
@@ -363,34 +363,26 @@ class TransactionHandler {
     }.getOrElse((None, Seq[ShippingData]()))
   }
 
-  def selectShippingPrice(sessionData: SessionData, accountId: String, shipmentId: String, rateId: String): ShippingData = {
+  def selectShippingPrice(sessionData: SessionData, accountId: String, shippingDataId: String, externalShippingDataIds: List[String]): SelectShippingCart = {
     shippingAddressHandler.findByAccount(accountId).find(_.active).map { clientAddress =>
-      sessionData.shippingPrices.map { shippingPrices: List[ShippingData] =>
-        val shippingPriceOpt = transactionHandler.shippingPrice(shippingPrices, shipmentId, rateId)
-        sessionData.selectShippingPrice = shippingPriceOpt
-        shippingPriceOpt.map { shippingPrice =>
-          sessionData.cart.foreach { cart =>
-            cart.compagnyAddress.foreach { companyAddress =>
-              if (!companyAddress.shippingInternational && companyAddress.country != clientAddress.address.country.getOrElse("")) {
-                throw ShippingInternationalUnauthorized()
-              }
-            }
+      sessionData.cart.map { cart =>
+        cart.compagnyAddress.map { companyAddress =>
+          if (!companyAddress.shippingInternational && companyAddress.country != clientAddress.address.country.getOrElse("")) {
+            throw ShippingInternationalUnauthorized()
           }
-          shippingPrice
-        }.getOrElse {
-          throw SelectedShippingPriceNotFound()
         }
-      }.getOrElse {
-        throw NoShippingPriceFound()
       }
-    }.getOrElse(throw NoActiveShippingAddressFound())
-  }
+      sessionData.shippingCart.map { shippingCart: ShippingCart =>
+        val selectShippingPrice = shippingCart.shippingPrices.find(_.id == shippingDataId).getOrElse(throw SelectedShippingPriceNotFound())
 
-  def shippingPrice(prices: Seq[ShippingData], shipmentId: String, rateId: String): Option[ShippingData] = {
-    prices.find {
-      price =>
-        price.shipmentId.equals(shipmentId) && price.rateId.equals(rateId)
-    }
+        val externalShippingPrices = shippingCart.externalShippingPrices.map { key: (String, List[ShippingData]) =>
+          (key._1 -> key._2.find { sd: ShippingData => externalShippingDataIds.contains(sd.id) }.getOrElse(throw SelectedShippingPriceNotFound()))
+        }
+        val selectShippingCart = SelectShippingCart(selectShippingPrice, externalShippingPrices)
+        sessionData.selectShippingCart = Some(selectShippingCart)
+        selectShippingCart
+      }.getOrElse(throw NoShippingPriceFound())
+    }.getOrElse(throw NoActiveShippingAddressFound())
   }
 
   /**
@@ -480,18 +472,16 @@ class TransactionHandler {
         throw InvalidContextException("Cart isn't set.")
 
     }
-    var selectedShippingPrice: Option[ShippingData] = sessionData.selectShippingPrice
+    var selectedShippingCart: Option[SelectShippingCart] = sessionData.selectShippingCart
 
     if (!Settings.Mogopay.Anonymous) {
-      if (sessionData.shippingPrices.getOrElse(throw InvalidContextException("The shippings list wasn't computed.")).nonEmpty
-        && sessionData.selectShippingPrice.isEmpty) {
+      if (sessionData.shippingCart.getOrElse(throw InvalidContextException("The shippings list wasn't computed.")).nonEmpty
+        && selectedShippingCart.isEmpty) {
         throw InvalidContextException("Shipping price cannot be empty")
       }
     }
 
-    val shippingPrice = sessionData.selectShippingPrice.map {
-      _.price
-    }.getOrElse(0L)
+    val shippingPrice = selectedShippingCart.map { _.price }.getOrElse(0L)
 
     val cartWithShipping = CartWithShipping(cart.count,
       shippingPrice,

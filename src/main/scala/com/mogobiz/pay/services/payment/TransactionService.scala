@@ -17,7 +17,7 @@ import com.mogobiz.pay.config.{ DefaultComplete, Settings }
 import com.mogobiz.pay.exceptions.Exceptions.{ InvalidContextException, MogopayException, UnauthorizedException }
 import com.mogobiz.pay.handlers.payment.{ Submit, SubmitParams }
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay.{ Account, BOTransaction, ShippingData, TransactionRequest, TransactionStatus }
+import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.ParamRequest.{ SelectShippingPriceParam, TransactionInit }
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.SessionESDirectives._
@@ -97,7 +97,7 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
 
   lazy val selectShipping = path("select-shipping") {
     post {
-      formFields('shipmentId, 'rateId).as(SelectShippingPriceParam) {
+      formFields('shippingDataId, 'externalShippingDataIds.?).as(SelectShippingPriceParam) {
         params =>
           session {
             session =>
@@ -107,10 +107,10 @@ class TransactionService(implicit executionContext: ExecutionContext) extends Di
                   StatusCodes.Forbidden -> Map('error -> "Not logged in")
                 }
                 case Some(id) =>
-                  handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shipmentId, params.rateId),
-                    (shippingPrice: ShippingData) => {
+                  handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shippingDataId, params.externalShippingDataIds.map { _.split(",").toList }.getOrElse(Nil)),
+                    (selectShippingCart: SelectShippingCart) => {
                       setSession(session) {
-                        complete(StatusCodes.OK -> shippingPrice)
+                        complete(StatusCodes.OK -> selectShippingCart)
                       }
                     }
                   )

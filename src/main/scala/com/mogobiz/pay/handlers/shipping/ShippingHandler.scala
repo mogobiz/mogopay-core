@@ -61,13 +61,13 @@ object ShippingHandler {
     }
   }
 
-  def confirmShippingPrice(shippingDataOpt: Option[ShippingData]): Option[ShippingData] = {
-    shippingDataOpt.map { shippingPrice =>
+  def confirmShippingPrice(shippingCart: Option[SelectShippingCart]): Option[ShippingData] = {
+    shippingCart.map { shippingCart =>
       val serviceOpt = servicesList.find {
-        _.isValidShipmentId(shippingPrice)
+        _.isValidShipmentId(shippingCart.shippingPrices)
       }
       serviceOpt.map { service =>
-        service.confirmShipmentId(shippingPrice)
+        service.confirmShipmentId(shippingCart.shippingPrices)
       }
     }.getOrElse(None)
   }

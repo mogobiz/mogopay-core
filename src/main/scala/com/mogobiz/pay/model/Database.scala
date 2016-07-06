@@ -342,20 +342,32 @@ object Mogopay {
     active: Boolean = false,
     address: AccountAddress)
 
+  case class ShippingCart(shippingPrices: List[ShippingData],
+      externalShippingPrices: Map[String, List[ShippingData]]) {
+    val nonEmpty = shippingPrices.nonEmpty
+  }
+
+  case class SelectShippingCart(shippingPrices: ShippingData,
+      externalShippingPrices: Map[String, ShippingData]) {
+    val price = shippingPrices.price + externalShippingPrices.map { _._2.price }.sum
+  }
+
   case class ShippingData(shippingAddress: AccountAddress,
-    shipmentId: String,
-    rateId: String,
-    provider: String,
-    service: String,
-    rateType: String,
-    price: Long,
-    currencyCode: String,
-    currencyFractionDigits: Int,
-    confirm: Boolean = false,
-    trackingCode: Option[String] = None,
-    extra: Option[String] = None,
-    externalCode: Option[String] = None,
-    trackingHistory: List[String] = Nil)
+      shipmentId: String,
+      rateId: String,
+      provider: String,
+      service: String,
+      rateType: String,
+      price: Long,
+      currencyCode: String,
+      currencyFractionDigits: Int,
+      confirm: Boolean = false,
+      trackingCode: Option[String] = None,
+      extra: Option[String] = None,
+      trackingHistory: List[String] = Nil) {
+
+    def id = shipmentId + "|" + rateId
+  }
 
   case class ModificationStatus(uuid: String,
     xdate: java.util.Date,
@@ -515,8 +527,8 @@ object Mogopay {
     var cardSave: Boolean = false,
     var waitFor3DS: Boolean = false,
     var pageNum: Integer = 0,
-    var shippingPrices: Option[List[ShippingData]] = None,
-    var selectShippingPrice: Option[ShippingData] = None,
+    var shippingCart: Option[ShippingCart] = None,
+    var selectShippingCart: Option[SelectShippingCart] = None,
     var id3d: Option[String] = None,
     var payers: Map[String, Long] = Map(),
     var groupTxUUID: Option[String] = None,
