@@ -34,7 +34,7 @@ trait ShippingHandler extends StrictLogging {
 
   def extractShippingContent(cart: Cart): List[ShippingWithQuantity] = {
     cart.cartItems.map { cartItem =>
-      if (cartItem.isExternalItem) None
+      if (!cartItem.externalCodes.isEmpty) None
       else {
         cartItem.shipping.map { shipping =>
           if (shipping.isDefine) Some(ShippingWithQuantity(cartItem.quantity, shipping))

@@ -343,12 +343,12 @@ object Mogopay {
     address: AccountAddress)
 
   case class ShippingCart(shippingPrices: List[ShippingData],
-      externalShippingPrices: Map[ExternalCode, List[ShippingData]]) {
+      externalShippingPrices: Map[String, List[ShippingData]]) {
     val nonEmpty = shippingPrices.nonEmpty
   }
 
   case class SelectShippingCart(shippingPrices: ShippingData,
-      externalShippingPrices: Map[ExternalCode, ShippingData]) {
+      externalShippingPrices: Map[String, ShippingData]) {
     val price = shippingPrices.price + externalShippingPrices.map { _._2.price }.sum
   }
 
@@ -361,6 +361,7 @@ object Mogopay {
       price: Long,
       currencyCode: String,
       currencyFractionDigits: Int,
+      cartItemId: Option[String] = None,
       confirm: Boolean = false,
       trackingCode: Option[String] = None,
       extra: Option[String] = None,
