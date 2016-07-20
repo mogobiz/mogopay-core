@@ -33,17 +33,15 @@ trait ShippingHandler extends StrictLogging {
   }
 
   def extractShippingContent(cart: Cart): List[ShippingWithQuantity] = {
-    (for {
-      cartItem <- cart.cartItems
-      shipping <- cartItem.shipping
-    } yield ShippingWithQuantity(cartItem.quantity, shipping)).flatMap { shippingWithQuantity: ShippingWithQuantity =>
-      val shipping = shippingWithQuantity.shipping
-      if (shipping.height == 0 || shipping.width == 0 || shipping.weight == 0 || shipping.weightUnit == null || shipping.weightUnit.isEmpty
-          || shipping.linearUnit == null || shipping.linearUnit.isEmpty)
-        None
-      else
-        Some(shippingWithQuantity)
-    } toList
+    cart.cartItems.map { cartItem =>
+      if (!cartItem.externalCodes.isEmpty) None
+      else {
+        cartItem.shipping.map { shipping =>
+          if (shipping.isDefine) Some(ShippingWithQuantity(cartItem.quantity, shipping))
+          else None
+        }.flatten
+      }
+    }.flatten.toList
   }
 
   def createShippingData(shippingAddress: AccountAddress,
@@ -78,14 +76,15 @@ object ShippingHandler {
     }
   }
 
-  def confirmShippingPrice(shippingDataOpt: Option[ShippingData]): Option[ShippingData] = {
-    shippingDataOpt.map { shippingPrice =>
+  def confirmShippingPrice(shippingCart: Option[SelectShippingCart]): Option[ShippingData] = {
+    shippingCart.map { shippingCart =>
       val serviceOpt = servicesList.find {
-        _.isValidShipmentId(shippingPrice)
+        _.isValidShipmentId(shippingCart.shippingPrices)
       }
       serviceOpt.map { service =>
-        service.confirmShipmentId(shippingPrice)
+        service.confirmShipmentId(shippingCart.shippingPrices)
       }
     }.getOrElse(None)
   }
 }
+
