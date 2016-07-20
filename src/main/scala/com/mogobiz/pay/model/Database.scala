@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.{ObjectMapper, ObjectWriter}
 import com.fasterxml.jackson.module.scala.{DefaultScalaModule, JsonScalaEnumeration}
-import com.mogobiz.pay.common.{Cart, CartItem, CartRate, Coupon}
+import com.mogobiz.pay.common._
 import com.mogobiz.pay.model.Mogopay.{Account, AccountAddress, AccountStatus, Telephone, _}
 import spray.httpx.unmarshalling.{FromStringDeserializer, MalformedContent}
 
@@ -348,10 +348,24 @@ object Mogopay {
     price: Long,
     currencyCode: String,
     currencyFractionDigits: Int,
+    cartItemId: Option[String] = None,
     confirm: Boolean = false,
     trackingCode: Option[String] = None,
     extra: Option[String] = None,
-    trackingHistory: List[String] = Nil)
+    trackingHistory: List[String] = Nil) {
+
+    def id = shipmentId + "|" + rateId
+  }
+
+  case class ShippingCart(shippingPrices: List[ShippingData],
+                          externalShippingPrices: Map[ExternalCode, List[ShippingData]]) {
+    val nonEmpty = shippingPrices.nonEmpty
+  }
+
+  case class SelectShippingCart(shippingPrices: ShippingData,
+                                externalShippingPrices: Map[ExternalCode, ShippingData]) {
+    val price = shippingPrices.price + externalShippingPrices.map { _._2.price }.sum
+  }
 
   case class ModificationStatus(uuid: String,
     xdate: java.util.Date,
@@ -511,8 +525,8 @@ object Mogopay {
     var cardSave: Boolean = false,
     var waitFor3DS: Boolean = false,
     var pageNum: Integer = 0,
-    var shippingPrices: Option[List[ShippingData]] = None,
-    var selectShippingPrice: Option[ShippingData] = None,
+    var shippingCart: Option[ShippingCart] = None,
+    var selectShippingCart: Option[SelectShippingCart] = None,
     var id3d: Option[String] = None,
     var payers: Map[String, Long] = Map(),
     var groupTxUUID: Option[String] = None,
@@ -531,8 +545,8 @@ object Mogopay {
     taxAmount: Long = 0,
     reduction: Long = 0,
     finalPrice: Long = 0,
-    cartItems: Array[CartItem] = Array(),
-    coupons: Array[Coupon] = Array(),
+    cartItems: List[CartItem] = Nil,
+    coupons: List[Coupon] = Nil,
     customs: Map[String, Any])
 
 }
