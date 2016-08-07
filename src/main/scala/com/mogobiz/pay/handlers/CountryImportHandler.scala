@@ -246,7 +246,9 @@ class CountryImportHandler {
   }
 }
 
-object CountryImportMain extends App {
+import com.mogobiz.system.{ActorSystemLocator, BootedMogobizSystem}
+object CountryImportMain extends App with BootedMogobizSystem {
+  ActorSystemLocator(system)
   println("Start...\n")
   import EsClient.secureActionRequest
   secureActionRequest(
