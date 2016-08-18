@@ -436,8 +436,9 @@ class TransactionHandler {
       sessionData.shippingCart.map { shippingCart: ShippingCart =>
         val selectShippingPrice = shippingCart.shippingPrices.find(_.id == shippingDataId).getOrElse(throw SelectedShippingPriceNotFound())
 
-        val externalShippingPrices = shippingCart.externalShippingPrices.map { key: (ExternalCode, List[ShippingData]) =>
-          (key._1 -> key._2.find { sd: ShippingData => externalShippingDataIds.contains(sd.id) }.getOrElse(throw SelectedShippingPriceNotFound()))
+        val externalShippingPrices = shippingCart.externalShippingPrices.map { externalShippingDataList : ExternalShippingDataList =>
+          val shippingData = externalShippingDataList.list.find { sd: ShippingData => externalShippingDataIds.contains(sd.id) }.getOrElse(throw SelectedShippingPriceNotFound())
+          new ExternalShippingData(externalShippingDataList.externalCode, shippingData)
         }
         val selectShippingCart = SelectShippingCart(selectShippingPrice, externalShippingPrices)
         sessionData.selectShippingCart = Some(selectShippingCart)

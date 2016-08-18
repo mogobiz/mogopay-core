@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.model
 
-import java.util.{ Calendar, Date }
+import java.util.{UUID, Calendar, Date}
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.`type`.TypeReference
@@ -339,6 +339,10 @@ object Mogopay {
     active: Boolean = false,
     address: AccountAddress)
 
+  case class ExternalShippingDataList(externalCode: ExternalCode, list: List[ShippingData])
+
+  case class ExternalShippingData(externalCode: ExternalCode, shipping: ShippingData)
+
   case class ShippingData(shippingAddress: AccountAddress,
     shipmentId: String,
     rateId: String,
@@ -352,19 +356,17 @@ object Mogopay {
     confirm: Boolean = false,
     trackingCode: Option[String] = None,
     extra: Option[String] = None,
-    trackingHistory: List[String] = Nil) {
-
-    def id = shipmentId + "|" + rateId
-  }
+    trackingHistory: List[String] = Nil,
+    id: String = UUID.randomUUID().toString)
 
   case class ShippingCart(shippingPrices: List[ShippingData],
-                          externalShippingPrices: Map[ExternalCode, List[ShippingData]]) {
+                          externalShippingPrices: List[ExternalShippingDataList]) {
     val nonEmpty = shippingPrices.nonEmpty
   }
 
   case class SelectShippingCart(shippingPrices: ShippingData,
-                                externalShippingPrices: Map[ExternalCode, ShippingData]) {
-    val price = shippingPrices.price + externalShippingPrices.map { _._2.price }.sum
+                                externalShippingPrices: List[ExternalShippingData]) {
+    val price = shippingPrices.price + externalShippingPrices.map { _.shipping.price }.sum
   }
 
   case class ModificationStatus(uuid: String,
