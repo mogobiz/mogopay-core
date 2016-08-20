@@ -57,6 +57,8 @@ class CountryImportHandler {
           scala.io.Source.fromFile(countriesFile, "utf-8").getLines().foreach { line =>
             val field                   = line.split('\t')
             val code: String            = field(0)
+            val isoCode3: String        = field(1)
+            val isoNumericCode: String  = field(2)
             val name: String            = field(4)
             val postalCodeRegex: String = field(14)
             val phoneCode: String       = field(12)
@@ -68,6 +70,8 @@ class CountryImportHandler {
               if (country.isEmpty) {
                 val newCountry = Country(uuid = java.util.UUID.randomUUID().toString,
                                          code = code,
+                                         isoCode3 = isoCode3,
+                                         isoNumericCode = isoNumericCode,
                                          name = name,
                                          shipping = true,
                                          billing = true,

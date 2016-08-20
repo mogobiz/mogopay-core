@@ -250,6 +250,8 @@ object Mogopay {
 
   case class Country(uuid: String,
     code: String,
+    isoCode3: String,
+    isoNumericCode: String,
     name: String,
     shipping: Boolean,
     billing: Boolean,
