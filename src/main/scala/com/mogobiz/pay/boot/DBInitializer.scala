@@ -392,7 +392,7 @@ object DBInitializer {
                                              geoCoords = Option("48.871806,2.297987"))
   }
 
-  val franceCountry = Country(UUID.randomUUID.toString, "FR", "France", false, false, None, None, None, None, None)
+  val franceCountry = Country(UUID.randomUUID.toString, "FR", "FRA", "250", "France", false, false, None, None, None, None, None)
 
   private def createMerchantAccount(uuid: String,
                                     email: String,
