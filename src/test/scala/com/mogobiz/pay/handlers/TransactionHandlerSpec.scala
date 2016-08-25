@@ -4,11 +4,14 @@
 
 package com.mogobiz.pay.handlers
 
+import java.util.{Locale, Date, UUID}
+
+import com.mogobiz.pay.common.CartRate
 import com.mogobiz.pay.config.{Settings, Mapping}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.handlers.payment.SubmitParams
-import com.mogobiz.pay.model.Mogopay.{Account, BOTransaction}
+import com.mogobiz.pay.handlers.payment.{BOTransactionJsonTransform, SubmitParams}
+import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.config.Settings
 import org.specs2.mutable._
 
@@ -43,4 +46,49 @@ class TransactionHandlerSpec extends Specification with Before {
   //      }
   //    }
   //  }
+
+
+  "BOTransactionJsonTransform" should {
+
+    "transform BOTransaction AsJValue" in {
+
+      val boPaymentData = new BOPaymentData(PaymentType.CREDIT_CARD,
+        CBPaymentProvider.NONE,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
+
+      val transaction = new BOTransaction(UUID.randomUUID().toString,
+        UUID.randomUUID().toString,
+        None,
+        None,
+        100,
+        "00001",
+        Some(new Date()),
+        10000,
+        new CartRate("EUR", 950),
+        TransactionStatus.PAYMENT_CONFIRMED,
+        Some(new Date()),
+        boPaymentData,
+        false,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Nil
+      )
+      val result = BOTransactionJsonTransform.transformAsJValue(transaction, Locale.ENGLISH)
+      result must not beNull
+    }
+  }
 }
