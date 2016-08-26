@@ -7,7 +7,7 @@ package com.mogobiz.pay.sql
 import java.util.{Date, UUID}
 
 import com.mogobiz.json.JacksonConverter
-import com.mogobiz.pay.model.Mogopay.Account
+import com.mogobiz.pay.model.Account
 import Sql.BOAccount
 import scalikejdbc._
 

@@ -8,7 +8,7 @@ import java.util.{Calendar, UUID}
 
 import com.mogobiz.es.{EsClient}
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.mogobiz.session.{ESBackend, Session}
 import com.sksamuel.elastic4s.ElasticDsl._
 

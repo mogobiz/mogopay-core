@@ -10,7 +10,7 @@ import com.mogobiz.pay.config.Settings
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay.Rate
+import com.mogobiz.pay.model.Rate
 
 class RateHandler {
   def list = EsClient.searchAll[Rate](search in Settings.Mogopay.EsIndex -> "Rate" from 0 size EsClient.MAX_SIZE)

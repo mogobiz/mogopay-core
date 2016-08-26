@@ -22,17 +22,17 @@ import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOffic
 import com.atosorigin.services.cad.apiserver.components.service.checkout.{SIPSCheckoutResponseParm, SIPSCheckoutRequestParm, SIPSCheckoutApi}
 import com.atosorigin.services.cad.common.SIPSDataObject
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model.Mogopay.PaymentStatus
-import com.mogobiz.pay.model.Mogopay.PaymentStatus._
-import com.mogobiz.pay.model.Mogopay.TransactionStatus
-import com.mogobiz.pay.model.Mogopay.TransactionStatus._
+import com.mogobiz.pay.model.PaymentStatus
+import com.mogobiz.pay.model.PaymentStatus._
+import com.mogobiz.pay.model.TransactionStatus
+import com.mogobiz.pay.model.TransactionStatus._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.{RefundException, InvalidContextException, MogopayError}
 import com.mogobiz.pay.handlers.payment.{BankErrorCodes, ThreeDSResult, PaymentHandler}
-import com.mogobiz.pay.model.Mogopay.ResponseCode3DS
-import com.mogobiz.pay.model.Mogopay.ResponseCode3DS._
-import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.ResponseCode3DS
+import com.mogobiz.pay.model.ResponseCode3DS._
+import com.mogobiz.pay.model.TransactionStep.TransactionStep
+import com.mogobiz.pay.model._
 import com.mogobiz.utils.{GlobalUtil, CustomSslConfiguration}
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
@@ -130,7 +130,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
-  def callbackPayment(sessionData: SessionData, params: Map[String, String], vendorUuid: Document): PaymentResult = {
+  def callbackPayment(sessionData: SessionData, params: Map[String, String], vendorUuid: Mogopay.Document): PaymentResult = {
     handleResponse(sessionData, vendorUuid, params("DATA"), sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
     //Uri(Settings.Mogopay.EndPoint)
   }
@@ -204,7 +204,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   private def handleResponse(sessionData: SessionData,
-                             vendorUuid: Document,
+                             vendorUuid: Mogopay.Document,
                              cypheredtxt: String,
                              locale: Option[String],
                              step: TransactionStep): PaymentResult = {
@@ -316,7 +316,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def check3DSecure(sessionData: SessionData,
                                      vendor: Account,
-                                     transactionUuid: Document,
+                                     transactionUuid: Mogopay.Document,
                                      paymentConfig: PaymentConfig,
                                      paymentRequest: PaymentRequest): ThreeDSResult = {
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
@@ -382,8 +382,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   }
 
   private[payment] def order3D(sessionData: SessionData,
-                               vendorUuid: Document,
-                               transactionUuid: Document,
+                               vendorUuid: Mogopay.Document,
+                               transactionUuid: Mogopay.Document,
                                paymentConfig: PaymentConfig,
                                paymentRequest: PaymentRequest): PaymentResult = {
     transactionHandler.updateStatus(transactionUuid, None, TransactionStatus.VERIFICATION_THREEDS)
@@ -482,7 +482,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
 
   private[payment] def submit(sessionData: SessionData,
                               vendor: Account,
-                              transactionUuid: Document,
+                              transactionUuid: Mogopay.Document,
                               paymentConfig: PaymentConfig,
                               paymentRequest: PaymentRequest): PaymentResult = {
     val transaction = boTransactionHandler.find(transactionUuid).get
@@ -670,8 +670,8 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     result
   }
 
-  def cancel(vendorUuid: Document,
-             transactionUuid: Document,
+  def cancel(vendorUuid: Mogopay.Document,
+             transactionUuid: Mogopay.Document,
              paymentConfig: PaymentConfig,
              infosPaiement: CancelRequest): CancelResult = {
     val vendor                           = accountHandler.load(vendorUuid).get

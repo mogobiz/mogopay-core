@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers.shipping
 import java.util.UUID
 
 import com.mogobiz.pay.common.{Cart, Shipping, ShippingWithQuantity}
-import com.mogobiz.pay.model.Mogopay.{ShippingAddress, ShippingData}
+import com.mogobiz.pay.model.{ShippingAddress, ShippingData}
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 

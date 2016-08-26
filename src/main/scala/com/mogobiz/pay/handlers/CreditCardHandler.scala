@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.exceptions.Exceptions.{CreditCardDoesNotExistException, AccountDoesNotExistException}
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 
 class CreditCardHandler {
   def delete(accountId: String, cardId: String): Unit = {

@@ -4,9 +4,6 @@
 
 package com.mogobiz.pay.handlers
 
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay._
-
 class AccountAddressHandler {
   //  def findByRoadAndCity(road: String, city: String): Option[AccountAddress] = dbTransaction {
   //    implicit session =>

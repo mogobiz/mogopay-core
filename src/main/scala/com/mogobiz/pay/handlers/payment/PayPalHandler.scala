@@ -15,8 +15,8 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.{AccountDoesNotExistException, InvalidContextException, InvalidInputException, MogopayError}
-import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.TransactionStep.TransactionStep
+import com.mogobiz.pay.model._
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}

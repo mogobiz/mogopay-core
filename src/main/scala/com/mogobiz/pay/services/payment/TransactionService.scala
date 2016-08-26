@@ -17,7 +17,7 @@ import com.mogobiz.pay.config.{DefaultComplete, Settings}
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
 import com.mogobiz.pay.handlers.payment.{Submit, SubmitParams}
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.mogobiz.pay.model.ParamRequest.{SelectShippingPriceParam, TransactionInit}
 import com.mogobiz.pay.services.ServicesUtil
 import com.mogobiz.session.SessionESDirectives._

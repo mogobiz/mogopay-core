@@ -17,8 +17,8 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, InvalidSignatureException}
 import com.mogobiz.pay.handlers.UtilHandler
-import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
+import com.mogobiz.pay.model.CreditCardType.CreditCardType
+import com.mogobiz.pay.model.{TransactionStatus, _}
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil, Sha512}
 import org.bouncycastle.jce.provider.BouncyCastleProvider

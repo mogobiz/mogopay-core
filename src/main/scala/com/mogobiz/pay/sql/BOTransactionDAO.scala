@@ -26,7 +26,7 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
                   rs.date(rn.dateCreated),
                   rs.date(rn.lastUpdated))
 
-  def create(transaction: model.Mogopay.BOTransaction)(implicit session: DBSession): BOTransaction = {
+  def create(transaction: model.BOTransaction)(implicit session: DBSession): BOTransaction = {
     val newBoCart = new BOTransaction(newId(),
                                       UUID.fromString(transaction.uuid),
                                       JacksonConverter.serialize(transaction),
@@ -48,14 +48,14 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
     newBoCart
   }
 
-  def upsert(transaction: model.Mogopay.BOTransaction): Unit = {
+  def upsert(transaction: model.BOTransaction): Unit = {
     DB localTx { implicit session =>
       val updateResult = update(transaction)
       if (updateResult == 0) create(transaction)
     }
   }
 
-  def update(transaction: model.Mogopay.BOTransaction): Int = {
+  def update(transaction: model.BOTransaction): Int = {
     DB localTx { implicit session =>
       applyUpdate {
         QueryDSL

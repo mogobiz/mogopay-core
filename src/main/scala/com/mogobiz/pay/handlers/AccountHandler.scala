@@ -21,8 +21,8 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{Token, TokenType}
-import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.TokenValidity.TokenValidity
+import com.mogobiz.pay.model._
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
@@ -40,7 +40,7 @@ import scala.util._
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
 import Settings.Mail.Smtp.MailSettings
-import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
+import com.mogobiz.pay.model.RoleName.RoleName
 
 class LoginException(msg: String) extends Exception(msg)
 

@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers.shipping
 import com.mogobiz.pay.common.{Cart, ShippingWithQuantity}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.Seq

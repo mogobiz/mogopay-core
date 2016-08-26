@@ -19,9 +19,9 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
-import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay.{ResponseCode3DS, TransactionStatus, _}
+import com.mogobiz.pay.model.CreditCardType.CreditCardType
+import com.mogobiz.pay.model.TransactionStep.TransactionStep
+import com.mogobiz.pay.model.{ResponseCode3DS, TransactionStatus, _}
 import com.mogobiz.utils.{GlobalUtil, NaiveHostnameVerifier, TrustedSSLFactory}
 import com.mogobiz.utils.GlobalUtil._
 import com.typesafe.scalalogging.StrictLogging
@@ -214,7 +214,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
 
   def check3DSecure(sessionData: SessionData,
                     vendor: Account,
-                    transactionUuid: Document,
+                    transactionUuid: Mogopay.Document,
                     paymentConfig: PaymentConfig,
                     paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction           = boTransactionHandler.find(transactionUuid).get
@@ -309,7 +309,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
 
   private def submit(sessionData: SessionData,
                      vendor: Account,
-                     transactionUuid: Document,
+                     transactionUuid: Mogopay.Document,
                      paymentConfig: PaymentConfig,
                      infosPaiement: PaymentRequest,
                      mogopay: Boolean,
@@ -475,7 +475,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     paymentResult
   }
 
-  private def cancel(vendorUuid: Document,
+  private def cancel(vendorUuid: Mogopay.Document,
                      transactionUuid: String,
                      paymentConfig: PaymentConfig,
                      infosPaiement: CancelRequest): CancelResult = {
@@ -534,7 +534,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
   }
 
   def doWebPayment(vendor: Account,
-                   transactionUuid: Document,
+                   transactionUuid: Mogopay.Document,
                    paymentConfig: PaymentConfig,
                    paymentRequest: PaymentRequest,
                    sessionId: String): PaymentResult = {
@@ -698,7 +698,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
 
   def getWebPaymentDetails(sessionData: SessionData,
                            vendor: Account,
-                           transactionUuid: Document,
+                           transactionUuid: Mogopay.Document,
                            paymentConfig: PaymentConfig,
                            paymentRequest: PaymentRequest,
                            token: String,

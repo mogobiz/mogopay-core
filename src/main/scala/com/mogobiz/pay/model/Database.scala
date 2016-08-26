@@ -9,16 +9,15 @@ import java.util.{UUID, Calendar, Date}
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import com.fasterxml.jackson.databind.{ObjectMapper, ObjectWriter}
-import com.fasterxml.jackson.module.scala.{DefaultScalaModule, JsonScalaEnumeration}
+import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.mogobiz.pay.common._
-import com.mogobiz.pay.model.Mogopay.{Account, AccountAddress, AccountStatus, Telephone, _}
 import spray.httpx.unmarshalling.{FromStringDeserializer, MalformedContent}
 
 import scala.util.control.NonFatal
 
 object Mogopay {
   type Document = String
+}
 
   object PaymentType extends Enumeration {
     type PaymentType = Value
@@ -29,8 +28,6 @@ object Mogopay {
 
   class PaymentTypeRef extends TypeReference[PaymentType.type]
 
-  import PaymentType._
-
   object AccountStatus extends Enumeration {
     type AccountStatus = Value
     val ACTIVE             = Value("ACTIVE")
@@ -39,8 +36,6 @@ object Mogopay {
   }
 
   class AccountStatusRef extends TypeReference[AccountStatus.type]
-
-  import AccountStatus._
 
   object CBPaymentMethod extends Enumeration {
     type CBPaymentMethod = Value
@@ -52,8 +47,6 @@ object Mogopay {
 
   class CBPaymentMethodRef extends TypeReference[CBPaymentMethod.type]
 
-  import CBPaymentMethod._
-
   object RoleName extends Enumeration {
     type RoleName = Value
     val ANONYMOUS     = Value("ANONYMOUS")
@@ -64,15 +57,6 @@ object Mogopay {
 
   class RoleNameRef extends TypeReference[RoleName.type]
 
-  import RoleName._
-
-  implicit def RoleNameUnmarshaller = new FromStringDeserializer[RoleName] {
-    def apply(value: String) =
-      try Right(RoleName.withName(value)) catch {
-        case NonFatal(ex) => Left(MalformedContent(s"Cannot parse: $value", ex))
-      }
-  }
-
   object TelephoneStatus extends Enumeration {
     type TelephoneStatus = Value
     val ACTIVE             = Value("ACTIVE")
@@ -81,8 +65,6 @@ object Mogopay {
   }
 
   class TelephoneStatusRef extends TypeReference[TelephoneStatus.type]
-
-  import TelephoneStatus._
 
   object Civility extends Enumeration {
     type Civility = Value
@@ -101,8 +83,6 @@ object Mogopay {
 
   class CivilityRef extends TypeReference[Civility.type]
 
-  import Civility._
-
   object ResponseCode3DS extends Enumeration {
     type ResponseCode3DS = Value
     val APPROVED = Value("APPROVED")
@@ -112,8 +92,6 @@ object Mogopay {
   }
 
   class ResponseCode3DSRef extends TypeReference[ResponseCode3DS.type]
-
-  import ResponseCode3DS._
 
   object TransactionStatus extends Enumeration {
     type TransactionStatus = Value
@@ -131,8 +109,6 @@ object Mogopay {
 
   class TransactionStatusRef extends TypeReference[TransactionStatus.type]
 
-  import TransactionStatus._
-
   object CBPaymentProvider extends Enumeration {
     type CBPaymentProvider = Value
     val NONE         = Value("NONE")
@@ -145,8 +121,6 @@ object Mogopay {
   }
 
   class CBPaymentProviderRef extends TypeReference[CBPaymentProvider.type]
-
-  import CBPaymentProvider._
 
   object CreditCardType extends Enumeration {
     type CreditCardType = Value
@@ -161,8 +135,6 @@ object Mogopay {
   }
 
   class CreditCardTypeRef extends TypeReference[CreditCardType.type]
-
-  import CreditCardType._
 
   object TokenValidity extends Enumeration {
     type TokenValidity = Value
@@ -186,8 +158,6 @@ object Mogopay {
     val REFUND_FAILED = Value("REFUND_FAILED")
   }
 
-  import PaymentStatus._
-
   object TransactionStep extends Enumeration {
     type TransactionStep = Value
     val START_PAYMENT = Value("PAYMENT")
@@ -207,15 +177,13 @@ object Mogopay {
 
   class TransactionStepRef extends TypeReference[TransactionStep.type]
 
-  import TransactionStep._
-
   case class CreditCard(uuid: String,
     number: String,
     holder: String,
     expiryDate: java.util.Date,
-    @JsonScalaEnumeration(classOf[CreditCardTypeRef]) cardType: CreditCardType,
+    @JsonScalaEnumeration(classOf[CreditCardTypeRef]) cardType: CreditCardType.CreditCardType,
     hiddenNumber: String,
-    account: Document,
+    account: Mogopay.Document,
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -230,8 +198,8 @@ object Mogopay {
     paypalParam: Option[String],
     applePayParam: Option[String],
     cbParam: Option[String],
-    @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
-    @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod,
+    @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider.CBPaymentProvider,
+    @JsonScalaEnumeration(classOf[CBPaymentMethodRef]) paymentMethod: CBPaymentMethod.CBPaymentMethod,
     emailField: String = "user_email",
     passwordField: String = "user_password",
     senderName: Option[String],
@@ -281,14 +249,14 @@ object Mogopay {
     lphone: String,
     isoCode: String,
     pinCode3: Option[String],
-    @JsonScalaEnumeration(classOf[TelephoneStatusRef]) status: TelephoneStatus)
+    @JsonScalaEnumeration(classOf[TelephoneStatusRef]) status: TelephoneStatus.TelephoneStatus)
 
   case class AccountAddress(road: String,
     road2: Option[String] = None,
     city: String,
     zipCode: Option[String] = None,
     extra: Option[String] = None,
-    @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility] = None,
+    @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility.Civility] = None,
     firstName: Option[String] = None,
     lastName: Option[String] = None,
     company: Option[String] = None,
@@ -303,12 +271,12 @@ object Mogopay {
       company: Option[String] = None,
       website: Option[String] = None,
       password: String,
-      @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility] = None,
+      @JsonScalaEnumeration(classOf[CivilityRef]) civility: Option[Civility.Civility] = None,
       firstName: Option[String] = None,
       lastName: Option[String] = None,
       birthDate: Option[java.util.Date] = None,
       address: Option[AccountAddress] = None,
-      @JsonScalaEnumeration(classOf[AccountStatusRef]) status: AccountStatus,
+      @JsonScalaEnumeration(classOf[AccountStatusRef]) status: AccountStatus.AccountStatus,
       loginFailedCount: Int = 0,
       waitingPhoneSince: Long = -1L,
       waitingEmailSince: Long = -1L,
@@ -316,8 +284,8 @@ object Mogopay {
       lastLogin: Option[java.util.Date] = None,
       paymentConfig: Option[PaymentConfig] = None,
       country: Option[Country] = None,
-      @JsonScalaEnumeration(classOf[RoleNameRef]) roles: List[RoleName] = Nil,
-      owner: Option[Document] = None,
+      @JsonScalaEnumeration(classOf[RoleNameRef]) roles: List[RoleName.RoleName] = Nil,
+      owner: Option[Mogopay.Document] = None,
       emailingToken: Option[String] = None,
       shippingAddresses: List[ShippingAddress] = Nil,
       secret: String,
@@ -334,7 +302,7 @@ object Mogopay {
       hasRoleName(RoleName.MERCHANT)
     }
 
-    private def hasRoleName(roleName: RoleName): Boolean = roles.contains(roleName)
+    private def hasRoleName(roleName: RoleName.RoleName): Boolean = roles.contains(roleName)
   }
 
   case class ShippingAddress(uuid: String,
@@ -374,8 +342,8 @@ object Mogopay {
   case class ModificationStatus(uuid: String,
     xdate: java.util.Date,
     ipAddr: Option[String],
-    @JsonScalaEnumeration(classOf[TransactionStatusRef]) oldStatus: Option[TransactionStatus],
-    @JsonScalaEnumeration(classOf[TransactionStatusRef]) newStatus: Option[TransactionStatus],
+    @JsonScalaEnumeration(classOf[TransactionStatusRef]) oldStatus: Option[TransactionStatus.TransactionStatus],
+    @JsonScalaEnumeration(classOf[TransactionStatusRef]) newStatus: Option[TransactionStatus.TransactionStatus],
     comment: Option[String],
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
@@ -384,25 +352,25 @@ object Mogopay {
     direction: String,
     log: String,
     provider: String,
-    transaction: Document,
-    @JsonScalaEnumeration(classOf[TransactionStepRef]) step: TransactionStep,
+    transaction: Mogopay.Document,
+    @JsonScalaEnumeration(classOf[TransactionStepRef]) step: TransactionStep.TransactionStep,
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
-  case class BOPaymentData(@JsonScalaEnumeration(classOf[PaymentTypeRef]) paymentType: PaymentType,
-    @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider,
+  case class BOPaymentData(@JsonScalaEnumeration(classOf[PaymentTypeRef]) paymentType: PaymentType.PaymentType,
+    @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider.CBPaymentProvider,
     transactionSequence: Option[String],
     orderDate: Option[java.util.Date],
-    @JsonScalaEnumeration(classOf[ResponseCode3DSRef]) status3DS: Option[ResponseCode3DS],
+    @JsonScalaEnumeration(classOf[ResponseCode3DSRef]) status3DS: Option[ResponseCode3DS.ResponseCode3DS],
     transactionId: Option[String],
     authorizationId: Option[String])
 
   case class BOCreditCard(number: String,
     holder: Option[String],
     expiryDate: java.util.Date,
-    @JsonScalaEnumeration(classOf[CreditCardTypeRef]) cardType: CreditCardType)
+    @JsonScalaEnumeration(classOf[CreditCardTypeRef]) cardType: CreditCardType.CreditCardType)
 
-  case class TransactionUser(email: String, amount: Long, status: PaymentStatus, master: Boolean)
+  case class TransactionUser(email: String, amount: Long, status: PaymentStatus.PaymentStatus, master: Boolean)
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   case class BOTransaction(uuid: String,
@@ -414,7 +382,7 @@ object Mogopay {
     transactionDate: Option[java.util.Date],
     amount: Long,
     currency: CartRate,
-    @JsonScalaEnumeration(classOf[TransactionStatusRef]) status: TransactionStatus,
+    @JsonScalaEnumeration(classOf[TransactionStatusRef]) status: TransactionStatus.TransactionStatus,
     endDate: Option[java.util.Date],
     paymentData: BOPaymentData,
     merchantConfirmation: Boolean = false,
@@ -440,7 +408,7 @@ object Mogopay {
     groupPaymentRefundPercentage: Int = 100,
     amount: Long,
     currency: CartRate,
-    vendorUuid: Document,
+    vendorUuid: Mogopay.Document,
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -459,22 +427,22 @@ object Mogopay {
 
   case class CancelRequest(id: String, currency: CartRate)
 
-  case class CancelResult(id: String, status: PaymentStatus, errorCodeOrigin: String, errorMessageOrigin: Option[String])
+  case class CancelResult(id: String, status: PaymentStatus.PaymentStatus, errorCodeOrigin: String, errorMessageOrigin: Option[String])
 
-  case class RefundResult(status: PaymentStatus, errorCode: String, errorMessage: Option[String])
+  case class RefundResult(status: PaymentStatus.PaymentStatus, errorCode: String, errorMessage: Option[String])
 
   case class PaymentResult(transactionSequence: String,
     orderDate: Date,
     amount: Long,
     ccNumber: String,
-    cardType: CreditCardType,
+    cardType: CreditCardType.CreditCardType,
     expirationDate: Date,
     cvv: String,
     gatewayTransactionId: String,
     transactionDate: Date,
     transactionCertificate: String,
     authorizationId: String,
-    status: PaymentStatus,
+    status: PaymentStatus.PaymentStatus,
     errorCodeOrigin: String,
     errorMessageOrigin: Option[String],
     data: String,
@@ -489,7 +457,7 @@ object Mogopay {
     amount: Long,
     ccNumber: String,
     holder: String,
-    cardType: CreditCardType,
+    cardType: CreditCardType.CreditCardType,
     expirationDate: Date,
     cvv: String,
     paylineMd: String,
@@ -511,13 +479,13 @@ object Mogopay {
     var mogopay: Boolean = false,
     var isMerchant: Boolean = false,
     var merchantSession: Boolean = false,
-    var accountId: Option[Document] = None,
+    var accountId: Option[Mogopay.Document] = None,
     var finished: Boolean = false,
     var transactionUuid: Option[String] = None,
     var transactionType: Option[String] = None,
     var paymentConfig: Option[PaymentConfig] = None,
     var amount: Option[Long] = None,
-    var merchantId: Option[Document] = None,
+    var merchantId: Option[Mogopay.Document] = None,
     var errorURL: Option[String] = None,
     var successURL: Option[String] = None,
     var cardinfoURL: Option[String] = None,
@@ -553,56 +521,13 @@ object Mogopay {
     coupons: List[Coupon] = Nil,
     customs: Map[String, Any])
 
-}
+object EnumUnmarshaller {
 
-object TestApp extends App {
-  lazy val mapperSingleton: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
-  val account = Account(
-    java.util.UUID.randomUUID().toString,
-    "me@you.com",
-    Some("ebiznext"),
-    Some("http://www.ebiznext.com"),
-    "changeit",
-    Some(Civility.MR),
-    Some("Me"),
-    Some("You"),
-    Some(Calendar.getInstance().getTime),
-    Some(AccountAddress("Rue Meriau",
-      Some("Tour Panorama"),
-      "Paris",
-      Some("75015"),
-      None,
-      Some(Civility.MR),
-      Some("Me2"),
-      Some("You2"),
-      None,
-      Some(Telephone(
-        "0102030405",
-        "3314567890987",
-        "987",
-        Some("123"),
-        TelephoneStatus.ACTIVE)),
-      Some("FRANCE"),
-      Some("Ile De France"),
-      Some("Paris"))),
-    AccountStatus.ACTIVE,
-    0,
-    1000L,
-    10000L,
-    None,
-    None,
-    None,
-    None,
-    List(RoleName.ADMINISTRATOR, RoleName.CUSTOMER),
-    None,
-    Some("email token"),
-    Nil,
-    java.util.UUID.randomUUID().toString,
-    Nil)
+  implicit def RoleNameUnmarshaller = new FromStringDeserializer[RoleName.RoleName] {
+    def apply(value: String) =
+      try Right(RoleName.withName(value)) catch {
+        case NonFatal(ex) => Left(MalformedContent(s"Cannot parse: $value", ex))
+      }
+  }
 
-  val json = mapperSingleton.writerWithDefaultPrettyPrinter().asInstanceOf[ObjectWriter].writeValueAsString(account)
-  println(json)
-  val acc = mapperSingleton.readValue(json, classOf[Account])
-
-  println(acc)
 }

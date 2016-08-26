@@ -11,7 +11,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import spray.http.Uri
 import scala.util.Left

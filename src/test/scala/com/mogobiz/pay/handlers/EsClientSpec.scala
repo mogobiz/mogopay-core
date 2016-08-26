@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers
 import java.util.{UUID, Calendar}
 
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import org.specs2.mutable._
 
 class EsClientSpec extends Specification {

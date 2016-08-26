@@ -26,7 +26,7 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
                      rs.date(rn.dateCreated),
                      rs.date(rn.lastUpdated))
 
-  def create(transactionLog: model.Mogopay.BOTransactionLog)(implicit session: DBSession): BOTransactionLog = {
+  def create(transactionLog: model.BOTransactionLog)(implicit session: DBSession): BOTransactionLog = {
     val newBOTransactionLog = new BOTransactionLog(newId(),
                                                    UUID.fromString(transactionLog.uuid),
                                                    JacksonConverter.serialize(transactionLog),
@@ -47,7 +47,7 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
     newBOTransactionLog
   }
 
-  def upsert(transactionLog: model.Mogopay.BOTransactionLog, tryUpdate: Boolean = true): Unit = {
+  def upsert(transactionLog: model.BOTransactionLog, tryUpdate: Boolean = true): Unit = {
     DB localTx { implicit session =>
       val updateResult = if (tryUpdate) update(transactionLog) else 0
       if (updateResult == 0) create(transactionLog)
@@ -60,7 +60,7 @@ object BOTransactionLogDAO extends SQLSyntaxSupport[BOTransactionLog] with BOSer
   //    }
   //  }
 
-  def update(transactionLog: model.Mogopay.BOTransactionLog): Int = {
+  def update(transactionLog: model.BOTransactionLog): Int = {
     DB localTx { implicit session =>
       applyUpdate {
         QueryDSL

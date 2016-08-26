@@ -8,7 +8,7 @@ import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.FilterDefinition
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 
 class CountryAdminHandler {
   def getAdmin1ByCode(countryCode: String, admin1Code: String): Option[CountryAdmin] = {

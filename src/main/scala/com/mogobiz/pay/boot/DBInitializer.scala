@@ -11,11 +11,11 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.common.CartRate
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Mapping, Settings}
-import com.mogobiz.pay.model.Mogopay.AccountStatus.AccountStatus
-import com.mogobiz.pay.model.Mogopay.CBPaymentMethod.CBPaymentMethod
-import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
-import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.AccountStatus.AccountStatus
+import com.mogobiz.pay.model.CBPaymentMethod.CBPaymentMethod
+import com.mogobiz.pay.model.CBPaymentProvider.CBPaymentProvider
+import com.mogobiz.pay.model.TelephoneStatus.TelephoneStatus
+import com.mogobiz.pay.model._
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import org.elasticsearch.index.query.TermQueryBuilder

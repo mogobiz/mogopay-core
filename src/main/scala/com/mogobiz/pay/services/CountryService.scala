@@ -9,7 +9,7 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
 import com.mogobiz.pay.handlers.PhoneVerification
-import com.mogobiz.pay.model.Mogopay.{Country, Rate, CountryAdmin}
+import com.mogobiz.pay.model.{Country, Rate, CountryAdmin}
 import spray.http.StatusCodes
 import spray.routing.Directives
 

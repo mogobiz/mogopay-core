@@ -20,7 +20,7 @@ import java.util.LinkedHashMap
 import java.util.Set
 
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.mogobiz.utils.GlobalUtil._
 
 class TraceHandler extends SOAPHandler[SOAPMessageContext] {

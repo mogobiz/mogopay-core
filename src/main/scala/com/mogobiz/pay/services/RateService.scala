@@ -8,7 +8,7 @@ import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.pay.implicits.Implicits._
-import com.mogobiz.pay.model.Mogopay.Rate
+import com.mogobiz.pay.model.Rate
 import spray.http.StatusCodes
 import spray.routing.Directives
 

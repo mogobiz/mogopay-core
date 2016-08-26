@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.RSA
 import org.apache.shiro.crypto.hash.Sha256Hash

@@ -20,9 +20,9 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.Mogopay.TransactionStatus._
-import com.mogobiz.pay.model.Mogopay.TransactionStep.TransactionStep
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.TransactionStatus._
+import com.mogobiz.pay.model.TransactionStep.TransactionStep
+import com.mogobiz.pay.model._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import com.typesafe.scalalogging.StrictLogging

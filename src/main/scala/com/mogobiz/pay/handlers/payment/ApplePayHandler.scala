@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers.payment
 import akka.util.Timeout
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.mogobiz.utils.CustomSslConfiguration
 import net.authorize.api.contract.v1.{CreditCardType => _, _}
 import net.authorize.api.controller.CreateTransactionController
@@ -24,7 +24,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
   PaymentHandler.register(handlerName, this)
   implicit val timeout: Timeout = 40.seconds
 
-  val paymentType = com.mogobiz.pay.model.Mogopay.PaymentType.CREDIT_CARD
+  val paymentType = com.mogobiz.pay.model.PaymentType.CREDIT_CARD
 
   implicit val formats = new org.json4s.DefaultFormats {}
 

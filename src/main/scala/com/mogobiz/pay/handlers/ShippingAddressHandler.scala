@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 
 class ShippingAddressHandler {
   //  def find(id: Long): Option[ShippingAddress] = dbTransaction {

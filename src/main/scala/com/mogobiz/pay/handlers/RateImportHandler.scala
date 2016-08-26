@@ -10,7 +10,7 @@ import com.mogobiz.utils.GlobalUtil._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import org.elasticsearch.index.query.TermQueryBuilder
 
 class RateImportHandler {

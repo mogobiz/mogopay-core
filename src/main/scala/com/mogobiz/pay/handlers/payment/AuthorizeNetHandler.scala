@@ -12,8 +12,8 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.Mogopay.{TransactionStatus, _}
+import com.mogobiz.pay.model.CreditCardType.CreditCardType
+import com.mogobiz.pay.model.{TransactionStatus, _}
 import com.mogobiz.utils.{GlobalUtil, HashTools}
 import com.mogobiz.utils.GlobalUtil._
 import net.authorize.sim._

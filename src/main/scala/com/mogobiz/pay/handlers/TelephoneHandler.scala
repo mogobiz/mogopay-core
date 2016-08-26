@@ -7,8 +7,8 @@ package com.mogobiz.pay.handlers
 import com.google.i18n.phonenumbers.{PhoneNumberUtil, NumberParseException}
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import com.mogobiz.pay.exceptions.Exceptions.InvalidPhoneNumberException
-import com.mogobiz.pay.model.Mogopay.Telephone
-import com.mogobiz.pay.model.Mogopay.TelephoneStatus.TelephoneStatus
+import com.mogobiz.pay.model.Telephone
+import com.mogobiz.pay.model.TelephoneStatus.TelephoneStatus
 
 class TelephoneHandler {
   lazy val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()

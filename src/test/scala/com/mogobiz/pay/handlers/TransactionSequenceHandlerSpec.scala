@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.{Settings, Mapping}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 import com.mogobiz.pay.config.Settings
 import org.specs2.mutable._
 import org.specs2.specification.BeforeExample

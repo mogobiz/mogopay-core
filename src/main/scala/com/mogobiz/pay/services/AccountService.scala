@@ -4,19 +4,16 @@
 
 package com.mogobiz.pay.services
 
-import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.{Settings, DefaultComplete}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.Mogopay._
-import com.mogobiz.pay.model.Mogopay.RoleName.RoleName
-import com.mogobiz.pay.model.Mogopay.TokenValidity._
+import com.mogobiz.pay.model._
+import com.mogobiz.pay.model.TokenValidity._
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
 import shapeless.HNil
 import spray.http.MediaTypes._
-import spray.http.StatusCodes.ClientError
 import spray.http._
 import spray.routing.Directives
 import shapeless._
@@ -99,7 +96,8 @@ class AccountService extends Directives with DefaultComplete {
   lazy val alreadyExistEmail = path("already-exist-email") {
     get {
       session { session =>
-        parameters('email, 'merchant_id.?, 'account_type.as[RoleName]) { (email, merchantId, accountType) =>
+        import com.mogobiz.pay.model.EnumUnmarshaller._
+        parameters('email, 'merchant_id.?, 'account_type.as[RoleName.RoleName]) { (email, merchantId, accountType) =>
           assert(accountType == RoleName.CUSTOMER || accountType == RoleName.MERCHANT)
           val isCustomer = accountType == RoleName.CUSTOMER && !session.sessionData.merchantSession
 

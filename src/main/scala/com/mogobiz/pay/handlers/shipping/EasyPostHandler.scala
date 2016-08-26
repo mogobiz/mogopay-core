@@ -12,7 +12,7 @@ import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
-import com.mogobiz.pay.model.Mogopay.{Rate => PayRate, _}
+import com.mogobiz.pay.model.{Rate => PayRate, _}
 import com.typesafe.scalalogging.StrictLogging
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang.StringUtils

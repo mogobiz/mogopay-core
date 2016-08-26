@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
+import com.mogobiz.pay.model.ResponseCode3DS.ResponseCode3DS
 
 case class ThreeDSResult(code: ResponseCode3DS = null,
                          url: String = null,

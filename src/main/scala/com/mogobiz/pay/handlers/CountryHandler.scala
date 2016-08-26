@@ -9,7 +9,7 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil.{PhoneNumberFormat, PhoneNum
 import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model._
 
 case class PhoneVerification(isValid: Boolean,
                              nationalFormat: Option[String] = None,

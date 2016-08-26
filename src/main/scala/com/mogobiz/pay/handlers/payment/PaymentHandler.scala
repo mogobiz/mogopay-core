@@ -10,8 +10,8 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
-import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.PaymentType.PaymentType
+import com.mogobiz.pay.model._
 import com.mogobiz.pay.model.{Mogopay, ParamRequest}
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.EmailHandler.Mail
