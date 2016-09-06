@@ -905,7 +905,7 @@ class SystempayClient extends StrictLogging {
 }
 
 object SystempayClient {
-  val logger                    = Logger(LoggerFactory.getLogger("com.mogobiz.pay.handlers.payment.SystempayClient"))
+  val logger                    = LoggerFactory.getLogger("com.mogobiz.pay.handlers.payment.SystempayClient")
   val QUERY_STRING_SEP          = "&"
   val QUERY_STRING_ELEMENTS_SEP = "="
 

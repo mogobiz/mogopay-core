@@ -2,6 +2,7 @@ package com.mogobiz.pay.config
 
 import com.ebiznext.mogopay.payment.SipsHandler
 import com.mogobiz.pay.handlers._
+import com.mogobiz.pay.handlers.connector.MiraklHandler
 import com.mogobiz.pay.handlers.payment._
 import com.mogobiz.pay.handlers.shipping.{EasyPostHandler, KialaShippingHandler, NoShippingHandler}
 
@@ -75,6 +76,8 @@ trait MogopayCake {
   def templateHandler: TemplateHandler
 
   def customPaymentHandler: PaymentHandler = null
+
+  def miraklHandler : MiraklHandler
 }
 
 class DefaultMogopayCake extends MogopayCake {
@@ -114,4 +117,7 @@ class DefaultMogopayCake extends MogopayCake {
   val applePayHandler     = new ApplePayHandler("applepay")
   val paylineHandler      = new PaylineHandler("payline")
   val mogopayHandler      = new MogopayHandler("mogopay")
+
+  val miraklHandler       = new MiraklHandler
+
 }

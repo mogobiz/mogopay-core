@@ -298,7 +298,7 @@ class EasyPostHandler extends ShippingHandler {
 }
 
 object EasyPostHandlerTest extends App {
-  val logger = Logger(LoggerFactory.getLogger("com.mogobiz.pay.handlers.shipping.EasyPostHandler"))
+  val logger = LoggerFactory.getLogger("com.mogobiz.pay.handlers.shipping.EasyPostHandler")
   EasyPost.apiKey = "ueG20zkjZWwNjUszp1Pr2w"
 
   val customsItemMap: java.util.Map[String, AnyRef] = mutable.HashMap[String, AnyRef](
