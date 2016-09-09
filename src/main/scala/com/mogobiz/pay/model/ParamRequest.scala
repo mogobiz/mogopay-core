@@ -15,5 +15,5 @@ object ParamRequest {
 
   case class ListShippingPriceParam(cartProvider: String, cartKeys: String)
 
-  case class SelectShippingPriceParam(shippingDataId: String, externalShippingDataIds: Option[String])
+  case class SelectShippingPriceParam(shippingDataId: Option[String], externalShippingDataIds: Option[String])
 }

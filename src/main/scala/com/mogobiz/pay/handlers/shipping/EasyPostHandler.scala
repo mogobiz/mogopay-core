@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 object EasyPostHandler {
@@ -34,7 +35,7 @@ class EasyPostHandler extends ShippingHandler {
 
   EasyPost.apiKey = Settings.Shipping.EasyPost.ApiKey
 
-  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): ShippingDataList = {
     cart.compagnyAddress.map { compagnyAddress =>
       val shippingContent = extractShippingContent(cart)
       computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
@@ -44,9 +45,15 @@ class EasyPostHandler extends ShippingHandler {
         val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
         val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
 
-        computeRate(compagnyAddress, shippingAddress, cart, parcel, fixPrice, amount)
-      }.getOrElse(Seq())
-    }.getOrElse(Seq())
+        Try(computeRate(compagnyAddress, shippingAddress, cart, parcel, fixPrice, amount)) match {
+          case Success(r) => r
+          case Failure(ex) => {
+            logger.info(ex.getMessage, ex)
+            ShippingDataList(Some(ShippingPriceError.UNKNOWN), Nil)
+          }
+        }
+      }.getOrElse(ShippingDataList(None, Nil))
+    }.getOrElse(ShippingDataList(Some(ShippingPriceError.NO_COMPAGNY_ADDRESS), Nil))
   }
 
   protected def computeRate(compagnyAddress: CompanyAddress,
@@ -54,7 +61,7 @@ class EasyPostHandler extends ShippingHandler {
                             cart: Cart,
                             parcel: ShippingParcel,
                             fixPrice: Option[Long],
-                            amount: Long): Seq[ShippingData] = {
+                            amount: Long): ShippingDataList = {
     val shipment = rate(
         compagnyAddress,
         shippingAddress.address,
@@ -69,25 +76,27 @@ class EasyPostHandler extends ShippingHandler {
         m.getCarrier + " " + m.getType + " => " + m.getMessage
       }, ", ")
       logger.info("EasyPost Messages : " + message)
-      throw ShippingException()
+      ShippingDataList(Some(ShippingPriceError.SHIPPING_TYPE_NOT_ALLOWED), Nil)
     }
-    easyPostRates.map { easyPostRate =>
-      val rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
-      val currencyFractionDigits: Integer = rate.map {
-        _.currencyFractionDigits
-      }.getOrElse(2)
-      val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
-      val finalPrice = fixPrice.getOrElse(
+    else {
+      ShippingDataList(None, easyPostRates.map { easyPostRate =>
+        val rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
+        val currencyFractionDigits: Integer = rate.map {
+          _.currencyFractionDigits
+        }.getOrElse(2)
+        val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
+        val finalPrice = fixPrice.getOrElse(
           amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
 
-      createShippingData(shippingAddress.address,
-                         EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId,
-                         easyPostRate.getId,
-                         easyPostRate.getCarrier,
-                         easyPostRate.getService,
-                         easyPostRate.getServiceCode,
-                         finalPrice,
-                         cart.rate.code)
+        createShippingData(shippingAddress.address,
+          EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId,
+          easyPostRate.getId,
+          easyPostRate.getCarrier,
+          easyPostRate.getService,
+          easyPostRate.getServiceCode,
+          finalPrice,
+          cart.rate.code)
+      })
     }
   }
 

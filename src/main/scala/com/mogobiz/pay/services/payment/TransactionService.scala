@@ -11,7 +11,7 @@ import java.text.SimpleDateFormat
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mogobiz.pay.common.{Cart, CartRate}
+import com.mogobiz.pay.common._
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{DefaultComplete, Settings}
 import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayException, UnauthorizedException}
@@ -100,7 +100,7 @@ class TransactionService(implicit executionContext: ExecutionContext)
 
   lazy val selectShipping = path("select-shipping") {
     post {
-      formFields('shippingDataId, 'externalShippingDataIds.?).as(SelectShippingPriceParam) {
+      formFields('shippingDataId.?, 'externalShippingDataIds.?).as(SelectShippingPriceParam) {
         params =>
           session {
             session =>
@@ -111,9 +111,9 @@ class TransactionService(implicit executionContext: ExecutionContext)
                 }
                 case Some(id) =>
                   handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shippingDataId, params.externalShippingDataIds.map { _.split(",").toList }.getOrElse(Nil)),
-                    (selectShippingCart: SelectShippingCart) => {
+                    (selectShippingCart: Option[SelectShippingCart]) => {
                       setSession(session) {
-                        complete(StatusCodes.OK -> selectShippingCart)
+                        complete(StatusCodes.OK -> Map("price" -> selectShippingCart.map{_.price}.getOrElse(0)))
                       }
                     }
                   )

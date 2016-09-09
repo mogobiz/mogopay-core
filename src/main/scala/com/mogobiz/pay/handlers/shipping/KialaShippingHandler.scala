@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers.shipping
 import java.util.UUID
 
 import com.mogobiz.pay.common.{Cart, Shipping, ShippingWithQuantity}
-import com.mogobiz.pay.model.{ShippingAddress, ShippingData}
+import com.mogobiz.pay.model.{ShippingAddress, ShippingData, ShippingDataList}
 import org.json4s.JValue
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 
@@ -20,7 +20,7 @@ class KialaShippingHandler extends ShippingHandler {
 
   import KialaShippingHandler._
 
-  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData] = {
+  override def computePrice(shippingAddress: ShippingAddress, cart: Cart): ShippingDataList = {
 
     val shippingContent = extractShippingContent(cart)
 
@@ -39,7 +39,7 @@ class KialaShippingHandler extends ShippingHandler {
     computePrice(shippingContent).map { prixFixeAndKiala =>
       cart.shippingRulePrice.map { shippingPriceRule =>
         val price = convertStorePrice(shippingPriceRule, cart)
-        Seq(
+        ShippingDataList(None, List(
             createShippingData(shippingAddress.address,
                                KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString,
                                UUID.randomUUID().toString,
@@ -47,9 +47,9 @@ class KialaShippingHandler extends ShippingHandler {
                                "KIALA",
                                "KIALA",
                                price,
-                               cart.rate.code))
+                               cart.rate.code)))
       } getOrElse {
-        Seq(
+        ShippingDataList(None, List(
             createShippingData(shippingAddress.address,
                                KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString,
                                UUID.randomUUID().toString,
@@ -57,9 +57,9 @@ class KialaShippingHandler extends ShippingHandler {
                                "KIALA",
                                "KIALA",
                                prixFixeAndKiala._1 + prixFixeAndKiala._2,
-                               cart.rate.code))
+                               cart.rate.code)))
       }
-    } getOrElse (Seq())
+    } getOrElse (ShippingDataList(None, Nil))
   }
 
   override def isValidShipmentId(shippingPrice: ShippingData): Boolean =

@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.model
 
-import java.util.{UUID, Calendar, Date}
+import java.util.{Calendar, Date, UUID}
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.`type`.TypeReference
@@ -309,10 +309,25 @@ object Mogopay {
     active: Boolean = false,
     address: AccountAddress)
 
-  case class ExternalShippingDataList(externalCode: ExternalCode, list: List[ShippingData])
+  object ShippingPriceError extends Enumeration {
+    type ShippingPriceError = Value
+    val UNKNOWN         = Value("UNKNOWN")
+    val SHIPPING_ZONE_NOT_ALLOWED = Value("SHIPPING_ZONE_NOT_ALLOWED")
+    val SHIPPING_TYPE_NOT_ALLOWED = Value("SHIPPING_TYPE_NOT_ALLOWED")
+    val INTERNATIONAL_SHIPPING_NOT_ALLOWED = Value("INTERNATIONAL_SHIPPING_NOT_ALLOWED")
+    val NO_COMPAGNY_ADDRESS = Value("NO_COMPAGNY_ADDRESS")
+  }
+  class ShippingPriceErrorRef extends TypeReference[ShippingPriceError.type]
 
-  case class ExternalShippingData(externalCode: ExternalCode, shipping: ShippingData)
+  case class ShippingDataList(@JsonScalaEnumeration(classOf[ShippingPriceErrorRef]) error: Option[ShippingPriceError.ShippingPriceError],
+                              shippingPrices: List[ShippingData]) {
+    val hasError = !error.isEmpty
+    val empty = !hasError && shippingPrices.isEmpty
 
+    def findById(id: String) = shippingPrices.find(_.id == id)
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
   case class ShippingData(shippingAddress: AccountAddress,
     shipmentId: String,
     rateId: String,
@@ -322,21 +337,28 @@ object Mogopay {
     price: Long,
     currencyCode: String,
     currencyFractionDigits: Int,
-    cartItemId: Option[String] = None,
     confirm: Boolean = false,
     trackingCode: Option[String] = None,
     extra: Option[String] = None,
     trackingHistory: List[String] = Nil,
     id: String = UUID.randomUUID().toString)
 
-  case class ShippingCart(shippingPrices: List[ShippingData],
-                          externalShippingPrices: List[ExternalShippingDataList]) {
-    val nonEmpty = shippingPrices.nonEmpty
+  case class ExternalShippingDataList(@JsonScalaEnumeration(classOf[ShippingPriceErrorRef]) error: Option[ShippingPriceError.ShippingPriceError],
+                              shippingPrices: List[ExternalShippingData]) {
+    val hasError = !error.isEmpty
+    val empty = !hasError && shippingPrices.isEmpty
   }
 
-  case class SelectShippingCart(shippingPrices: ShippingData,
-                                externalShippingPrices: List[ExternalShippingData]) {
-    val price = shippingPrices.price + externalShippingPrices.map { _.shipping.price }.sum
+  case class ExternalShippingData(externalCode: ExternalCode, shippingData: ShippingData)
+
+  case class ShippingCart(internalShippingPrices: ShippingDataList,
+                          externalShippingPricesByCartItemId: Map[String, ExternalShippingDataList]) {
+    val hasError = internalShippingPrices.hasError || externalShippingPricesByCartItemId.exists{_._2.hasError}
+  }
+
+  case class SelectShippingCart(internalShippingPrice: Option[ShippingData],
+                                externalShippingPriceByCode: Map[ExternalCode, ShippingData]) {
+    val price = internalShippingPrice.map{_.price}.getOrElse(0L) + externalShippingPriceByCode.map { _._2.price }.sum
   }
 
   case class ModificationStatus(uuid: String,

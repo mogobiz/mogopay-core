@@ -296,9 +296,9 @@ class TransactionHandler {
           Mail(
               transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName
             .getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-              List(transaction.email.get),
-              Nil,
-              Nil,
+              Seq(transaction.email.get),
+              Seq.empty,
+              Seq.empty,
               subject,
               body,
               Some(body),
@@ -318,9 +318,9 @@ class TransactionHandler {
             Mail(
                 transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName
               .getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-                List(transaction.email.get),
-                Nil,
-                Nil,
+                Seq(transaction.email.get),
+                Seq.empty,
+                Seq.empty,
                 subject,
                 body,
                 Some(body),
@@ -344,9 +344,9 @@ class TransactionHandler {
             Mail(
                 transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName
               .getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-                List(transaction.email.get),
-                Nil,
-                Nil,
+                Seq(transaction.email.get),
+                Seq.empty,
+                Seq.empty,
                 subject,
                 body,
                 Some(body),
@@ -408,7 +408,7 @@ class TransactionHandler {
     }
   }
 
-  def shippingPrices(cart: Cart, accountId: String): (Option[AccountAddress], Seq[ShippingData]) = {
+  def shippingPrices(cart: Cart, accountId: String): (Option[AccountAddress], ShippingDataList) = {
     val maybeCustomer = accountHandler.load(accountId)
 
     val customer = maybeCustomer.getOrElse(throw AccountDoesNotExistException(s"$accountId"))
@@ -416,34 +416,41 @@ class TransactionHandler {
     val address = shippingAddressHandler.findByAccount(customer.uuid).find(_.active)
 
     address.map { addr =>
-      cart.compagnyAddress.foreach { compagnyAddr =>
-        if (!compagnyAddr.shippingInternational && addr.address.country.getOrElse("") != compagnyAddr.country)
-          throw new ShippingInternationalUnauthorized
-      }
-      (Some(addr.address), ShippingHandler.computePrice(addr, cart))
-    }.getOrElse((None, Seq[ShippingData]()))
+      val internationalUnauthorized = cart.compagnyAddress.map { compagnyAddr =>
+        !compagnyAddr.shippingInternational && addr.address.country.getOrElse("") != compagnyAddr.country
+      }.getOrElse(false)
+
+      if (internationalUnauthorized) (Some(addr.address), ShippingDataList(Some(ShippingPriceError.INTERNATIONAL_SHIPPING_NOT_ALLOWED), Nil))
+      else (Some(addr.address), ShippingHandler.computePrice(addr, cart))
+    }.getOrElse((None, ShippingDataList(None, Nil)))
   }
 
-  def selectShippingPrice(sessionData: SessionData, accountId: String, shippingDataId: String, externalShippingDataIds: List[String]): SelectShippingCart = {
+  def selectShippingPrice(sessionData: SessionData, accountId: String, shippingDataId: Option[String], externalShippingDataIds: List[String]): Option[SelectShippingCart] = {
     shippingAddressHandler.findByAccount(accountId).find(_.active).map { clientAddress =>
-      sessionData.cart.map { cart =>
-        cart.compagnyAddress.map { companyAddress =>
-          if (!companyAddress.shippingInternational && companyAddress.country != clientAddress.address.country.getOrElse("")) {
-            throw ShippingInternationalUnauthorized()
-          }
-        }
-      }
-      sessionData.shippingCart.map { shippingCart: ShippingCart =>
-        val selectShippingPrice = shippingCart.shippingPrices.find(_.id == shippingDataId).getOrElse(throw SelectedShippingPriceNotFound())
+      val internationalUnauthorized = sessionData.cart.map { cart =>
+        cart.compagnyAddress.map { compagnyAddr =>
+          !compagnyAddr.shippingInternational && clientAddress.address.country.getOrElse("") != compagnyAddr.country
+        }.getOrElse(false)
+      }.getOrElse(false)
 
-        val externalShippingPrices = shippingCart.externalShippingPrices.map { externalShippingDataList : ExternalShippingDataList =>
-          val shippingData = externalShippingDataList.list.find { sd: ShippingData => externalShippingDataIds.contains(sd.id) }.getOrElse(throw SelectedShippingPriceNotFound())
-          new ExternalShippingData(externalShippingDataList.externalCode, shippingData)
-        }
-        val selectShippingCart = SelectShippingCart(selectShippingPrice, externalShippingPrices)
-        sessionData.selectShippingCart = Some(selectShippingCart)
+      if (internationalUnauthorized) None
+      else {
+        val shippingCart = sessionData.shippingCart.getOrElse(throw InvalidContextException("The shippings list wasn't computed."))
+        if (shippingCart.hasError) throw InvalidContextException("The shippings list must be computed without error.")
+
+        val selectInternalShippingPrice = if (shippingCart.internalShippingPrices.empty) None
+        else shippingDataId.map {id => shippingCart.internalShippingPrices.findById(id)}.getOrElse(throw NoShippingPriceFound())
+
+        val externalShippingPrices = shippingCart.externalShippingPricesByCartItemId.map { externalShippingDataList =>
+          val externalShippingData = if (externalShippingDataList._2.empty) None
+          else Some(externalShippingDataList._2.shippingPrices.find{esd => externalShippingDataIds.contains(esd.shippingData.id)}.getOrElse(throw NoShippingPriceFound()))
+          externalShippingData.map { esd => (esd.externalCode, esd.shippingData)}
+        }.flatten.toList
+
+        val selectShippingCart = Some(SelectShippingCart(selectInternalShippingPrice, Predef.Map(externalShippingPrices : _*)))
+        sessionData.selectShippingCart = selectShippingCart
         selectShippingCart
-      }.getOrElse(throw NoShippingPriceFound())
+      }
     }.getOrElse(throw NoActiveShippingAddressFound())
   }
 
@@ -530,30 +537,21 @@ class TransactionHandler {
              finalPrice = 0,
              cartItems = Nil,
              coupons = Nil,
-             customs = immutable.Map[String, Any]())
+             customs = Predef.Map())
       else
         throw InvalidContextException("Cart isn't set.")
 
     }
-    var selectedShippingCart: Option[SelectShippingCart] = sessionData.selectShippingCart
-
-    if (!Settings.Mogopay.Anonymous) {
-      if (sessionData.shippingCart.getOrElse(throw InvalidContextException("The shippings list wasn't computed.")).nonEmpty
-        && selectedShippingCart.isEmpty) {
-        throw InvalidContextException("Shipping price cannot be empty")
-      }
-    }
-
-    val shippingPrice = selectedShippingCart.map { _.price }.getOrElse(0L)
+    var selectedShippingCart: SelectShippingCart = sessionData.selectShippingCart.getOrElse(throw InvalidContextException("Shipping price cannot be None"))
 
     val cartWithShipping = CartWithShipping(cart.count,
-                                            shippingPrice,
+                                            selectedShippingCart.price,
                                             cart.rate,
                                             cart.price,
                                             cart.endPrice,
                                             cart.taxAmount,
                                             cart.reduction,
-                                            cart.finalPrice + shippingPrice,
+                                            cart.finalPrice + selectedShippingCart.price,
                                             cart.cartItems,
                                             cart.coupons,
                                             cart.customs)
@@ -745,7 +743,7 @@ class TransactionHandler {
                                    card_year: String,
                                    card_type: CreditCardType,
                                    groupPaymentExpirationDate: Option[Long]): PaymentRequest = {
-    var errors: mutable.Seq[Exception] = mutable.Seq()
+    var errors: Seq[Exception] = Seq()
 
     var cc_type: CreditCardType = null
     val transactionEmail: String = sessionData.email.orNull

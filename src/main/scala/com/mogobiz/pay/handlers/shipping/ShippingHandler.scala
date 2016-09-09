@@ -14,7 +14,7 @@ import scala.collection.Seq
 
 trait ShippingHandler extends StrictLogging {
   // return a list of shipping price. Each shipping price is related to a level of service, for example : Same day delivery, 3 days, ...
-  def computePrice(shippingAddress: ShippingAddress, cart: Cart): Seq[ShippingData]
+  def computePrice(shippingAddress: ShippingAddress, cart: Cart): ShippingDataList
 
   def isValidShipmentId(shippingPrice: ShippingData): Boolean
 
@@ -34,7 +34,7 @@ trait ShippingHandler extends StrictLogging {
 
   def extractShippingContent(cart: Cart): List[ShippingWithQuantity] = {
     cart.cartItems.map { cartItem =>
-      if (!cartItem.externalCodes.isEmpty) None
+      if (!cartItem.externalCode.isEmpty) None
       else {
         cartItem.shipping.map { shipping =>
           if (shipping.isDefine) Some(ShippingWithQuantity(cartItem.quantity, shipping))
@@ -66,24 +66,53 @@ trait ShippingHandler extends StrictLogging {
 }
 
 object ShippingHandler {
-  val servicesList: Seq[ShippingHandler] =
-    if (!Settings.Shipping.Kiala.enable) Seq(noShippingHandler, easyPostHandler)
-    else Seq(noShippingHandler, kialaShippingHandler, easyPostHandler)
+  val servicesList: List[ShippingHandler] =
+    if (!Settings.Shipping.Kiala.enable) List(easyPostHandler)
+    else List(kialaShippingHandler, easyPostHandler)
 
-  def computePrice(address: ShippingAddress, cart: Cart): Seq[ShippingData] = {
-    servicesList.flatMap { service =>
+  def computePrice(address: ShippingAddress, cart: Cart): ShippingDataList = {
+    val list = servicesList.map { service =>
       service.computePrice(address, cart)
     }
+    mergeShippingDataList(list)
+  }
+
+  def mergeShippingDataList(list: List[ShippingDataList]) : ShippingDataList = {
+    if (list.isEmpty) ShippingDataList(None, Nil)
+    else {
+      val shippingData1 = list.head
+      val shippingData2 = mergeShippingDataList(list.tail)
+      ShippingDataList(mergeError(shippingData1.error, shippingData2.error), shippingData1.shippingPrices ::: shippingData2.shippingPrices)
+    }
+  }
+
+  def mergeError(error1: Option[ShippingPriceError.ShippingPriceError], error2: Option[ShippingPriceError.ShippingPriceError]) = (error1, error2) match {
+    case (None, None) => None
+    case (Some(er), None) => Some(er)
+    case (None, Some(er)) => Some(er)
+    case (Some(er1), Some(er2)) => {
+      if (getErrorValue(er1) <= getErrorValue(er2)) Some(er1)
+      else Some(er2)
+    }
+  }
+
+  def getErrorValue(er: ShippingPriceError.ShippingPriceError) = er match {
+    case ShippingPriceError.INTERNATIONAL_SHIPPING_NOT_ALLOWED => 1
+    case ShippingPriceError.SHIPPING_ZONE_NOT_ALLOWED => 2
+    case ShippingPriceError.SHIPPING_TYPE_NOT_ALLOWED => 3
+    case _ => 99
   }
 
   def confirmShippingPrice(shippingCart: Option[SelectShippingCart]): Option[ShippingData] = {
     shippingCart.map { shippingCart =>
-      val serviceOpt = servicesList.find {
-        _.isValidShipmentId(shippingCart.shippingPrices)
-      }
-      serviceOpt.map { service =>
-        service.confirmShipmentId(shippingCart.shippingPrices)
-      }
+      shippingCart.internalShippingPrice.map { shippingPrice =>
+        val serviceOpt = servicesList.find {
+          _.isValidShipmentId(shippingPrice)
+        }
+        serviceOpt.map { service =>
+          service.confirmShipmentId(shippingPrice)
+        }
+      }.getOrElse(None)
     }.getOrElse(None)
   }
 }
