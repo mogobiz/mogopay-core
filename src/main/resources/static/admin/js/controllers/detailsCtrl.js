@@ -49,10 +49,10 @@ function DetailsCtrl($scope, $location, $rootScope, $route) {
 				$scope.shippingProviderDetails += ", " + $scope.shippingDetails.rateType;
 			}
 			$scope.shippingAddressDetails = "";
-			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.city != null ? $scope.shippingDetails.shippingAddress.city : "";
-			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.zipCode != null ? ", " + $scope.shippingDetails.shippingAddress.zipCode : "";
-			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.road != null ? ", " + $scope.shippingDetails.shippingAddress.road : "";
-			$scope.shippingAddressDetails += $scope.shippingDetails.shippingAddress.road2 != null ? ", " + $scope.shippingDetails.shippingAddress.road2 : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.address.city != null ? $scope.shippingDetails.address.city : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.address.zipCode != null ? ", " + $scope.shippingDetails.address.zipCode : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.address.road != null ? ", " + $scope.shippingDetails.address.road : "";
+			$scope.shippingAddressDetails += $scope.shippingDetails.address.road2 != null ? ", " + $scope.shippingDetails.address.road2 : "";
 		}
 	}
 	$scope.detailsSelectOrder = function(index){detailsSelectOrder($scope, $location, $rootScope, $route, index)};
@@ -100,10 +100,10 @@ function detailsSelectOrder(scope, location, rootScope, route, index){
 			scope.shippingProviderDetails += ", " + scope.shippingDetails.rateType;
 		}
 		scope.shippingAddressDetails = "";
-		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.city != null ? scope.shippingDetails.shippingAddress.city : "";
-		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.zipCode != null ? ", " + scope.shippingDetails.shippingAddress.zipCode : "";
-		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.road != null ? ", " + scope.shippingDetails.shippingAddress.road : "";
-		scope.shippingAddressDetails += scope.shippingDetails.shippingAddress.road2 != null ? ", " + scope.shippingDetails.shippingAddress.road2 : "";
+		scope.shippingAddressDetails += scope.shippingDetails.address.city != null ? scope.shippingDetails.address.city : "";
+		scope.shippingAddressDetails += scope.shippingDetails.address.zipCode != null ? ", " + scope.shippingDetails.address.zipCode : "";
+		scope.shippingAddressDetails += scope.shippingDetails.address.road != null ? ", " + scope.shippingDetails.address.road : "";
+		scope.shippingAddressDetails += scope.shippingDetails.address.road2 != null ? ", " + scope.shippingDetails.address.road2 : "";
 	}
 	$("html,body").animate({
 		scrollTop: $(".detailsOrderBlock").offset().top
