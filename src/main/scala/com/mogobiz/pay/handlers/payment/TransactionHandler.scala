@@ -22,7 +22,7 @@ import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.Mogopay.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.Mogopay.PaymentType.PaymentType
 import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
-import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
+import com.mogobiz.pay.model.Mogopay.TransactionStatus.{ TransactionStatus, _ }
 import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model.{ AccountChange, ParamRequest }
 import com.mogobiz.utils.EmailHandler.{ Attachment, Mail }
@@ -205,7 +205,7 @@ class TransactionHandler {
     else newTx
 
     // commit du shipping
-    val transactionAndErrorShipment = if (paymentResult.status == PaymentStatus.COMPLETE) {
+    val transactionAndErrorShipment = if (newStatus == TransactionStatus.PAYMENT_CONFIRMED) {
       Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingPrice)) match {
         case Success(shippingData) => {
           val finalTransWithShippingInfo = shippingData.map { shippingData =>
