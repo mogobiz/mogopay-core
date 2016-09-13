@@ -920,7 +920,7 @@ class AccountHandler {
                     }!
                      |${
                       if (isJSP) "F_CTYPE!jsp!" else ""
-                    }"
+                    }
            """.stripMargin.trim
                   )
 
