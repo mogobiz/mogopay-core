@@ -141,13 +141,16 @@ object Settings {
     val MPIEndPoint = config.getString("paybox.mpiendpoint")
     val SystemEndPoint = config.getString("paybox.systemendpoint")
     val DirectEndPoint = config.getString("paybox.directendpoint")
+    val PemFileDir = config.getString("paybox.pemDir")
     val PemFileName = config.getString("paybox.pemfile")
     val PBXPorteur = config.getString("paybox.pbxporteur")
-    val PublicKey: PublicKey = {
-      val pemreader = new PemReader(new StringReader(scala.io.Source.fromFile(Settings.Paybox.PemFileName).mkString))
+    def getPublicKey(merchantUuid: String) = {
+      val file = new File(new File(PemFileDir, merchantUuid), PemFileName)
+      val pemreader = new PemReader(new StringReader(scala.io.Source.fromFile(file).mkString))
       val x509EncodedKeySpec = new X509EncodedKeySpec(pemreader.readPemObject().getContent)
       val kf = KeyFactory.getInstance("RSA")
       kf.generatePublic(x509EncodedKeySpec)
+
     }
   }
 

@@ -697,6 +697,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
                 ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) :: ('paybox_contract ?) ::
                 ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
+                ('paybox_pem_file_name.?) ::
+                ('paybox_pem_file_content.?) ::
                 ('sips_merchant_certificate_file_name.?) ::
                 ('sips_merchant_certificate_file_content.?) ::
                 ('sips_merchant_parcom_file_name.?) ::
@@ -715,6 +717,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode ::
                   paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank :: payboxContract ::
                   payboxMerchantId :: sipsMerchantId :: sipsMerchantCountry ::
+                  payboxPemFileName ::
+                  payboxPemFileContent ::
                   sipsMerchantCertificateFileName ::
                   sipsMerchantCertificateFileContent ::
                   sipsMerchantParcomFileName ::
@@ -734,6 +738,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     paylineAccount, paylineKey, paylineContract, paylineCustomPaymentPageCode,
                     paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank, payboxContract,
                     payboxMerchantId, sipsMerchantId, sipsMerchantCountry,
+                    payboxPemFileName,
+                    payboxPemFileContent,
                     sipsMerchantCertificateFileName,
                     sipsMerchantCertificateFileContent,
                     sipsMerchantParcomFileName,
@@ -770,6 +776,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                 ('payline_account ?) :: ('payline_key ?) :: ('payline_contract ?) :: ('payline_custom_payment_page_code ?) ::
                 ('payline_custom_payment_template_url ?) :: ('paybox_site ?) :: ('paybox_key ?) :: ('paybox_rank ?) :: ('paybox_contract ?) ::
                 ('paybox_merchant_id ?) :: ('sips_merchant_id ?) :: ('sips_merchant_country ?) ::
+                ('paybox_pem_file_name.?) ::
+                ('paybox_pem_file_content.?) ::
                 ('sips_merchant_certificate_file_name.?) ::
                 ('sips_merchant_certificate_file_content.?) ::
                 ('sips_merchant_parcom_file_name.?) ::
@@ -790,6 +798,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                   paylineAccount :: paylineKey :: paylineContract :: paylineCustomPaymentPageCode ::
                   paylineCustomPaymentTemplateURL :: payboxSite :: payboxKey :: payboxRank :: payboxContract ::
                   payboxMerchantId :: sipsMerchantId :: sipsMerchantCountry ::
+                  payboxPemFileName ::
+                  payboxPemFileContent ::
                   sipsMerchantCertificateFileName ::
                   sipsMerchantCertificateFileContent ::
                   sipsMerchantParcomFileName ::
@@ -809,6 +819,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
                     paylineAccount, paylineKey, paylineContract, paylineCustomPaymentPageCode,
                     paylineCustomPaymentTemplateURL, payboxSite, payboxKey, payboxRank, payboxContract,
                     payboxMerchantId, sipsMerchantId, sipsMerchantCountry,
+                    payboxPemFileName,
+                    payboxPemFileContent,
                     sipsMerchantCertificateFileName,
                     sipsMerchantCertificateFileContent,
                     sipsMerchantParcomFileName,
@@ -839,6 +851,8 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
     paylineAccount: Option[String], paylineKey: Option[String], paylineContract: Option[String], paylineCustomPaymentPageCode: Option[String],
     paylineCustomPaymentTemplateURL: Option[String], payboxSite: Option[String], payboxKey: Option[String], payboxRank: Option[String], payboxContract: Option[String],
     payboxMerchantId: Option[String], sipsMerchantId: Option[String], sipsMerchantCountry: Option[String],
+    payboxPemFileName: Option[String],
+    payboxPemFileContent: Option[String],
     sipsMerchantCertificateFileName: Option[String],
     sipsMerchantCertificateFileContent: Option[String],
     sipsMerchantParcomFileName: Option[String],
@@ -875,7 +889,7 @@ class AccountServiceJsonless extends Directives with DefaultComplete {
         case CBPaymentProvider.NONE => NoCBParams()
         case CBPaymentProvider.PAYLINE => PaylineParams(paylineAccount.get, paylineKey.get, paylineContract.get,
           paylineCustomPaymentPageCode.get, paylineCustomPaymentTemplateURL.get)
-        case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxContract.get, payboxMerchantId.get)
+        case CBPaymentProvider.PAYBOX => PayboxParams(payboxSite.get, payboxKey.get, payboxRank.get, payboxContract.get, payboxMerchantId.get, payboxPemFileName, payboxPemFileContent)
         case CBPaymentProvider.SIPS => SIPSParams(sipsMerchantId.get, sipsMerchantCountry.get,
           sipsMerchantCertificateFileName, sipsMerchantCertificateFileContent,
           sipsMerchantParcomFileName, sipsMerchantParcomFileContent, sipsMerchantLogoPath.get)

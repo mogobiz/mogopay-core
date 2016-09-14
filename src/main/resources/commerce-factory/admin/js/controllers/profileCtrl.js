@@ -30,6 +30,9 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
         for (var i = 0; i < $scope.creditCards.length; i++)
             $scope.creditCards[i].expiryDateVal = dateToMonthValue(new Date($scope.creditCards[i].expiryDate));
     }
+    $scope.payboxPemFileLabel = $rootScope.resourceBundle.paybox_upload_pem;
+    $scope.payboxPemFileName = "";
+    $scope.payboxPemFileContent = "";
     $scope.sipsCetificateFileLabel = $rootScope.resourceBundle.sips_upload_cetificate;
     $scope.sipsCetificateFileName = "";
     $scope.sipsCetificateFileContent = "";
@@ -304,6 +307,9 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
     $scope.sipsParcomFileChangeContent = function (evt) {
         sipsParcomFileChangeContent(evt, $scope, $location, $rootScope, $route);
     };
+    $scope.payboxPemFileChangeContent = function (evt) {
+        payboxPemFileChangeContent(evt, $scope, $location, $rootScope, $route);
+    };
 
     function luhn10(a, b, c, d, e) {
         if (a == "")
@@ -463,6 +469,20 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
                 scope.sipsParcomFileName = f.name;
                 scope.sipsParcomFileContent = e.target.result;
                 scope.sipsParcomFileLabel = rootScope.resourceBundle.sips_current_parcom + " : " + f.name;
+                scope.$apply();
+            }
+            r.readAsText(f);
+        }
+    }
+
+    function payboxPemFileChangeContent(evt, scope, location, rootScope, route) {
+        var f = evt.target.files[0];
+        if (f) {
+            var r = new FileReader();
+            r.onload = function (e) {
+                scope.payboxPemFileName = f.name;
+                scope.payboxPemFileContent = e.target.result;
+                scope.payboxPemFileLabel = rootScope.resourceBundle.paybox_current_pem + " : " + f.name;
                 scope.$apply();
             }
             r.readAsText(f);
@@ -636,6 +656,8 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
                     data += "&paybox_key=" + $("#payboxKey").val();
                     data += "&paybox_rank=" + $("#payboxContract").val();
                     data += "&paybox_merchant_id=" + $("#payboxMerchantId").val();
+                    data += "&paybox_pem_file_name=" + scope.payboxPemFileName;
+                    data += "&paybox_pem_file_content=" + scope.payboxPemFileContent;
                     break;
                 case "sips":
                     data += "&sips_merchant_id=" + $("#sipsMerchantId").val();

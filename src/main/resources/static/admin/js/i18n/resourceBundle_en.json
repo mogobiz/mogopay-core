@@ -204,6 +204,8 @@
 	"paybox_key": "Key",
 	"paybox_contract": "Contract",
 	"paybox_merchant_id": "Merchant Id / HMAC Key",
+	"paybox_upload_pem": "Upload Pem File",
+	"paybox_current_pem": "Current Pem File",
 
 	"payline_account": "Account",
 	"payline_key": "Key",

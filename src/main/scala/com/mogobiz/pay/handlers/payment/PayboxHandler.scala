@@ -280,7 +280,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     }
   }
 
-  def verifySha1(data: String, sign: String): Boolean = {
+  def verifySha1(data: String, sign: String, merchantUuid: String): Boolean = {
     val Charset = "UTF-8"
     val HashEncryptionAlgorithm = "SHA1withRSA"
 
@@ -293,10 +293,17 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     } catch {
       case e: NoSuchAlgorithmException => e.printStackTrace()
     }
-    val sig = Signature.getInstance("SHA1withRSA")
-    sig.initVerify(Settings.Paybox.PublicKey)
-    sig.update(data.getBytes(Charset))
-    sig.verify(signature)
+    try {
+      val sig = Signature.getInstance("SHA1withRSA")
+      sig.initVerify(Settings.Paybox.getPublicKey(merchantUuid))
+      sig.update(data.getBytes(Charset))
+      sig.verify(signature)
+    } catch {
+      case e: Exception => {
+        logger.error("Unabled to verify PAYBOX data", e)
+        false
+      }
+    }
   }
 
   def callbackPayment(sessionData: SessionData, params: Map[String, String], uri: String): Unit = {
@@ -328,46 +335,43 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
       }
       val dataToCheck = uri.substring(uri.indexOf("?") + 1, uri.indexOf("&SIGNATURE="))
       val signature = uri.substring(uri.indexOf("&SIGNATURE=") + "&SIGNATURE=".length)
-      val ok = verifySha1(dataToCheck, signature) && paramTransactionUuid == transactionUuid && vendorId == paramVendorId
-      if (ok) {
-        val codeReponse = params("CODEREPONSE")
-        val bankErrorCode = if (codeReponse == "00000") "00" else if (codeReponse.startsWith("001")) codeReponse.substring(3) else ""
-        val paymentResult = PaymentResult(
-          transactionSequence = paymentRequest.transactionSequence,
-          orderDate = paymentRequest.orderDate,
-          amount = paymentRequest.amount,
-          ccNumber = ccNumber,
-          cardType = PayboxHandler.toCardType(params.getOrElse("CARTE", CreditCardType.CB.toString)),
-          expirationDate = expirationDate,
-          cvv = "",
-          gatewayTransactionId = transaction.uuid,
-          transactionDate = new Date(),
-          transactionCertificate = null,
-          authorizationId = null,
-          status = if (codeReponse == "00000") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
-          errorCodeOrigin = codeReponse,
-          errorMessageOrigin = Some(PayboxHandler.errorMessages(if (codeReponse.startsWith("001")) "001xx" else codeReponse)),
-          data = "",
-          bankErrorCode = bankErrorCode,
-          bankErrorMessage = Some(BankErrorCodes.getErrorMessage(bankErrorCode)),
-          token = "",
-          errorShipment = None
-        )
-        val creditCard = BOCreditCard(
-          number = ccNumber,
-          holder = None,
-          expiryDate = paymentResult.expirationDate,
-          cardType = paymentResult.cardType
-        )
-        boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
+      val ok = verifySha1(dataToCheck, signature, vendorId) && paramTransactionUuid == transactionUuid && vendorId == paramVendorId
 
-        val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUuid,
-          if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
-          paymentResult, codeReponse, sessionData.locale, Some(GlobalUtil.mapToQueryString(params)))
-        finishPayment(sessionData, paymentResultWithShippingResult)
-      } else {
-        throw InvalidSignatureException(s"$signature")
-      }
+      val codeReponse = if (ok) params("CODEREPONSE") else "BAD_SIGNATURE"
+      val bankErrorCode = if (codeReponse == "00000") "00" else if (codeReponse.startsWith("001")) codeReponse.substring(3) else ""
+      val paymentResult = PaymentResult(
+        transactionSequence = paymentRequest.transactionSequence,
+        orderDate = paymentRequest.orderDate,
+        amount = paymentRequest.amount,
+        ccNumber = ccNumber,
+        cardType = PayboxHandler.toCardType(params.getOrElse("CARTE", CreditCardType.CB.toString)),
+        expirationDate = expirationDate,
+        cvv = "",
+        gatewayTransactionId = transaction.uuid,
+        transactionDate = new Date(),
+        transactionCertificate = null,
+        authorizationId = null,
+        status = if (codeReponse == "00000") PaymentStatus.COMPLETE else PaymentStatus.FAILED,
+        errorCodeOrigin = codeReponse,
+        errorMessageOrigin = Some(PayboxHandler.errorMessages.getOrElse(if (codeReponse.startsWith("001")) "001xx" else codeReponse, codeReponse)),
+        data = "",
+        bankErrorCode = bankErrorCode,
+        bankErrorMessage = Some(BankErrorCodes.getErrorMessage(bankErrorCode)),
+        token = "",
+        errorShipment = None
+      )
+      val creditCard = BOCreditCard(
+        number = ccNumber,
+        holder = None,
+        expiryDate = paymentResult.expirationDate,
+        cardType = paymentResult.cardType
+      )
+      boTransactionHandler.update(transaction.copy(creditCard = Some(creditCard)), false)
+
+      val paymentResultWithShippingResult = transactionHandler.finishPayment(this, sessionData, transactionUuid,
+        if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
+        paymentResult, codeReponse, sessionData.locale, Some(GlobalUtil.mapToQueryString(params)))
+      finishPayment(sessionData, paymentResultWithShippingResult)
     } else {
       val paymentResult = PaymentResult(
         transactionSequence = paymentRequest.transactionSequence,

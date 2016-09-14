@@ -203,6 +203,8 @@
 	"paybox_key": "Clef",
 	"paybox_contract": "Contrat",
 	"paybox_merchant_id": "Id du marchand / Clef HMAC",
+	"paybox_upload_pem": "Upload Fichier Pem",
+	"paybox_current_pem": "Transfert du fichier Pem en cours",
 
 	"payline_account": "Compte",
 	"payline_key": "Clef",
