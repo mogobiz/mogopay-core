@@ -328,7 +328,7 @@ object Mogopay {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  case class ShippingData(address: AccountAddress,
+  case class ShippingData(shippingAddress: AccountAddress,
     shipmentId: String,
     rateId: String,
     provider: String,
