@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
 package com.mogobiz.pay.services
 
 import com.mogobiz.system.ActorSystemLocator
@@ -6,9 +9,6 @@ import spray.http._
 import spray.routing.{HttpService, Directives}
 import spray.testkit.Specs2RouteTest
 
-/**
- * Created by yoannbaudy on 01/09/16.
- */
 class MiraklServiceSpec extends Specification with Specs2RouteTest with HttpService {
 
   def actorRefFactory = system // connect the DSL to the test ActorSystem

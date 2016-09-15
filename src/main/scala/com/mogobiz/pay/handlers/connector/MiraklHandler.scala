@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
 package com.mogobiz.pay.handlers.connector
 
 import akka.actor.Actor
@@ -6,9 +9,6 @@ import com.mogobiz.mirakl.PaymentModel._
 
 import scala.util.{Failure, Success, Try}
 
-/**
- * Created by yoannbaudy on 01/09/16.
- */
 class MiraklHandler {
 
   def debitCustomer(orders: DebitOrderList) : Boolean = {

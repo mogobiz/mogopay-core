@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2015 Mogobiz SARL. All rights reserved.
+ */
 package com.mogobiz.pay.services
 
 import akka.actor.{Actor, Props}
@@ -12,9 +15,6 @@ import com.mogobiz.system.ActorSystemLocator
 
 import scala.util.{Success, Try}
 
-/**
- * Created by yoannbaudy on 01/09/16.
- */
 class MiraklService extends Directives with DefaultComplete {
 
   val route = {
