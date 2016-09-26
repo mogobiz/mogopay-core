@@ -617,7 +617,7 @@ function ProfileCtrl($scope, $location, $rootScope, $route) {
             if (profileCompanyNameChanged)
                 rootScope.getAllStores();
             else
-                navigateToPage(scope, location, rootScope, route, "listTransactions");
+                navigateToPage(scope, location, rootScope, route, "profile");
         };
         callServer("account/" + action, dataToSend, success, emptyFunc, "POST", "params", "pay", true, true, true);
     }
