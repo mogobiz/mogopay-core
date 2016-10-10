@@ -429,12 +429,15 @@ object Mogopay {
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class Rate(uuid: String,
-    currencyCode: String,
-    activationDate: Date,
-    currencyRate: Double = 0.01,
-    currencyFractionDigits: Integer = 2,
-    var dateCreated: Date = Calendar.getInstance().getTime,
-    var lastUpdated: Date = Calendar.getInstance().getTime)
+      currencyCode: String,
+      activationDate: Date,
+      currencyRate: Double = 0.01,
+      currencyFractionDigits: Integer = 2,
+      var dateCreated: Date = Calendar.getInstance().getTime,
+      var lastUpdated: Date = Calendar.getInstance().getTime) {
+
+    val defaultRate = (Math.pow(10, currencyFractionDigits.doubleValue()) * currencyRate == 1)
+  }
 
   case class TransactionSequence(uuid: String,
     transactionId: Long,

@@ -6,14 +6,17 @@ package com.mogobiz.pay.handlers
 
 import java.text.NumberFormat
 import java.util.{ Currency, Locale }
-import com.mogobiz.pay.config.Settings
 
+import com.mogobiz.pay.config.Settings
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.exceptions.Exceptions.RateNotFoundException
 import com.mogobiz.pay.model.Mogopay.Rate
 
 class RateHandler {
   def list = EsClient.searchAll[Rate](search in Settings.Mogopay.EsIndex -> "Rate" from 0 size EsClient.MAX_SIZE)
+
+  def defaultRate = list.find(_.defaultRate).getOrElse(throw new RateNotFoundException("Default rate not found"))
 
   def format(amount: Long, currency: String, country: String): Option[String] =
     format(amount.toFloat, currency, country)
