@@ -29,6 +29,7 @@ function ListTransactionsCtrl($scope, $location, $rootScope, $route) {
 }
 
 function listTransactionsSearch (scope, location, rootScope, route) {
+	rootScope.transactions = [];
 	var success = function (response) {
 		scope.listTransactionsSortField = "";
 		scope.listTransactionsSortReverse = false;
@@ -49,7 +50,7 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 	if ($.trim($("#listTransactionsAmount").val()) != ""){
 		if(dataToSend != "")
 			dataToSend += "&";
-		dataToSend += "price=" + $("#listTransactionsAmount").val();
+		dataToSend += "price=" + parseInt((parseFloat($("#listTransactionsAmount").val()) * Math.pow(10, rootScope.defaultCurrency.currencyFractionDigits)));
 	}
 
 	if (scope.listTransactionsStatus != ""){

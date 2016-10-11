@@ -6,6 +6,7 @@
 
 function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $location, $route) {
 	webshim.polyfill('forms forms-ext');
+	getDefaultCurrency($scope, $location, $rootScope, $route);
 	$scope.$on('$viewContentLoaded', function() {
 		$('body').updatePolyfill();
 	});
@@ -269,4 +270,22 @@ function validationGetUserProfile(scope, location, rootScope, route){
 	}
 	var error = function(response){}
 	callServer("account/profile-info", "", success, error, "GET", "params", "pay", true, true, true);
+}
+
+function getDefaultCurrency(scope, location, rootScope, route){
+	var success = function (response) {
+		rootScope.defaultCurrency = response;
+	};
+	var error = function (response) {
+		rootScope.defaultCurrency = {
+			"uuid": "",
+			"currencyCode": "", 
+			"activationDate": "", 
+			"currencyRate": 0.01, 
+			"currencyFractionDigits": 2,
+			"dateCreated": "",
+			"lastUpdated": ""
+		};
+	}
+	callServer("rate/default", "", success, error, "GET", "params", "pay", false, false, false);
 }
