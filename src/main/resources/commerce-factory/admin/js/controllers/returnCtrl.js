@@ -30,8 +30,8 @@ function ReturnCtrl($scope, $location, $rootScope, $route) {
 		for(var i = 0; i < $rootScope.returnDetails.returnedItems.length; i++){
 			var item = $rootScope.returnDetails.returnedItems[i];
 			$scope.returnItemStatusTab[$scope.returnItemStatusTab.length] = item.status;
-			$scope.refundedValue[$scope.refundedValue.length] = item.refunded;
-			$scope.totalRefundedValue[$scope.totalRefundedValue.length] = item.totalRefunded;
+			$scope.refundedValue[$scope.refundedValue.length] = item.refunded * $rootScope.returnDetails.currencyRate;
+			$scope.totalRefundedValue[$scope.totalRefundedValue.length] = item.totalRefunded * $rootScope.returnDetails.currencyRate;
 		}
 	}
 	$scope.acceptReturn = function (index) {acceptReturn($scope, $location, $rootScope, $route, index);};
@@ -68,8 +68,8 @@ function receiveReturn(scope, location, rootScope, route, index){
 function updateReturnItem(scope, location, rootScope, route, index, returnStatus){
 	var data = {
 		status: scope.returnItemStatusTab[index],
-		refunded: parseInt(parseFloat($("#returnRefunded-" + index).val())),
-		totalRefunded: parseInt(parseFloat($("#returnTotalRefunded-" + index).val())),
+		refunded: parseInt(parseFloat($("#returnRefunded-" + index).val()) * Math.pow(10, rootScope.selectedTransaction.currency.fractionDigits)),
+		totalRefunded: parseInt(parseFloat($("#returnTotalRefunded-" + index).val()) * Math.pow(10, rootScope.selectedTransaction.currency.fractionDigits)),
 		returnStatus: returnStatus,
 		motivation: $("#returnMotivation-" + index).val()
 	}

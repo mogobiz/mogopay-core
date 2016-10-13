@@ -202,8 +202,8 @@
 					<tbody>
 						<tr ng-repeat="item in returnDetails.returnedItems">
 							<td>{{item.quantity}}</td>
-							<td>{{item.refunded}}</td>
-							<td>{{item.totalRefunded}}</td>
+							<td>{{item.refunded * cartDetails.currencyRate | priceFilter}}</td>
+							<td>{{item.totalRefunded * cartDetails.currencyRate | priceFilter}}</td>
 							<td ng-if="item.boReturns.length == 1">{{returnStatusValues[item.boReturns[0].status]}}</td>
 							<td ng-if="item.boReturns.length > 1">
 								<a href="javascript:void(0)" rel="popoverBoRetun">{{returnStatusValues[item.boReturns[0].status]}}</a>

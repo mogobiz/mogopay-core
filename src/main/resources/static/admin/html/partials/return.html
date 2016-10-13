@@ -25,11 +25,11 @@
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 							<label for="returnRefunded-{{$index}}">{{resourceBundle.return_refunded}}</label>
-							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnRefunded-{{$index}}" ng-model="refundedValue[$index]" pattern="\d+" ng-blur="checkTotalRefundedValidity($index)"/>
+							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnRefunded-{{$index}}" ng-model="refundedValue[$index]" pattern="[0-9]+([\.,][0-9]+)?" ng-blur="checkTotalRefundedValidity($index)"/>
 						</div>
 						<div class="col-xs-12 col-sm-6 col-md-3 col-lg-3" style="padding:0px 5px; margin-bottom: 15px;">
 							<label for="returnTotalRefunded-{{$index}}">{{resourceBundle.return_total_refunded}}</label>
-							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnTotalRefunded-{{$index}}" ng-model="totalRefundedValue[$index]" pattern="\d+" ng-blur="checkTotalRefundedValidity($index)"/>
+							<input type="text" class="form-control" ng-disabled="item.boReturns[0].status != 'RETURN_RECEIVED'" ng-required="item.boReturns[0].status != 'RETURN_RECEIVED'" id="returnTotalRefunded-{{$index}}" ng-model="totalRefundedValue[$index]" pattern="[0-9]+([\.,][0-9]+)?" ng-blur="checkTotalRefundedValidity($index)"/>
 						</div>
 					</div>
 				</form>

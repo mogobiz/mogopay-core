@@ -175,7 +175,8 @@ function detailsSelectReturn(scope, location, rootScope, route, index){
 	rootScope.returnDetails = {
 		name: scope.cartDetails.cartItems[index].principal.product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
 		returnedItems: scope.cartDetails.cartItems[index].bOReturnedItems,
-		cartItem: scope.cartDetails.cartItems[index]
+		cartItem: scope.cartDetails.cartItems[index],
+		currencyRate: scope.cartDetails.currencyRate
 	}
 	if(rootScope.isMerchant){
 		navigateToPage(scope, location, rootScope, route, "return");
