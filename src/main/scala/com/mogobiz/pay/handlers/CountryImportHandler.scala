@@ -43,13 +43,13 @@ class CountryImportHandler {
 
         val currencyMap: Map[String, String] =
           scala.io.Source.fromFile(currenciesFile, "utf-8").getLines().map {
-            case line if line.trim().length() > 0 =>
+            case line if line.trim().length() > 0 && !line.startsWith("#") =>
               val field = line.trim.split('\t')
               Some((field(0).trim, field(1).trim))
             case _ => None
           }.collect { case Some(x) => x }.toMap[String, String]
 
-        scala.io.Source.fromFile(countriesFile, "utf-8").getLines().foreach { line =>
+        scala.io.Source.fromFile(countriesFile, "utf-8").getLines().filter(l => l.trim.length > 0 && !l.startsWith("#")).foreach { line =>
           val field = line.split('\t')
           val code: String = field(0)
           val name: String = field(4)
@@ -87,7 +87,7 @@ class CountryImportHandler {
 
     val list: scala.collection.mutable.MutableList[String] = scala.collection.mutable.MutableList()
 
-    scala.io.Source.fromFile(admins1File, "utf-8").getLines().foreach { line =>
+    scala.io.Source.fromFile(admins1File, "utf-8").getLines().filter(l => l.trim.length > 0 && !l.startsWith("#")).foreach { line =>
       val field = line.split('\t')
       val code = field(0)
       val name = field(2)
@@ -130,7 +130,7 @@ class CountryImportHandler {
 
     val list: scala.collection.mutable.MutableList[String] = scala.collection.mutable.MutableList()
 
-    scala.io.Source.fromFile(admins2File, "utf-8").getLines().foreach { line =>
+    scala.io.Source.fromFile(admins2File, "utf-8").getLines().filter(l => l.trim.length > 0 && !l.startsWith("#")).foreach { line =>
       val field = line.split('\t')
       val code: String = field(0)
       val name: String = field(2)
@@ -184,7 +184,7 @@ class CountryImportHandler {
 
     val list: scala.collection.mutable.MutableList[String] = scala.collection.mutable.MutableList()
 
-    scala.io.Source.fromFile(citiesFile, "utf-8").getLines().foreach { line =>
+    scala.io.Source.fromFile(citiesFile, "utf-8").getLines().filter(l => l.trim.length > 0 && !l.startsWith("#")).foreach { line =>
       val field = line.split('\t')
 
       val cityCode = field(2)
