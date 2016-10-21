@@ -72,7 +72,9 @@ object PaylineHandler {
     return retour
   }
 
+  val ACTION_AUTHORISATION: String            = "100"
   val ACTION_AUTHORISATION_VALIDATION: String = "101"
+  val ACTION_VALIDATION: String = "201"
   val ACTION_REFUND: String                   = "421"
   val MODE_COMPTANT: String                   = "CPT"
   val ServiceName: QName                      = new QName("http://impl.ws.payline.experian.com", "WebPaymentAPI")
@@ -518,15 +520,15 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val url: URL                          = classOf[PaylineHandler].getResource("/wsdl/DirectPaymentAPI_v4.38.wsdl")
     val service: DirectPaymentAPI_Service = new DirectPaymentAPI_Service(url)
     val proxy: DirectPaymentAPI           = service.getDirectPaymentAPI
-    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.username", accountId)
-    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.security.auth.password", cleAccess)
-    (proxy.asInstanceOf[BindingProvider]).getRequestContext.put("javax.xml.ws.service.endpoint.address", endpoint)
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy.asInstanceOf[BindingProvider].getRequestContext.put("javax.xml.ws.security.auth.username", accountId)
+    proxy.asInstanceOf[BindingProvider].getRequestContext.put("javax.xml.ws.security.auth.password", cleAccess)
+    proxy.asInstanceOf[BindingProvider].getRequestContext.put("javax.xml.ws.service.endpoint.address", endpoint)
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put(TrustedSSLFactory.JaxwsSslSockeetFactory, TrustedSSLFactory.getTrustingSSLSocketFactory)
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put(NaiveHostnameVerifier.JaxwsHostNameVerifier, new NaiveHostnameVerifier)
     val binding: javax.xml.ws.Binding = (proxy.asInstanceOf[BindingProvider]).getBinding
@@ -591,28 +593,28 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val ss: WebPaymentAPI_Service = new WebPaymentAPI_Service(url, ServiceName)
 
     val proxy: WebPaymentAPI = ss.getWebPaymentAPI
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put("javax.xml.ws.security.auth.username", parametres("paylineAccount"))
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put("javax.xml.ws.security.auth.password", parametres("paylineKey"))
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put("javax.xml.ws.service.endpoint.address", Settings.Payline.WebEndPoint)
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put(TrustedSSLFactory.JaxwsSslSockeetFactory, TrustedSSLFactory.getTrustingSSLSocketFactory)
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put(NaiveHostnameVerifier.JaxwsHostNameVerifier, new NaiveHostnameVerifier)
-    (proxy
-      .asInstanceOf[BindingProvider])
+    proxy
+      .asInstanceOf[BindingProvider]
       .getRequestContext
       .put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true.asInstanceOf[Object])
 
