@@ -5,10 +5,13 @@ package com.mogobiz.pay.handlers.connector
 
 import com.mogobiz.mirakl.MiraklClient
 import com.mogobiz.mirakl.PaymentModel._
+import com.mogobiz.pay.config.MogopayHandlers.handlers.transactionHandler
+import com.mogobiz.pay.config.MogopayHandlers.handlers.boTransactionHandler
+import com.mogobiz.pay.config.MogopayHandlers.handlers.rateHandler
+import com.mogobiz.pay.model
+import com.typesafe.scalalogging.StrictLogging
 
-import scala.util.{Failure, Success, Try}
-
-class MiraklHandler {
+class MiraklHandler extends StrictLogging {
 
   def debitCustomer(orders: DebitOrderList) : Boolean = {
     val miraklOrders = orders.order.filterNot{ order : DebitOrder =>
@@ -17,27 +20,44 @@ class MiraklHandler {
         order.order_id.isEmpty ||
         order.order_lines.isEmpty
     }.map { order : DebitOrder =>
-      val paymentResult = Try(
-        //TODO faire l'appel à la méthode débit du paiement
-        true
-      )
-      val paymentStatus = paymentResult match {
-        case Success(_) => {
-          // TODO Extract the payment result from the debit result
-          PaymentStatus.OK
+      val paymentResult = order.order_commercial_id.map { transactionId =>
+        boTransactionHandler.find(transactionId).map { transaction =>
+          order.amount.map { amount =>
+            order.currency_iso_code.map { currencyCode =>
+              rateHandler.findByCurrencyCode(currencyCode).map { currency =>
+                transactionHandler.validatePayment(transaction, (amount * Math.pow(10, currency.currencyFractionDigits.intValue())).longValue())
+              }.getOrElse {
+                logger.error(s"Currency with code $currencyCode is not found")
+                None
+              }
+            }.getOrElse {
+              logger.error(s"Currency code not provided")
+              None
+            }
+          }.getOrElse {
+            logger.error(s"Amount not provided")
+            None
+          }
+        }.getOrElse {
+          logger.error(s"Transaction $transactionId not found")
+          None
         }
-        case Failure(_) => {
-          PaymentStatus.REFUSED
-        }
+      }.getOrElse {
+        logger.error(s"Order Commercial Id not provided")
+        None
       }
+      val paymentStatus = paymentResult.map { pr =>
+        if (pr.status == model.PaymentStatus.COMPLETE) PaymentStatus.OK
+        else PaymentStatus.REFUSED
+      }.getOrElse(PaymentStatus.REFUSED)
 
       new OrderPayment(order.order_id.get,
         order.customer_id,
         paymentStatus,
         order.amount,
         order.currency_iso_code,
-        None, //TODO récupérer le transactionDate du résultat du paiement
-        None) //TODO récupérer le transactionNumber du résultat du paiement
+        paymentResult.map {_.transactionDate},
+        paymentResult.map {_.gatewayTransactionId})
     }
 
     if (miraklOrders.isEmpty) true
@@ -55,26 +75,38 @@ class MiraklHandler {
         orderLines.order_line.map { orderLigne =>
           orderLigne.refunds.map { refunds =>
             refunds.refund.map { refund =>
-              val paymentResult = Try(
-                //TODO faire l'appel à la méthode refund du paiement
-                true
-              )
-              val paymentStatus = paymentResult match {
-                case Success(_) => {
-                  // TODO Extract the payment result from the refund result
-                  PaymentStatus.OK
+              val paymentResult = order.order_commercial_id.map { transactionId =>
+                boTransactionHandler.find(transactionId).map { transaction =>
+                  order.currency_iso_code.map { currencyCode =>
+                    rateHandler.findByCurrencyCode(currencyCode).map { currency =>
+                      transactionHandler.refundPayment(transaction, (refund.amount * Math.pow(10, currency.currencyFractionDigits.intValue())).longValue())
+                    }.getOrElse {
+                      logger.error(s"Currency with code $currencyCode is not found")
+                      None
+                    }
+                  }.getOrElse {
+                    logger.error(s"Currency code not provided")
+                    None
+                  }
+                }.getOrElse {
+                  logger.error(s"Transaction $transactionId not found")
+                  None
                 }
-                case Failure(_) => {
-                  PaymentStatus.REFUSED
-                }
+              }.getOrElse {
+                logger.error(s"Order Commercial Id not provided")
+                None
               }
+              val paymentStatus = paymentResult.map { pr =>
+                if (pr.status == model.PaymentStatus.COMPLETE) PaymentStatus.OK
+                else PaymentStatus.REFUSED
+              }.getOrElse(PaymentStatus.REFUSED)
 
               new Refund(Some(refund.amount),
                 order.currency_iso_code,
                 paymentStatus,
                 refund.id,
-                None, //TODO récupérer le transactionDate du résultat du paiement
-                None) //TODO récupérer le transactionNumber du résultat du paiement
+                paymentResult.map {_.transactionDate},
+                paymentResult.map {_.gatewayTransactionId})
             }
           }.getOrElse(Nil)
         }

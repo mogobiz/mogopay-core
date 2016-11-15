@@ -294,6 +294,16 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     }
   }
 
+  def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
   def verifySha1(data: String, sign: String): Boolean = {
     val Charset                 = "UTF-8"
     val HashEncryptionAlgorithm = "SHA1withRSA"

@@ -534,6 +534,7 @@ object DBInitializer {
         authorizationId = Math.abs(new Random().nextLong()).toString,
         transactionDate = Option(transactionDate),
         amount = amount,
+        mogobizAmount = amount,
         currency = currency,
         status = TransactionStatus.PAYMENT_CONFIRMED,
         endDate = Some(transactionDate),
@@ -550,7 +551,8 @@ object DBInitializer {
         shippingData = None,
         vendor = Some(vendor),
         customer = Some(customer),
-        modifications = Nil
+        modifications = Nil,
+        paymentConfig = None
     )
     boTransactionHandler.save(transaction, refresh = true)
 

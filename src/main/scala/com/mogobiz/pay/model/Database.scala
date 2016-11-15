@@ -161,6 +161,7 @@ object Mogopay {
   object TransactionStep extends Enumeration {
     type TransactionStep = Value
     val START_PAYMENT = Value("PAYMENT")
+    val VALIDATE_PAYMENT = Value("VALIDATE_PAYMENT")
     val FINISH = Value("FINISH")
     val CANCEL = Value("CANCEL")
     val REFUND = Value("REFUND")
@@ -403,6 +404,7 @@ object Mogopay {
     authorizationId: String,
     transactionDate: Option[java.util.Date],
     amount: Long,
+    mogobizAmount: Long,
     currency: CartRate,
     @JsonScalaEnumeration(classOf[TransactionStatusRef]) status: TransactionStatus.TransactionStatus,
     endDate: Option[java.util.Date],
@@ -420,6 +422,7 @@ object Mogopay {
     vendor: Option[Account],
     customer: Option[Account],
     modifications: List[ModificationStatus],
+    paymentConfig: Option[PaymentConfig],
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -472,6 +475,10 @@ object Mogopay {
     bankErrorMessage: Option[String],
     token: String,
     errorShipment: Option[String])
+
+  case class ValidatePaymentResult(status: PaymentStatus.PaymentStatus,
+                                 gatewayTransactionId: String,
+                                 transactionDate: Date)
 
   case class PaymentRequest(uuid: String,
     transactionSequence: String,
@@ -536,6 +543,7 @@ object Mogopay {
     rate: CartRate,
     price: Long = 0,
     endPrice: Long = 0,
+    mogobizFinalPrice: Long = 0,
     taxAmount: Long = 0,
     reduction: Long = 0,
     finalPrice: Long = 0,

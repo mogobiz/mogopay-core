@@ -167,6 +167,93 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
+  def validatePayment(transaction: BOTransaction, amount: Long): scala.Option[ValidatePaymentResult] = {
+    transaction.paymentData.transactionId.map { transactionId =>
+      transaction.paymentConfig.map { paymentConfig =>
+        val parametres  = getCreditCardConfig(paymentConfig)
+
+        val payment: Payment = new Payment
+        payment.setAmount(amount.toString)
+        payment.setCurrency(transaction.currency.numericCode.toString)
+        payment.setAction(ACTION_VALIDATION)
+        payment.setMode(MODE_COMPTANT)
+        payment.setContractNumber(parametres("paylineContract"))
+
+        val doCaptureRequest = new DoCaptureRequest()
+        doCaptureRequest.setTransactionID(transactionId)
+        doCaptureRequest.setPayment(payment)
+
+        var logdata = "transactionId=" + transactionId
+        logdata += "&paiement.amount=" + payment.getAmount
+        logdata += "&paiement.currency=" + payment.getCurrency
+        logdata += "&paiement.action=" + payment.getAction
+        logdata += "&paiement.mode=" + payment.getMode
+        logdata += "&paiement.contractNumber=" + payment.getContractNumber
+        boTransactionLogHandler.save(BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, TransactionStep.VALIDATE_PAYMENT), false)
+
+        val doCaptureResponse = createProxy(parametres).doCapture(doCaptureRequest)
+        val result = doCaptureResponse.getResult
+        val paylineTransactionResult = doCaptureResponse.getTransaction
+        logdata = ""
+        logdata += "result.code=" + result.getCode
+        logdata += "&result.shortMessage=" + result.getShortMessage
+        logdata += "&result.longMessage=" + result.getLongMessage
+        logdata += "&transaction.id=" + paylineTransactionResult.getId
+        logdata += "&transaction.isPossibleFraud=" + paylineTransactionResult.getIsPossibleFraud
+        logdata += "&transaction.isDuplicated=" + paylineTransactionResult.getIsDuplicated
+        logdata += "&transaction.date=" + paylineTransactionResult.getDate
+        boTransactionLogHandler.save(BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, TransactionStep.VALIDATE_PAYMENT), false)
+
+        val status = if (result.getCode == "000000") PaymentStatus.COMPLETE else PaymentStatus.INVALID
+        new ValidatePaymentResult(status, paylineTransactionResult.getId, getTransactionDate(paylineTransactionResult))
+      }
+    }.getOrElse(None)
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long): scala.Option[ValidatePaymentResult] = {
+    transaction.paymentData.transactionId.map { transactionId =>
+      transaction.paymentConfig.map { paymentConfig =>
+        val parametres  = getCreditCardConfig(paymentConfig)
+
+        val payment: Payment = new Payment
+        payment.setAmount(amount.toString)
+        payment.setCurrency(transaction.currency.numericCode.toString)
+        payment.setAction(ACTION_REFUND)
+        payment.setMode(MODE_COMPTANT)
+        payment.setContractNumber(parametres("paylineContract"))
+
+        val doRefundRequest = new DoRefundRequest
+        doRefundRequest.setVersion("3")
+        doRefundRequest.setTransactionID(transactionId)
+        doRefundRequest.setPayment(payment)
+
+        var logdata = "transactionId=" + transactionId
+        logdata += "&paiement.amount=" + payment.getAmount
+        logdata += "&paiement.currency=" + payment.getCurrency
+        logdata += "&paiement.action=" + payment.getAction
+        logdata += "&paiement.mode=" + payment.getMode
+        logdata += "&paiement.contractNumber=" + payment.getContractNumber
+        boTransactionLogHandler.save(BOTransactionLog(newUUID, "OUT", logdata, "PAYLINE", transaction.uuid, TransactionStep.REFUND), false)
+
+        val doRefundResponse = createProxy(parametres).doRefund(doRefundRequest)
+        val result = doRefundResponse.getResult
+        val paylineTransactionResult = doRefundResponse.getTransaction
+        logdata = ""
+        logdata += "result.code=" + result.getCode
+        logdata += "&result.shortMessage=" + result.getShortMessage
+        logdata += "&result.longMessage=" + result.getLongMessage
+        logdata += "&transaction.id=" + paylineTransactionResult.getId
+        logdata += "&transaction.isPossibleFraud=" + paylineTransactionResult.getIsPossibleFraud
+        logdata += "&transaction.isDuplicated=" + paylineTransactionResult.getIsDuplicated
+        logdata += "&transaction.date=" + paylineTransactionResult.getDate
+        boTransactionLogHandler.save(BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, TransactionStep.REFUND), false)
+
+        val status = if (result.getCode == "000000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
+        new ValidatePaymentResult(status, paylineTransactionResult.getId, getTransactionDate(paylineTransactionResult))
+      }
+    }.getOrElse(None)
+  }
+
   def done(sessionData: SessionData, params: Map[String, String]): Uri = {
     val paymentResult = handleResponse(sessionData, params)
     finishPayment(sessionData, paymentResult)
@@ -227,7 +314,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val paiement: Payment = new Payment
     paiement.setAmount(paymentRequest.amount.toString)
     paiement.setCurrency(paymentRequest.currency.numericCode.toString)
-    paiement.setAction(ACTION_AUTHORISATION_VALIDATION)
+    paiement.setAction(ACTION_AUTHORISATION)
     paiement.setMode(MODE_COMPTANT)
     paiement.setContractNumber(numeroContrat)
     val formatDatePayline = new SimpleDateFormat("MMyy")
@@ -364,7 +451,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val paiement: Payment = new Payment
     paiement.setAmount(infosPaiement.amount.toString)
     paiement.setCurrency(infosPaiement.currency.numericCode.toString)
-    paiement.setAction(ACTION_AUTHORISATION_VALIDATION)
+    paiement.setAction(ACTION_AUTHORISATION)
     paiement.setMode(MODE_COMPTANT)
     paiement.setContractNumber(numeroContrat)
     logdata = "paiement.amount=" + paiement.getAmount
@@ -448,7 +535,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       logdata += "&authorisation.number=" + authorisation.getNumber
       logdata += "&authorisation.date=" + authorisation.getDate
       val tr: Transaction = response.getTransaction
-      val transactionDate = new SimpleDateFormat("dd/MM/yy HH:mm").parse(tr.getDate)
+      val transactionDate = getTransactionDate(tr)
       paymentResult.copy(gatewayTransactionId = tr.getId,
                          transactionDate = transactionDate,
                          authorizationId = authorisation.getNumber,
@@ -476,6 +563,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
 
     paymentResult
   }
+
+  private def getTransactionDate(transaction: Transaction) =  new SimpleDateFormat("dd/MM/yy HH:mm").parse(transaction.getDate)
 
   private def cancel(vendorUuid: Mogopay.Document,
                      transactionUuid: String,
@@ -545,8 +634,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     val payment: Payment = new Payment
     payment.setAmount("" + paymentRequest.amount)
     payment.setCurrency("" + paymentRequest.currency.numericCode)
-    payment.setAction(Settings.Payline.PaymentAction)
-    payment.setMode(Settings.Payline.PaymentMode)
+    payment.setAction(ACTION_AUTHORISATION)
+    payment.setMode(MODE_COMPTANT)
     if (payment.getContractNumber == null || payment.getContractNumber.length == 0)
       payment.setContractNumber(parametres("paylineContract"))
 

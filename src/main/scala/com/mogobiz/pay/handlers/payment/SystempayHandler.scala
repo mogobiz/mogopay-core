@@ -140,6 +140,16 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
+  def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
   def done(sessionData: SessionData, params: Map[String, String]): Uri = {
     val transactionUUID                = sessionData.transactionUuid.get
     val vendorId                       = sessionData.merchantId.get

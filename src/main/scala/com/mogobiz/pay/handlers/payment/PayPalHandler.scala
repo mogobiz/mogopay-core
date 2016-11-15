@@ -62,6 +62,16 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     } getOrElse (throw MogopayError(MogopayConstant.PaypalTokenError))
   }
 
+  def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
   private def getToken(transactionUUID: String,
                        vendor: Account,
                        ipAddress: Option[String],

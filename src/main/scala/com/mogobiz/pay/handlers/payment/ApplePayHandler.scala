@@ -83,6 +83,16 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
     }
   }
 
+  def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
   override def refund(paymentConfig: PaymentConfig,
                       boTx: BOTransaction,
                       amount: Long,

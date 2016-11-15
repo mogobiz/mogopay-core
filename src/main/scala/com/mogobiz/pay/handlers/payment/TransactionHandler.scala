@@ -75,6 +75,24 @@ case class SubmitParams(successURL: String,
 
 class TransactionHandler {
 
+  def validatePayment(transaction: BOTransaction, amount: Long) : Option[ValidatePaymentResult] = {
+    if (amount > 0) {
+      transaction.paymentConfig.map { paymentConfig =>
+        PaymentHandler(paymentConfig.cbProvider.toString.toLowerCase).validatePayment(transaction, amount)
+      }.getOrElse(None)
+    }
+    else None
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long) : Option[ValidatePaymentResult] = {
+    if (amount > 0) {
+      transaction.paymentConfig.map { paymentConfig =>
+        PaymentHandler(paymentConfig.cbProvider.toString.toLowerCase).refundPayment(transaction, amount)
+      }.getOrElse(None)
+    }
+    else None
+  }
+
   def init(params: ParamRequest.TransactionInit, cart: Cart): String = {
     //    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
     (accountHandler findBySecret params.merchantSecret map { vendor: Account =>
@@ -136,6 +154,7 @@ class TransactionHandler {
                                     "",
                                     Option(new Date),
                                     paymentRequest.amount,
+                                    paymentRequest.transactionExtra.mogobizFinalPrice,
                                     paymentRequest.transactionExtra.rate,
                                     TransactionStatus.INITIATED,
                                     None,
@@ -152,7 +171,8 @@ class TransactionHandler {
                                     None,
                                     Option(account),
                                     customer,
-                                    Nil)
+                                    Nil,
+                                    sessionData.paymentConfig)
 
     if (paymentType == PaymentType.CREDIT_CARD &&
         account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
@@ -246,6 +266,7 @@ class TransactionHandler {
         authorizationId = paymentResult.authorizationId,
         errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
         errorMessageOrigin = paymentResult.errorMessageOrigin,
+        paymentData = transaction.paymentData.copy(transactionId = Some(paymentResult.gatewayTransactionId), authorizationId = Some(paymentResult.authorizationId)),
         gatewayData = gatewayData
     )
 
@@ -262,7 +283,9 @@ class TransactionHandler {
             boTransactionHandler.update(finalTransWithShippingInfo, refresh = false)
             finalTransWithShippingInfo
           }
-          (finalTransWithShippingInfo.getOrElse(finalTrans), None)
+          val transaction = finalTransWithShippingInfo.getOrElse(finalTrans)
+          validatePayment(transaction, transaction.mogobizAmount)
+          (transaction, None)
         }
         case Failure(f) => {
           logger.error(f.getMessage)
@@ -270,7 +293,6 @@ class TransactionHandler {
                                                  errorCodeOrigin = Option("SHIPMENT_ERROR"),
                                                  errorMessageOrigin = Some(f.getMessage))
           boTransactionHandler.update(refundFinalTrans, false)
-          paymentHandler.refund(sessionData.paymentConfig.get, refundFinalTrans, sessionData.amount.get, paymentResult)
           (refundFinalTrans, Some(f.getMessage))
         }
       }
@@ -549,6 +571,7 @@ class TransactionHandler {
                                             cart.rate,
                                             cart.price,
                                             cart.endPrice,
+                                            cart.mogobizFinalPrice,
                                             cart.taxAmount,
                                             cart.reduction,
                                             cart.finalPrice + selectedShippingCart.price,

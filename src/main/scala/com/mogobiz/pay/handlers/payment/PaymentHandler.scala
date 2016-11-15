@@ -190,6 +190,10 @@ trait PaymentHandler extends StrictLogging {
 
   def startPayment(sessionData: SessionData): Either[String, Uri]
 
+  def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult]
+
+  def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult]
+
   def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResult = {
     PaymentResult(
         transactionSequence = paymentRequest.transactionSequence,

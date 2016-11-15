@@ -124,8 +124,6 @@ object Settings {
   }
 
   object Payline {
-    val PaymentAction  = config.getString("payline.paymentAction")
-    val PaymentMode    = config.getString("payline.paymentMode")
     val LanguageCode   = config.getString("payline.languageCode")
     val SecurityMode   = config.getString("payline.securityMode")
     val Version        = config.getString("payline.version")

@@ -130,6 +130,16 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
+  def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
+  def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
+    //TODO à implémenter
+    throw new Exception("Not implemented Yet")
+  }
+
   def callbackPayment(sessionData: SessionData, params: Map[String, String], vendorUuid: Mogopay.Document): PaymentResult = {
     handleResponse(sessionData, vendorUuid, params("DATA"), sessionData.locale, TransactionStep.CALLBACK_PAYMENT)
     //Uri(Settings.Mogopay.EndPoint)
