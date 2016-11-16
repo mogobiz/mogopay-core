@@ -469,7 +469,7 @@ class TransactionHandler {
           externalShippingData.map { esd => (esd.externalCode, esd.shippingData)}
         }.flatten.toList
 
-        val selectShippingCart = Some(SelectShippingCart(selectInternalShippingPrice, Predef.Map(externalShippingPrices : _*)))
+        val selectShippingCart = Some(SelectShippingCart(clientAddress.address, selectInternalShippingPrice, Predef.Map(externalShippingPrices : _*)))
         sessionData.selectShippingCart = selectShippingCart
         selectShippingCart
       }

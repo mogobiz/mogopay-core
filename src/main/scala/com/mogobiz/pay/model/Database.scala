@@ -357,7 +357,8 @@ object Mogopay {
     val hasError = internalShippingPrices.hasError || externalShippingPricesByCartItemId.exists{_._2.hasError}
   }
 
-  case class SelectShippingCart(internalShippingPrice: Option[ShippingData],
+  case class SelectShippingCart(shippingAddress: AccountAddress,
+                                internalShippingPrice: Option[ShippingData],
                                 externalShippingPriceByCode: Map[ExternalCode, ShippingData]) {
     val price = internalShippingPrice.map{_.price}.getOrElse(0L) + externalShippingPriceByCode.map { _._2.price }.sum
   }

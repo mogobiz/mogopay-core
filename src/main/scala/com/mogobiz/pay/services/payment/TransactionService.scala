@@ -55,7 +55,6 @@ class TransactionService(implicit executionContext: ExecutionContext)
   val route = {
     pathPrefix(serviceName) {
       init ~
-      selectShipping ~
       verify ~
       submit ~
       submitWithSession ~
@@ -94,31 +93,6 @@ class TransactionService(implicit executionContext: ExecutionContext)
                        (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id)))
           }
         }
-      }
-    }
-  }
-
-  lazy val selectShipping = path("select-shipping") {
-    post {
-      formFields('shippingDataId.?, 'externalShippingDataIds.?).as(SelectShippingPriceParam) {
-        params =>
-          session {
-            session =>
-              import Implicits._
-              session.sessionData.accountId.map(_.toString) match {
-                case None => complete {
-                  StatusCodes.Forbidden -> Map('error -> "Not logged in")
-                }
-                case Some(id) =>
-                  handleCall(transactionHandler.selectShippingPrice(session.sessionData, id, params.shippingDataId, params.externalShippingDataIds.map { _.split(",").toList }.getOrElse(Nil)),
-                    (selectShippingCart: Option[SelectShippingCart]) => {
-                      setSession(session) {
-                        complete(StatusCodes.OK -> Map("price" -> selectShippingCart.map{_.price}.getOrElse(0)))
-                      }
-                    }
-                  )
-              }
-          }
       }
     }
   }
