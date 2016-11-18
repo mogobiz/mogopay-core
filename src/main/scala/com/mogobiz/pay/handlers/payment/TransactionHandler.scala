@@ -284,6 +284,7 @@ class TransactionHandler {
             finalTransWithShippingInfo
           }
           val transaction = finalTransWithShippingInfo.getOrElse(finalTrans)
+          boTransactionHandler.update(transaction, false)
           validatePayment(transaction, transaction.mogobizAmount)
           (transaction, None)
         }

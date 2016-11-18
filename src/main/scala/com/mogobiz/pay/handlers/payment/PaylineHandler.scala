@@ -204,7 +204,7 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         logdata += "&transaction.date=" + paylineTransactionResult.getDate
         boTransactionLogHandler.save(BOTransactionLog(newUUID, "IN", logdata, "PAYLINE", transaction.uuid, TransactionStep.VALIDATE_PAYMENT), false)
 
-        val status = if (result.getCode == "000000") PaymentStatus.COMPLETE else PaymentStatus.INVALID
+        val status = if (result.getCode == "00000") PaymentStatus.COMPLETE else PaymentStatus.INVALID
         new ValidatePaymentResult(status, paylineTransactionResult.getId, getTransactionDate(paylineTransactionResult))
       }
     }.getOrElse(None)
