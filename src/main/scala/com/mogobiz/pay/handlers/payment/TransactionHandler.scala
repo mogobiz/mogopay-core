@@ -285,7 +285,8 @@ class TransactionHandler {
           }
           val transaction = finalTransWithShippingInfo.getOrElse(finalTrans)
           boTransactionHandler.update(transaction, false)
-          validatePayment(transaction, transaction.mogobizAmount)
+          val shippingPrice = transaction.shippingData.map { shipping => shipping.price }.getOrElse(0L)
+          validatePayment(transaction, transaction.mogobizAmount + shippingPrice)
           (transaction, None)
         }
         case Failure(f) => {
