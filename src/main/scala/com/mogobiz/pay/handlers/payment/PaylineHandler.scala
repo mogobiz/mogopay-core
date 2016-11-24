@@ -167,6 +167,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     }
   }
 
+  override def authorizePaymentIn2Step(): Boolean = true
+
   def validatePayment(transaction: BOTransaction, amount: Long): scala.Option[ValidatePaymentResult] = {
     transaction.paymentData.transactionId.map { transactionId =>
       transaction.paymentConfig.map { paymentConfig =>

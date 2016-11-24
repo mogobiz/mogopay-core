@@ -117,12 +117,12 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
 
   def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
     //TODO à implémenter
-    throw new Exception("Not implemented Yet")
+    None
   }
 
   def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult] = {
     //TODO à implémenter
-    throw new Exception("Not implemented Yet")
+    None
   }
 
   override def refund(paymentConfig: PaymentConfig,
