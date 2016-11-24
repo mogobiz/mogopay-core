@@ -219,7 +219,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             transactionUUID,
             if (errorCode == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
             paymentResult,
-            errorCode,
             sessionData.locale,
             Some(s"""NUMTRANS=${tuples("NUMTRANS")}&NUMAPPEL=${tuples("NUMAPPEL")}"""))
         // We redirect the user to the merchant website
@@ -395,7 +394,6 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
             transactionUuid,
             if (codeReponse == "00000") TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
             paymentResult,
-            codeReponse,
             sessionData.locale,
             Some(GlobalUtil.mapToQueryString(params)))
         finishPayment(sessionData, paymentResultWithShippingResult)

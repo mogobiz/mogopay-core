@@ -81,7 +81,7 @@ trait PaymentHandler extends StrictLogging {
     if (success && sessionData.payers.nonEmpty) {
       val payers = sessionData.payers
       val tx =
-        boTransactionHandler.find(transactionUUID).getOrElse(throw new BOTransactionNotFoundException(transactionUUID))
+        boTransactionHandler.find(transactionUUID).getOrElse(throw new TransactionNotFoundException(transactionUUID))
       val merchantUUID = tx.vendor.getOrElse(throw new VendorNotFoundException).uuid
       val paymentConfig = accountHandler
         .find(merchantUUID)
@@ -187,6 +187,8 @@ trait PaymentHandler extends StrictLogging {
         sendEmail()
     }
   }
+
+  def authorizePaymentIn2Step() : Boolean = false
 
   def startPayment(sessionData: SessionData): Either[String, Uri]
 

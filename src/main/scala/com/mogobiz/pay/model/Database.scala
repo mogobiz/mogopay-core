@@ -99,12 +99,15 @@ object Mogopay {
     val VERIFICATION_THREEDS = Value("VERIFICATION_THREEDS")
     val THREEDS_TESTED       = Value("THREEDS_TESTED")
     val PAYMENT_REQUESTED    = Value("PAYMENT_REQUESTED")
+    val PAYMENT_AUTHORIZED   = Value("PAYMENT_AUTHORIZED")
     val PAYMENT_CONFIRMED    = Value("PAYMENT_CONFIRMED")
     val PAYMENT_REFUSED      = Value("PAYMENT_REFUSED")
     val CANCEL_REQUESTED     = Value("CANCEL_REQUESTED")
     val CANCEL_FAILED        = Value("CANCEL_FAILED")
     val CANCEL_CONFIRMED     = Value("CANCEL_CONFIRMED")
     val CUSTOMER_REFUNDED    = Value("CUSTOMER_REFUNDED")
+    val SHIPMENT_ERROR       = Value("SHIPMENT_ERROR")
+    val LITIGATION           = Value("LITIGATION")
   }
 
   class TransactionStatusRef extends TypeReference[TransactionStatus.type]

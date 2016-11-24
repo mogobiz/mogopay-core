@@ -279,7 +279,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
                                                                              TransactionStatus.PAYMENT_CONFIRMED
                                                                            else TransactionStatus.PAYMENT_REFUSED,
                                                                            paymentResult,
-                                                                           params("x_response_code"),
                                                                            sessionData.locale,
                                                                            Some(gatewayData))
     finishPayment(sessionData, paymentResultWithShippingResult)
@@ -321,7 +320,6 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
                                                                            sessionData.transactionUuid.getOrElse(""),
                                                                            TransactionStatus.CANCEL_CONFIRMED,
                                                                            paymentResult,
-                                                                           "",
                                                                            sessionData.locale)
     finishPayment(sessionData, paymentResultWithShippingResult)
   }

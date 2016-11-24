@@ -23,8 +23,7 @@ import com.mogobiz.pay.model.CreditCardType.CreditCardType
 import com.mogobiz.pay.model.PaymentType.PaymentType
 import com.mogobiz.pay.model.ResponseCode3DS.ResponseCode3DS
 import com.mogobiz.pay.model.TransactionStatus.TransactionStatus
-import com.mogobiz.pay.model._
-import com.mogobiz.pay.model.ParamRequest
+import com.mogobiz.pay.model.{CBPaymentProvider, ParamRequest, _}
 import com.mogobiz.utils.EmailHandler.{Attachment, Mail}
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{EmailHandler, GlobalUtil, SymmetricCrypt}
@@ -75,10 +74,29 @@ case class SubmitParams(successURL: String,
 
 class TransactionHandler {
 
+  def retrieveHandler(cbProvider : CBPaymentProvider) = cbProvider match {
+    case CBPaymentProvider.AUTHORIZENET => authorizeNetHandler
+    case CBPaymentProvider.SYSTEMPAY => systempayHandler
+    case CBPaymentProvider.PAYLINE => paylineHandler
+    case CBPaymentProvider.PAYBOX => payboxHandler
+    case CBPaymentProvider.SIPS => sipsHandler
+    case CBPaymentProvider.CUSTOM => {
+      if (customPaymentHandler != null) customPaymentHandler
+      else throw new InvalidPaymentHandlerException("Custom Payment Handler not found")
+    }
+    case _ => throw new InvalidPaymentHandlerException("Unable to found Paym Handler for " + cbProvider.toString)
+  }
+
+  def authorizePaymentIn2Step(transaction: BOTransaction) : Boolean = {
+    transaction.paymentConfig.map { paymentConfig =>
+      retrieveHandler(paymentConfig.cbProvider).authorizePaymentIn2Step()
+    }.getOrElse(false)
+  }
+
   def validatePayment(transaction: BOTransaction, amount: Long) : Option[ValidatePaymentResult] = {
     if (amount > 0) {
       transaction.paymentConfig.map { paymentConfig =>
-        PaymentHandler(paymentConfig.cbProvider.toString.toLowerCase).validatePayment(transaction, amount)
+        retrieveHandler(paymentConfig.cbProvider).validatePayment(transaction, amount)
       }.getOrElse(None)
     }
     else None
@@ -87,7 +105,7 @@ class TransactionHandler {
   def refundPayment(transaction: BOTransaction, amount: Long) : Option[ValidatePaymentResult] = {
     if (amount > 0) {
       transaction.paymentConfig.map { paymentConfig =>
-        PaymentHandler(paymentConfig.cbProvider.toString.toLowerCase).refundPayment(transaction, amount)
+        retrieveHandler(paymentConfig.cbProvider).refundPayment(transaction, amount)
       }.getOrElse(None)
     }
     else None
@@ -145,6 +163,10 @@ class TransactionHandler {
     val customer = sessionData.accountId.map { uuid =>
       accountHandler.load(uuid)
     }.getOrElse(None)
+
+    if (!retrieveHandler(cbProvider).authorizePaymentIn2Step() && paymentRequest.transactionExtra.endPrice != paymentRequest.transactionExtra.mogobizFinalPrice)
+      throw new NotAvailablePaymentGatewayException("The provider " + cbProvider.toString + " doesn't allow to buy external item")
+
     val extra = serializeCart(paymentRequest.transactionExtra)
     var transaction = BOTransaction(transactionRequestUUID,
                                     transactionRequestUUID,
@@ -197,26 +219,46 @@ class TransactionHandler {
   def updateStatus(transactionUUID: String,
                    ipAddress: Option[String],
                    newStatus: TransactionStatus,
-                   comment: Option[String] = None) {
-    val maybeTx = boTransactionHandler.find(transactionUUID)
-    maybeTx.map { transaction =>
+                   comment: Option[String] = None,
+                   paymentResult: Option[PaymentResult] = None,
+                   gatewayData: Option[String] = None) : BOTransaction = {
+    boTransactionHandler.find(transactionUUID).map { transaction =>
       val modStatus = ModificationStatus(
           uuid = newUUID,
           xdate = new Date,
           ipAddr = ipAddress.orElse(transaction.modifications.collectFirst({ case e => e.ipAddr }).flatten),
           oldStatus = Option(transaction.status),
           newStatus = Option(newStatus),
-          comment = comment
+          comment = comment.map {Some(_)}.getOrElse(paymentResult.map{pr => Option(pr.errorCodeOrigin)}.getOrElse(None))
       )
+
+      val newPaymentData = paymentResult.map { pr =>
+        transaction.paymentData.copy(
+          transactionId = Option(pr.gatewayTransactionId),
+          authorizationId = Option(pr.authorizationId)
+        )
+      }.getOrElse(transaction.paymentData)
+
+      val transactionDate = paymentResult.map { pr =>
+        if (pr.transactionDate != null) Option(pr.transactionDate)
+        else transaction.transactionDate
+      }.getOrElse(transaction.transactionDate)
 
       val newTx = transaction.copy(
           status = newStatus,
           endDate = computeEndDate(newStatus),
+          transactionDate = transactionDate,
+          authorizationId = paymentResult.map { _.authorizationId }.getOrElse(transaction.authorizationId),
+          errorCodeOrigin = paymentResult.map { pr => Option(pr.errorCodeOrigin) }.getOrElse(transaction.errorCodeOrigin),
+          errorMessageOrigin = paymentResult.map { _.errorMessageOrigin }.getOrElse(transaction.errorMessageOrigin),
+          paymentData = newPaymentData,
+          gatewayData = gatewayData.map { Option(_) }.getOrElse(transaction.gatewayData),
           modifications = transaction.modifications :+ modStatus
       )
 
       boTransactionHandler.update(newTx, refresh = false)
-    }.getOrElse(throw TransactionNotFoundException(transactionUUID))
+      newTx
+    }.getOrElse(throw new TransactionNotFoundException(transactionUUID))
   }
 
   def updateStatus3DS(transactionUUID: String,
@@ -242,7 +284,7 @@ class TransactionHandler {
       )
 
       boTransactionHandler.update(newTx, false)
-    }.getOrElse(Failure(BOTransactionNotFoundException(s"$transactionUUID")))
+    }.getOrElse(Failure(TransactionNotFoundException(s"$transactionUUID")))
   }
 
   // called by other handlers
@@ -251,57 +293,40 @@ class TransactionHandler {
                     transactionUUID: String,
                     newStatus: TransactionStatus,
                     paymentResult: PaymentResult,
-                    returnCode: String,
                     locale: Option[String],
                     gatewayData: Option[String] = None): PaymentResult = {
-    //    val modification = ModificationStatus(newUUID, new Date, None, Option(transaction.status), Option(newStatus), Option(returnCode))
-    updateStatus(transactionUUID, None, newStatus, Option(returnCode))
-
-    val transaction =
-      boTransactionHandler.find(transactionUUID).getOrElse(throw BOTransactionNotFoundException(s"$transactionUUID"))
-
-    val newTx = transaction.copy(
-        status = newStatus,
-        endDate = computeEndDate(newStatus),
-        authorizationId = paymentResult.authorizationId,
-        errorCodeOrigin = Option(paymentResult.errorCodeOrigin),
-        errorMessageOrigin = paymentResult.errorMessageOrigin,
-        paymentData = transaction.paymentData.copy(transactionId = Some(paymentResult.gatewayTransactionId), authorizationId = Some(paymentResult.authorizationId)),
-        gatewayData = gatewayData
-    )
-
-    val finalTrans =
-      if (paymentResult.transactionDate != null) newTx.copy(transactionDate = Option(paymentResult.transactionDate))
-      else newTx
+    val transaction = updateStatus(transactionUUID, None, newStatus, None, Some(paymentResult), gatewayData)
 
     // commit du shipping
     val transactionAndErrorShipment = if (paymentResult.status == PaymentStatus.COMPLETE) {
       Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingCart)) match {
         case Success(shippingData) => {
           val finalTransWithShippingInfo = shippingData.map { shippingData =>
-            val finalTransWithShippingInfo = finalTrans.copy(shippingData = Some(shippingData))
+            val finalTransWithShippingInfo = transaction.copy(shippingData = Some(shippingData))
             boTransactionHandler.update(finalTransWithShippingInfo, refresh = false)
             finalTransWithShippingInfo
           }
-          val transaction = finalTransWithShippingInfo.getOrElse(finalTrans)
-          boTransactionHandler.update(transaction, false)
-          val shippingPrice = transaction.shippingData.map { shipping => shipping.price }.getOrElse(0L)
-          validatePayment(transaction, transaction.mogobizAmount + shippingPrice)
-          (transaction, None)
+          val finalTransaction = finalTransWithShippingInfo.getOrElse(transaction)
+          boTransactionHandler.update(finalTransaction, false)
+
+          val shippingPrice = finalTransaction.shippingData.map { shipping => shipping.price }.getOrElse(0L)
+          val validationResult = validatePayment(finalTransaction, finalTransaction.mogobizAmount + shippingPrice)
+          if (validationResult.map {_.status}.getOrElse(PaymentStatus.COMPLETE) == PaymentStatus.COMPLETE)
+            (updateStatus(transactionUUID, None, TransactionStatus.PAYMENT_CONFIRMED, None), None)
+          else {
+            val refundResult = refundPayment(finalTransaction, finalTransaction.mogobizAmount + shippingPrice)
+            if (refundResult.map {_.status}.getOrElse(PaymentStatus.COMPLETE) == PaymentStatus.COMPLETE)
+              (updateStatus(transactionUUID, None, TransactionStatus.CUSTOMER_REFUNDED, None), None)
+            else (updateStatus(transactionUUID, None, TransactionStatus.LITIGATION, None), None)
+          }
         }
         case Failure(f) => {
           logger.error(f.getMessage)
-          val refundFinalTrans = finalTrans.copy(status = TransactionStatus.CUSTOMER_REFUNDED,
-                                                 errorCodeOrigin = Option("SHIPMENT_ERROR"),
-                                                 errorMessageOrigin = Some(f.getMessage))
-          boTransactionHandler.update(refundFinalTrans, false)
-          (refundFinalTrans, Some(f.getMessage))
+          (updateStatus(transactionUUID, None, TransactionStatus.SHIPMENT_ERROR, Some(f.getMessage)), Some(f.getMessage))
         }
       }
     } else {
-      // Mise à jour de la transaction et envoi du mail du resultat du paiement
-      boTransactionHandler.update(finalTrans, refresh = false)
-      (finalTrans, None)
+      (transaction, None)
     }
 
     notifyPaymentFinished(transactionAndErrorShipment._1, locale)
@@ -750,7 +775,7 @@ class TransactionHandler {
           pdfHandler.convertToPdf(pageFormat, body)
         } else throw new PaymentNotConfirmedException(transactionUuid)
       }
-      case None => throw new BOTransactionNotFoundException(transactionUuid)
+      case None => throw new TransactionNotFoundException(transactionUuid)
     }
   }
 
@@ -862,7 +887,7 @@ class TransactionHandler {
       throw new TokenExpiredException
     }
 
-    val txReq   = transactionRequestHandler.find(txUUID).getOrElse(throw new BOTransactionNotFoundException(txUUID))
+    val txReq   = transactionRequestHandler.find(txUUID).getOrElse(throw new TransactionNotFoundException(txUUID))
     val account = accountHandler.find(customerUUID).getOrElse(throw new AccountDoesNotExistException(""))
 
     (account, txReq, groupTxUUID, successURL, failureURL)
@@ -888,7 +913,7 @@ class TransactionHandler {
     val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException)
     val boTransaction = boTransactionHandler
       .find(boTransactionUUID)
-      .getOrElse(throw new BOTransactionNotFoundException(boTransactionUUID))
+      .getOrElse(throw new TransactionNotFoundException(boTransactionUUID))
 
     if (maybeAmount.exists(_ > boTransaction.amount))
       throw new TheRefundAmountIsHigherThanTheInitialAmountException()

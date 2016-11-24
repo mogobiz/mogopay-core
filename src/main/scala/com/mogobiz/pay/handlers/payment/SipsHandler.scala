@@ -319,7 +319,6 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
                                      if (paymentResult.errorCodeOrigin == "00") TransactionStatus.PAYMENT_CONFIRMED
                                      else TransactionStatus.PAYMENT_REFUSED,
                                      paymentResult,
-                                     resp.getValue("response_code"),
                                      locale,
                                      Option(resp.getValue("transaction_id")))
   }
@@ -485,7 +484,6 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
                                      transactionUuid,
                                      computeTransactionStatus(paymentResult.status),
                                      paymentResult,
-                                     paymentResult.errorCodeOrigin,
                                      sessionData.locale,
                                      Option(transaction_id))
   }
@@ -647,7 +645,6 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
                                        transactionUuid,
                                        computeTransactionStatus(paymentResult.status),
                                        paymentResult,
-                                       paymentResult.errorCodeOrigin,
                                        sessionData.locale,
                                        Option(transaction_id))
     }

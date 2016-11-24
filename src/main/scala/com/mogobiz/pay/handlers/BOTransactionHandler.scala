@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.BOTransactionNotFoundException
+import com.mogobiz.pay.exceptions.Exceptions.TransactionNotFoundException
 import com.mogobiz.pay.model._
 import com.mogobiz.pay.sql.BOTransactionDAO
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -51,7 +51,7 @@ class BOTransactionHandler {
   def update(transaction: BOTransaction, refresh: Boolean): Boolean = {
     val updateResult = BOTransactionDAO.update(transaction)
     if (updateResult == 0) {
-      throw new BOTransactionNotFoundException("")
+      throw new TransactionNotFoundException(transaction.transactionUUID)
     }
     EsClient.update[BOTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
   }

@@ -147,7 +147,6 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
                                                                              transactionUuid,
                                                                              TransactionStatus.PAYMENT_REFUSED,
                                                                              paymentResult,
-                                                                             "Cancel",
                                                                              sessionData.locale)
       finishPayment(sessionData, paymentResultWithShippingResult)
     }
@@ -297,6 +296,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
               .newXMLGregorianCalendar(URLDecoder.decode(tuples.get("PAYMENTINFO_0_ORDERTIME").orNull, "UTF-8"))
             val c2 = cal.toGregorianCalendar
             val updatedPaymentResult = paymentResult.copy(
+                errorCodeOrigin = ack,
                 status = PaymentStatus.COMPLETE,
                 transactionDate = c2.getTime(),
                 gatewayTransactionId = transactionId,
@@ -307,7 +307,6 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
                                              transactionUUID,
                                              TransactionStatus.PAYMENT_CONFIRMED,
                                              paymentResult,
-                                             ack,
                                              sessionData.locale)
           } else {
             val errorCode        = tuples.get("L_ERRORCODE0").orNull

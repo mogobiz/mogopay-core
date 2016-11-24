@@ -270,7 +270,6 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
                                        if (params("vads_result") == "00") TransactionStatus.PAYMENT_CONFIRMED
                                        else TransactionStatus.PAYMENT_REFUSED,
                                        pr,
-                                       params("vads_result"),
                                        locale)
     } else {
       throw InvalidSignatureException("Invalid signature")
@@ -673,7 +672,6 @@ class SystempayClient extends StrictLogging {
                                          transactionUUID,
                                          TransactionStatus.PAYMENT_CONFIRMED,
                                          paymentResult,
-                                         "" + code,
                                          locale,
                                          Some(gatewayData))
       } else {
@@ -683,7 +681,6 @@ class SystempayClient extends StrictLogging {
                                          transactionUUID,
                                          TransactionStatus.PAYMENT_REFUSED,
                                          paymentResult,
-                                         "" + code,
                                          locale,
                                          Some(gatewayData))
       }
@@ -697,7 +694,7 @@ class SystempayClient extends StrictLogging {
                     parametres: Map[String, String],
                     paymentRequest: PaymentRequest): ThreeDSResult = {
     val transaction = boTransactionHandler.find(transactionUUID).orNull
-    if (transaction == null) throw new BOTransactionNotFoundException("")
+    if (transaction == null) throw new TransactionNotFoundException("")
 
     val shopId: String         = parametres("systempayShopId")
     val contractNumber: String = parametres("systempayContractNumber")
@@ -908,7 +905,6 @@ class SystempayClient extends StrictLogging {
                                      transactionUUID,
                                      transactionStatus,
                                      paymentResult,
-                                     "" + code,
                                      locale,
                                      Some(gatewayData))
   }

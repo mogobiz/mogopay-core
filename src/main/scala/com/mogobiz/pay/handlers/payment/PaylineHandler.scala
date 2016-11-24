@@ -536,7 +536,8 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
       logdata += "&authorisation.date=" + authorisation.getDate
       val tr: Transaction = response.getTransaction
       val transactionDate = getTransactionDate(tr)
-      paymentResult.copy(gatewayTransactionId = tr.getId,
+      paymentResult.copy(errorCodeOrigin = code,
+                         gatewayTransactionId = tr.getId,
                          transactionDate = transactionDate,
                          authorizationId = authorisation.getNumber,
                          status = PaymentStatus.COMPLETE)
@@ -554,7 +555,6 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
         transactionUuid,
         if ("00000" == code) TransactionStatus.PAYMENT_CONFIRMED else TransactionStatus.PAYMENT_REFUSED,
         paymentResult,
-        code,
         locale,
         Some(response.getTransaction.getId))
 
@@ -907,10 +907,9 @@ class PaylineHandler(handlerName: String) extends PaymentHandler {
     transactionHandler.finishPayment(this,
                                      sessionData,
                                      transactionUuid,
-                                     if (result.getResult.getCode == "00000") TransactionStatus.PAYMENT_CONFIRMED
+                                     if (result.getResult.getCode == "00000") TransactionStatus.PAYMENT_AUTHORIZED
                                      else TransactionStatus.PAYMENT_REFUSED,
                                      paymentResult,
-                                     result.getResult().getCode(),
                                      locale)
   }
 

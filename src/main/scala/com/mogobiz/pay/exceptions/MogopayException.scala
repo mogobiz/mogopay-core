@@ -94,9 +94,6 @@ object Exceptions {
   case class InvalidTransactionTypeException(message: String)
       extends MogopayException(StatusCodes.Unauthorized, message)
 
-  case class BOTransactionNotFoundException(message: String)
-      extends MogopayException(StatusCodes.Unauthorized, message)
-
   case class TheBOTransactionAlreadyExistsException(message: String)
       extends MogopayException(StatusCodes.Unauthorized, message)
 
