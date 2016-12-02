@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers.connector
 import com.mogobiz.mirakl.MiraklClient
 import com.mogobiz.mirakl.PaymentModel._
 import com.mogobiz.pay.config.MogopayHandlers.handlers.transactionHandler
-import com.mogobiz.pay.config.MogopayHandlers.handlers.boTransactionHandler
+import com.mogobiz.pay.config.MogopayHandlers.handlers.boShopTransactionHandler
 import com.mogobiz.pay.config.MogopayHandlers.handlers.rateHandler
 import com.mogobiz.pay.model
 import com.typesafe.scalalogging.StrictLogging
@@ -20,30 +20,35 @@ class MiraklHandler extends StrictLogging {
         order.order_id.isEmpty ||
         order.order_lines.isEmpty
     }.map { order : DebitOrder =>
-      val paymentResult = order.order_commercial_id.map { transactionId =>
-        boTransactionHandler.find(transactionId).map { transaction =>
-          order.amount.map { amount =>
-            order.currency_iso_code.map { currencyCode =>
-              rateHandler.findByCurrencyCode(currencyCode).map { currency =>
-                transactionHandler.validatePayment(transaction, (amount * Math.pow(10, currency.currencyFractionDigits.intValue())).longValue())
+      val paymentResult = order.shop_id.map { shopId =>
+        order.order_commercial_id.map { transactionId =>
+          boShopTransactionHandler.findByShopIdAndTransactionUuid(shopId, transactionId).map { shopTransaction =>
+            order.amount.map { amount =>
+              order.currency_iso_code.map { currencyCode =>
+                rateHandler.findByCurrencyCode(currencyCode).map { currency =>
+                  Some(transactionHandler.validatePayment(shopTransaction))
+                }.getOrElse {
+                  logger.error(s"Currency with code $currencyCode is not found")
+                  None
+                }
               }.getOrElse {
-                logger.error(s"Currency with code $currencyCode is not found")
+                logger.error(s"Currency code not provided")
                 None
               }
             }.getOrElse {
-              logger.error(s"Currency code not provided")
+              logger.error(s"Amount not provided")
               None
             }
           }.getOrElse {
-            logger.error(s"Amount not provided")
+            logger.error(s"Transaction $transactionId not found")
             None
           }
         }.getOrElse {
-          logger.error(s"Transaction $transactionId not found")
+          logger.error(s"Order Commercial Id not provided")
           None
         }
       }.getOrElse {
-        logger.error(s"Order Commercial Id not provided")
+        logger.error(s"Shop Id not provided")
         None
       }
       val paymentStatus = paymentResult.map { pr =>
@@ -56,8 +61,8 @@ class MiraklHandler extends StrictLogging {
         paymentStatus,
         order.amount,
         order.currency_iso_code,
-        paymentResult.map {_.transactionDate},
-        paymentResult.map {_.gatewayTransactionId})
+        paymentResult.flatMap {_.transactionDate},
+        paymentResult.flatMap {_.transactionId})
     }
 
     if (miraklOrders.isEmpty) true
@@ -70,30 +75,35 @@ class MiraklHandler extends StrictLogging {
         order.amount.isEmpty ||
         order.order_id.isEmpty ||
         order.order_lines.isEmpty
-    }.map { order : RefundOrder =>
+    }.flatMap { order : RefundOrder =>
       order.order_lines.map { orderLines =>
         orderLines.order_line.map { orderLigne =>
           orderLigne.refunds.map { refunds =>
             refunds.refund.map { refund =>
-              val paymentResult = order.order_commercial_id.map { transactionId =>
-                boTransactionHandler.find(transactionId).map { transaction =>
-                  order.currency_iso_code.map { currencyCode =>
-                    rateHandler.findByCurrencyCode(currencyCode).map { currency =>
-                      transactionHandler.refundPayment(transaction, (refund.amount * Math.pow(10, currency.currencyFractionDigits.intValue())).longValue())
+              val paymentResult = order.shop_id.map { shopId =>
+                order.order_commercial_id.map { transactionId =>
+                  boShopTransactionHandler.findByShopIdAndTransactionUuid(shopId, transactionId).map { shopTransaction =>
+                    order.currency_iso_code.map { currencyCode =>
+                      rateHandler.findByCurrencyCode(currencyCode).map { currency =>
+                        Some(transactionHandler.refundPayment(shopTransaction))
+                      }.getOrElse {
+                        logger.error(s"Currency with code $currencyCode is not found")
+                        None
+                      }
                     }.getOrElse {
-                      logger.error(s"Currency with code $currencyCode is not found")
+                      logger.error(s"Currency code not provided")
                       None
                     }
                   }.getOrElse {
-                    logger.error(s"Currency code not provided")
+                    logger.error(s"Transaction $transactionId not found")
                     None
                   }
                 }.getOrElse {
-                  logger.error(s"Transaction $transactionId not found")
+                  logger.error(s"Order Commercial Id not provided")
                   None
                 }
               }.getOrElse {
-                logger.error(s"Order Commercial Id not provided")
+                logger.error(s"Shop Id not provided")
                 None
               }
               val paymentStatus = paymentResult.map { pr =>
@@ -105,13 +115,13 @@ class MiraklHandler extends StrictLogging {
                 order.currency_iso_code,
                 paymentStatus,
                 refund.id,
-                paymentResult.map {_.transactionDate},
-                paymentResult.map {_.gatewayTransactionId})
+                paymentResult.flatMap {_.transactionDate},
+                paymentResult.flatMap {_.transactionId})
             }
           }.getOrElse(Nil)
         }
       }.getOrElse(Nil).flatten
-    }.flatten
+    }
 
     if (miraklRefund.isEmpty) true
     else return MiraklClient.confirmRefund(new RefundedOrderLinesBean(miraklRefund))

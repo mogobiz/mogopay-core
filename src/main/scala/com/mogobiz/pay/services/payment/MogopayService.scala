@@ -26,6 +26,8 @@ class MogopayService extends Directives with DefaultComplete with StrictLogging 
   }
 
   lazy val authenticate = path("authenticate" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     get {
       val session = SessionESDirectives.load(xtoken).get
       handleCall(mogopayHandler.authenticate(session.sessionData), (data: Either[String, Uri]) =>
@@ -38,10 +40,12 @@ class MogopayService extends Directives with DefaultComplete with StrictLogging 
               redirect(url, StatusCodes.TemporaryRedirect)
           }
       })
-    }
+    }*/
   }
 
   lazy val startPayment = path("start" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     get {
       val session = SessionESDirectives.load(xtoken).get
       handleCall(mogopayHandler.startPayment(session.sessionData), (data: Either[String, Uri]) =>
@@ -54,6 +58,6 @@ class MogopayService extends Directives with DefaultComplete with StrictLogging 
               redirect(url, StatusCodes.TemporaryRedirect)
           }
       })
-    }
+    }*/
   }
 }

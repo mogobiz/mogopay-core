@@ -21,7 +21,6 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.TransactionStatus._
-import com.mogobiz.pay.model.TransactionStep.TransactionStep
 import com.mogobiz.pay.model._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
@@ -41,13 +40,14 @@ import scala.util.control.NonFatal
 class SystempayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {}
-  val systempayClient  = new SystempayClient
+  //val systempayClient  = new SystempayClient
   val paymentType      = PaymentType.CREDIT_CARD
 
   /**
     * Right for a redirect, Left for a complete
     * Returns either raw html of url to be redirected to
     */
+  /*
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
 
@@ -436,8 +436,12 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val status = if (response.getErrorCode == 0) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, response.getErrorCode.toString, SystempayClient.extendedErrorCodes.get(response.getErrorCode))
   }
-}
+  */
 
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+
+}
+/*
 class SystempayClient extends StrictLogging {
   implicit val formats = new DefaultFormats {}
 
@@ -988,3 +992,4 @@ object SystempayClient {
       99 -> "Autre erreur"
   )
 }
+*/

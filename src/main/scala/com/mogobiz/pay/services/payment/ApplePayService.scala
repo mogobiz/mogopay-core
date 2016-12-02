@@ -25,6 +25,8 @@ class ApplePayService extends Directives with DefaultComplete {
   }
 
   lazy val startPayment = path("start" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+    /*
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
@@ -39,6 +41,6 @@ class ApplePayService extends Directives with DefaultComplete {
           }
         })
       }
-    }
+    }*/
   }
 }

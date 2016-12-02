@@ -29,7 +29,8 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
   }
 
   lazy val startPayment = path("start" / Segment) { xtoken =>
-    import Implicits._
+    complete(StatusCodes.OK)
+/*    import Implicits._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
@@ -44,10 +45,12 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
             }
         })
       }
-    }
+    }*/
   }
 
   lazy val done = path("done" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
@@ -67,10 +70,12 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
             redirect(data, StatusCodes.TemporaryRedirect)
         })
       }
-    }
+    }*/
   }
 
   lazy val callback = path("callback" / Segment / Segment) { (vendorUuid, xtoken) =>
+    complete(StatusCodes.OK)
+/*
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
@@ -78,10 +83,12 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
         handleCall(sipsHandler.callbackPayment(session.sessionData, formData.fields.toMap, vendorUuid),
                    (pr: PaymentResult) => complete(StatusCodes.OK, pr))
       }
-    }
+    }*/
   }
 
   lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     post {
       entity(as[FormData]) { formData =>
         val session = SessionESDirectives.load(xtoken).get
@@ -91,6 +98,6 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
             redirect(data, StatusCodes.TemporaryRedirect)
         })
       }
-    }
+    }*/
   }
 }

@@ -67,6 +67,9 @@ object BankErrorCodes {
       "92" -> "Unable To Route Transaction",
       "93" -> "Cannot Complete, Violation Of The Law",
       "94" -> "Duplicate Transaction",
-      "96" -> "System Error"
+      "96" -> "System Error",
+      "100" -> "No Shop Cart",
+      "101" -> "Sales using multi Shop is not authorized",
+      "102" -> "Error during payment redirection"
   )
 }

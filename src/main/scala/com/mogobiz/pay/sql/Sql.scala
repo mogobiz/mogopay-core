@@ -18,6 +18,8 @@ object Sql {
 
   case class BOTransaction(id: Long, uuid: java.util.UUID, extra: String, dateCreated: Date, lastUpdated: Date)
 
+  case class BOShopTransaction(id: Long, uuid: java.util.UUID, extra: String, dateCreated: Date, lastUpdated: Date)
+
   case class BOTransactionLog(id: Long, uuid: java.util.UUID, extra: String, dateCreated: Date, lastUpdated: Date)
 
 }

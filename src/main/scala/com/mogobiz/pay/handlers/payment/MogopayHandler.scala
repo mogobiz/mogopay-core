@@ -14,12 +14,13 @@ import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
 import com.mogobiz.pay.model._
 import org.apache.shiro.crypto.hash.Sha256Hash
 import spray.http.Uri
-import scala.util.Left
+
+import scala.util.{Either, Left}
 
 class MogopayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   val paymentType = PaymentType.CREDIT_CARD
-
+/*
   def authenticate(sessionData: SessionData): Left[String, Nothing] = {
     val ownerFilter =
       sessionData.merchantId.map { vendorId =>
@@ -129,4 +130,8 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
                       boTx: BOTransaction,
                       amount: Long,
                       paymentResult: PaymentResult): RefundResult = ???
+                      */
+
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+
 }

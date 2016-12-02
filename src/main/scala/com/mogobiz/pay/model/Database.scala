@@ -8,7 +8,6 @@ import java.util.{Calendar, Date, UUID}
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import com.mogobiz.pay.common._
 import spray.httpx.unmarshalling.{FromStringDeserializer, MalformedContent}
@@ -87,30 +86,65 @@ object Mogopay {
     type ResponseCode3DS = Value
     val APPROVED = Value("APPROVED")
     val REFUSED  = Value("REFUSED")
-    val INVALID  = Value("INVALID")
-    val ERROR    = Value("ERROR")
   }
 
   class ResponseCode3DSRef extends TypeReference[ResponseCode3DS.type]
 
-  object TransactionStatus extends Enumeration {
-    type TransactionStatus = Value
-    val INITIATED            = Value("INITIATED")
-    val VERIFICATION_THREEDS = Value("VERIFICATION_THREEDS")
-    val THREEDS_TESTED       = Value("THREEDS_TESTED")
-    val PAYMENT_REQUESTED    = Value("PAYMENT_REQUESTED")
-    val PAYMENT_AUTHORIZED   = Value("PAYMENT_AUTHORIZED")
-    val PAYMENT_CONFIRMED    = Value("PAYMENT_CONFIRMED")
-    val PAYMENT_REFUSED      = Value("PAYMENT_REFUSED")
-    val CANCEL_REQUESTED     = Value("CANCEL_REQUESTED")
-    val CANCEL_FAILED        = Value("CANCEL_FAILED")
-    val CANCEL_CONFIRMED     = Value("CANCEL_CONFIRMED")
-    val CUSTOMER_REFUNDED    = Value("CUSTOMER_REFUNDED")
-    val SHIPMENT_ERROR       = Value("SHIPMENT_ERROR")
-    val LITIGATION           = Value("LITIGATION")
-  }
+object TransactionStatus extends Enumeration {
+  type TransactionStatus = Value
+  val INITIATED            = Value("INITIATED")
+  val COMPLETED            = Value("COMPLETED")
+  val FAILED               = Value("FAILED")
+  val PAYMENT_AUTHORIZED   = Value("PAYMENT_AUTHORIZED")
+  val PAYMENT_REFUSED      = Value("PAYMENT_REFUSED")
+  val PAYMENT_FAILED       = Value("PAYMENT_FAILED")
+  val PAYMENT_CONFIRMED    = Value("PAYMENT_CONFIRMED")
+  val REFUNDED             = Value("REFUNDED")
+  val REFUNDED_FAILED      = Value("REFUNDED_FAILED")
+  val SHIPMENT_ERROR       = Value("SHIPMENT_ERROR")
+  /*
+  val VERIFICATION_THREEDS = Value("VERIFICATION_THREEDS")
+  val THREEDS_TESTED       = Value("THREEDS_TESTED")
+  val PAYMENT_REQUESTED    = Value("PAYMENT_REQUESTED")
+  val PAYMENT_AUTHORIZED   = Value("PAYMENT_AUTHORIZED")
+  val PAYMENT_REFUSED      = Value("PAYMENT_REFUSED")
+  val PAYMENT_FAILED        = Value("PAYMENT_FAILED")
+  val CANCEL_REQUESTED     = Value("CANCEL_REQUESTED")
+  val CANCEL_FAILED        = Value("CANCEL_FAILED")
+  val CANCEL_CONFIRMED     = Value("CANCEL_CONFIRMED")
+  val LITIGATION           = Value("LITIGATION")
+  */
+}
 
   class TransactionStatusRef extends TypeReference[TransactionStatus.type]
+
+
+object ShopTransactionStatus extends Enumeration {
+  type ShopTransactionStatus = Value
+  val INITIATED               = Value("INITIATED")
+  val AUTHORIZATION_REQUESTED = Value("AUTHORIZATION_REQUESTED")
+  val AUTHORIZED              = Value("AUTHORIZED")
+  val AUTHORIZATION_REFUSED   = Value("AUTHORIZATION_REFUSED")
+  val AUTHORIZATION_FAILED    = Value("AUTHORIZATION_FAILED")
+  val PAYMENT_EXTERNAL_REQUESTED       = Value("PAYMENT_EXTERNAL_REQUESTED")
+  val PAYMENT_EXTERNAL_PROCESSING       = Value("PAYMENT_EXTERNAL_PROCESSING")
+  val PAYMENT_EXTERNAL_FAILED       = Value("PAYMENT_EXTERNAL_FAILED")
+  val VERIFICATION_THREEDS = Value("VERIFICATION_THREEDS")
+  val THREEDS_TESTED       = Value("THREEDS_TESTED")
+  val PAYMENT_VERIFICATION = Value("PAYMENT_VERIFICATION")
+  val PAYMENT_VERIFICATION_FAILED = Value("PAYMENT_VERIFICATION_FAILED")
+  val PAYMENT_VERIFIED    = Value("PAYMENT_VERIFIED")
+  val VALIDATION_REQUESTED = Value("VALIDATION_REQUESTED")
+  val VALIDATED = Value("VALIDATED")
+  val VALIDATION_REFUSED = Value("VALIDATION_REFUSED")
+  val VALIDATION_FAILED = Value("VALIDATION_FAILED")
+  val REFUND_REQUESTED = Value("REFUND_REQUESTED")
+  val REFUNDED = Value("REFUNDED")
+  val REFUND_REFUSED = Value("REFUND_REFUSED")
+  val REFUND_FAILED = Value("REFUND_FAILED")
+}
+
+class ShopTransactionStatusRef extends TypeReference[ShopTransactionStatus.type]
 
   object CBPaymentProvider extends Enumeration {
     type CBPaymentProvider = Value
@@ -154,15 +188,18 @@ object Mogopay {
     val PENDING       = Value("PENDING")
     val INVALID       = Value("INVALID")
     val FAILED        = Value("FAILED")
+    val AUTHORIZED        = Value("AUTHORIZED")
+    val REFUSED        = Value("REFUSED")
     val COMPLETE      = Value("COMPLETE")
     val CANCELED      = Value("CANCELED")
     val CANCEL_FAILED = Value("CANCEL_FAILED")
     val REFUNDED      = Value("REFUNDED")
     val REFUND_FAILED = Value("REFUND_FAILED")
   }
+class PaymentStatusRef extends TypeReference[PaymentStatus.type]
 
-  object TransactionStep extends Enumeration {
-    type TransactionStep = Value
+  object TransactionShopStep extends Enumeration {
+    type TransactionShopStep = Value
     val START_PAYMENT = Value("PAYMENT")
     val VALIDATE_PAYMENT = Value("VALIDATE_PAYMENT")
     val FINISH = Value("FINISH")
@@ -179,7 +216,7 @@ object Mogopay {
     val ORDER_THREEDS = Value("ORDER_THREEDS")
   }
 
-  class TransactionStepRef extends TypeReference[TransactionStep.type]
+  class TransactionShopStepRef extends TypeReference[TransactionShopStep.type]
 
   case class CreditCard(uuid: String,
     number: String,
@@ -191,7 +228,7 @@ object Mogopay {
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
-  case class IdGenerator(val uuid: String,
+  case class IdGenerator(uuid: String,
     idVendor: Long,
     date: java.util.Date,
     idTransaction: Long,
@@ -325,7 +362,7 @@ object Mogopay {
 
   case class ShippingDataList(@JsonScalaEnumeration(classOf[ShippingPriceErrorRef]) error: Option[ShippingPriceError.ShippingPriceError],
                               shippingPrices: List[ShippingData]) {
-    val hasError = !error.isEmpty
+    val hasError = error.isDefined
     val empty = !hasError && shippingPrices.isEmpty
 
     def findById(id: String) = shippingPrices.find(_.id == id)
@@ -347,42 +384,36 @@ object Mogopay {
     trackingHistory: List[String] = Nil,
     id: String = UUID.randomUUID().toString)
 
-  case class ExternalShippingDataList(@JsonScalaEnumeration(classOf[ShippingPriceErrorRef]) error: Option[ShippingPriceError.ShippingPriceError],
-                              shippingPrices: List[ExternalShippingData]) {
-    val hasError = !error.isEmpty
-    val empty = !hasError && shippingPrices.isEmpty
-  }
-
-  case class ExternalShippingData(externalCode: ExternalCode, shippingData: ShippingData)
-
-  case class ShippingCart(internalShippingPrices: ShippingDataList,
-                          externalShippingPricesByCartItemId: Map[String, ExternalShippingDataList]) {
-    val hasError = internalShippingPrices.hasError || externalShippingPricesByCartItemId.exists{_._2.hasError}
+  case class ShippingCart(shippingPricesByShopId: Map[String, ShippingDataList]) {
+    val hasError = shippingPricesByShopId.exists{_._2.hasError}
   }
 
   case class SelectShippingCart(shippingAddress: AccountAddress,
-                                internalShippingPrice: Option[ShippingData],
-                                externalShippingPriceByCode: Map[ExternalCode, ShippingData]) {
-    val price = internalShippingPrice.map{_.price}.getOrElse(0L) + externalShippingPriceByCode.map { _._2.price }.sum
+                                shippingPriceByShopId: Map[String, ShippingData]) {
+    val price = shippingPriceByShopId.map {_._2.price}.sum
   }
 
   case class ModificationStatus(uuid: String,
-    xdate: java.util.Date,
-    ipAddr: Option[String],
-    @JsonScalaEnumeration(classOf[TransactionStatusRef]) oldStatus: Option[TransactionStatus.TransactionStatus],
-    @JsonScalaEnumeration(classOf[TransactionStatusRef]) newStatus: Option[TransactionStatus.TransactionStatus],
-    comment: Option[String],
-    var dateCreated: Date = Calendar.getInstance().getTime,
-    var lastUpdated: Date = Calendar.getInstance().getTime)
+                                xdate: java.util.Date,
+                                ipAddr: Option[String],
+                                @JsonScalaEnumeration(classOf[ShopTransactionStatusRef])
+                                oldStatus: ShopTransactionStatus.ShopTransactionStatus,
+                                @JsonScalaEnumeration(classOf[ShopTransactionStatusRef])
+                                newStatus: ShopTransactionStatus.ShopTransactionStatus,
+                                comment: Option[String],
+                                var dateCreated: Date = Calendar.getInstance().getTime,
+                                var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class BOTransactionLog(uuid: String,
-    direction: String,
-    log: String,
-    provider: String,
-    transaction: Mogopay.Document,
-    @JsonScalaEnumeration(classOf[TransactionStepRef]) step: TransactionStep.TransactionStep,
-    var dateCreated: Date = Calendar.getInstance().getTime,
-    var lastUpdated: Date = Calendar.getInstance().getTime)
+                              direction: String,
+                              log: String,
+                              provider: String,
+                              transactionUuid: Mogopay.Document,
+                              transactionShopUuid: Mogopay.Document,
+                              @JsonScalaEnumeration(classOf[TransactionShopStepRef])
+                              step: TransactionShopStep.TransactionShopStep,
+                              var dateCreated: Date = Calendar.getInstance().getTime,
+                              var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class BOPaymentData(@JsonScalaEnumeration(classOf[PaymentTypeRef]) paymentType: PaymentType.PaymentType,
     @JsonScalaEnumeration(classOf[CBPaymentProviderRef]) cbProvider: CBPaymentProvider.CBPaymentProvider,
@@ -399,36 +430,74 @@ object Mogopay {
 
   case class TransactionUser(email: String, amount: Long, status: PaymentStatus.PaymentStatus, master: Boolean)
 
+/*
   @JsonIgnoreProperties(ignoreUnknown = true)
   case class BOTransaction(uuid: String,
-    transactionUUID: String,
-    groupTransactionUUID: Option[String] = None,
-    @JsonDeserialize(contentAs = classOf[java.lang.Long]) groupPaymentExpirationDate: Option[Long] = None,
-    groupPaymentRefundPercentage: Int = 100,
-    authorizationId: String,
-    transactionDate: Option[java.util.Date],
-    amount: Long,
-    mogobizAmount: Long,
-    currency: CartRate,
-    @JsonScalaEnumeration(classOf[TransactionStatusRef]) status: TransactionStatus.TransactionStatus,
-    endDate: Option[java.util.Date],
-    paymentData: BOPaymentData,
-    merchantConfirmation: Boolean = false,
-    email: Option[String],
-    errorCodeOrigin: Option[String],
-    errorMessageOrigin: Option[String],
-    extra: Option[String],
-    description: Option[String],
-    gatewayData: Option[String],
-    creditCard: Option[BOCreditCard],
-    shippingInfo: Option[String],
-    shippingData: Option[ShippingData],
-    vendor: Option[Account],
-    customer: Option[Account],
-    modifications: List[ModificationStatus],
-    paymentConfig: Option[PaymentConfig],
-    var dateCreated: Date = Calendar.getInstance().getTime,
-    var lastUpdated: Date = Calendar.getInstance().getTime)
+                           transactionUUID: String,
+                           groupTransactionUUID: Option[String] = None,
+                           @JsonDeserialize(contentAs = classOf[java.lang.Long])
+                           groupPaymentExpirationDate: Option[Long] = None,
+                           groupPaymentRefundPercentage: Int = 100,
+                           authorizationId: String,
+                           transactionDate: Option[java.util.Date],
+                           amount: Long,
+                           currency: CartRate,
+                           @JsonScalaEnumeration(classOf[TransactionStatusRef])
+                           status: TransactionStatus.TransactionStatus,
+                           endDate: Option[java.util.Date],
+                           paymentData: BOPaymentData,
+                           merchantConfirmation: Boolean = false,
+                           email: Option[String],
+                           errorCodeOrigin: Option[String],
+                           errorMessageOrigin: Option[String],
+                           extra: String,
+                           description: Option[String],
+                           gatewayData: Option[String],
+                           creditCard: Option[BOCreditCard],
+                           shippingInfo: Option[String],
+                           shippingData: Option[ShippingData],
+                           vendor: Option[Account],
+                           customer: Option[Account],
+                           paymentConfig: Option[PaymentConfig],
+                           var dateCreated: Date = Calendar.getInstance().getTime,
+                           var lastUpdated: Date = Calendar.getInstance().getTime)
+                           */
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+case class BOTransaction(uuid: String,
+                         transactionUUID: String,
+                         endDate: Option[Date],
+                         vendor: Account,
+                         customer: Option[Account],
+                         email: String,
+                         amount: Long,
+                         currency: CartRate,
+                         @JsonScalaEnumeration(classOf[TransactionStatusRef])
+                         status: TransactionStatus.TransactionStatus,
+                         error: Option[String],
+                         callbackUrl: String,
+                         locale: Option[String],
+                         paymentConfig: PaymentConfig,
+                         paymentType: PaymentType.PaymentType,
+                         shippingData: Option[ShippingData],
+                         merchantConfirmation: Boolean = false,
+                         var dateCreated: Date = Calendar.getInstance().getTime,
+                         var lastUpdated: Date = Calendar.getInstance().getTime)
+
+  case class BOShopTransaction(uuid: String,
+                               shopId: String,
+                               transactionUUID: String,
+                               amount: Long,
+                               currency: CartRate,
+                               @JsonScalaEnumeration(classOf[TransactionStatusRef])
+                               status: ShopTransactionStatus.ShopTransactionStatus,
+                               errorCode: Option[String],
+                               paymentConfig: PaymentConfig,
+                               extra: String,
+                               paymentData: String,
+                               modifications: List[ModificationStatus],
+                               var dateCreated: Date = Calendar.getInstance().getTime,
+                               var lastUpdated: Date = Calendar.getInstance().getTime)
 
   case class TransactionRequest(uuid: String,
     tid: Long,
@@ -480,29 +549,13 @@ object Mogopay {
     token: String,
     errorShipment: Option[String])
 
-  case class ValidatePaymentResult(status: PaymentStatus.PaymentStatus,
-                                 gatewayTransactionId: String,
-                                 transactionDate: Date)
 
-  case class PaymentRequest(uuid: String,
-    transactionSequence: String,
-    orderDate: Date,
-    amount: Long,
-    ccNumber: String,
-    holder: String,
-    cardType: CreditCardType.CreditCardType,
-    expirationDate: Date,
-    cvv: String,
-    paylineMd: String,
-    paylinePares: String,
-    transactionEmail: String,
-    transactionExtra: CartWithShipping,
-    transactionDesc: String,
-    gatewayData: String,
-    csrfToken: String,
-    currency: CartRate,
-    groupPaymentExpirationDate: Option[Long] = None,
-    groupPaymentRefundPercentage: Int = 100,
+  case class PaymentRequest(cart: CartWithShipping,
+    ccNumber: Option[String] = None,
+    holder: Option[String] = None,
+    cardType: Option[CreditCardType.CreditCardType] = None,
+    expirationDate: Option[Date] = None,
+    cvv: Option[String] = None,
     var dateCreated: Date = Calendar.getInstance().getTime,
     var lastUpdated: Date = Calendar.getInstance().getTime)
 
@@ -542,18 +595,61 @@ object Mogopay {
 
   case class ShippingParcel(height: Double, width: Double, length: Double, weight: Double)
 
-  case class CartWithShipping(count: Int,
-    shippingPrice: Long,
-    rate: CartRate,
-    price: Long = 0,
-    endPrice: Long = 0,
-    mogobizFinalPrice: Long = 0,
-    taxAmount: Long = 0,
-    reduction: Long = 0,
-    finalPrice: Long = 0,
-    cartItems: List[CartItem] = Nil,
-    coupons: List[Coupon] = Nil,
-    customs: Map[String, Any])
+case class CartWithShipping(count: Int,
+                            rate: CartRate,
+                            price: Long = 0,
+                            endPrice: Long = 0,
+                            taxAmount: Long = 0,
+                            reduction: Long = 0,
+                            finalPrice: Long = 0,
+                            shippingRulePrice: Option[Long] = None,
+                            shopCarts: List[ShopCartWithShipping] = Nil,
+                            customs: Map[String, Any],
+                            compagnyAddress: Option[CompanyAddress] = None,
+                            shippingPrice: Long) {
+
+
+  def this(cart: Cart, shopCarts: List[ShopCartWithShipping]) = this(cart.count,
+    cart.rate,
+    cart.price,
+    cart.endPrice,
+    cart.taxAmount,
+    cart.reduction,
+    cart.finalPrice,
+    cart.shippingRulePrice,
+    shopCarts,
+    cart.customs,
+    cart.compagnyAddress,
+    shopCarts.map {_.shippingPrice}.sum)
+
+}
+
+case class ShopCartWithShipping(shopId: String,
+                                rate: CartRate,
+                                price: Long = 0,
+                                endPrice: Long = 0,
+                                taxAmount: Long = 0,
+                                reduction: Long = 0,
+                                finalPrice: Long = 0,
+                                cartItems: List[CartItem] = Nil,
+                                coupons: List[Coupon] = Nil,
+                                customs: Map[String, Any] = Map(),
+                                shippingPrice: Long) {
+
+  def this(shopCart: ShopCart, shippingPrice: Long) = this(shopCart.shopId,
+    shopCart.rate,
+    shopCart.price,
+    shopCart.endPrice,
+    shopCart.taxAmount,
+    shopCart.reduction,
+    shopCart.finalPrice,
+    shopCart.cartItems,
+    shopCart.coupons,
+    shopCart.customs,
+    shippingPrice)
+}
+
+
 
 object EnumUnmarshaller {
 

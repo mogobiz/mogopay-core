@@ -7,6 +7,8 @@ package com.mogobiz.pay.codes
 import com.mogobiz.pay.config.Settings
 
 object MogopayConstant {
+  val SHOP_MOGOBIZ = "MOGOBIZ"
+
   val UserOrPasswordIsNull          = "user.or.password.is.null"
   val UserUnknown                   = "user.unknown"
   val AccountInactive               = "account.inactive"
@@ -72,4 +74,9 @@ object MogopayConstant {
   val InvalidTransactionAmount    = "error.invalid.transaction.amount"
   val PaymentNotConfirmed         = "error.payment.not.confirmed"
   val TransactionAlreadyConfirmed = "error.transaction.already.confirmed"
+
+  val ERROR_PAYMENT_REQUEST_NOT_FOUND = "error.payment.request.not.found"
+  val ERROR_EXTERNAL_PAYMENT_NOT_ALLOWED_WITH_MANY_SHOPS = "error.external.payment.not.allowed.with.many.shops"
+  val ERROR_THREEDS_NOT_ALLOWED_WITH_MANY_SHOPS = "error.3DS.not.allowed.with.many.shops"
+  val ERROR_THREEDS_REQUIRED = "error.3DS.required"
 }

@@ -15,7 +15,6 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.{AccountDoesNotExistException, InvalidContextException, InvalidInputException, MogopayError}
-import com.mogobiz.pay.model.TransactionStep.TransactionStep
 import com.mogobiz.pay.model._
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.GlobalUtil._
@@ -45,6 +44,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
   /**
     * Return (Session, URL to redirect to)
     */
+  /*
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
     val successURL                                               = Settings.Mogopay.EndPoint + s"paypal/success/${sessionData.uuid}"
@@ -365,6 +365,10 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val status = if (result.isDefined) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, result.getOrElse(""), None)
   }
+  */
+
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+
 }
 
 object Test extends App with CustomSslConfiguration {

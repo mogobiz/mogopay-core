@@ -6,219 +6,195 @@ package com.mogobiz.pay.handlers.payment
 
 import java.util.{Date, UUID}
 
-import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.model.PaymentType.PaymentType
-import com.mogobiz.pay.model._
-import com.mogobiz.pay.model.{Mogopay, ParamRequest}
+import com.mogobiz.pay.model.{BOTransaction, TransactionStatus, _}
 import com.mogobiz.system.ActorSystemLocator
-import com.mogobiz.utils.EmailHandler.Mail
-import com.mogobiz.utils.{EmailHandler, GlobalUtil, SymmetricCrypt}
-import org.apache.commons.lang.LocaleUtils
+import com.mogobiz.utils.GlobalUtil
 import spray.http.Uri
 import spray.http.Uri.Query
-import Settings.Mail.Smtp.MailSettings
+import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
+import com.mogobiz.json.JacksonConverter
+import com.mogobiz.pay.codes.MogopayConstant
+import com.mogobiz.pay.model.TransactionStatus._
+import com.mogobiz.utils.GlobalUtil._
 import com.typesafe.scalalogging.StrictLogging
 import org.json4s.jackson.JsonMethods._
 
 import scala.collection.mutable
 
+case class ExternalPaymentResult(paymentUuid: String, redirection: Either[Uri, FormRedirection])
+
+case class AuthorizedPaymentResult(paymentUuid : String,
+                                   @JsonScalaEnumeration(classOf[PaymentStatusRef])
+                                   status : PaymentStatus.PaymentStatus)
+
+case class FormRedirection(html: String)
+
+case class ValidatePaymentResult(@JsonScalaEnumeration(classOf[PaymentStatusRef])
+                                 status: PaymentStatus.PaymentStatus,
+                                 transactionId: Option[String],
+                                 transactionDate: Option[Date])
+
+case class RefundPaymentResult(@JsonScalaEnumeration(classOf[PaymentStatusRef])
+                               status: PaymentStatus.PaymentStatus,
+                               transactionId: Option[String],
+                               transactionDate: Option[Date])
+
+trait CBProvider extends PaymentHandler {
+
+  def validatePayment(boShopTransaction: BOShopTransaction): ValidatePaymentResult
+
+  def refundPayment(boShopTransaction: BOShopTransaction): RefundPaymentResult
+/*
+  def cancelPayment(paymentUuid: String): CancelPaymentResult
+*/
+}
+
 trait PaymentHandler extends StrictLogging {
   implicit val system = ActorSystemLocator()
   implicit val _      = system.dispatcher
 
-  def paymentType: PaymentType
+  //def paymentType: PaymentType
 
-  def getContext(sessionData: SessionData): (Mogopay.Document, Account, PaymentConfig, PaymentRequest) = {
-    val transactionUUID = sessionData.transactionUuid.getOrElse(
-        throw new InvalidContextException("Transaction UUID not found in session data"))
-    val vendorId =
-      sessionData.merchantId.getOrElse(throw new InvalidContextException("Merchant UUID not found in session data"))
+  val DIR_OUT = "OUT"
+  val DIR_IN = "IN"
+
+  def startPayment(sessionData: SessionData): Either[FormRedirection, Uri]
+
+  def createBOTransaction(sessionData: SessionData,
+                          paymentRequest: PaymentRequest,
+                          paymentType: PaymentType.PaymentType): BOTransaction = {
+    val vendorId = sessionData.merchantId.getOrElse(throw new InvalidContextException("Merchant UUID not found in session data"))
     val vendor = accountHandler.load(vendorId).getOrElse(throw new InvalidContextException("Vendor not found"))
-    val paymentConfig: PaymentConfig = sessionData.paymentConfig.getOrElse(
-        throw new InvalidContextException("Payment Config not found in session data"))
-    val paymentRequest = sessionData.paymentRequest.getOrElse(
-        throw new InvalidContextException("Payment Request not found in session data"))
-    (transactionUUID, vendor, paymentConfig, paymentRequest)
+    val customer = sessionData.accountId.flatMap{ accountHandler.load(_)}
+    val callbackUrl = sessionData.successURL.getOrElse(throw InvalidContextException("callbackUrl not found in session data"))
+    val shippingData = sessionData.selectShippingCart.flatMap(_.shippingPriceByShopId.get(MogopayConstant.SHOP_MOGOBIZ))
+    val transactionUUID = sessionData.transactionUuid.getOrElse(throw InvalidContextException("Transaction UUID not found in session data"))
+    val paymentConfig: PaymentConfig = sessionData.paymentConfig.getOrElse(throw InvalidContextException("Payment Config not found in session data"))
+    val email = sessionData.email.getOrElse(customer.map {_.email}.getOrElse(throw InvalidContextException("Email not found in session data")))
+
+    val merchantConfirmation = false;
+
+    var transaction = BOTransaction(transactionUUID,
+      transactionUUID,
+      Some(new Date),
+      vendor,
+      customer,
+      email,
+      paymentRequest.cart.finalPrice + paymentRequest.cart.shippingPrice,
+      paymentRequest.cart.rate,
+      TransactionStatus.INITIATED,
+      None,
+      callbackUrl,
+      sessionData.locale,
+      paymentConfig,
+      paymentType,
+      None,
+      merchantConfirmation)
+
+    boTransactionHandler.save(transaction, refresh = false)
+    transaction
   }
 
-  def getCreditCardConfig(paymentConfig: PaymentConfig): Map[String, String] = {
+  def finishTransaction(boTransaction: BOTransaction, status: TransactionStatus.TransactionStatus, error: Option[String] = None): BOTransaction = {
+    val newBOTransaction = PaymentHandler.updateTransactionStatus(boTransaction.copy(endDate = Some(new Date)), status, error)
+    if (boTransaction.endDate.isEmpty) {
+      // La transaction n'était pas terminé, on la termine
+      transactionHandler.finishPayment(newBOTransaction)
+    }
+    else {
+      // La transaction était déjà terminée, pas besoin de le refaire une 2° fois
+      newBOTransaction
+    }
+  }
+
+  def createBOShopTransaction(boTransaction: BOTransaction,
+                              shopCart: ShopCartWithShipping,
+                              paymentData: String,
+                              status: ShopTransactionStatus.ShopTransactionStatus = ShopTransactionStatus.INITIATED): BOShopTransaction = {
+    val shopTransaction = BOShopTransaction(UUID.randomUUID().toString,
+      shopCart.shopId,
+      boTransaction.transactionUUID,
+      shopCart.finalPrice + shopCart.shippingPrice,
+      shopCart.rate,
+      status,
+      None,
+      boTransaction.paymentConfig,
+      paymentData,
+      JacksonConverter.serialize(shopCart),
+      Nil)
+
+    boShopTransactionHandler.save(shopTransaction, refresh = false)
+    shopTransaction
+  }
+
+  def updateBOShopTransactionStatus(boShopTransaction: BOShopTransaction,
+                                    status: ShopTransactionStatus.ShopTransactionStatus,
+                                    errorCode: Option[String]): BOShopTransaction = {
+    updateBOShopTransactionStatusAndData(boShopTransaction, status, errorCode, boShopTransaction.paymentData)
+  }
+
+  def updateBOShopTransactionStatusAndData(boShopTransaction: BOShopTransaction,
+                                           status: ShopTransactionStatus.ShopTransactionStatus,
+                                           errorCode: Option[String],
+                                           paymentData: String): BOShopTransaction = {
+    val modStatus = ModificationStatus(
+      uuid = newUUID,
+      xdate = new Date,
+      ipAddr = None,
+      oldStatus = boShopTransaction.status,
+      newStatus = status,
+      comment = None
+    )
+
+    val newBOShopTransaction = boShopTransaction.copy(status = status,
+      errorCode = errorCode,
+      paymentData = paymentData,
+      modifications = boShopTransaction.modifications :+ modStatus)
+
+    boShopTransactionHandler.save(newBOShopTransaction, refresh = false)
+    newBOShopTransaction
+  }
+
+  protected def createTransactionLog(boShopTransaction: BOShopTransaction, direction: String, transactionStep: TransactionShopStep.TransactionShopStep, data: List[String]): Unit = {
+    val botlog = BOTransactionLog(newUUID,
+      direction,
+      data.mkString("<br/>"),
+      boShopTransaction.paymentConfig.cbProvider.toString,
+      boShopTransaction.transactionUUID,
+      boShopTransaction.uuid,
+      transactionStep)
+    boTransactionLogHandler.save(botlog, false)
+  }
+
+  protected def getCreditCardConfig(paymentConfig: PaymentConfig): Map[String, String] = {
     import com.mogobiz.pay.implicits.Implicits._
     paymentConfig.cbParam.map(parse(_).extract[Map[String, String]]).getOrElse(Map())
   }
-
+/*
   def refund(paymentConfig: PaymentConfig,
              boTx: BOTransaction,
              amount: Long,
              paymentResult: PaymentResult): RefundResult
+*/
 
-  /**
-    * Returns the redirection page's URL
-    */
-  protected def finishPayment(sessionData: SessionData, paymentResult: PaymentResult): Uri = {
-    val errorURL        = sessionData.errorURL.getOrElse("")
-    val successURL      = sessionData.successURL.getOrElse("")
-    val transactionUUID = sessionData.transactionUuid.getOrElse("")
-    val transactionSequence =
-      if (sessionData.paymentRequest.isDefined) sessionData.paymentRequest.get.transactionSequence else ""
-    val success       = paymentResult.status == PaymentStatus.COMPLETE
-    val errorShipment = paymentResult.errorShipment
-
+  protected def redirectionToCallback(boTransaction: BOTransaction) : Uri = {
     val query = Query(
-        "result"                 -> (if (success && errorShipment.isEmpty) MogopayConstant.Success else MogopayConstant.Error),
-        "transaction_id"         -> transactionUUID,
-        "transaction_sequence"   -> transactionSequence,
-        "transaction_type"       -> paymentType.toString,
-        "error_code_bank"        -> paymentResult.bankErrorCode,
-        "error_message_bank"     -> paymentResult.bankErrorMessage.getOrElse(""),
-        "error_code_provider"    -> paymentResult.errorCodeOrigin,
-        "error_message_provider" -> paymentResult.errorMessageOrigin.getOrElse(""),
-        "error_shipment"         -> errorShipment.getOrElse("")
+      "status"  -> boTransaction.status.toString,
+      "error"   -> boTransaction.error.getOrElse("")
     )
-
-    if (success && sessionData.payers.nonEmpty) {
-      val payers = sessionData.payers
-      val tx =
-        boTransactionHandler.find(transactionUUID).getOrElse(throw new TransactionNotFoundException(transactionUUID))
-      val merchantUUID = tx.vendor.getOrElse(throw new VendorNotFoundException).uuid
-      val paymentConfig = accountHandler
-        .find(merchantUUID)
-        .getOrElse(throw new VendorNotFoundException())
-        .paymentConfig
-        .getOrElse(throw new PaymentConfigNotFoundException())
-      val firstPayer: Account = tx.customer.getOrElse(throw new NoCustomerSetForTheBOTrasaction)
-      handleGroupPayment(payers, tx, merchantUUID, paymentConfig, firstPayer, sessionData.locale)
-    }
-
-    sessionData.finished = true
-    val redirectTo = if (success) successURL else errorURL
-    val sep        = if (redirectTo.indexOf('?') > 0) "&" else "?"
-    Uri(redirectTo + sep + GlobalUtil.mapToQueryString(query.toMap))
+    val sep        = if (boTransaction.callbackUrl .indexOf('?') > 0) "&" else "?"
+    Uri(boTransaction.callbackUrl + sep + GlobalUtil.mapToQueryString(query.toMap))
   }
-
-  private def handleGroupPayment(payers: Map[String, Long],
-                                 firstPayerBOTx: BOTransaction,
-                                 merchantId: String,
-                                 paymentConfig: PaymentConfig,
-                                 firstPayer: Account,
-                                 locale: Option[String]): Unit = if (payers.size > 1) {
-    val groupTxUUID = firstPayerBOTx.uuid
-    boTransactionHandler.update(firstPayerBOTx.copy(groupTransactionUUID = Some(groupTxUUID)), refresh = false)
-
-    payers.filter(_._1 != firstPayer.email).foreach {
-      case (email, amount) =>
-        val account = accountHandler.findByEmail(email, Some(merchantId)).getOrElse {
-          val newAccount = Account(
-              uuid = UUID.randomUUID().toString,
-              email = email,
-              password = null,
-              owner = Some(merchantId),
-              secret = "",
-              status = AccountStatus.INACTIVE
-          )
-          accountHandler.save(newAccount, false)
-          newAccount
-        }
-
-        val merchant = accountHandler.find(merchantId).get
-        val params = ParamRequest.TransactionInit(merchant.secret,
-                                                  amount,
-                                                  None,
-                                                  firstPayerBOTx.groupPaymentExpirationDate,
-                                                  Some(firstPayerBOTx.groupPaymentRefundPercentage))
-        val txReq = transactionHandler.createTxReqForInit(merchant,
-                                                          params,
-                                                          firstPayerBOTx.currency,
-                                                          Some(groupTxUUID),
-                                                          firstPayerBOTx.groupPaymentExpirationDate,
-                                                          Some(firstPayerBOTx.groupPaymentRefundPercentage))
-        transactionRequestHandler.save(txReq, refresh = false)
-
-        val groupPaymentInfo = paymentConfig.groupPaymentInfo.getOrElse(throw new NoGroupPaymentInfoSpecifiedException)
-
-        val token = {
-          val expirationDate =
-            firstPayerBOTx.groupPaymentExpirationDate.getOrElse(throw NoExpirationTimeSpecifiedException())
-          val expirationTime: Long = new Date((new Date).getTime + expirationDate).getTime
-          val clearToken =
-            s"$expirationTime|${txReq.uuid}|${account.uuid}|$groupTxUUID|${groupPaymentInfo.successURL}|${groupPaymentInfo.failureURL}"
-          SymmetricCrypt.encrypt(clearToken, Settings.Mogopay.Secret, "AES")
-        }
-
-        if (Settings.Env == Environment.DEV) logger.debug(s"==== Group payment token: $token")
-
-        val url = groupPaymentInfo.returnURLforNextPayers
-        val uri = Uri(url).withQuery(("token", token))
-
-        def sendEmail() {
-          val merchant      = accountHandler.find(merchantId).getOrElse(throw new VendorNotFoundException())
-          val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException())
-
-          val country = firstPayer.country.getOrElse(throw new NoCountrySpecifiedException).code.toLowerCase
-          val jsonTx  = BOTransactionJsonTransform.transform(firstPayerBOTx, LocaleUtils.toLocale(country))
-
-          val amount = rateHandler
-            .format(txReq.amount.toFloat / 100, txReq.currency.code, country)
-            .getOrElse(throw new RateNotFoundException(txReq.currency.code))
-          val payerName       = firstPayer.firstName.getOrElse(firstPayer.lastName.getOrElse(firstPayer.email))
-          val data            = s"""
-               |{
-               |"templateImagesUrl": "${Settings.TemplateImagesUrl}",
-               |  "firstPayer":  "$payerName",
-               |  "url":         "$uri",
-               |  "amount":      "$amount",
-               |  "transaction": $jsonTx
-               |}
-               |""".stripMargin
-          val (subject, body) = templateHandler.mustache(Option(merchant), "mail-group-payment", locale, data)
-
-          val senderName  = merchant.paymentConfig.get.senderName
-          val senderEmail = merchant.paymentConfig.get.senderEmail
-
-          EmailHandler.Send(
-              Mail(from = (senderEmail.getOrElse(throw new Exception("No Sender Email configured for merchant")),
-                           senderName.getOrElse(throw new Exception("No Sender Name configured for Merchant"))),
-                   to = Seq(account.email),
-                   subject = subject,
-                   message = body))
-        }
-        sendEmail()
-    }
-  }
-
+/*
   def authorizePaymentIn2Step() : Boolean = false
-
-  def startPayment(sessionData: SessionData): Either[String, Uri]
 
   def validatePayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult]
 
   def refundPayment(transaction: BOTransaction, amount: Long): Option[ValidatePaymentResult]
-
-  def createThreeDSNotEnrolledResult(paymentRequest: PaymentRequest): PaymentResult = {
-    PaymentResult(
-        transactionSequence = paymentRequest.transactionSequence,
-        orderDate = null,
-        amount = -1L,
-        ccNumber = "",
-        cardType = null,
-        expirationDate = null,
-        cvv = "",
-        gatewayTransactionId = "",
-        transactionDate = null,
-        transactionCertificate = "",
-        authorizationId = "",
-        status = PaymentStatus.FAILED,
-        errorCodeOrigin = "12",
-        errorMessageOrigin = Some("ThreeDSecure required"),
-        data = "",
-        bankErrorCode = "12",
-        bankErrorMessage = Some(BankErrorCodes.getErrorMessage("12")),
-        token = "",
-        None
-    )
-  }
+*/
 }
 
 object PaymentHandler {
@@ -230,6 +206,12 @@ object PaymentHandler {
 
   def apply(handlerName: String): PaymentHandler = {
     handlers(handlerName)
+  }
+
+  def updateTransactionStatus(boTransaction: BOTransaction, status: TransactionStatus.TransactionStatus, error: Option[String] = None): BOTransaction = {
+    val newBOTransaction = boTransaction.copy(status = status, error = error)
+    boTransactionHandler.save(newBOTransaction, refresh = false)
+    newBOTransaction
   }
 
 }

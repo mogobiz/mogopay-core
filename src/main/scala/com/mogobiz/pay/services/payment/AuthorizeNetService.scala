@@ -38,6 +38,8 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
   }
 
   lazy val startPayment = path("start" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     import Implicits._
     get {
       parameterMap { params =>
@@ -52,7 +54,7 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
             }
         })
       }
-    }
+    }*/
   }
 
   def queryString: Directive1[String] = extract(_.request.uri.toString())
@@ -119,6 +121,8 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
    */
 
   lazy val relay = path("relay" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
@@ -130,10 +134,12 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
             }
         })
       }
-    }
+    }*/
   }
 
   lazy val cancel = path("cancel" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     import Implicits._
     get {
       val session = SessionESDirectives.load(xtoken).get
@@ -141,10 +147,12 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         handleCall(authorizeNetHandler.cancel(session.sessionData),
                    (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
       }
-    }
+    }*/
   }
 
   lazy val done = path("done" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     import Implicits._
     get {
       parameterMap { params =>
@@ -152,6 +160,6 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
         handleCall(authorizeNetHandler.done(session.sessionData, params),
                    (uri: Uri) => redirect(uri, StatusCodes.TemporaryRedirect))
       }
-    }
+    }*/
   }
 }

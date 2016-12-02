@@ -36,7 +36,7 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
   val BOTX_UUID    = "botx_uuid"
   val PAYREQ_UUID  = "payreq_uuid"
   val SESSION_UUID = "session_uuid"
-
+/*
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
 
@@ -384,6 +384,10 @@ class AuthorizeNetHandler(handlerName: String) extends PaymentHandler {
     val status             = if (responseCode == 1) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, s"$responseCode-$reasonResponseCode", Option(response.getResponseText))
   }
+  */
+
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+
 }
 
 object AuthorizeNetHandler {

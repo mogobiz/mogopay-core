@@ -38,7 +38,7 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
   implicit val timeout: Timeout = 40.seconds
   val paymentType               = PaymentType.CREDIT_CARD
-
+/*
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val (transactionUUID, vendor, paymentConfig, paymentRequest) = getContext(sessionData)
 
@@ -556,6 +556,10 @@ class PayboxHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val status       = if (responseCode == "00000") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, responseCode, PayboxHandler.errorMessages.get(responseCode))
   }
+  */
+
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+
 }
 
 object PayboxHandler {

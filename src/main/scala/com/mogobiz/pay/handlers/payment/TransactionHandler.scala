@@ -74,54 +74,34 @@ case class SubmitParams(successURL: String,
 
 class TransactionHandler {
 
-  def retrieveHandler(cbProvider : CBPaymentProvider) = cbProvider match {
-    case CBPaymentProvider.AUTHORIZENET => authorizeNetHandler
-    case CBPaymentProvider.SYSTEMPAY => systempayHandler
+  def retrieveHandler(cbProvider : CBPaymentProvider) : CBProvider = cbProvider match {
+      //TODO décommenter au fur et à mesure
+    //case CBPaymentProvider.AUTHORIZENET => authorizeNetHandler
+    //case CBPaymentProvider.SYSTEMPAY => systempayHandler
     case CBPaymentProvider.PAYLINE => paylineHandler
-    case CBPaymentProvider.PAYBOX => payboxHandler
+    /*case CBPaymentProvider.PAYBOX => payboxHandler
     case CBPaymentProvider.SIPS => sipsHandler
     case CBPaymentProvider.CUSTOM => {
       if (customPaymentHandler != null) customPaymentHandler
       else throw new InvalidPaymentHandlerException("Custom Payment Handler not found")
-    }
+    }*/
     case _ => throw new InvalidPaymentHandlerException("Unable to found Paym Handler for " + cbProvider.toString)
   }
 
-  def authorizePaymentIn2Step(transaction: BOTransaction) : Boolean = {
-    transaction.paymentConfig.map { paymentConfig =>
-      retrieveHandler(paymentConfig.cbProvider).authorizePaymentIn2Step()
-    }.getOrElse(false)
+  def validatePayment(boShopTransaction: BOShopTransaction) : ValidatePaymentResult = {
+    retrieveHandler(boShopTransaction.paymentConfig.cbProvider).validatePayment(boShopTransaction)
   }
 
-  def validatePayment(transaction: BOTransaction, amount: Long) : Option[ValidatePaymentResult] = {
-    if (amount > 0) {
-      transaction.paymentConfig.map { paymentConfig =>
-        retrieveHandler(paymentConfig.cbProvider).validatePayment(transaction, amount)
-      }.getOrElse(None)
-    }
-    else None
+  def refundPayment(boShopTransaction: BOShopTransaction) : RefundPaymentResult = {
+    retrieveHandler(boShopTransaction.paymentConfig.cbProvider).refundPayment(boShopTransaction)
   }
 
-  def refundPayment(transaction: BOTransaction, amount: Long) : Option[ValidatePaymentResult] = {
-    if (amount > 0) {
-      transaction.paymentConfig.map { paymentConfig =>
-        retrieveHandler(paymentConfig.cbProvider).refundPayment(transaction, amount)
-      }.getOrElse(None)
-    }
-    else None
-  }
-
-  def init(params: ParamRequest.TransactionInit, cart: Cart): String = {
+  def init(sessionData: SessionData, params: ParamRequest.TransactionInit, cart: Cart): String = {
     //    (rateHandler findByCurrencyCode params.currencyCode map { rate: Rate =>
     (accountHandler findBySecret params.merchantSecret map { vendor: Account =>
-          if (!vendor.roles.contains(RoleName.MERCHANT)) {
+          if (!vendor.roles.contains(RoleName.MERCHANT))
             throw NotAVendorAccountException("")
-          } else {
-            //          val txSeqId = transactionSequenceHandler.nextTransactionId(vendor.uuid)
-            //          val txReqUUID = newUUID
-            //
-            //          val txCurrency = TransactionCurrency(params.currencyCode, currency.getNumericCode, params.currencyRate, rate.currencyFractionDigits)
-            //          val txRequest = TransactionRequest(txReqUUID, txSeqId, params.transactionAmount, params.extra, txCurrency, vendor.uuid)
+          else {
             val txRequest = createTxReqForInit(vendor,
                                                params,
                                                cart.rate,
@@ -132,7 +112,6 @@ class TransactionHandler {
             txRequest.uuid
           }
         }).getOrElse(throw AccountDoesNotExistException("Invalid merchant secret"))
-    //    }).getOrElse(throw CurrencyCodeNotFoundException(s"${params.currencyCode} not found"))
   }
 
   def createTxReqForInit(merchant: Account,
@@ -153,69 +132,7 @@ class TransactionHandler {
                        rate,
                        merchant.uuid)
   }
-
-  def startPayment(account: Account,
-                   sessionData: SessionData,
-                   transactionRequestUUID: String,
-                   paymentRequest: PaymentRequest,
-                   paymentType: PaymentType,
-                   cbProvider: CBPaymentProvider): BOTransaction = {
-    val customer = sessionData.accountId.map { uuid =>
-      accountHandler.load(uuid)
-    }.getOrElse(None)
-
-    if (!retrieveHandler(cbProvider).authorizePaymentIn2Step() && paymentRequest.transactionExtra.endPrice != paymentRequest.transactionExtra.mogobizFinalPrice)
-      throw new NotAvailablePaymentGatewayException("The provider " + cbProvider.toString + " doesn't allow to buy external item")
-
-    val extra = serializeCart(paymentRequest.transactionExtra)
-    var transaction = BOTransaction(transactionRequestUUID,
-                                    transactionRequestUUID,
-                                    sessionData.groupTxUUID,
-                                    paymentRequest.groupPaymentExpirationDate,
-                                    paymentRequest.groupPaymentRefundPercentage,
-                                    "",
-                                    Option(new Date),
-                                    paymentRequest.amount,
-                                    paymentRequest.transactionExtra.mogobizFinalPrice,
-                                    paymentRequest.transactionExtra.rate,
-                                    TransactionStatus.INITIATED,
-                                    None,
-                                    BOPaymentData(paymentType, cbProvider, None, None, None, None, None),
-                                    merchantConfirmation = false,
-                                    Option(paymentRequest.transactionEmail),
-                                    None,
-                                    None,
-                                    Option(extra),
-                                    Option(paymentRequest.transactionDesc),
-                                    Option(paymentRequest.gatewayData),
-                                    None,
-                                    None,
-                                    None,
-                                    Option(account),
-                                    customer,
-                                    Nil,
-                                    sessionData.paymentConfig)
-
-    if (paymentType == PaymentType.CREDIT_CARD &&
-        account.paymentConfig.exists(_.paymentMethod != CBPaymentMethod.EXTERNAL)) {
-      val creditCard = BOCreditCard(
-          number = UtilHandler.hideCardNumber(paymentRequest.ccNumber, "X"),
-          holder = None,
-          expiryDate = paymentRequest.expirationDate,
-          cardType = paymentRequest.cardType
-      )
-      transaction = transaction.copy(creditCard = Option(creditCard))
-    }
-    transaction = transaction.copy(
-        paymentData = transaction.paymentData.copy(
-            transactionSequence = Option(paymentRequest.transactionSequence),
-            orderDate = Option(paymentRequest.orderDate)
-        )
-    )
-    boTransactionHandler.save(transaction, refresh = false)
-    transaction
-  }
-
+/*
   def updateStatus(transactionUUID: String,
                    ipAddress: Option[String],
                    newStatus: TransactionStatus,
@@ -286,66 +203,59 @@ class TransactionHandler {
       boTransactionHandler.update(newTx, false)
     }.getOrElse(Failure(TransactionNotFoundException(s"$transactionUUID")))
   }
-
+*/
   // called by other handlers
-  def finishPayment(paymentHandler: PaymentHandler,
-                    sessionData: SessionData,
-                    transactionUUID: String,
-                    newStatus: TransactionStatus,
-                    paymentResult: PaymentResult,
-                    locale: Option[String],
-                    gatewayData: Option[String] = None): PaymentResult = {
-    val transaction = updateStatus(transactionUUID, None, newStatus, None, Some(paymentResult), gatewayData)
+  def finishPayment(boTransaction: BOTransaction): BOTransaction = {
+
+    val status = boTransaction.status
 
     // commit du shipping
-    val transactionAndErrorShipment = if (paymentResult.status == PaymentStatus.COMPLETE) {
-      Try(ShippingHandler.confirmShippingPrice(sessionData.selectShippingCart)) match {
+    val finalTransaction = if (status == TransactionStatus.PAYMENT_AUTHORIZED) {
+      Try(ShippingHandler.confirmShippingPrice(boTransaction.shippingData)) match {
         case Success(shippingData) => {
-          val finalTransWithShippingInfo = shippingData.map { shippingData =>
-            val finalTransWithShippingInfo = transaction.copy(shippingData = Some(shippingData))
+          val transactionWithShippingData = shippingData.map { shippingData =>
+            val finalTransWithShippingInfo = boTransaction.copy(shippingData = Some(shippingData))
             boTransactionHandler.update(finalTransWithShippingInfo, refresh = false)
             finalTransWithShippingInfo
-          }
-          val finalTransaction = finalTransWithShippingInfo.getOrElse(transaction)
-          boTransactionHandler.update(finalTransaction, false)
+          }.getOrElse(boTransaction)
 
-          val shippingPrice = finalTransaction.shippingData.map { shipping => shipping.price }.getOrElse(0L)
-          val validationResult = validatePayment(finalTransaction, finalTransaction.mogobizAmount + shippingPrice)
-          if (validationResult.map {_.status}.getOrElse(PaymentStatus.COMPLETE) == PaymentStatus.COMPLETE)
-            (updateStatus(transactionUUID, None, TransactionStatus.PAYMENT_CONFIRMED, None), None)
-          else {
-            val refundResult = refundPayment(finalTransaction, finalTransaction.mogobizAmount + shippingPrice)
-            if (refundResult.map {_.status}.getOrElse(PaymentStatus.COMPLETE) == PaymentStatus.COMPLETE)
-              (updateStatus(transactionUUID, None, TransactionStatus.CUSTOMER_REFUNDED, None), None)
-            else (updateStatus(transactionUUID, None, TransactionStatus.LITIGATION, None), None)
-          }
+          val boShopTransaction = boShopTransactionHandler.findByShopIdAndTransactionUuid(MogopayConstant.SHOP_MOGOBIZ, boTransaction.transactionUUID)
+          boShopTransaction.map { boShopTransaction =>
+            val validationResult = validatePayment(boShopTransaction)
+            if (validationResult.status == PaymentStatus.COMPLETE)
+              PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.PAYMENT_CONFIRMED, None)
+            else {
+              val refundResult = refundPayment(boShopTransaction)
+              if (refundResult.status == PaymentStatus.REFUNDED)
+                PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.REFUNDED, None)
+              else PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.REFUNDED_FAILED, None)
+            }
+          }.getOrElse(transactionWithShippingData)
         }
         case Failure(f) => {
           logger.error(f.getMessage)
-          (updateStatus(transactionUUID, None, TransactionStatus.SHIPMENT_ERROR, Some(f.getMessage)), Some(f.getMessage))
+          PaymentHandler.updateTransactionStatus(boTransaction, TransactionStatus.REFUNDED_FAILED, Some(f.getMessage))
         }
       }
-    } else {
-      (transaction, None)
-    }
+    } else boTransaction
 
-    notifyPaymentFinished(transactionAndErrorShipment._1, locale)
-    notifySuccessRefund(transactionAndErrorShipment._1, locale)
-    paymentResult.copy(errorShipment = transactionAndErrorShipment._2)
+    notifyPaymentFinished(finalTransaction)
+    notifySuccessRefund(finalTransaction)
+    finalTransaction
   }
 
-  def notifyPaymentFinished(transaction: BOTransaction, locale: Option[String]): Unit = {
+  def notifyPaymentFinished(transaction: BOTransaction): Unit = {
+    val locale = transaction.locale
     val localeOrEn = locale.getOrElse("en");
-    val vendor =
-      transaction.vendor.getOrElse(throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
+    val vendor = transaction.vendor
     val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(localeOrEn))
     try {
       val (subject, body) = templateHandler.mustache(Some(vendor), "mail-order", locale, jsonString)
       EmailHandler.Send(
           Mail(
-              transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName
-            .getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-              Seq(transaction.email.get),
+            vendor.email -> s"""${vendor.firstName
+            .getOrElse("")} ${vendor.lastName.getOrElse("")}""",
+              Seq(transaction.email),
               Seq.empty,
               Seq.empty,
               subject,
@@ -358,16 +268,16 @@ class TransactionHandler {
     }
     if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
       try {
-        val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-bill", locale, jsonString)
+        val (subject, body) = templateHandler.mustache(Some(vendor), "mail-bill", locale, jsonString)
         val bill = transaction.customer.map { customer =>
           val f = download(transaction.transactionUUID, "A4", localeOrEn)
           Attachment(f, transaction.transactionUUID + ".pdf")
         }
         EmailHandler.Send(
             Mail(
-                transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName
-              .getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-                Seq(transaction.email.get),
+              vendor.email -> s"""${vendor.firstName
+              .getOrElse("")} ${vendor.lastName.getOrElse("")}""",
+                Seq(transaction.email),
                 Seq.empty,
                 Seq.empty,
                 subject,
@@ -381,19 +291,20 @@ class TransactionHandler {
     }
   }
 
-  def notifySuccessRefund(transaction: BOTransaction, locale: Option[String]): Unit = {
-    if (transaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
+  def notifySuccessRefund(transaction: BOTransaction): Unit = {
+    if (transaction.status == TransactionStatus.REFUNDED) {
+      val locale = transaction.locale
+      val vendor = transaction.vendor
+
       try {
-        val vendor =
-          transaction.vendor.getOrElse(throw VendorNotProvidedError("Transaction cannot exist without a vendor"))
         val jsonString =
           BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
-        val (subject, body) = templateHandler.mustache(transaction.vendor, "mail-refund", locale, jsonString)
+        val (subject, body) = templateHandler.mustache(Some(vendor), "mail-refund", locale, jsonString)
         EmailHandler.Send(
             Mail(
-                transaction.vendor.get.email -> s"""${transaction.vendor.get.firstName
-              .getOrElse("")} ${transaction.vendor.get.lastName.getOrElse("")}""",
-                Seq(transaction.email.get),
+              vendor.email -> s"""${vendor.firstName
+              .getOrElse("")} ${vendor.lastName.getOrElse("")}""",
+                Seq(transaction.email),
                 Seq.empty,
                 Seq.empty,
                 subject,
@@ -418,7 +329,7 @@ class TransactionHandler {
       case _                               => CB
     }
   }
-
+/*
   protected def computeEndDate(status: TransactionStatus): Option[Date] = {
     import com.mogobiz.pay.model.TransactionStatus._
     status match {
@@ -426,12 +337,13 @@ class TransactionHandler {
       case _                                                                          => None
     }
   }
+  */
 
-  def verify(secret: String, amount: Option[Long], transactionUUID: String): (BOTransaction, Seq[TransactionRequest]) = {
+  def verify(secret: String, amount: Option[Long], transactionUUID: String): BOTransaction = {
     val transaction =
       boTransactionHandler.find(transactionUUID).getOrElse(throw TransactionNotFoundException(s"$transactionUUID"))
 
-    if (transaction.vendor.get.secret != secret)
+    if (transaction.vendor.secret != secret)
       throw InvalidMerchantAccountException("")
 
     val validatedTx =
@@ -443,17 +355,14 @@ class TransactionHandler {
     val durationOK = duration < Settings.TransactionDuration
     if (!durationOK) {
       throw TransactionTimeoutException(MogopayConstant.Timeout.toString)
-    } else if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.CUSTOMER_REFUNDED) {
+    } else if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.REFUNDED) {
       throw PaymentNotConfirmedException(MogopayConstant.PaymentNotConfirmed)
     } else if (transaction.merchantConfirmation) {
       throw TransactionAlreadyConfirmedException(MogopayConstant.TransactionAlreadyConfirmed)
     } else {
       val newTx = transaction.copy(merchantConfirmation = true)
       boTransactionHandler.update(newTx, false)
-
-      val transactions = transactionRequestHandler.findByGroupTxUUID(transactionUUID)
-
-      (newTx, transactions)
+      newTx
     }
   }
 
@@ -474,7 +383,7 @@ class TransactionHandler {
     }.getOrElse((None, ShippingDataList(None, Nil)))
   }
 
-  def selectShippingPrice(sessionData: SessionData, accountId: String, shippingDataId: Option[String], externalShippingDataIds: List[String]): Option[SelectShippingCart] = {
+  def selectShippingPrice(sessionData: SessionData, accountId: String, selectShippingDataByShop: Map[String, String]): Option[SelectShippingCart] = {
     shippingAddressHandler.findByAccount(accountId).find(_.active).map { clientAddress =>
       val internationalUnauthorized = sessionData.cart.map { cart =>
         cart.compagnyAddress.map { compagnyAddr =>
@@ -487,16 +396,16 @@ class TransactionHandler {
         val shippingCart = sessionData.shippingCart.getOrElse(throw InvalidContextException("The shippings list wasn't computed."))
         if (shippingCart.hasError) throw InvalidContextException("The shippings list must be computed without error.")
 
-        val selectInternalShippingPrice = if (shippingCart.internalShippingPrices.empty) None
-        else shippingDataId.map {id => shippingCart.internalShippingPrices.findById(id)}.getOrElse(throw NoShippingPriceFound())
-
-        val externalShippingPrices = shippingCart.externalShippingPricesByCartItemId.map { externalShippingDataList =>
-          val externalShippingData = if (externalShippingDataList._2.empty) None
-          else Some(externalShippingDataList._2.shippingPrices.find{esd => externalShippingDataIds.contains(esd.shippingData.id)}.getOrElse(throw NoShippingPriceFound()))
-          externalShippingData.map { esd => (esd.externalCode, esd.shippingData)}
-        }.flatten.toList
-
-        val selectShippingCart = Some(SelectShippingCart(clientAddress.address, selectInternalShippingPrice, Predef.Map(externalShippingPrices : _*)))
+        val shippingPriceByShopId = shippingCart.shippingPricesByShopId.flatMap { shopIdAndShippingPrice =>
+          val shopId = shopIdAndShippingPrice._1
+          val shippingDataList = shopIdAndShippingPrice._2
+          if (shippingDataList.empty) None
+          else {
+            val selectShippingDataId = selectShippingDataByShop.get(shopId).getOrElse(throw NoShippingPriceFound())
+            Some((shopId -> shippingDataList.findById(selectShippingDataId).getOrElse(throw NoShippingPriceFound())))
+          }
+        }
+        val selectShippingCart = Some(SelectShippingCart(clientAddress.address, shippingPriceByShopId))
         sessionData.selectShippingCart = selectShippingCart
         selectShippingCart
       }
@@ -575,36 +484,15 @@ class TransactionHandler {
       throw UnexpectedAmountException(s"${amount.get}")
     }
 
-    val cart = sessionData.cart.getOrElse {
-      if (Settings.Mogopay.Anonymous)
-        Cart(count = 0,
-             rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
-             price = 0,
-             endPrice = 0,
-             taxAmount = 0,
-             reduction = 0,
-             finalPrice = 0,
-             cartItems = Nil,
-             coupons = Nil,
-             customs = Predef.Map())
-      else
-        throw InvalidContextException("Cart isn't set.")
+    val cart = sessionData.cart.getOrElse { throw InvalidContextException("Cart isn't set.") }
+    var selectedShippingCart = sessionData.selectShippingCart.getOrElse(throw InvalidContextException("Shipping price cannot be None"))
 
+    val shopCarts = cart.shopCarts.map { shopCart =>
+      val shippingCart = selectedShippingCart.shippingPriceByShopId.get(shopCart.shopId)
+      val shippingPrice = shippingCart.map {_.price}.getOrElse(0L)
+      new ShopCartWithShipping(shopCart, shippingPrice)
     }
-    var selectedShippingCart: SelectShippingCart = sessionData.selectShippingCart.getOrElse(throw InvalidContextException("Shipping price cannot be None"))
-
-    val cartWithShipping = CartWithShipping(cart.count,
-                                            selectedShippingCart.price,
-                                            cart.rate,
-                                            cart.price,
-                                            cart.endPrice,
-                                            cart.mogobizFinalPrice,
-                                            cart.taxAmount,
-                                            cart.reduction,
-                                            cart.finalPrice + selectedShippingCart.price,
-                                            cart.cartItems,
-                                            cart.coupons,
-                                            cart.customs)
+    val cartWithShipping = new CartWithShipping(cart, shopCarts)
 
     transactionRequestHandler.delete(transactionRequest.uuid, refresh = false)
 
@@ -701,20 +589,15 @@ class TransactionHandler {
           val cardNum   = SymmetricCrypt.decrypt(card.number, Settings.Mogopay.CardSecret, "AES")
           val cardMonth = new SimpleDateFormat("MM").format(card.expiryDate)
           val cardYear  = new SimpleDateFormat("yyyy").format(card.expiryDate)
-          val paymentRequest = initPaymentRequest(vendor,
+          val paymentRequest = initPaymentRequest(vendor.paymentConfig,
                                                   transactionType,
                                                   mogopay = true,
-                                                  transactionRequest.tid,
                                                   cartWithShipping,
-                                                  sessionData,
-                                                  submit.params.transactionDescription.orNull,
-                                                  submit.params.gatewayData.orNull,
                                                   submit.params.customerCVV.orNull,
                                                   cardNum,
                                                   cardMonth,
                                                   cardYear,
-                                                  card.cardType,
-                                                  transactionRequest.groupPaymentExpirationDate)
+                                                  card.cardType)
           sessionData.paymentRequest = Some(paymentRequest)
 
           // user is already authenticated. We check start the mogopayment
@@ -733,20 +616,15 @@ class TransactionHandler {
         throw NotACreditCardTransactionException(s"$transactionType")
       }
     } else {
-      val paymentRequest = initPaymentRequest(vendor,
+      val paymentRequest = initPaymentRequest(vendor.paymentConfig,
                                               transactionType,
                                               mogopay = false,
-                                              transactionRequest.tid,
                                               cartWithShipping,
-                                              sessionData,
-                                              submit.params.transactionDescription.orNull,
-                                              submit.params.gatewayData.orNull,
                                               submit.params.customerCVV.orNull,
                                               submit.params.ccNum.orNull,
                                               submit.params.ccMonth.orNull,
                                               submit.params.ccYear.orNull,
-                                              toCardType(submit.params.ccType.orNull),
-                                              transactionRequest.groupPaymentExpirationDate)
+                                              toCardType(submit.params.ccType.orNull))
       sessionData.paymentRequest = Some(paymentRequest)
       val handler = if (submit.sessionData.transactionType.contains("CREDIT_CARD")) {
         val providerName = sessionData.paymentConfig.get.cbProvider.toString.toLowerCase
@@ -771,7 +649,7 @@ class TransactionHandler {
         if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(langCountry))
           val (subject, body) =
-            templateHandler.mustache(transaction.vendor, "download-bill", Some(langCountry), jsonString)
+            templateHandler.mustache(Some(transaction.vendor), "download-bill", Some(langCountry), jsonString)
           pdfHandler.convertToPdf(pageFormat, body)
         } else throw new PaymentNotConfirmedException(transactionUuid)
       }
@@ -779,75 +657,36 @@ class TransactionHandler {
     }
   }
 
-  protected def initPaymentRequest(vendor: Account,
+  protected def initPaymentRequest(paymentConfig: Option[PaymentConfig],
                                    transactionType: Option[String],
                                    mogopay: Boolean,
-                                   transactionSequence: Long,
                                    cart: CartWithShipping,
-                                   sessionData: SessionData,
-                                   transactionDesc: String,
-                                   gatewayData: String,
                                    ccCrypto: String,
                                    card_number: String,
                                    card_month: String,
                                    card_year: String,
-                                   card_type: CreditCardType,
-                                   groupPaymentExpirationDate: Option[Long]): PaymentRequest = {
-    var errors: Seq[Exception] = Seq()
+                                   card_type: CreditCardType): PaymentRequest = {
 
-    var cc_type: CreditCardType = null
-    val transactionEmail: String = sessionData.email.orNull
-    var cc_num: String   = null
-    var cc_month: String = null
-    var cc_year: String  = null
-
-    cc_type = card_type
-    cc_month = card_month
-    cc_year = card_year
-    //    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else ""
-    //    val maskedCCNumber = hideStringExceptLastN(cc_num)
-    cc_num = if (card_number != null) card_number.replaceAll(" ", "") else card_number
-    val maskedCCNumber = if (cc_num == null) null else hideStringExceptLastN(cc_num)
-
-    val amount: Long           = sessionData.amount.getOrElse(0L)
-    val externalPages: Boolean = vendor.paymentConfig.orNull.paymentMethod == CBPaymentMethod.EXTERNAL
-    var paymentProvider = CBPaymentProvider.NONE
-    var paymentRequest: PaymentRequest = PaymentRequest(UUID.randomUUID.toString,
-                                                        "-1",
-                                                        null,
-                                                        -1L,
-                                                        maskedCCNumber,
-                                                        "",
-                                                        null,
-                                                        null,
-                                                        "",
-                                                        "",
-                                                        "",
-                                                        "",
-                                                        cart,
-                                                        "",
-                                                        "",
-                                                        sessionData.csrfToken.orNull,
-                                                        cart.rate,
-                                                        groupPaymentExpirationDate)
+    val cc_num = if (card_number != null) card_number.replaceAll(" ", "") else null
+    val externalPages: Boolean = paymentConfig.exists(_.paymentMethod == CBPaymentMethod.EXTERNAL)
+    val paymentRequest: PaymentRequest = PaymentRequest(cart)
 
     if (transactionType.getOrElse("CREDIT_CARD") == "CREDIT_CARD" && (!externalPages || mogopay)) {
-      paymentProvider = vendor.paymentConfig.orNull.cbProvider
-      if (cc_type == null) {
+      if (card_type == null) {
         throw SomeParameterIsMissingException(MogopayConstant.CreditCardTypeRequired)
       } else if (cc_num == null) {
         throw SomeParameterIsMissingException(MogopayConstant.CreditCardNumRequired)
-      } else if (cc_month == null) {
+      } else if (card_month == null) {
         throw SomeParameterIsMissingException(MogopayConstant.CreditCardMonthRequired)
-      } else if (cc_year == null) {
+      } else if (card_year == null) {
         throw SomeParameterIsMissingException(MogopayConstant.CreditCardYearRequired)
       } else if (ccCrypto == null) {
         throw SomeParameterIsMissingException(MogopayConstant.CreditCardCryptoRequired)
       } else {
         // Construction et controle de la date de validite
         val cal = Calendar.getInstance()
-        cal.set(Calendar.MONTH, cc_month.toInt - 1)
-        cal.set(Calendar.YEAR, cc_year.toInt)
+        cal.set(Calendar.MONTH, card_month.toInt - 1)
+        cal.set(Calendar.YEAR, card_year.toInt)
         cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.MONTH))
 
         // ce n'est pas à nous de contrôler la date de validité. C'est au prestataire de paiement
@@ -855,24 +694,16 @@ class TransactionHandler {
         if (cc_date.compareTo(new Date()) < 0) {
           throw SomeParameterIsMissingException(MogopayConstant.CreditCardExpiryDateInvalid)
         } else {
-          paymentRequest = paymentRequest.copy(
-              cardType = cc_type,
-              ccNumber = cc_num, // we don't store the credit card number (for security purpose)
-              expirationDate = cc_date,
-              cvv = ccCrypto
+          paymentRequest.copy(
+              cardType = Some(card_type),
+              ccNumber = Some(cc_num), // we don't store the credit card number (for security purpose)
+              expirationDate = Some(cc_date),
+              cvv = Some(ccCrypto)
           )
         }
       }
     }
-
-    paymentRequest.copy(
-        transactionEmail = transactionEmail,
-        transactionSequence = transactionSequence.toString,
-        orderDate = new Date,
-        amount = amount,
-        transactionDesc = transactionDesc,
-        gatewayData = gatewayData
-    )
+    else paymentRequest
   }
 
   def initGroupPayment(token: String): (Account, TransactionRequest, String, String, String) = {
@@ -893,64 +724,7 @@ class TransactionHandler {
     (account, txReq, groupTxUUID, successURL, failureURL)
   }
 
-  def refund(merchantSecret: String,
-             boTransactionUUID: String,
-             maybeAmount: Option[Long] = None,
-             locale: Option[String]) {
-    type Params = (PaymentConfig, BOTransaction, Long)
-    val handlers = Map(
-        CBPaymentProvider.AUTHORIZENET -> ((p: Params) => authorizeNetHandler.refund(p._1, p._2, p._3, null)),
-        CBPaymentProvider.SYSTEMPAY    -> ((p: Params) => systempayHandler.refund(p._1, p._2, p._3, null)),
-        CBPaymentProvider.PAYLINE      -> ((p: Params) => paylineHandler.refund(p._1, p._2, p._3, null)),
-        CBPaymentProvider.PAYBOX       -> ((p: Params) => payboxHandler.refund(p._1, p._2, p._3, null)),
-        CBPaymentProvider.SIPS         -> ((p: Params) => sipsHandler.refund(p._1, p._2, p._3, null)),
-        CBPaymentProvider.CUSTOM -> ((p: Params) =>
-              if (customPaymentHandler != null) customPaymentHandler.refund(p._1, p._2, p._3, null)
-              else throw new InvalidPaymentHandlerException("Custom Payment Handler not found"))
-    )
-
-    val merchant      = accountHandler.findBySecret(merchantSecret).getOrElse(throw new VendorNotFoundException)
-    val paymentConfig = merchant.paymentConfig.getOrElse(throw new PaymentConfigNotFoundException)
-    val boTransaction = boTransactionHandler
-      .find(boTransactionUUID)
-      .getOrElse(throw new TransactionNotFoundException(boTransactionUUID))
-
-    if (maybeAmount.exists(_ > boTransaction.amount))
-      throw new TheRefundAmountIsHigherThanTheInitialAmountException()
-
-    if (boTransaction.status == TransactionStatus.CUSTOMER_REFUNDED) {
-      throw new PaymentAlreadyRefundedException()
-    }
-
-    if (boTransaction.paymentData.cbProvider == CBPaymentProvider.NONE) {
-      throw new RefundNotSupportedException()
-    }
-
-    val amount: Long =
-      maybeAmount.getOrElse((boTransaction.amount.toFloat * boTransaction.groupPaymentRefundPercentage / 100).toLong)
-
-    val call         = handlers.getOrElse(paymentConfig.cbProvider, throw new RefundNotSupportedException)
-    val refundResult = call(paymentConfig, boTransaction, amount)
-
-    if (refundResult.status == PaymentStatus.REFUNDED) {
-      updateStatus(boTransaction.uuid, None, TransactionStatus.CUSTOMER_REFUNDED)
-      notifySuccessRefund(boTransaction, locale)
-    } else {
-      val message = refundResult.errorMessage.map(s => s" — $s").getOrElse("")
-      throw new RefundException(s"[${paymentConfig.cbProvider}] ${refundResult.errorCode}$message")
-    }
-  }
-
-  def refundGroupPayments() = {
-    val transactions = boTransactionHandler.findAllGroupTransactions()
-    transactions
-      .filter(tx => tx.groupPaymentExpirationDate.exists(_ * 1000 <= (new Date).getTime))
-      .filter(tx => tx.status == TransactionStatus.PAYMENT_CONFIRMED)
-      .foreach(transaction =>
-            transactionHandler.refund(transaction.vendor.get.secret, transaction.uuid, Some(transaction.amount), None))
-  }
-
-  protected def serializeCart(cart: CartWithShipping): String = {
+  def serializeCart(cart: CartWithShipping): String = {
     JacksonConverter.serialize(cart)
   }
 }
@@ -1164,19 +938,35 @@ object BOTransactionJsonTransform {
     val currencyCode: String = cart.rate.code
     val fractionDigits: Int  = cart.rate.fractionDigits
     JObject(
-        JField("shipping", formatPrice(locale, cart.shippingPrice, currencyCode, fractionDigits)),
-        JField("price", formatPrice(locale, cart.price, currencyCode, fractionDigits)),
-        JField("taxAmount", formatPrice(locale, cart.taxAmount, currencyCode, fractionDigits)),
-        JField("endPrice", formatPrice(locale, cart.endPrice, currencyCode, fractionDigits)),
-        JField("reduction", formatPrice(locale, cart.reduction, currencyCode, fractionDigits)),
-        JField("finalPrice", formatPrice(locale, cart.finalPrice, currencyCode, fractionDigits)),
-        JField("cartItems", JArray(cart.cartItems.toList.map { cartItem =>
-          transformCartItem(cartItem, locale, currencyCode, fractionDigits)
-        })),
-        JField("coupons", JArray(cart.coupons.toList.map { coupon =>
-          transformCoupon(coupon, locale, currencyCode, fractionDigits)
-        }))
+      JField("shipping", formatPrice(locale, cart.shippingPrice, currencyCode, fractionDigits)),
+      JField("price", formatPrice(locale, cart.price, currencyCode, fractionDigits)),
+      JField("taxAmount", formatPrice(locale, cart.taxAmount, currencyCode, fractionDigits)),
+      JField("endPrice", formatPrice(locale, cart.endPrice, currencyCode, fractionDigits)),
+      JField("reduction", formatPrice(locale, cart.reduction, currencyCode, fractionDigits)),
+      JField("finalPrice", formatPrice(locale, cart.finalPrice, currencyCode, fractionDigits)),
+      JField("shopCarts", JArray(cart.shopCarts.map { shopCart =>
+        transformShopCart(shopCart, locale)
+      }))
     ).merge(Extraction.decompose(cart.customs))
+  }
+
+  private def transformShopCart(shopCart: ShopCartWithShipping, locale: Locale): JValue = {
+    val currencyCode: String = shopCart.rate.code
+    val fractionDigits: Int  = shopCart.rate.fractionDigits
+    JObject(
+      JField("shipping", formatPrice(locale, shopCart.shippingPrice, currencyCode, fractionDigits)),
+      JField("price", formatPrice(locale, shopCart.price, currencyCode, fractionDigits)),
+      JField("taxAmount", formatPrice(locale, shopCart.taxAmount, currencyCode, fractionDigits)),
+      JField("endPrice", formatPrice(locale, shopCart.endPrice, currencyCode, fractionDigits)),
+      JField("reduction", formatPrice(locale, shopCart.reduction, currencyCode, fractionDigits)),
+      JField("finalPrice", formatPrice(locale, shopCart.finalPrice, currencyCode, fractionDigits)),
+      JField("cartItems", JArray(shopCart.cartItems.map { cartItem =>
+        transformCartItem(cartItem, locale, currencyCode, fractionDigits)
+      })),
+      JField("coupons", JArray(shopCart.coupons.map { coupon =>
+        transformCoupon(coupon, locale, currencyCode, fractionDigits)
+      }))
+    ).merge(Extraction.decompose(shopCart.customs))
   }
 
   private def transformCartItem(cartItem: CartItem,

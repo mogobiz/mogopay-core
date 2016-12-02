@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.handlers.shipping
 
-import com.mogobiz.pay.common.{Cart, ShippingWithQuantity}
+import com.mogobiz.pay.common.{Cart, ShippingWithQuantity, ShopCart}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model._
@@ -32,16 +32,12 @@ trait ShippingHandler extends StrictLogging {
         }.getOrElse(0.01) * Math.pow(10, currencyFractionDigits.doubleValue())).asInstanceOf[Long]
   }
 
-  def extractShippingContent(cart: Cart): List[ShippingWithQuantity] = {
-    cart.cartItems.map { cartItem =>
-      if (!cartItem.externalCode.isEmpty) None
-      else {
-        cartItem.shipping.map { shipping =>
-          if (shipping.isDefine) Some(ShippingWithQuantity(cartItem.quantity, shipping))
-          else None
-        }.flatten
+  def extractShippingContent(cart: ShopCart): List[ShippingWithQuantity] = {
+    cart.cartItems.flatMap { cartItem =>
+      cartItem.shipping.flatMap { shipping =>
+        Some(ShippingWithQuantity(cartItem.quantity, shipping))
       }
-    }.flatten.toList
+    }
   }
 
   def createShippingData(shippingAddress: AccountAddress,
@@ -103,16 +99,14 @@ object ShippingHandler {
     case _ => 99
   }
 
-  def confirmShippingPrice(shippingCart: Option[SelectShippingCart]): Option[ShippingData] = {
-    shippingCart.map { shippingCart =>
-      shippingCart.internalShippingPrice.map { shippingPrice =>
-        val serviceOpt = servicesList.find {
-          _.isValidShipmentId(shippingPrice)
-        }
-        serviceOpt.map { service =>
-          service.confirmShipmentId(shippingPrice)
-        }
-      }.getOrElse(None)
+  def confirmShippingPrice(shippingPrice: Option[ShippingData]): Option[ShippingData] = {
+    shippingPrice.map { shippingPrice =>
+      val serviceOpt = servicesList.find {
+        _.isValidShipmentId(shippingPrice)
+      }
+      serviceOpt.map { service =>
+        service.confirmShipmentId(shippingPrice)
+      }
     }.getOrElse(None)
   }
 }

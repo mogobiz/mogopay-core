@@ -59,8 +59,7 @@ class TransactionService(implicit executionContext: ExecutionContext)
       submit ~
       submitWithSession ~
       download ~
-      initGroupPayment ~
-      refund
+      initGroupPayment
     }
   }
 
@@ -75,21 +74,9 @@ class TransactionService(implicit executionContext: ExecutionContext)
           {
             import Implicits._
             val cart: Cart = session.sessionData.cart.getOrElse {
-              if (Settings.Mogopay.Anonymous)
-                Cart(count = 0,
-                     rate = CartRate(code = "EUR", numericCode = 978, rate = 0.01, fractionDigits = 2),
-                     price = 0,
-                     endPrice = 0,
-                     taxAmount = 0,
-                     reduction = 0,
-                     finalPrice = 0,
-                     cartItems = Nil,
-                     coupons = Nil,
-                     customs = Map[String, Any]())
-              else
-                throw InvalidContextException("Cart isn't set.")
+              throw InvalidContextException("Cart isn't set.")
             }
-            handleCall(transactionHandler.init(params, cart),
+            handleCall(transactionHandler.init(session.sessionData, params, cart),
                        (id: String) => complete(StatusCodes.OK -> Map('transaction_id -> id)))
           }
         }
@@ -106,10 +93,8 @@ class TransactionService(implicit executionContext: ExecutionContext)
       params { (secret, amount, transactionUUID) =>
         handleCall(
             transactionHandler.verify(secret, amount, transactionUUID),
-            (result: (BOTransaction, Seq[TransactionRequest])) => {
-              val transaction   = result._1
-              val transactions  = result._2
-              val shipmentError = "SHIPMENT_ERROR".equals(transaction.errorCodeOrigin.getOrElse(""))
+            (transaction: BOTransaction) => {
+              val shipmentError = TransactionStatus.SHIPMENT_ERROR == transaction.status
               complete(
                   StatusCodes.OK -> Map(
                       'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED && !shipmentError)
@@ -118,17 +103,15 @@ class TransactionService(implicit executionContext: ExecutionContext)
                       'transaction_id       -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
                       'transaction_amount   -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
                       'transaction_email    -> Option(transaction.email).getOrElse(""),
-                      'transaction_sequence -> transaction.paymentData.transactionSequence.getOrElse(""),
                       'transaction_status   -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
                       'transaction_start -> URLEncoder
                         .encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated), "UTF-8"),
                       'transaction_end -> URLEncoder.encode(
-                          new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.transactionDate.get),
+                          new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated),
                           "UTF-8"),
                       'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
-                      'transaction_type       -> URLEncoder.encode(transaction.paymentData.paymentType.toString, "UTF-8"),
-                      'group_transactions     -> transactions,
-                      'error_shipment         -> (if (shipmentError) transaction.errorMessageOrigin.getOrElse("") else "")
+                      'transaction_type       -> URLEncoder.encode(transaction.paymentType.toString, "UTF-8"),
+                      'error_shipment         -> (if (shipmentError) transaction.error.getOrElse("") else "")
                   )
               )
             })
@@ -167,16 +150,6 @@ class TransactionService(implicit executionContext: ExecutionContext)
                        }
                      })
         }
-      }
-    }
-  }
-
-  lazy val refund = path("refund") {
-    get {
-      val params = parameters('merchant_secret, 'amount.as[Long], 'bo_transaction_uuid, 'locale.?)
-      params { (merchantSecret, amount, boTransactionUUID, locale) =>
-        handleCall(transactionHandler.refund(merchantSecret, boTransactionUUID, Option(amount), locale),
-                   (_: Any) => complete(200 -> ""))
       }
     }
   }

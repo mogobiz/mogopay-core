@@ -16,6 +16,7 @@ import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
 import spray.http.{Uri, _}
 
+import scala.Either
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util._
@@ -30,7 +31,7 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
 
   /**
     * Returns a String to print, or a URL to redirect to
-    */
+    *//*
   def startPayment(sessionData: SessionData): Either[String, Uri] = {
     val paymentRequest = sessionData.paymentRequest.get
     val amount         = sessionData.amount.get
@@ -97,4 +98,6 @@ class ApplePayHandler(handlerName: String) extends PaymentHandler with CustomSsl
                       boTx: BOTransaction,
                       amount: Long,
                       paymentResult: PaymentResult): RefundResult = ???
+                      */
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
 }

@@ -4,7 +4,7 @@
 
 package com.ebiznext.mogopay.payment
 
-import java.io.{StringWriter, File, IOException}
+import java.io.{File, IOException, StringWriter}
 import java.net.URLEncoder
 import java.text.DecimalFormat
 import java.text.ParseException
@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Enumeration
+
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.atosorigin.services.cad.apipayment.SIPSCallParm
@@ -19,7 +20,7 @@ import com.atosorigin.services.cad.apipayment.web.SIPSApiWeb
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeApi
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeRequestParm
 import com.atosorigin.services.cad.apiserver.components.service.office.SIPSOfficeResponseParm
-import com.atosorigin.services.cad.apiserver.components.service.checkout.{SIPSCheckoutResponseParm, SIPSCheckoutRequestParm, SIPSCheckoutApi}
+import com.atosorigin.services.cad.apiserver.components.service.checkout.{SIPSCheckoutApi, SIPSCheckoutRequestParm, SIPSCheckoutResponseParm}
 import com.atosorigin.services.cad.common.SIPSDataObject
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.PaymentStatus
@@ -27,13 +28,12 @@ import com.mogobiz.pay.model.PaymentStatus._
 import com.mogobiz.pay.model.TransactionStatus
 import com.mogobiz.pay.model.TransactionStatus._
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.{RefundException, InvalidContextException, MogopayError}
-import com.mogobiz.pay.handlers.payment.{BankErrorCodes, ThreeDSResult, PaymentHandler}
+import com.mogobiz.pay.exceptions.Exceptions.{InvalidContextException, MogopayError, RefundException}
+import com.mogobiz.pay.handlers.payment.{BankErrorCodes, FormRedirection, PaymentHandler, ThreeDSResult}
 import com.mogobiz.pay.model.ResponseCode3DS
 import com.mogobiz.pay.model.ResponseCode3DS._
-import com.mogobiz.pay.model.TransactionStep.TransactionStep
 import com.mogobiz.pay.model._
-import com.mogobiz.utils.{GlobalUtil, CustomSslConfiguration}
+import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
 import com.mogobiz.utils.GlobalUtil._
 import org.json4s.jackson.JsonMethods._
 import spray.http.Uri
@@ -70,7 +70,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   val paymentType      = PaymentType.CREDIT_CARD
 
   import SipsHandler._
-
+/*
   def computeTransactionStatus(paymentStatus: PaymentStatus): TransactionStatus = {
     paymentStatus match {
       case PaymentStatus.CANCEL_FAILED => TransactionStatus.CANCEL_FAILED
@@ -797,6 +797,10 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val status       = if (responseCode == "00") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, responseCode.toString, errorMessages.get(responseCode))
   }
+  */
+
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+
 }
 
 object SipsHandler {

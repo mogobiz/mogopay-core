@@ -29,6 +29,8 @@ class SystempayService extends Directives with DefaultComplete with StrictLoggin
   }
 
   lazy val startPayment = path("start" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     import Implicits._
 
     get {
@@ -44,10 +46,12 @@ class SystempayService extends Directives with DefaultComplete with StrictLoggin
             }
         })
       }
-    }
+    }*/
   }
 
   lazy val done = path("done" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     import Implicits._
     get {
       logger.debug("done:" + xtoken)
@@ -58,10 +62,12 @@ class SystempayService extends Directives with DefaultComplete with StrictLoggin
             redirect(data, StatusCodes.TemporaryRedirect)
         })
       }
-    }
+    }*/
   }
 
   lazy val callback = path("callback" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     get {
       parameterMap { params =>
         import Implicits._
@@ -69,10 +75,12 @@ class SystempayService extends Directives with DefaultComplete with StrictLoggin
         handleCall(systempayHandler.callbackPayment(session.sessionData, params),
                    (pr: PaymentResult) => complete(StatusCodes.OK, pr))
       }
-    }
+    }*/
   }
 
   lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
+    complete(StatusCodes.OK)
+/*
     post {
       entity(as[FormData]) { formData =>
         import Implicits.MogopaySession
@@ -84,6 +92,6 @@ class SystempayService extends Directives with DefaultComplete with StrictLoggin
         handleCall(systempayHandler.threeDSCallback(session.sessionData, formData.fields.toMap),
                    (u: Uri) => redirect(u, StatusCodes.TemporaryRedirect))
       }
-    }
+    }*/
   }
 }

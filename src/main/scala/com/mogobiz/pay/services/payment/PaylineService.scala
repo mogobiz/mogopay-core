@@ -4,11 +4,10 @@
 
 package com.mogobiz.pay.services.payment
 
-import akka.actor.ActorRef
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.handlers.payment.FormRedirection
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
 import com.typesafe.scalalogging.StrictLogging
@@ -16,7 +15,6 @@ import spray.http.HttpHeaders.`Content-Type`
 import spray.http._
 import spray.routing.Directives
 
-import scala.concurrent.ExecutionContext
 import scala.util._
 
 class PaylineService extends Directives with DefaultComplete with StrictLogging {
@@ -35,11 +33,11 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.startPayment(session.sessionData), (data: Either[String, Uri]) =>
+        handleCall(paylineHandler.startPayment(session.sessionData), (data: Either[FormRedirection, Uri]) =>
               setSession(session) {
             data match {
               case Left(content) =>
-                complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
+                complete(HttpResponse(entity = content.html).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
               case Right(url) =>
                 logger.debug(url.toString())
                 redirect(url, StatusCodes.TemporaryRedirect)
@@ -49,39 +47,57 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
     }
   }
 
-  lazy val done = path("done" / Segment) { xtoken =>
-    import Implicits._
+  lazy val done = path("done" / Segment / Segment) { (xtoken, boShopTransaction) =>
     get {
       parameterMap { params =>
-        val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.done(session.sessionData, params), (data: Uri) =>
-              setSession(session) {
+        import Implicits._
+        val session = SessionESDirectives.load(xtoken)
+        handleCall(paylineHandler.done(boShopTransaction, params), (data: Uri) =>
+          session.map { session =>
+            setSession(session) {
+              redirect(data, StatusCodes.TemporaryRedirect)
+            }
+          }.getOrElse {
             redirect(data, StatusCodes.TemporaryRedirect)
-        })
+          }
+        )
       }
     }
   }
 
-  lazy val callback = path("callback" / Segment) { xtoken =>
-    import Implicits._
+  lazy val callback = path("callback" / Segment / Segment) { (xtoken, boShopTransaction) =>
     get {
       parameterMap { params =>
-        val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.callbackPayment(session.sessionData, params),
-                   (pr: PaymentResult) => complete(StatusCodes.OK, pr))
+        import Implicits._
+        val session = SessionESDirectives.load(xtoken)
+        handleCall(paylineHandler.callbackPayment(boShopTransaction, params), (pr: Unit) =>
+          session.map { session =>
+            setSession(session) {
+              complete(StatusCodes.OK)
+            }
+          }.getOrElse {
+            complete(StatusCodes.OK)
+          }
+        )
       }
     }
   }
 
-  lazy val threeDSCallback = path("3ds-callback" / Segment) { xtoken =>
+  lazy val threeDSCallback = path("3ds-callback" / Segment / Segment) { (xtoken, boShopTransaction) =>
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
-        val session = SessionESDirectives.load(xtoken).get
-        handleCall(paylineHandler.threeDSCallback(session.sessionData, formData.fields.toMap), (data: Uri) =>
-              setSession(session) {
+        val session = SessionESDirectives.load(xtoken)
+        val sessionData = session.map{_.sessionData}
+        handleCall(paylineHandler.threeDSCallback(sessionData, boShopTransaction, formData.fields.toMap), (data: Uri) =>
+          session.map { session =>
+            setSession(session) {
+              redirect(data, StatusCodes.TemporaryRedirect)
+            }
+          }.getOrElse {
             redirect(data, StatusCodes.TemporaryRedirect)
-        })
+          }
+        )
       }
     }
   }

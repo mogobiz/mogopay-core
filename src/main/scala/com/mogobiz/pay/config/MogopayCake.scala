@@ -19,6 +19,8 @@ trait MogopayCake {
 
   def boTransactionHandler: BOTransactionHandler
 
+  def boShopTransactionHandler: BOShopTransactionHandler
+
   def boTransactionLogHandler: BOTransactionLogHandler
 
   def countryAdminHandler: CountryAdminHandler
@@ -30,8 +32,6 @@ trait MogopayCake {
   def countryHandler: CountryHandler
 
   def creditCardHandler: CreditCardHandler
-
-  def paymentRequestHandler: PaymentRequestHandler
 
   def rateHandler: RateHandler
 
@@ -84,13 +84,13 @@ class DefaultMogopayCake extends MogopayCake {
   val backofficeHandler                = new BackofficeHandler
   val boCreditCardHandler              = new BOCreditCardHandler
   val boTransactionHandler             = new BOTransactionHandler
+  val boShopTransactionHandler         = new BOShopTransactionHandler
   val boTransactionLogHandler          = new BOTransactionLogHandler
   val countryAdminHandler              = new CountryAdminHandler
   val countryImportHandler             = new CountryImportHandler
   val rateImportHandler                = new RateImportHandler
   val countryHandler                   = new CountryHandler
   val creditCardHandler                = new CreditCardHandler
-  val paymentRequestHandler            = new PaymentRequestHandler
   val rateHandler                      = new RateHandler
   val roleHandler                      = new RoleHandler
   val shippingAddressHandler           = new ShippingAddressHandler

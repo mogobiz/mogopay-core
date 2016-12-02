@@ -24,10 +24,12 @@ import com.mogobiz.pay.model._
 import com.mogobiz.utils.GlobalUtil._
 
 class TraceHandler extends SOAPHandler[SOAPMessageContext] {
-  def this(transaction: BOTransaction, provider: String) {
+  def this(transactionUuid: String, transactionShopUuid: String, provider: String, step: TransactionShopStep.TransactionShopStep) {
     this()
-    this.transaction = transaction
+    this.transactionUuid = transactionUuid
+    this.transactionShopUuid = transactionShopUuid
     this.provider = provider
+    this.step = step
   }
 
   def handleFault(smc: SOAPMessageContext): Boolean = {
@@ -50,10 +52,11 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
       val log: BOTransactionLog = BOTransactionLog(
           uuid = newUUID,
           direction = "IN",
-          log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
+          log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray), "UTF-8"),
           provider = provider,
-          transaction = transaction.uuid,
-          step = null
+          transactionUuid = transactionUuid,
+          transactionShopUuid = transactionShopUuid,
+          step = step
       )
       boTransactionLogHandler.save(log)
     }
@@ -98,8 +101,9 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
             direction = if (outboundProperty) "OUT" else "IN",
             log = "soapbody=" + URLEncoder.encode(new String(soapReq.toByteArray)),
             provider = provider,
-            transaction = transaction.uuid,
-            step = null
+            transactionUuid = transactionUuid,
+            transactionShopUuid = transactionShopUuid,
+            step = step
         )
         boTransactionLogHandler.save(log)
       } catch {
@@ -109,14 +113,6 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
       }
     }
     outboundProperty
-  }
-
-  def getTransaction: BOTransaction = {
-    return transaction
-  }
-
-  def setTransaction(transaction: BOTransaction) {
-    this.transaction = transaction
   }
 
   def getProvider: String = {
@@ -131,7 +127,9 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
     headers
   }
 
-  private var transaction: BOTransaction = null
+  private var transactionUuid: String = null
+  private var transactionShopUuid: String = null
   private var provider: String           = null
+  private var step: TransactionShopStep.TransactionShopStep = null
   private final val headers: Set[QName] = null
 }

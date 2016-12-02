@@ -8,7 +8,8 @@ import com.easypost.EasyPost
 import com.easypost.model._
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
-import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity}
+import com.mogobiz.pay.codes.MogopayConstant
+import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity, ShopCart}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.ShippingException
@@ -37,21 +38,23 @@ class EasyPostHandler extends ShippingHandler {
 
   override def computePrice(shippingAddress: ShippingAddress, cart: Cart): ShippingDataList = {
     cart.compagnyAddress.map { compagnyAddress =>
-      val shippingContent = extractShippingContent(cart)
-      computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
-        val fixPrice = cart.shippingRulePrice.map { price =>
-          Some(convertStorePrice(price, cart))
-        }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
-        val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
-        val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
+      cart.shopCarts.find(_.shopId == MogopayConstant.SHOP_MOGOBIZ).map { mogobizShop =>
+        val shippingContent = extractShippingContent(mogobizShop)
+        computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
+          val fixPrice = cart.shippingRulePrice.map { price =>
+            Some(convertStorePrice(price, cart))
+          }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
+          val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
+          val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
 
-        Try(computeRate(compagnyAddress, shippingAddress, cart, parcel, fixPrice, amount)) match {
-          case Success(r) => r
-          case Failure(ex) => {
-            logger.info(ex.getMessage, ex)
-            ShippingDataList(Some(ShippingPriceError.UNKNOWN), Nil)
+          Try(computeRate(compagnyAddress, shippingAddress, cart, mogobizShop, parcel, fixPrice, amount)) match {
+            case Success(r) => r
+            case Failure(ex) => {
+              logger.info(ex.getMessage, ex)
+              ShippingDataList(Some(ShippingPriceError.UNKNOWN), Nil)
+            }
           }
-        }
+        }.getOrElse(ShippingDataList(None, Nil))
       }.getOrElse(ShippingDataList(None, Nil))
     }.getOrElse(ShippingDataList(Some(ShippingPriceError.NO_COMPAGNY_ADDRESS), Nil))
   }
@@ -59,6 +62,7 @@ class EasyPostHandler extends ShippingHandler {
   protected def computeRate(compagnyAddress: CompanyAddress,
                             shippingAddress: ShippingAddress,
                             cart: Cart,
+                            mogobizShop: ShopCart,
                             parcel: ShippingParcel,
                             fixPrice: Option[Long],
                             amount: Long): ShippingDataList = {
@@ -66,7 +70,8 @@ class EasyPostHandler extends ShippingHandler {
         compagnyAddress,
         shippingAddress.address,
         parcel,
-        cart
+        cart,
+        mogobizShop
     )
 
     val easyPostRates = shipment.getRates.toList
@@ -190,7 +195,7 @@ class EasyPostHandler extends ShippingHandler {
                                         fixParcel: Option[ShippingParcel],
                                         parcel: Option[ShippingParcel])
 
-  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart): Shipment = {
+  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart, shopCart: ShopCart): Shipment = {
     val parcelMap = mutable.HashMap[String, AnyRef]("height" -> parcel.height.asInstanceOf[AnyRef],
                                                     "width"  -> parcel.width.asInstanceOf[AnyRef],
                                                     "length" -> parcel.length.asInstanceOf[AnyRef],
@@ -201,8 +206,8 @@ class EasyPostHandler extends ShippingHandler {
     val shipmentMap = mutable.HashMap[String, AnyRef]("from_address" -> companyAddressToMap(from),
                                                       "to_address"   -> accountAddressToMap(to),
                                                       "parcel"       -> parc,
-                                                      "reference"    -> cart.cartItems(0).id,
-                                                      "customs_info" -> cartToMap(cart))
+                                                      "reference"    -> shopCart.cartItems(0).id,
+                                                      "customs_info" -> cartToMap(cart, shopCart))
 
     if (Settings.Shipping.EasyPost.UpsCostCenter.length > 0)
       shipmentMap
@@ -211,7 +216,7 @@ class EasyPostHandler extends ShippingHandler {
     Shipment.create(shipmentMap)
   }
 
-  protected def cartToMap(cart: Cart): CustomsInfo = {
+  protected def cartToMap(cart: Cart, shopCart: ShopCart): CustomsInfo = {
     val originCountry = cart.compagnyAddress.map {
       _.country
     }.getOrElse("US")
@@ -220,7 +225,7 @@ class EasyPostHandler extends ShippingHandler {
       _.currencyFractionDigits
     }.getOrElse(2)
 
-    val customsItemsList: java.util.List[AnyRef] = cart.cartItems.flatMap { cartItem =>
+    val customsItemsList: java.util.List[AnyRef] = shopCart.cartItems.flatMap { cartItem =>
       cartItem.shipping.map { shipping =>
         val price     = cartItem.saleTotalEndPrice
         val p: Double = Math.pow(10, currencyFractionDigits.doubleValue());

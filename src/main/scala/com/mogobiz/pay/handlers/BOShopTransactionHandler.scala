@@ -6,16 +6,16 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.TransactionNotFoundException
 import com.mogobiz.pay.model._
-import com.mogobiz.pay.sql.BOTransactionDAO
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.mogobiz.pay.sql.BOShopTransactionDAO
+import com.sksamuel.elastic4s.ElasticDsl.{termFilter, search => searchES, and}
 
-class BOTransactionHandler {
-  def find(uuid: String): Option[BOTransaction] = {
-    EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, uuid)
+class BOShopTransactionHandler {
+  def find(uuid: String): Option[BOShopTransaction] = {
+    EsClient.load[BOShopTransaction](Settings.Mogopay.EsIndex, uuid)
   }
 
+  /*
   def findByGroupTxUUID(uuid: String): Seq[BOTransaction] = {
     val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter termFilter("groupTransactionUUID", uuid) from 0 size EsClient.MAX_SIZE
     EsClient.searchAll[BOTransaction](req)
@@ -26,7 +26,7 @@ class BOTransactionHandler {
                                                                                      shipmentId)
     EsClient.search[BOTransaction](req)
   }
-/*
+
   def findOtherGroupBOTx(uuid: String): Seq[BOTransaction] = {
     find(uuid)
       .flatMap(_.groupTransactionUUID)
@@ -43,11 +43,21 @@ class BOTransactionHandler {
     EsClient.searchAll[BOTransaction](req)
   }*/
 
-  def save(transaction: BOTransaction, refresh: Boolean = false) = {
-    BOTransactionDAO.upsert(transaction)
-    EsClient.index(Settings.Mogopay.EsIndex, transaction, refresh)
+  def findByShopIdAndTransactionUuid(shopId: String, transactionUuid: String): Option[BOShopTransaction] = {
+    val query = searchES in Settings.Mogopay.EsIndex ->"BOShopTransaction" postFilter and(
+      termFilter("shopId", shopId),
+      termFilter("transactionUUID", transactionUuid)
+    )
+    val list = EsClient.searchAll[BOShopTransaction](query).toList
+    if (list.isEmpty) None
+    else Some(list.head)
   }
 
+  def save(transaction: BOShopTransaction, refresh: Boolean = false) = {
+    BOShopTransactionDAO.upsert(transaction)
+    EsClient.index(Settings.Mogopay.EsIndex, transaction, refresh)
+  }
+/*
   def update(transaction: BOTransaction, refresh: Boolean): Boolean = {
     val updateResult = BOTransactionDAO.update(transaction)
     if (updateResult == 0) {
@@ -55,4 +65,5 @@ class BOTransactionHandler {
     }
     EsClient.update[BOTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
   }
+  */
 }
