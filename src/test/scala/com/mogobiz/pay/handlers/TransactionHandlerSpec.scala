@@ -30,7 +30,7 @@ class TransactionHandlerSpec extends Specification with Before {
 //    val tx = BOTransaction("123", null, None, None, 100, null, None, 0L, null, null, null, null, null, false, null, null, null,
 //      null, null, null, null, Some(acc), null, null)
 //>>>>>>> Add RefundJob (and fix many small things)
-    boTransactionHandler.save(tx, true)
+    boTransactionHandler.create(tx)
   }
 
 
@@ -70,7 +70,7 @@ class TransactionHandlerSpec extends Specification with Before {
         Some(new Date()),
         10000,
         new CartRate("EUR", 950),
-        TransactionStatus.PAYMENT_CONFIRMED,
+        TransactionStatus.COMPLETED,
         Some(new Date()),
         boPaymentData,
         false,

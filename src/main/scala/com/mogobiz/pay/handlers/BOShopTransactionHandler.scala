@@ -8,7 +8,7 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model._
 import com.mogobiz.pay.sql.BOShopTransactionDAO
-import com.sksamuel.elastic4s.ElasticDsl.{termFilter, search => searchES, and}
+import com.sksamuel.elastic4s.ElasticDsl.{refresh, search => searchES, _}
 
 class BOShopTransactionHandler {
   def find(uuid: String): Option[BOShopTransaction] = {
@@ -44,26 +44,21 @@ class BOShopTransactionHandler {
   }*/
 
   def findByShopIdAndTransactionUuid(shopId: String, transactionUuid: String): Option[BOShopTransaction] = {
-    val query = searchES in Settings.Mogopay.EsIndex ->"BOShopTransaction" postFilter and(
-      termFilter("shopId", shopId),
-      termFilter("transactionUUID", transactionUuid)
-    )
+    val query = searchES in Settings.Mogopay.EsIndex ->"BOShopTransaction" query must(matchQuery("shopId", shopId),matchQuery("transactionUUID", transactionUuid))
     val list = EsClient.searchAll[BOShopTransaction](query).toList
     if (list.isEmpty) None
     else Some(list.head)
   }
 
-  def save(transaction: BOShopTransaction, refresh: Boolean = false) = {
-    BOShopTransactionDAO.upsert(transaction)
+  def create(transaction: BOShopTransaction) = {
+    val refresh = true
+    BOShopTransactionDAO.create(transaction)
     EsClient.index(Settings.Mogopay.EsIndex, transaction, refresh)
   }
-/*
-  def update(transaction: BOTransaction, refresh: Boolean): Boolean = {
-    val updateResult = BOTransactionDAO.update(transaction)
-    if (updateResult == 0) {
-      throw new TransactionNotFoundException(transaction.transactionUUID)
-    }
-    EsClient.update[BOTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
+
+  def update(transaction: BOShopTransaction): Boolean = {
+    val refresh = true
+    val updateResult = BOShopTransactionDAO.update(transaction)
+    EsClient.update[BOShopTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
   }
-  */
 }

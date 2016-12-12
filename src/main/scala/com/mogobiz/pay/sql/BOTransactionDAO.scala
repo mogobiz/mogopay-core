@@ -26,32 +26,26 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
                   rs.date(rn.dateCreated),
                   rs.date(rn.lastUpdated))
 
-  def create(transaction: model.BOTransaction)(implicit session: DBSession): BOTransaction = {
-    val newBoCart = new BOTransaction(newId(),
-                                      UUID.fromString(transaction.uuid),
-                                      JacksonConverter.serialize(transaction),
-                                      new Date,
-                                      new Date)
+  def create(transaction: model.BOTransaction): BOTransaction = {
+    DB localTx { implicit session =>
+      val newBoCart = new BOTransaction(newId(),
+        UUID.fromString(transaction.uuid),
+        JacksonConverter.serialize(transaction),
+        new Date,
+        new Date)
 
-    applyUpdate {
-      insert
-        .into(BOTransactionDAO)
-        .namedValues(
-            BOTransactionDAO.column.id          -> newBoCart.id,
-            BOTransactionDAO.column.uuid        -> newBoCart.uuid.toString,
-            BOTransactionDAO.column.extra       -> newBoCart.extra,
+      applyUpdate {
+        insert
+          .into(BOTransactionDAO)
+          .namedValues(
+            BOTransactionDAO.column.id -> newBoCart.id,
+            BOTransactionDAO.column.uuid -> newBoCart.uuid.toString,
+            BOTransactionDAO.column.extra -> newBoCart.extra,
             BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
             BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
-        )
-    }
-
-    newBoCart
-  }
-
-  def upsert(transaction: model.BOTransaction): Unit = {
-    DB localTx { implicit session =>
-      val updateResult = update(transaction)
-      if (updateResult == 0) create(transaction)
+          )
+      }
+      newBoCart
     }
   }
 

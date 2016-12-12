@@ -26,33 +26,16 @@ class BOTransactionHandler {
                                                                                      shipmentId)
     EsClient.search[BOTransaction](req)
   }
-/*
-  def findOtherGroupBOTx(uuid: String): Seq[BOTransaction] = {
-    find(uuid)
-      .flatMap(_.groupTransactionUUID)
-      .map(findByGroupTxUUID)
-      .getOrElse(Seq())
-      .filter(_.customer.isDefined)
-      .filter(_.customer.get.uuid != uuid)
-  }
 
-  def findAllGroupTransactions(): Seq[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
-      existsFilter("groupTransactionUUID")
-    } from 0 size EsClient.MAX_SIZE
-    EsClient.searchAll[BOTransaction](req)
-  }*/
-
-  def save(transaction: BOTransaction, refresh: Boolean = false) = {
-    BOTransactionDAO.upsert(transaction)
+  def create(transaction: BOTransaction) = {
+    val refresh = true
+    BOTransactionDAO.create(transaction)
     EsClient.index(Settings.Mogopay.EsIndex, transaction, refresh)
   }
 
-  def update(transaction: BOTransaction, refresh: Boolean): Boolean = {
+  def update(transaction: BOTransaction): Boolean = {
+    val refresh = true
     val updateResult = BOTransactionDAO.update(transaction)
-    if (updateResult == 0) {
-      throw new TransactionNotFoundException(transaction.transactionUUID)
-    }
     EsClient.update[BOTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
   }
 }

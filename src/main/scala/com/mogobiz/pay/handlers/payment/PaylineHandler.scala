@@ -130,7 +130,7 @@ class PaylineHandler(handlerName: String) extends CBProvider {
         doMultiAuthorizations(boTransaction, paymentRequest, paymentData, true)
       }
       else {
-        val withMultiShop = cart.shopCarts.exists(_.shopId != MogopayConstant.SHOP_MOGOBIZ)
+        val withMultiShop = cart.shopCarts.length > 1
 
         if (paymentMethod == CBPaymentMethod.EXTERNAL) {
           //Payment Externe
@@ -139,8 +139,8 @@ class PaylineHandler(handlerName: String) extends CBProvider {
             Right(redirectionToCallback(finalBOShopTransaction))
           }
           else {
-            // On est en paiment externe sans multishop => on a donc forcément un shop mogobiz
-            val shopMogobiz = cart.shopCarts.find(_.shopId == MogopayConstant.SHOP_MOGOBIZ).get
+            // On est en paiment externe sans multishop => on a donc forcément un seul shop
+            val shopMogobiz = cart.shopCarts.head
             val boShopTransaction = createBOShopTransaction(boTransaction, shopMogobiz, serializePaymentData(paymentData))
             val (finalBOShopTransaction, redirectUri) = doWebPayment(sessionData.uuid, boTransaction, boShopTransaction)
             Right(redirectUri.getOrElse {

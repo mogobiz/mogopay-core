@@ -215,7 +215,7 @@ class TransactionHandler {
         case Success(shippingData) => {
           val transactionWithShippingData = shippingData.map { shippingData =>
             val finalTransWithShippingInfo = boTransaction.copy(shippingData = Some(shippingData))
-            boTransactionHandler.update(finalTransWithShippingInfo, refresh = false)
+            boTransactionHandler.update(finalTransWithShippingInfo)
             finalTransWithShippingInfo
           }.getOrElse(boTransaction)
 
@@ -223,7 +223,7 @@ class TransactionHandler {
           boShopTransaction.map { boShopTransaction =>
             val validationResult = validatePayment(boShopTransaction)
             if (validationResult.status == PaymentStatus.COMPLETE)
-              PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.PAYMENT_CONFIRMED, None)
+              PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.COMPLETED, None)
             else {
               val refundResult = refundPayment(boShopTransaction)
               if (refundResult.status == PaymentStatus.REFUNDED)
@@ -234,7 +234,7 @@ class TransactionHandler {
         }
         case Failure(f) => {
           logger.error(f.getMessage)
-          PaymentHandler.updateTransactionStatus(boTransaction, TransactionStatus.REFUNDED_FAILED, Some(f.getMessage))
+          PaymentHandler.updateTransactionStatus(boTransaction, TransactionStatus.SHIPMENT_ERROR, Some(MogopayConstant.ERROR_CONFIRM_SHIPPING), Some(f.getMessage))
         }
       }
     } else boTransaction
@@ -266,7 +266,7 @@ class TransactionHandler {
     } catch {
       case e: Throwable => if (!Settings.Mogopay.Anonymous) throw e
     }
-    if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
+    if (transaction.status == TransactionStatus.COMPLETED) {
       try {
         val (subject, body) = templateHandler.mustache(Some(vendor), "mail-bill", locale, jsonString)
         val bill = transaction.customer.map { customer =>
@@ -355,13 +355,13 @@ class TransactionHandler {
     val durationOK = duration < Settings.TransactionDuration
     if (!durationOK) {
       throw TransactionTimeoutException(MogopayConstant.Timeout.toString)
-    } else if (transaction.status != TransactionStatus.PAYMENT_CONFIRMED && transaction.status != TransactionStatus.REFUNDED) {
-      throw PaymentNotConfirmedException(MogopayConstant.PaymentNotConfirmed)
     } else if (transaction.merchantConfirmation) {
       throw TransactionAlreadyConfirmedException(MogopayConstant.TransactionAlreadyConfirmed)
+    } else if (transaction.status != TransactionStatus.COMPLETED && transaction.status != TransactionStatus.REFUNDED) {
+      transaction
     } else {
       val newTx = transaction.copy(merchantConfirmation = true)
-      boTransactionHandler.update(newTx, false)
+      boTransactionHandler.update(newTx)
       newTx
     }
   }
@@ -646,7 +646,7 @@ class TransactionHandler {
     val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
     optTransaction match {
       case Some(transaction) => {
-        if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED) {
+        if (transaction.status == TransactionStatus.COMPLETED) {
           val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(langCountry))
           val (subject, body) =
             templateHandler.mustache(Some(transaction.vendor), "download-bill", Some(langCountry), jsonString)

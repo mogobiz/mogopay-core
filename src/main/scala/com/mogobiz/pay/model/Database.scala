@@ -98,7 +98,6 @@ object TransactionStatus extends Enumeration {
   val PAYMENT_AUTHORIZED   = Value("PAYMENT_AUTHORIZED")
   val PAYMENT_REFUSED      = Value("PAYMENT_REFUSED")
   val PAYMENT_FAILED       = Value("PAYMENT_FAILED")
-  val PAYMENT_CONFIRMED    = Value("PAYMENT_CONFIRMED")
   val REFUNDED             = Value("REFUNDED")
   val REFUNDED_FAILED      = Value("REFUNDED_FAILED")
   val SHIPMENT_ERROR       = Value("SHIPMENT_ERROR")
@@ -475,6 +474,7 @@ case class BOTransaction(uuid: String,
                          @JsonScalaEnumeration(classOf[TransactionStatusRef])
                          status: TransactionStatus.TransactionStatus,
                          error: Option[String],
+                         msgError: Option[String],
                          callbackUrl: String,
                          locale: Option[String],
                          paymentConfig: PaymentConfig,
@@ -489,7 +489,7 @@ case class BOTransaction(uuid: String,
                                transactionUUID: String,
                                amount: Long,
                                currency: CartRate,
-                               @JsonScalaEnumeration(classOf[TransactionStatusRef])
+                               @JsonScalaEnumeration(classOf[ShopTransactionStatusRef])
                                status: ShopTransactionStatus.ShopTransactionStatus,
                                errorCode: Option[String],
                                paymentConfig: PaymentConfig,

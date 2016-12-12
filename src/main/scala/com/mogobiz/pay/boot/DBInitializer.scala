@@ -544,6 +544,7 @@ object DBInitializer {
         currency = currency,
         status = TransactionStatus.PAYMENT_AUTHORIZED,
         None,
+        None,
         "",
         None,
         paymentConfig,
@@ -551,7 +552,7 @@ object DBInitializer {
         None,
         merchantConfirmation = true
     )
-    boTransactionHandler.save(transaction, refresh = true)
+    boTransactionHandler.create(transaction)
 
     val shopTransaction = BOShopTransaction(UUID.randomUUID().toString,
       MogopayConstant.SHOP_MOGOBIZ,
@@ -564,7 +565,7 @@ object DBInitializer {
       extra,
       "",
       Nil)
-    boShopTransactionHandler.save(shopTransaction, refresh = true)
+    boShopTransactionHandler.create(shopTransaction)
 
     boTransactionLogHandler.save(
         BOTransactionLog(UUID.randomUUID().toString,

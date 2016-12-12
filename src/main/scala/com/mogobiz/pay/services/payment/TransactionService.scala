@@ -94,12 +94,9 @@ class TransactionService(implicit executionContext: ExecutionContext)
         handleCall(
             transactionHandler.verify(secret, amount, transactionUUID),
             (transaction: BOTransaction) => {
-              val shipmentError = TransactionStatus.SHIPMENT_ERROR == transaction.status
               complete(
                   StatusCodes.OK -> Map(
-                      'result -> (if (transaction.status == TransactionStatus.PAYMENT_CONFIRMED && !shipmentError)
-                                    "success"
-                                  else "error"),
+                      'result -> (if (transaction.status == TransactionStatus.COMPLETED) "success" else "error"),
                       'transaction_id       -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
                       'transaction_amount   -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
                       'transaction_email    -> Option(transaction.email).getOrElse(""),
@@ -111,7 +108,8 @@ class TransactionService(implicit executionContext: ExecutionContext)
                           "UTF-8"),
                       'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
                       'transaction_type       -> URLEncoder.encode(transaction.paymentType.toString, "UTF-8"),
-                      'error_shipment         -> (if (shipmentError) transaction.error.getOrElse("") else "")
+                      'error                  -> transaction.error.getOrElse(""),
+                      'msgError               -> transaction.error.getOrElse("")
                   )
               )
             })

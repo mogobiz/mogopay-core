@@ -79,4 +79,5 @@ object MogopayConstant {
   val ERROR_EXTERNAL_PAYMENT_NOT_ALLOWED_WITH_MANY_SHOPS = "error.external.payment.not.allowed.with.many.shops"
   val ERROR_THREEDS_NOT_ALLOWED_WITH_MANY_SHOPS = "error.3DS.not.allowed.with.many.shops"
   val ERROR_THREEDS_REQUIRED = "error.3DS.required"
+  val ERROR_CONFIRM_SHIPPING = "error.confirm.shipping"
 }

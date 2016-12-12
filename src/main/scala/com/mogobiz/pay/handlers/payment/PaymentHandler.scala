@@ -79,13 +79,14 @@ trait PaymentHandler extends StrictLogging {
 
     var transaction = BOTransaction(transactionUUID,
       transactionUUID,
-      Some(new Date),
+      None,
       vendor,
       customer,
       email,
       paymentRequest.cart.finalPrice + paymentRequest.cart.shippingPrice,
       paymentRequest.cart.rate,
       TransactionStatus.INITIATED,
+      None,
       None,
       callbackUrl,
       sessionData.locale,
@@ -94,7 +95,7 @@ trait PaymentHandler extends StrictLogging {
       None,
       merchantConfirmation)
 
-    boTransactionHandler.save(transaction, refresh = false)
+    boTransactionHandler.create(transaction)
     transaction
   }
 
@@ -122,11 +123,11 @@ trait PaymentHandler extends StrictLogging {
       status,
       None,
       boTransaction.paymentConfig,
-      paymentData,
-      JacksonConverter.serialize(shopCart),
-      Nil)
+      paymentData = paymentData,
+      extra = JacksonConverter.serialize(shopCart),
+      modifications = Nil)
 
-    boShopTransactionHandler.save(shopTransaction, refresh = false)
+    boShopTransactionHandler.create(shopTransaction)
     shopTransaction
   }
 
@@ -154,7 +155,7 @@ trait PaymentHandler extends StrictLogging {
       paymentData = paymentData,
       modifications = boShopTransaction.modifications :+ modStatus)
 
-    boShopTransactionHandler.save(newBOShopTransaction, refresh = false)
+    boShopTransactionHandler.update(newBOShopTransaction)
     newBOShopTransaction
   }
 
@@ -208,9 +209,9 @@ object PaymentHandler {
     handlers(handlerName)
   }
 
-  def updateTransactionStatus(boTransaction: BOTransaction, status: TransactionStatus.TransactionStatus, error: Option[String] = None): BOTransaction = {
-    val newBOTransaction = boTransaction.copy(status = status, error = error)
-    boTransactionHandler.save(newBOTransaction, refresh = false)
+  def updateTransactionStatus(boTransaction: BOTransaction, status: TransactionStatus.TransactionStatus, error: Option[String] = None, msgError: Option[String] = None): BOTransaction = {
+    val newBOTransaction = boTransaction.copy(status = status, error = error, msgError = msgError)
+    boTransactionHandler.update(newBOTransaction)
     newBOTransaction
   }
 
