@@ -768,7 +768,6 @@ object BOTransactionJsonTransform {
             case JField("currency", _)      => false
             case JField("modifications", _) => false
             case JField("dateCreated", _)   => false
-            case JField("lastUpdated", _)   => false
             case _                          => true
           }
         }
@@ -778,8 +777,8 @@ object BOTransactionJsonTransform {
               JField("status", JString(getFieldAsString(status \ "name").getOrElse("")))
             case JField("amount", JInt(amount)) =>
               JField("amount", formatPrice(locale, amount, currencyCode, fractionDigits))
-            case JField("transactionDate", JString(transactionDate)) =>
-              JField("transactionDate", getDateAsMillis(transactionDate))
+            case JField("lastUpdated", JString(lastUpdated)) =>
+              JField("transactionDate", getDateAsMillis(lastUpdated))
             case JField("endDate", JString(endDate)) => JField("endDate", getDateAsMillis(endDate))
             case JField("paymentData", paymentData: JValue) =>
               JField("paymentData", transformBOPaymentData(paymentData))
@@ -937,17 +936,9 @@ object BOTransactionJsonTransform {
   private def transformCart(cart: CartWithShipping, locale: Locale): JValue = {
     val currencyCode: String = cart.rate.code
     val fractionDigits: Int  = cart.rate.fractionDigits
-    JObject(
-      JField("shipping", formatPrice(locale, cart.shippingPrice, currencyCode, fractionDigits)),
-      JField("price", formatPrice(locale, cart.price, currencyCode, fractionDigits)),
-      JField("taxAmount", formatPrice(locale, cart.taxAmount, currencyCode, fractionDigits)),
-      JField("endPrice", formatPrice(locale, cart.endPrice, currencyCode, fractionDigits)),
-      JField("reduction", formatPrice(locale, cart.reduction, currencyCode, fractionDigits)),
-      JField("finalPrice", formatPrice(locale, cart.finalPrice, currencyCode, fractionDigits)),
-      JField("shopCarts", JArray(cart.shopCarts.map { shopCart =>
-        transformShopCart(shopCart, locale)
-      }))
-    ).merge(Extraction.decompose(cart.customs))
+    cart.shopCarts.find(_.shopId == MogopayConstant.SHOP_MOGOBIZ).map{shopCart =>
+      transformShopCart(shopCart, locale)
+    }.getOrElse(JNothing).merge(Extraction.decompose(cart.customs))
   }
 
   private def transformShopCart(shopCart: ShopCartWithShipping, locale: Locale): JValue = {
