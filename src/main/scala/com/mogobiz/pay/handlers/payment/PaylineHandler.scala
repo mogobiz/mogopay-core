@@ -21,6 +21,7 @@ import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.model.CreditCardType.{CreditCardType, _}
 import com.mogobiz.pay.model.{ResponseCode3DS, TransactionStatus, _}
 import com.mogobiz.utils.{NaiveHostnameVerifier, TrustedSSLFactory}
+import org.apache.commons.lang.StringUtils
 import spray.http.Uri
 
 import scala.util._
@@ -648,7 +649,7 @@ class PaylineHandler(handlerName: String) extends CBProvider {
   }
 
   protected def getTransactionDate(transaction: Transaction) = {
-    if (transaction != null) Some(new SimpleDateFormat(PAYLINE_TRANSACTION_DATE_FORMAT).parse(transaction.getDate))
+    if (transaction != null && StringUtils.isNotEmpty(transaction.getDate)) Some(new SimpleDateFormat(PAYLINE_TRANSACTION_DATE_FORMAT).parse(transaction.getDate))
     else None
   }
 
