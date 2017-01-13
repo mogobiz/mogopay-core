@@ -43,6 +43,11 @@ class BOShopTransactionHandler {
     EsClient.searchAll[BOTransaction](req)
   }*/
 
+  def findByTransactionUuid(transactionUuid: String): List[BOShopTransaction] = {
+    val query = searchES in Settings.Mogopay.EsIndex ->"BOShopTransaction" query must(matchQuery("transactionUUID", transactionUuid))
+    EsClient.searchAll[BOShopTransaction](query).toList
+  }
+
   def findByShopIdAndTransactionUuid(shopId: String, transactionUuid: String): Option[BOShopTransaction] = {
     val query = searchES in Settings.Mogopay.EsIndex ->"BOShopTransaction" query must(matchQuery("shopId", shopId),matchQuery("transactionUUID", transactionUuid))
     val list = EsClient.searchAll[BOShopTransaction](query).toList

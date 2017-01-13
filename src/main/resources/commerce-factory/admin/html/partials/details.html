@@ -66,67 +66,89 @@
 					</div>
 				</div>
 				<div class="clearfix"></div>
-				<div class="table-responsive" ng-show="cartDetails.cartItems.length > 0">
-					<table class="table table-bordered table-striped">
-						<thead>
-							<tr>
-								<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
-								<th>{{resourceBundle.details_order_name}}</th>
-								<th>{{resourceBundle.details_order_basic_price}}</th>
-								<th>{{resourceBundle.details_order_end_price}}</th>
-								<th>{{resourceBundle.details_order_quantity}}</th>
-								<th>{{resourceBundle.details_order_date}}</th>
-								<th>{{resourceBundle.details_order_time}}</th>
-								<th>{{resourceBundle.details_order_returned_items}}</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr ng-repeat="item in cartDetails.cartItems">
-								<td  ng-if="!isMerchant">
-									<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
-								</td>
-								<td>
-									<div ng-if="!item.secondary || item.secondary.length == 0">
-										<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
-										<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
-									</div>
-									<div ng-if="item.secondary && item.secondary.length > 0">
-										<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
-										<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
-											<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
-												<span>{{productSec.product.name}}/({{item.sku.sku}})</span>
-											</div>
-											<a href="{{item.url}}" ng-if="item.url" class="pull-right" target="_blank">{{resourceBundle.details_order_details}}>></a>
-										</div>
-									</div>
-									<div ng-if="item.principal.product.xtype == 'SERVICE'" ng-repeat="card in item.principal.registeredCartItem">
-										<a href="mailto:{{card.email}}" title="mailto:{{card.email}}">{{card.firstname}} {{card.lastname}}</a>
-										<span style="padding-left: 10px;"><i class="glyphicon glyphicon-earphone"></i>{{card.phone}}</span>
-										<span style="padding-left: 10px;"><i class="glyphicon glyphicon-calendar"></i>{{card.birthdate | date:'dd/MM/yyyy'}}</span>
-									</div>
-								</td>
-								<td>{{item.totalPrice * cartDetails.currencyRate | priceFilter}}</td>
-								<td>{{item.totalEndPrice * cartDetails.currencyRate | priceFilter}}</td>
-								<td>{{item.quantity}}</td>
-								<td>
-									<span ng-if="item.principal.product.calendarType != NO_DATE">
-										{{item.startDate | date:'dd/MM/yyyy'}}
-									</span>
-								</td>
-								<td>
-									<span ng-if="item.principal.product.calendarType != NO_DATE">
-										{{toUTCDate(item.startDate) | date:'HH:mm'}}
-									</span>
-								</td>
-								<td>
-									<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">
-										{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}
-									</a>
-									<span ng-if="item.bOReturnedItems.length == 0">{{resourceBundle.none}}</span>
-								</td>
-							</tr>
-						</tbody>
-					</table>
+				<div class="table-responsive" ng-show="cartDetails.shopCarts.length > 0">
+					<div ng-repeat="shopCart in cartDetails.shopCarts">
+						<table class="table table-bordered table-striped">
+							<thead>
+								<tr>
+									<th>{{resourceBundle.details_order_shop}}</th>
+									<th>{{resourceBundle.details_order_shopTransactionUuid}}</th>
+									<th>{{resourceBundle.details_order_price}}</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>{{shopCart.shopId}}</td>
+									<td>{{shopCart.uuid}}</td>
+									<td>{{shopCart.price * cartDetails.currencyRate | priceFilter}}</td>
+								</tr>
+								<tr>
+									<td colspan="3">
+										<table class="table table-bordered table-striped">
+											<thead>
+												<tr>
+													<th ng-if="!isMerchant" style="width:30px;"><input type="checkBox" name="detailsRefundAll" ng-click="detailsRefundCheckAll()"/></th>
+													<th>{{resourceBundle.details_order_name}}</th>
+													<th>{{resourceBundle.details_order_basic_price}}</th>
+													<th>{{resourceBundle.details_order_end_price}}</th>
+													<th>{{resourceBundle.details_order_quantity}}</th>
+													<th>{{resourceBundle.details_order_date}}</th>
+													<th>{{resourceBundle.details_order_time}}</th>
+													<th>{{resourceBundle.details_order_returned_items}}</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr ng-repeat="item in shopCart.cartItems">
+													<td  ng-if="!isMerchant">
+														<input ng-disabled="item.sumReturnedItems == item.quantity" type="checkBox" index="{{$index}}" name="detailsRefundOne" ng-click="detailsRefundCheckOne()"/>
+													</td>
+													<td>
+														<div ng-if="!item.secondary || item.secondary.length == 0">
+															<a href="{{item.url}}" ng-if="item.url" target="_blank">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+															<span ng-if="!item.url">{{item.principal.product.name}}/({{item.sku.sku}})</span>
+														</div>
+														<div ng-if="item.secondary && item.secondary.length > 0">
+															<a href="javascript:void(0)" rel="popoverProduts">{{item.principal.product.name}}/({{item.sku.sku}})</a>
+															<div class="dialog" style="display:none;" ng-init="refreshProductsPopover()">
+																<div ng-repeat="productSec in item.secondary" style="padding: 5px;">
+																	<span>{{productSec.product.name}}/({{item.sku.sku}})</span>
+																</div>
+																<a href="{{item.url}}" ng-if="item.url" class="pull-right" target="_blank">{{resourceBundle.details_order_details}}>></a>
+															</div>
+														</div>
+														<div ng-if="item.principal.product.xtype == 'SERVICE'" ng-repeat="card in item.principal.registeredCartItem">
+															<a href="mailto:{{card.email}}" title="mailto:{{card.email}}">{{card.firstname}} {{card.lastname}}</a>
+															<span style="padding-left: 10px;"><i class="glyphicon glyphicon-earphone"></i>{{card.phone}}</span>
+															<span style="padding-left: 10px;"><i class="glyphicon glyphicon-calendar"></i>{{card.birthdate | date:'dd/MM/yyyy'}}</span>
+														</div>
+													</td>
+													<td>{{item.totalPrice * cartDetails.currencyRate | priceFilter}}</td>
+													<td>{{item.totalEndPrice * cartDetails.currencyRate | priceFilter}}</td>
+													<td>{{item.quantity}}</td>
+													<td>
+														<span ng-if="item.principal.product.calendarType != NO_DATE">
+															{{item.startDate | date:'dd/MM/yyyy'}}
+														</span>
+													</td>
+													<td>
+														<span ng-if="item.principal.product.calendarType != NO_DATE">
+															{{toUTCDate(item.startDate) | date:'HH:mm'}}
+														</span>
+													</td>
+													<td>
+														<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">
+															{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}
+														</a>
+														<span ng-if="item.bOReturnedItems.length == 0">{{resourceBundle.none}}</span>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 					<div ng-if="!isMerchant">
 						<button class="btn btn-default pull-right" ng-disabled="detailsDisableReturn" ng-click="detailsReturnSelectedItems()">
 							{{resourceBundle.details_order_return_selected_items}}
@@ -288,18 +310,21 @@
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr>
-							<th style="width: 20%;">{{resourceBundle.details_logs_direction}}</th>
-							<th style="width: 20%;">{{resourceBundle.details_logs_provider}}</th>
-							<th style="width: 20%;">{{resourceBundle.details_logs_step}}</th>
-							<th style="width: 40%;">{{resourceBundle.details_logs_log}}</th>
+							<th style="width: 20%;">{{resourceBundle.details_logs_transactionShopUuid}}</th>
+							<th style="width: 5%;">{{resourceBundle.details_logs_direction}}</th>
+							<th style="width: 10%;">{{resourceBundle.details_logs_provider}}</th>
+							<th style="width: 13%;">{{resourceBundle.details_logs_step}}</th>
+							<th style="width: 52%;">{{resourceBundle.details_logs_log}}</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr ng-repeat="row in logsDetails">
-							<td style="width: 20%;">{{row.direction}}</td>
-							<td style="width: 20%;">{{row.provider}}</td>
-							<td style="width: 20%;">{{row.step}}</td>
-							<td style="width: 40%;">
+
+							<td style="width: 20%;">{{row.transactionShopUuid}}</td>
+							<td style="width: 5%;">{{row.direction}}</td>
+							<td style="width: 10%;">{{row.provider}}</td>
+							<td style="width: 13%;">{{row.step}}</td>
+							<td style="width: 52%;">
 								<div ng-repeat="instance in row.log">{{instance}}</div>
 							</td>
 						</tr>

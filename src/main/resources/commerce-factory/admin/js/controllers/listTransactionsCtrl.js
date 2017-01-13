@@ -104,18 +104,27 @@ function listTransactionsSearch (scope, location, rootScope, route) {
 
 function listTransactionsGetCartItems(scope, location, rootScope, route, transactionUUID, index){
 	var success = function(response){
-		var items = response.cartItems;
+		var mogopayShopCart = extractMogopayShopCart(response)
 		var listRetunedStatus = []
-		for(var  i = 0; i < items.length; i++){
-			var item = items[i];
-			for(var j = 0; j < item.bOReturnedItems.length; j++){
-				if(item.bOReturnedItems[j].boReturns.length > 0){
-					listRetunedStatus[listRetunedStatus.length] = {value: item.principal.product.name + ": " + rootScope.returnStatusValues[item.bOReturnedItems[j].boReturns[0].status]};
+		var listDeliveryStatus = []
+		if (mogopayShopCart != null && mogopayShopCart.cartItems != null) {
+			for(var  i = 0; i < mogopayShopCart.cartItems.length; i++){
+				var item = mogopayShopCart.cartItems[i];
+				if (item.bODelivery) {
+					listDeliveryStatus[listDeliveryStatus.length] = item.bODelivery.status
+				}
+				for(var j = 0; j < item.bOReturnedItems.length; j++){
+					if(item.bOReturnedItems[j].boReturns.length > 0){
+						listRetunedStatus[listRetunedStatus.length] = {value: item.principal.product.name + ": " + rootScope.returnStatusValues[item.bOReturnedItems[j].boReturns[0].status]};
+					}
 				}
 			}
 		}
+		if(listDeliveryStatus.length == 0)
+			listDeliveryStatus = ["None"];
 		if(listRetunedStatus.length == 0)
 			listRetunedStatus = [{value: "None"}];
+		rootScope.transactions[index].deliveryStatus = listDeliveryStatus;
 		rootScope.transactions[index].listRetunedStatus = listRetunedStatus;
 		if(index == rootScope.transactions.length - 1){
 			scope.$apply();
@@ -138,6 +147,16 @@ function listTransactionsGetCartItems(scope, location, rootScope, route, transac
 		}
 	}
 	callServer("backoffice/cartDetails/" + transactionUUID, "", success, error, "GET", "params", "store", false, false, false);
+}
+
+function extractMogopayShopCart(transaction) {
+	if (transaction.shopCarts) {
+		for (var i = 0; i < transaction.shopCarts.length; i++) {
+			var shopCart = transaction.shopCarts[i]
+			if (shopCart.shopId == "MOGOBIZ") return shopCart;
+		}
+	}
+	return null;
 }
 
 function zerosAutoComplete(number, length){

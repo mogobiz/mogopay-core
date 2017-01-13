@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils
 import spray.http.Uri
 
 import scala.util._
+import scala.util.control.NonFatal
 
 /**
   * @see com.ebiznext.mogopay.payment.PaylinePaymentService
@@ -128,7 +129,7 @@ class PaylineHandler(handlerName: String) extends CBProvider {
     }
     else {
       if (sessionData.mogopay) {
-        doMultiAuthorizations(boTransaction, paymentRequest, paymentData, true)
+        Right(doMultiAuthorizations(boTransaction, paymentRequest, paymentData, true))
       }
       else {
         val withMultiShop = cart.shopCarts.length > 1
@@ -152,13 +153,13 @@ class PaylineHandler(handlerName: String) extends CBProvider {
         }
         else {
           val count = cart.shopCarts.count{shopCart => true}
-          val oneShopCart = cart.shopCarts.find{shopCart => true}.get
-
-          val boShopTransaction = createBOShopTransaction(boTransaction, oneShopCart, serializePaymentData(paymentData))
+          val boShopTransactions = cart.shopCarts.map { shopCart =>
+            createBOShopTransaction(boTransaction, shopCart, serializePaymentData(paymentData))
+          }
 
           // vérification de l'enrollement de la carte au systeme 3DS (si nécessaire)
           val threeDSResult = if (paymentMethod == CBPaymentMethod.THREEDS_REQUIRED || paymentMethod == CBPaymentMethod.THREEDS_IF_AVAILABLE)
-            Some(verifyEnrollment(sessionData.uuid, boTransaction, boShopTransaction, paymentRequest))
+            Some(verifyEnrollment(sessionData.uuid, boTransaction, boShopTransactions, paymentRequest, paymentData))
           else None
 
           val threeDSResultCode = threeDSResult.map {_.code}.getOrElse(ResponseCode3DS.REFUSED)
@@ -189,7 +190,7 @@ class PaylineHandler(handlerName: String) extends CBProvider {
             Right(redirectionToCallback(finalBOShopTransaction))
           }
           else {
-            doMultiAuthorizations(boTransaction, paymentRequest, paymentData, false)
+            Right(doMultiAuthorizations(boTransaction, boShopTransactions, paymentRequest, false))
           }
         }
       }
@@ -284,45 +285,44 @@ class PaylineHandler(handlerName: String) extends CBProvider {
     processPaylineResponse(boShopTransactionUuid, params)
   }
 
-  def threeDSCallback(sessionData: scala.Option[SessionData], boShopTransactionUuid: String, params: Map[String, String]): Uri = {
-    boShopTransactionHandler.find(boShopTransactionUuid).map { boShopTransaction =>
-      if (boShopTransaction.status != ShopTransactionStatus.THREEDS_TESTED)
-        throw InvalidContextException("Not expecting 3DSecure callback")
-      else {
-        boTransactionHandler.find(boShopTransaction.transactionUUID).map { boTransaction =>
-          sessionData.flatMap { _.paymentRequest}.map { paymentRequest =>
-            // On met à jour la transaction avec les données payline
-            val paymentData = extractPaymentData(boShopTransaction).copy(paylineMd = Some(params("MD")), paylinePares = Some(params("PaRes")))
-            val boShopTransaction3DS = boShopTransaction.copy(paymentData = serializePaymentData(paymentData))
-            // On effectue le paiement
-            val finalShopTransaction = doAuthorization(boTransaction, boShopTransaction3DS, paymentRequest, TransactionShopStep.THREEDS_CALLBACK, false)
-            // On analyse le statut pour mettre à jour la transaction
-            val newStatus = if (finalShopTransaction.status == ShopTransactionStatus.AUTHORIZED) TransactionStatus.PAYMENT_AUTHORIZED
-            else TransactionStatus.PAYMENT_REFUSED
-            redirectionToCallback(finishTransaction(boTransaction, newStatus, finalShopTransaction.errorCode))
-          }.getOrElse{
-            redirectionToCallback(finishTransaction(boTransaction, TransactionStatus.FAILED, Some(MogopayConstant.ERROR_PAYMENT_REQUEST_NOT_FOUND)))
-          }
-        }.getOrElse(throw TransactionNotFoundException(s"Transaction ${boShopTransaction.transactionUUID} is not found"))
+  def threeDSCallback(sessionData: scala.Option[SessionData], boTransactionUuid: String, params: Map[String, String]): Uri = {
+    boTransactionHandler.find(boTransactionUuid).map { boTransaction =>
+      sessionData.flatMap { _.paymentRequest}.map { paymentRequest =>
+        val boShopTransactions = boShopTransactionHandler.findByTransactionUuid(boTransactionUuid).map { boShopTransaction =>
+          val paymentData = extractPaymentData(boShopTransaction).copy(paylineMd = Some(params("MD")), paylinePares = Some(params("PaRes")))
+          boShopTransaction.copy(paymentData = serializePaymentData(paymentData))
+        }
+        doMultiAuthorizations(boTransaction, boShopTransactions, paymentRequest, false)
+      }.getOrElse{
+        redirectionToCallback(finishTransaction(boTransaction, TransactionStatus.FAILED, Some(MogopayConstant.ERROR_PAYMENT_REQUEST_NOT_FOUND)))
       }
-    }.getOrElse(throw TransactionNotFoundException(s"Shop Transaction $boShopTransactionUuid is not found"))
+    }.getOrElse(throw TransactionNotFoundException(s"Transaction ${boTransactionUuid} is not found"))
   }
 
   protected def doMultiAuthorizations(boTransaction: BOTransaction,
                                       paymentRequest: PaymentRequest,
                                       paylineData: PaylineData,
-                                      mogopay: Boolean): Either[FormRedirection, Uri] = {
+                                      mogopay: Boolean): Uri = {
     val cart = paymentRequest.cart
     val boShopTransactions = cart.shopCarts.map { shopCart =>
-      val boShopTransaction = createBOShopTransaction(boTransaction, shopCart, serializePaymentData(paylineData))
+      createBOShopTransaction(boTransaction, shopCart, serializePaymentData(paylineData))
+    }
+    doMultiAuthorizations(boTransaction, boShopTransactions, paymentRequest, mogopay)
+  }
+
+  protected def doMultiAuthorizations(boTransaction: BOTransaction,
+                                      boShopTransactions : List[BOShopTransaction],
+                                      paymentRequest: PaymentRequest,
+                                      mogopay: Boolean): Uri = {
+    val newBoShopTransactions = boShopTransactions.map { boShopTransaction =>
       doAuthorization(boTransaction, boShopTransaction, paymentRequest, TransactionShopStep.START_PAYMENT, mogopay)
     }
-    val transactionsOK_KO = boShopTransactions.span { _.status == ShopTransactionStatus.AUTHORIZED }
+    val transactionsOK_KO = newBoShopTransactions.span { _.status == ShopTransactionStatus.AUTHORIZED }
     val transactionsRefused_Other = transactionsOK_KO._2.span { _.status == ShopTransactionStatus.AUTHORIZATION_REFUSED }
     val newStatus = if (transactionsOK_KO._2.isEmpty) TransactionStatus.PAYMENT_AUTHORIZED
     else if (transactionsRefused_Other._2.isEmpty) TransactionStatus.PAYMENT_REFUSED
     else TransactionStatus.PAYMENT_FAILED
-    Right(redirectionToCallback(finishTransaction(boTransaction, newStatus)))
+    redirectionToCallback(finishTransaction(boTransaction, newStatus))
   }
 
   protected def doAuthorization(boTransaction: BOTransaction,
@@ -425,17 +425,22 @@ class PaylineHandler(handlerName: String) extends CBProvider {
 
   protected def verifyEnrollment(sessionId: String,
                                  bOTransaction: BOTransaction,
-                                 boShopTransaction: BOShopTransaction,
-                                 paymentRequest: PaymentRequest): ThreeDSResult = {
+                                 boShopTransactions : List[BOShopTransaction],
+                                 paymentRequest: PaymentRequest,
+                                 paymentData: PaylineData): ThreeDSResult = {
 
-    updateBOShopTransactionStatus(boShopTransaction, ShopTransactionStatus.VERIFICATION_THREEDS, None)
+    // On prend le premier shop. Il sera utiliser pour stocker les traces et obtenir le OrderRef
+    val boShopTransaction = boShopTransactions.head
 
-    val paymentData = extractPaymentData(boShopTransaction)
+    boShopTransactions.map { boShopTransaction =>
+      updateBOShopTransactionStatus(boShopTransaction, ShopTransactionStatus.VERIFICATION_THREEDS, None)
+    }
+
     val paymentConfig = paymentData.config
 
     val payment: Payment = new Payment
-    payment.setAmount(boShopTransaction.amount.toString)
-    payment.setCurrency(boShopTransaction.currency.numericCode.toString)
+    payment.setAmount(bOTransaction.amount.toString)
+    payment.setCurrency(bOTransaction.currency.numericCode.toString)
     payment.setAction(ACTION_AUTHORISATION)
     payment.setMode(MODE_COMPTANT)
     payment.setContractNumber(paymentConfig.contractNumber)
@@ -451,18 +456,24 @@ class PaylineHandler(handlerName: String) extends CBProvider {
     request.setCard(card)
     request.setOrderRef(boShopTransaction.uuid)
 
-    createTransactionLog(boShopTransaction, DIR_OUT, TransactionShopStep.CHECK_THREEDS, transformVerifyEnrollmentRequestAsLog(request))
+    boShopTransactions.map { boShopTransaction =>
+      createTransactionLog(boShopTransaction, DIR_OUT, TransactionShopStep.CHECK_THREEDS, transformVerifyEnrollmentRequestAsLog(request))
+    }
 
     val proxy = createDirectPaymentAPIProxy(boShopTransaction, paymentConfig, TransactionShopStep.CHECK_THREEDS)
     val response: VerifyEnrollmentResponse = proxy.verifyEnrollment(request)
 
-    createTransactionLog(boShopTransaction, DIR_IN, TransactionShopStep.CHECK_THREEDS, transformVerifyEnrollmentResponseAsLog(response))
+    boShopTransactions.map { boShopTransaction =>
+      createTransactionLog(boShopTransaction, DIR_IN, TransactionShopStep.CHECK_THREEDS, transformVerifyEnrollmentResponseAsLog(response))
+    }
 
     val code = if (response != null && response.getResult != null) Some(response.getResult.getCode) else None
 
     val code3DS = if (Array("00000", "03000").contains(code.getOrElse(""))) ResponseCode3DS.APPROVED else ResponseCode3DS.REFUSED
 
-    updateBOShopTransactionStatus(boShopTransaction, ShopTransactionStatus.THREEDS_TESTED, code)
+    boShopTransactions.map { boShopTransaction =>
+      updateBOShopTransactionStatus(boShopTransaction, ShopTransactionStatus.THREEDS_TESTED, code)
+    }
 
     ThreeDSResult(
         code = code3DS,
@@ -473,7 +484,7 @@ class PaylineHandler(handlerName: String) extends CBProvider {
         pareqName = response.getPareqFieldName,
         pareqValue = response.getPareqFieldValue,
         termUrlName = response.getTermUrlName,
-        termUrlValue = s"${Settings.Mogopay.EndPoint}payline/3ds-callback/$sessionId/${boShopTransaction.uuid}"
+        termUrlValue = s"${Settings.Mogopay.EndPoint}payline/3ds-callback/$sessionId/${bOTransaction.uuid}"
     )
   }
 /*
@@ -620,9 +631,18 @@ class PaylineHandler(handlerName: String) extends CBProvider {
       val newStatus = if (code.getOrElse("") == SUCCESS_CODE) ShopTransactionStatus.PAYMENT_VERIFIED
       else ShopTransactionStatus.PAYMENT_VERIFICATION_FAILED
 
-      updateBOShopTransactionStatus(boShopTransaction, newStatus, code)
+      val creditCard = if (response.getCard != null) {
+        val expirationDate = try {
+          new SimpleDateFormat("MMyy").parse(response.getCard().getExpirationDate)
+        } catch {
+          case NonFatal(e) => null
+        }
+        val cardType = toCreditCardType(response.getCard.getType)
+        Some(BOCreditCard(response.getCard.getNumber, holder = None, expiryDate = expirationDate, cardType = cardType))
+      }
+      else None
 
-
+      updateBOShopTransactionStatus(boShopTransaction.copy(creditCard = creditCard), newStatus, code)
     }.getOrElse {
       updateBOShopTransactionStatus(boShopTransaction, ShopTransactionStatus.PAYMENT_VERIFICATION_FAILED, None)
     }
@@ -635,7 +655,7 @@ class PaylineHandler(handlerName: String) extends CBProvider {
         val newStatus = if (newShopTransaction.status == ShopTransactionStatus.PAYMENT_VERIFIED) TransactionStatus.COMPLETED
         else TransactionStatus.PAYMENT_REFUSED
 
-        finishTransaction(boTransaction, newStatus, boShopTransaction.errorCode)
+        finishTransaction(boTransaction.copy(creditCard = newShopTransaction.creditCard), newStatus, boShopTransaction.errorCode)
       }.getOrElse(throw TransactionNotFoundException(s"Transaction ${boShopTransaction.transactionUUID} is not found"))
     }.getOrElse(throw TransactionNotFoundException(s"Shop Transaction $boShopTransactionUuid is not found"))
   }

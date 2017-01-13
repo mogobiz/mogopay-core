@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.util.{Date, UUID}
+import java.util.{Calendar, Date, UUID}
 
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.exceptions.Exceptions._
@@ -79,6 +79,7 @@ trait PaymentHandler extends StrictLogging {
 
     var transaction = BOTransaction(transactionUUID,
       transactionUUID,
+      Calendar.getInstance().getTime,
       None,
       vendor,
       customer,
@@ -92,6 +93,7 @@ trait PaymentHandler extends StrictLogging {
       sessionData.locale,
       paymentConfig,
       paymentType,
+      None,
       None,
       merchantConfirmation)
 
@@ -125,7 +127,8 @@ trait PaymentHandler extends StrictLogging {
       boTransaction.paymentConfig,
       paymentData = paymentData,
       extra = JacksonConverter.serialize(shopCart),
-      modifications = Nil)
+      modifications = Nil,
+      creditCard = None)
 
     boShopTransactionHandler.create(shopTransaction)
     shopTransaction
@@ -210,7 +213,7 @@ object PaymentHandler {
   }
 
   def updateTransactionStatus(boTransaction: BOTransaction, status: TransactionStatus.TransactionStatus, error: Option[String] = None, msgError: Option[String] = None): BOTransaction = {
-    val newBOTransaction = boTransaction.copy(status = status, error = error, msgError = msgError)
+    val newBOTransaction = boTransaction.copy(status = status, transactionDate = Calendar.getInstance().getTime, error = error, msgError = msgError)
     boTransactionHandler.update(newBOTransaction)
     newBOTransaction
   }

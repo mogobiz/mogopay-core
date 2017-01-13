@@ -465,6 +465,7 @@ class PaymentStatusRef extends TypeReference[PaymentStatus.type]
 @JsonIgnoreProperties(ignoreUnknown = true)
 case class BOTransaction(uuid: String,
                          transactionUUID: String,
+                         transactionDate: Date,
                          endDate: Option[Date],
                          vendor: Account,
                          customer: Option[Account],
@@ -480,6 +481,7 @@ case class BOTransaction(uuid: String,
                          paymentConfig: PaymentConfig,
                          paymentType: PaymentType.PaymentType,
                          shippingData: Option[ShippingData],
+                         creditCard: Option[BOCreditCard],
                          merchantConfirmation: Boolean = false,
                          var dateCreated: Date = Calendar.getInstance().getTime,
                          var lastUpdated: Date = Calendar.getInstance().getTime)
@@ -496,6 +498,7 @@ case class BOTransaction(uuid: String,
                                extra: String,
                                paymentData: String,
                                modifications: List[ModificationStatus],
+                               creditCard: Option[BOCreditCard],
                                var dateCreated: Date = Calendar.getInstance().getTime,
                                var lastUpdated: Date = Calendar.getInstance().getTime)
 

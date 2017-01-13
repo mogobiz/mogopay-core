@@ -27,11 +27,10 @@ class BackofficeHandler {
   }
 
   def listTransactionLogs(transactionId: String): Seq[BOTransactionLog] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransactionLog" postFilter {
-      termFilter("transaction", transactionId)
-    } sort {
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransactionLog" query must(matchQuery("transactionUuid", transactionId)) sort (
+      by field "transactionShopUuid" order DESC,
       by field "dateCreated" order DESC
-    } start 0 limit Settings.MaxQueryResults
+    ) start 0 limit Settings.MaxQueryResults
     EsClient.searchAll[BOTransactionLog](req)
   }
 

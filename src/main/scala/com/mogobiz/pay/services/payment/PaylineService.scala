@@ -83,13 +83,13 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
     }
   }
 
-  lazy val threeDSCallback = path("3ds-callback" / Segment / Segment) { (xtoken, boShopTransaction) =>
+  lazy val threeDSCallback = path("3ds-callback" / Segment / Segment) { (xtoken, boTransactionUuid) =>
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
         val session = SessionESDirectives.load(xtoken)
         val sessionData = session.map{_.sessionData}
-        handleCall(paylineHandler.threeDSCallback(sessionData, boShopTransaction, formData.fields.toMap), (data: Uri) =>
+        handleCall(paylineHandler.threeDSCallback(sessionData, boTransactionUuid, formData.fields.toMap), (data: Uri) =>
           session.map { session =>
             setSession(session) {
               redirect(data, StatusCodes.TemporaryRedirect)

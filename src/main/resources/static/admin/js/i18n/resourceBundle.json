@@ -120,6 +120,7 @@
 	"details_order_currency": "Currency",
 	"details_order_date": "Date",
 	"details_order_time": "Time",
+	"details_order_shop": "Shop",
 	"details_order_name": "Name",
 	"details_order_basic_price": "Basic Price",
 	"details_order_end_price": "End Price",

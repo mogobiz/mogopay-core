@@ -209,6 +209,8 @@ class TransactionHandler {
 
     val status = boTransaction.status
 
+    val boShopTransaction = boShopTransactionHandler.findByShopIdAndTransactionUuid(MogopayConstant.SHOP_MOGOBIZ, boTransaction.transactionUUID)
+
     // commit du shipping
     val finalTransaction = if (status == TransactionStatus.PAYMENT_AUTHORIZED) {
       Try(ShippingHandler.confirmShippingPrice(boTransaction.shippingData)) match {
@@ -219,7 +221,6 @@ class TransactionHandler {
             finalTransWithShippingInfo
           }.getOrElse(boTransaction)
 
-          val boShopTransaction = boShopTransactionHandler.findByShopIdAndTransactionUuid(MogopayConstant.SHOP_MOGOBIZ, boTransaction.transactionUUID)
           boShopTransaction.map { boShopTransaction =>
             val validationResult = validatePayment(boShopTransaction)
             if (validationResult.status == PaymentStatus.COMPLETE)
@@ -239,16 +240,19 @@ class TransactionHandler {
       }
     } else boTransaction
 
-    notifyPaymentFinished(finalTransaction)
-    notifySuccessRefund(finalTransaction)
+    boShopTransaction.map {boShopTransaction =>
+      // On envoie les mails uniquements pour le shop mogopay
+      notifyPaymentFinished(finalTransaction, boShopTransaction)
+      notifySuccessRefund(finalTransaction, boShopTransaction)
+    }
     finalTransaction
   }
 
-  def notifyPaymentFinished(transaction: BOTransaction): Unit = {
+  def notifyPaymentFinished(transaction: BOTransaction, boShopTransaction: BOShopTransaction): Unit = {
     val locale = transaction.locale
     val localeOrEn = locale.getOrElse("en");
     val vendor = transaction.vendor
-    val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(localeOrEn))
+    val jsonString = BOTransactionJsonTransform.transform(transaction, boShopTransaction, LocaleUtils.toLocale(localeOrEn))
     try {
       val (subject, body) = templateHandler.mustache(Some(vendor), "mail-order", locale, jsonString)
       EmailHandler.Send(
@@ -270,7 +274,7 @@ class TransactionHandler {
       try {
         val (subject, body) = templateHandler.mustache(Some(vendor), "mail-bill", locale, jsonString)
         val bill = transaction.customer.map { customer =>
-          val f = download(transaction.transactionUUID, "A4", localeOrEn)
+          val f = download(transaction, boShopTransaction, "A4", localeOrEn)
           Attachment(f, transaction.transactionUUID + ".pdf")
         }
         EmailHandler.Send(
@@ -291,14 +295,14 @@ class TransactionHandler {
     }
   }
 
-  def notifySuccessRefund(transaction: BOTransaction): Unit = {
+  def notifySuccessRefund(transaction: BOTransaction, boShopTransaction: BOShopTransaction): Unit = {
     if (transaction.status == TransactionStatus.REFUNDED) {
       val locale = transaction.locale
       val vendor = transaction.vendor
 
       try {
         val jsonString =
-          BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(locale.getOrElse("en")))
+          BOTransactionJsonTransform.transform(transaction, boShopTransaction, LocaleUtils.toLocale(locale.getOrElse("en")))
         val (subject, body) = templateHandler.mustache(Some(vendor), "mail-refund", locale, jsonString)
         EmailHandler.Send(
             Mail(
@@ -642,19 +646,22 @@ class TransactionHandler {
     }
   }
 
+  //
   def download(transactionUuid: String, pageFormat: String, langCountry: String): File = {
-    val optTransaction = EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid)
-    optTransaction match {
-      case Some(transaction) => {
-        if (transaction.status == TransactionStatus.COMPLETED) {
-          val jsonString = BOTransactionJsonTransform.transform(transaction, LocaleUtils.toLocale(langCountry))
-          val (subject, body) =
-            templateHandler.mustache(Some(transaction.vendor), "download-bill", Some(langCountry), jsonString)
-          pdfHandler.convertToPdf(pageFormat, body)
-        } else throw new PaymentNotConfirmedException(transactionUuid)
-      }
-      case None => throw new TransactionNotFoundException(transactionUuid)
-    }
+    EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, transactionUuid).map { boTransaction =>
+      boShopTransactionHandler.findByShopIdAndTransactionUuid(MogopayConstant.SHOP_MOGOBIZ, boTransaction.transactionUUID).map { boShopTransaction =>
+        download(boTransaction, boShopTransaction, pageFormat, langCountry)
+      }.getOrElse(throw new TransactionNotFoundException(transactionUuid))
+    }.getOrElse(throw new TransactionNotFoundException(transactionUuid))
+  }
+
+  def download(transaction: BOTransaction, boShopTransaction: BOShopTransaction, pageFormat: String, langCountry: String): File = {
+    if (transaction.status == TransactionStatus.COMPLETED) {
+      val jsonString = BOTransactionJsonTransform.transform(transaction, boShopTransaction, LocaleUtils.toLocale(langCountry))
+      val (subject, body) =
+        templateHandler.mustache(Some(transaction.vendor), "download-bill", Some(langCountry), jsonString)
+      pdfHandler.convertToPdf(pageFormat, body)
+    } else throw new PaymentNotConfirmedException(transaction.transactionUUID)
   }
 
   protected def initPaymentRequest(paymentConfig: Option[PaymentConfig],
@@ -746,14 +753,16 @@ object BOTransactionJsonTransform {
     case _        => None
   }
 
-  def transformAsJValue(transaction: BOTransaction, locale: Locale) = {
-    val json = Extraction.decompose(transaction)
-    transformBOTransaction(json, locale) merge JObject(
+  def transformAsJValue(transaction: BOTransaction, shopTransaction: BOShopTransaction, locale: Locale) = {
+    val jsonTransaction = Extraction.decompose(transaction)
+    val jsonShopTransaction = Extraction.decompose(shopTransaction)
+    transformBOTransaction(jsonTransaction, locale) merge
+      transformShopBOTransaction(jsonShopTransaction, locale) merge JObject(
         JField("templateImagesUrl", JString(Settings.TemplateImagesUrl)))
   }
 
-  def transform(transaction: BOTransaction, locale: Locale) = {
-    compact(render(transformAsJValue(transaction, locale)))
+  def transform(transaction: BOTransaction, shopTransaction: BOShopTransaction, locale: Locale) = {
+    compact(render(transformAsJValue(transaction, shopTransaction, locale)))
   }
 
   private def transformBOTransaction(obj: JValue, locale: Locale): JValue = {
@@ -764,10 +773,37 @@ object BOTransactionJsonTransform {
 
         val filterChildren = t.obj.filter { child: JField =>
           child match {
+            case JField("transactionDate", _)          => true
+            case _                          => false
+          }
+        }
+        val transformChildren = filterChildren.map { child: JField =>
+          child match {
+            case JField("transactionDate", JString(transactionDate)) =>
+              JField("transactionDate", getDateAsMillis(transactionDate))
+            case f: JField                                => f
+          }
+        }
+        JObject(transformChildren)
+      }
+      case v: JValue => v
+    }
+  }
+
+  private def transformShopBOTransaction(obj: JValue, locale: Locale): JValue = {
+    obj match {
+      case t: JObject => {
+        val currencyCode   = getFieldAsString(t \ "currency" \ "code").getOrElse("")
+        val fractionDigits = getFieldAsBigInt(t \ "currency" \ "fractionDigits").getOrElse(BigInt(2))
+
+        val filterChildren = t.obj.filter { child: JField =>
+          child match {
             case JField("uuid", _)          => false
+            case JField("shopId", _)          => false
             case JField("currency", _)      => false
             case JField("modifications", _) => false
             case JField("dateCreated", _)   => false
+            case JField("lastUpdated", _)   => false
             case _                          => true
           }
         }
@@ -777,13 +813,11 @@ object BOTransactionJsonTransform {
               JField("status", JString(getFieldAsString(status \ "name").getOrElse("")))
             case JField("amount", JInt(amount)) =>
               JField("amount", formatPrice(locale, amount, currencyCode, fractionDigits))
-            case JField("lastUpdated", JString(lastUpdated)) =>
-              JField("transactionDate", getDateAsMillis(lastUpdated))
             case JField("endDate", JString(endDate)) => JField("endDate", getDateAsMillis(endDate))
             case JField("paymentData", paymentData: JValue) =>
               JField("paymentData", transformBOPaymentData(paymentData))
             case JField("extra", JString(extra)) =>
-              JField("cart", transformCart(parse(extra).extract[CartWithShipping], locale))
+              JField("cart", transformShopCart(parse(extra).extract[ShopCartWithShipping], locale))
             case JField("creditCard", creditCard: JValue) => JField("creditCard", transformBOCreditCard(creditCard))
             case JField("vendor", vendor: JValue)         => JField("vendor", transformAccount(vendor))
             case JField("customer", customer: JValue)     => JField("customer", transformAccount(customer))
@@ -931,14 +965,6 @@ object BOTransactionJsonTransform {
       }
       case v: JValue => v
     }
-  }
-
-  private def transformCart(cart: CartWithShipping, locale: Locale): JValue = {
-    val currencyCode: String = cart.rate.code
-    val fractionDigits: Int  = cart.rate.fractionDigits
-    cart.shopCarts.find(_.shopId == MogopayConstant.SHOP_MOGOBIZ).map{shopCart =>
-      transformShopCart(shopCart, locale)
-    }.getOrElse(JNothing).merge(Extraction.decompose(cart.customs))
   }
 
   private def transformShopCart(shopCart: ShopCartWithShipping, locale: Locale): JValue = {

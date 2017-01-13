@@ -119,7 +119,9 @@
 	"details_order_price": "Prix",
 	"details_order_currency": "Devise",
 	"details_order_date": "Date",
+	"details_order_shop": "Magasin",
 	"details_order_name": "Nom",
+	"details_order_shopTransactionUuid": "UUID de la transaction du shop",
 	"details_order_basic_price": "Prix de base",
 	"details_order_end_price": "Prix final",
 	"details_order_quantity": "Quantité",
@@ -138,6 +140,7 @@
 	"details_shipping_track": "Informations de suivi",
 
 	"details_logs_title": "Logs de la commande",
+	"details_logs_transactionShopUuid": "UUID de la transaction du shop",
 	"details_logs_direction": "Sens",
 	"details_logs_provider": "Prestataire",
 	"details_logs_step": "Etape",

@@ -536,6 +536,7 @@ object DBInitializer {
     val transaction = BOTransaction(
         uuid = uuid,
         transactionUUID = transactionUuid,
+        Calendar.getInstance().getTime,
         None,
         vendor = vendor,
         customer = Some(customer),
@@ -549,6 +550,7 @@ object DBInitializer {
         None,
         paymentConfig,
         PaymentType.CREDIT_CARD,
+        None,
         None,
         merchantConfirmation = true
     )
@@ -564,7 +566,8 @@ object DBInitializer {
       paymentConfig,
       extra,
       "",
-      Nil)
+      Nil,
+      None)
     boShopTransactionHandler.create(shopTransaction)
 
     boTransactionLogHandler.save(
