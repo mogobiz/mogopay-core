@@ -211,10 +211,13 @@ class TransactionHandler {
 
     val boShopTransaction = boShopTransactionHandler.findByShopIdAndTransactionUuid(MogopayConstant.SHOP_MOGOBIZ, boTransaction.transactionUUID)
 
+    logger.warn("*******TEST********" + boTransaction.transactionUUID + " , shop = " + boShopTransaction.map(_.uuid).getOrElse("") + "  " +  boShopTransaction.map(_.status.toString).getOrElse(""))
+
     // commit du shipping
-    val finalTransaction = if (status == TransactionStatus.PAYMENT_AUTHORIZED) {
+    val (finalTransaction, finalShopTransaction) = if (status == TransactionStatus.PAYMENT_AUTHORIZED) {
       Try(ShippingHandler.confirmShippingPrice(boTransaction.shippingData)) match {
         case Success(shippingData) => {
+          logger.warn("*******TEST******** SUCCESS")
           val transactionWithShippingData = shippingData.map { shippingData =>
             val finalTransWithShippingInfo = boTransaction.copy(shippingData = Some(shippingData))
             boTransactionHandler.update(finalTransWithShippingInfo)
@@ -223,24 +226,31 @@ class TransactionHandler {
 
           boShopTransaction.map { boShopTransaction =>
             val validationResult = validatePayment(boShopTransaction)
-            if (validationResult.status == PaymentStatus.COMPLETE)
-              PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.COMPLETED, None)
+            logger.warn("*******TEST******** VALID PAYMENT " + validationResult.status)
+             if (validationResult.status == PaymentStatus.COMPLETE) {
+               val updatedTransaction = PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.COMPLETED, None)
+               (updatedTransaction, Some(validationResult.boShopTransaction))
+             }
             else {
               val refundResult = refundPayment(boShopTransaction)
-              if (refundResult.status == PaymentStatus.REFUNDED)
+               logger.warn("*******TEST******** REFUNED PAYMENT " + refundResult.status)
+               val updatedTransaction = if (refundResult.status == PaymentStatus.REFUNDED)
                 PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.REFUNDED, None)
               else PaymentHandler.updateTransactionStatus(transactionWithShippingData, TransactionStatus.REFUNDED_FAILED, None)
+               (updatedTransaction, Some(refundResult.boShopTransaction))
             }
-          }.getOrElse(transactionWithShippingData)
+          }.getOrElse((transactionWithShippingData, boShopTransaction))
         }
         case Failure(f) => {
+          logger.warn("*******TEST******** ERROR")
           logger.error(f.getMessage)
-          PaymentHandler.updateTransactionStatus(boTransaction, TransactionStatus.SHIPMENT_ERROR, Some(MogopayConstant.ERROR_CONFIRM_SHIPPING), Some(f.getMessage))
+          (PaymentHandler.updateTransactionStatus(boTransaction, TransactionStatus.SHIPMENT_ERROR, Some(MogopayConstant.ERROR_CONFIRM_SHIPPING), Some(f.getMessage)), boShopTransaction)
         }
       }
-    } else boTransaction
+    } else (boTransaction, boShopTransaction)
 
-    boShopTransaction.map {boShopTransaction =>
+    logger.warn("*******TEST********" + boTransaction.transactionUUID + " , shop = " + finalShopTransaction.map(_.uuid).getOrElse("") + "  " +  finalShopTransaction.map(_.status.toString).getOrElse(""))
+    finalShopTransaction.map {boShopTransaction =>
       // On envoie les mails uniquements pour le shop mogopay
       notifyPaymentFinished(finalTransaction, boShopTransaction)
       notifySuccessRefund(finalTransaction, boShopTransaction)

@@ -116,8 +116,9 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			detailsGetOrderLogs(scope, location, rootScope, route);
 		scope.$apply(function () {
 			scope.cartDetails = response;
-			for(var  i = 0; i < scope.cartDetails.cartItems.length; i++){
-				var item = scope.cartDetails.cartItems[i];
+			scope.mogopayShopCart = extractMogopayShopCart(response);
+			for(var  i = 0; i < scope.mogopayShopCart.cartItems.length; i++){
+				var item = scope.mogopayShopCart.cartItems[i];
 				item.sumReturnedItems = 0;
 				for(var j = 0; j < item.bOReturnedItems.length; j++){
 					item.sumReturnedItems += item.bOReturnedItems[j].quantity;
@@ -127,6 +128,7 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 	};
 	var error = function (response) {
 		scope.cartDetails = {};
+		scope.mogopayShopCart = {};
 		showAlertBootStrapMsg("warning", rootScope.resourceBundle.error_details_not_found);
 		if(rootScope.isMerchant)
 			detailsGetOrderLogs(scope, location, rootScope, route);
@@ -173,9 +175,9 @@ function detailsRefundCheckOne(scope, location, rootScope, route){
 function detailsSelectReturn(scope, location, rootScope, route, index){
 	rootScope.itemsToBeReturned = [];
 	rootScope.returnDetails = {
-		name: scope.cartDetails.cartItems[index].principal.product.name + " / (" + scope.cartDetails.cartItems[index].sku.sku + ")",
-		returnedItems: scope.cartDetails.cartItems[index].bOReturnedItems,
-		cartItem: scope.cartDetails.cartItems[index]
+		name: scope.mogopayShopCart.cartItems[index].principal.product.name + " / (" + scope.mogopayShopCart.cartItems[index].sku.sku + ")",
+		returnedItems: scope.mogopayShopCart.cartItems[index].bOReturnedItems,
+		cartItem: scope.mogopayShopCart.cartItems[index]
 	}
 	if(rootScope.isMerchant){
 		navigateToPage(scope, location, rootScope, route, "return");
@@ -189,7 +191,7 @@ function detailsReturnSelectedItems(scope, location, rootScope, route){
 		return;
 	for(var i = 0; i < checkBoxes.length; i++){
 		if($(checkBoxes[i]).is(":checked")){
-			rootScope.itemsToBeReturned[rootScope.itemsToBeReturned.length] = scope.cartDetails.cartItems[$(checkBoxes[i]).attr("index")];
+			rootScope.itemsToBeReturned[rootScope.itemsToBeReturned.length] = scope.mogopayShopCart.cartItems[$(checkBoxes[i]).attr("index")];
 		}
 	}
 	navigateToPage(scope, location, rootScope, route, "return");

@@ -8,7 +8,7 @@ import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
-import com.mogobiz.pay.model.{BOTransaction, Account, BOTransactionLog}
+import com.mogobiz.pay.model.{Account, BOShopTransaction, BOTransaction, BOTransactionLog}
 import com.mogobiz.session.SessionESDirectives._
 import spray.http.StatusCodes
 import spray.routing.Directives
@@ -19,7 +19,8 @@ class BackofficeService extends Directives with DefaultComplete {
     listCustomers ~
     listTransactionLogs ~
     listTransactions ~
-    getTransaction
+    getTransaction ~
+    listShopTransaction
   }
 
   lazy val listCustomers = path("customers") {
@@ -80,4 +81,14 @@ class BackofficeService extends Directives with DefaultComplete {
       }
     }
   }
+
+  lazy val listShopTransaction = path("transactions" / Segment / "shopTransactions") { transactionId =>
+    get {
+      session { session =>
+        handleCall(backofficeHandler.listShopTransactions(transactionId),
+          (r: List[BOShopTransaction]) => complete(StatusCodes.OK -> r))
+      }
+    }
+  }
+
 }

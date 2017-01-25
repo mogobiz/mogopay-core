@@ -57,6 +57,13 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 				"RETURN_ACCEPTED": $rootScope.resourceBundle.return_accepted
 			};
 
+			/*
+			 val              = Value("REFUNDED")
+			 val       = Value("REFUNDED_FAILED")
+			 val        = Value("SHIPMENT_ERROR")
+
+			 */
+
 			$rootScope.transactionStatusValues = [{
 				value: "",
 				label: $rootScope.resourceBundle.option_all
@@ -64,32 +71,29 @@ function MainCtrl(ngI18nResourceBundle, ngI18nConfig, $scope, $rootScope, $locat
 				value: "INITIATED",
 				label: $rootScope.resourceBundle.transactionStatus_initiated,
 			},{
-				value: "VERIFICATION_THREEDS",
-				label: $rootScope.resourceBundle.transactionStatus_verification_threeds,
+				value: "COMPLETED",
+				label: $rootScope.resourceBundle.transactionStatus_completed,
 			},{
-				value: "THREEDS_TESTED",
-				label: $rootScope.resourceBundle.transactionStatus_threeds_tested,
+				value: "FAILED",
+				label: $rootScope.resourceBundle.transactionStatus_failed,
 			},{
-				value: "PAYMENT_REQUESTED",
-				label: $rootScope.resourceBundle.transactionStatus_payment_requested,
-			},{
-				value: "PAYMENT_CONFIRMED",
-				label: $rootScope.resourceBundle.transactionStatus_payment_confirmed,
+				value: "PAYMENT_AUTHORIZED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_authorized,
 			},{
 				value: "PAYMENT_REFUSED",
 				label: $rootScope.resourceBundle.transactionStatus_payment_refused,
 			},{
-				value: "CANCEL_REQUESTED",
-				label: $rootScope.resourceBundle.transactionStatus_cancel_requested,
+				value: "PAYMENT_FAILED",
+				label: $rootScope.resourceBundle.transactionStatus_payment_failed,
 			},{
-				value: "CANCEL_FAILED",
-				label: $rootScope.resourceBundle.transactionStatus_cancel_failed,
+				value: "REFUNDED",
+				label: $rootScope.resourceBundle.transactionStatus_refunded,
 			},{
-				value: "CANCEL_CONFIRMED",
-				label: $rootScope.resourceBundle.transactionStatus_cancel_confirmed,
+				value: "REFUNDED_FAILED",
+				label: $rootScope.resourceBundle.transactionStatus_refunded_failed,
 			},{
-				value: "CUSTOMER_REFUNDED",
-				label: $rootScope.resourceBundle.transactionStatus_customer_refunded
+				value: "SHIPMENT_ERROR",
+				label: $rootScope.resourceBundle.transactionStatus_shipment_error,
 			}];
 
 			$rootScope.deliveryStatusValues = [{

@@ -6,7 +6,6 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.TransactionNotFoundException
 import com.mogobiz.pay.model._
 import com.mogobiz.pay.sql.BOTransactionDAO
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -22,8 +21,7 @@ class BOTransactionHandler {
   }
 
   def findByShipmentId(shipmentId: String): Option[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" query matchQuery("shippingData.shipmentId",
-                                                                                     shipmentId)
+    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" query must(matchQuery("shippingData.shipmentId", shipmentId))
     EsClient.search[BOTransaction](req)
   }
 

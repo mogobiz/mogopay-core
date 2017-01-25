@@ -231,9 +231,9 @@ class PaylineHandler(handlerName: String) extends CBProvider {
     val transactionDate = if (response != null) getTransactionDate(response.getTransaction) else None
 
     val newPaymentData = paymentData.copy(transactionId = transactionId, transactionDate = transactionDate)
-    updateBOShopTransactionStatusAndData(boShopTransaction, newStatus, code, serializePaymentData(newPaymentData))
+    val finalShopTransaction = updateBOShopTransactionStatusAndData(boShopTransaction, newStatus, code, serializePaymentData(newPaymentData))
 
-    ValidatePaymentResult(status, transactionId, transactionDate)
+    ValidatePaymentResult(status, transactionId, transactionDate, finalShopTransaction)
   }
 
   def refundPayment(boShopTransaction: BOShopTransaction): RefundPaymentResult = {
@@ -271,9 +271,9 @@ class PaylineHandler(handlerName: String) extends CBProvider {
     val transactionDate = if (response != null) getTransactionDate(response.getTransaction) else None
 
     val newPaymentData = paymentData.copy(transactionId = transactionId, transactionDate = transactionDate)
-    updateBOShopTransactionStatusAndData(boShopTransaction, newStatus, code, serializePaymentData(newPaymentData))
+    val finalShopTransaction = updateBOShopTransactionStatusAndData(boShopTransaction, newStatus, code, serializePaymentData(newPaymentData))
 
-    RefundPaymentResult(status, transactionId, transactionDate)
+    RefundPaymentResult(status, transactionId, transactionDate, finalShopTransaction)
   }
 
   def done(boShopTransactionUuid: String, params: Map[String, String]): Uri = {

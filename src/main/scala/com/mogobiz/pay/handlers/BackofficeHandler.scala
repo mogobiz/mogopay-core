@@ -13,6 +13,7 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.exceptions.Exceptions.InvalidContextException
 import com.mogobiz.pay.model._
 import org.elasticsearch.search.sort.SortOrder._
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
 
 class BackofficeHandler {
 
@@ -89,4 +90,9 @@ class BackofficeHandler {
     EsClient.search[BOTransaction](search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
       termFilter("uuid", uuid)
     })
+
+  def listShopTransactions(transactionId: String): List[BOShopTransaction] = {
+    boShopTransactionHandler.findByTransactionUuid(transactionId)
+  }
+
 }

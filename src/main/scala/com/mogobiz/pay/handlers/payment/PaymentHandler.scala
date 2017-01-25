@@ -35,12 +35,14 @@ case class FormRedirection(html: String)
 case class ValidatePaymentResult(@JsonScalaEnumeration(classOf[PaymentStatusRef])
                                  status: PaymentStatus.PaymentStatus,
                                  transactionId: Option[String],
-                                 transactionDate: Option[Date])
+                                 transactionDate: Option[Date],
+                                 boShopTransaction: BOShopTransaction)
 
 case class RefundPaymentResult(@JsonScalaEnumeration(classOf[PaymentStatusRef])
                                status: PaymentStatus.PaymentStatus,
                                transactionId: Option[String],
-                               transactionDate: Option[Date])
+                               transactionDate: Option[Date],
+                               boShopTransaction: BOShopTransaction)
 
 trait CBProvider extends PaymentHandler {
 
@@ -93,7 +95,7 @@ trait PaymentHandler extends StrictLogging {
       sessionData.locale,
       paymentConfig,
       paymentType,
-      None,
+      shippingData,
       None,
       merchantConfirmation)
 

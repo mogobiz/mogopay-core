@@ -137,7 +137,7 @@
 													</td>
 													<td>
 														<a href="javascript:void(0)" ng-if="item.bOReturnedItems.length > 0" ng-click="detailsSelectReturn($index);">
-															{{returnStatusValues[item.bOReturnedItems[0].boReturns[0].status]}}
+															{{returnStatusValues[item.bOReturnedItems[0].boReturns[item.bOReturnedItems[0].boReturns.length - 1].status]}}
 														</a>
 														<span ng-if="item.bOReturnedItems.length == 0">{{resourceBundle.none}}</span>
 													</td>

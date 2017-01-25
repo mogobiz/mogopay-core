@@ -116,8 +116,9 @@ function detailsGetOrderDetails(scope, location, rootScope, route){
 			detailsGetOrderLogs(scope, location, rootScope, route);
 		scope.$apply(function () {
 			scope.cartDetails = response;
-			for(var  i = 0; i < scope.cartDetails.cartItems.length; i++){
-				var item = scope.cartDetails.cartItems[i];
+			scope.mogopayShopCart = extractMogopayShopCart(response);
+			for(var  i = 0; i < scope.mogopayShopCart.cartItems.length; i++){
+				var item = scope.mogopayShopCart.cartItems[i];
 				item.sumReturnedItems = 0;
 				for(var j = 0; j < item.bOReturnedItems.length; j++){
 					item.sumReturnedItems += item.bOReturnedItems[j].quantity;
