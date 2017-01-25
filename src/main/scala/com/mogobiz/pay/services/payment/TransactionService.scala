@@ -93,10 +93,12 @@ class TransactionService(implicit executionContext: ExecutionContext)
       params { (secret, amount, transactionUUID) =>
         handleCall(
             transactionHandler.verify(secret, amount, transactionUUID),
-            (transaction: BOTransaction) => {
+            (result: (BOTransaction, TransactionStatus.TransactionStatus)) => {
+              val transaction = result._1
+              val expectedSuccessStatus = result._2
               complete(
                   StatusCodes.OK -> Map(
-                      'result -> (if (transaction.status == TransactionStatus.COMPLETED) "success" else "error"),
+                      'result -> (if (transaction.status == expectedSuccessStatus) "success" else "error"),
                       'transaction_id       -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
                       'transaction_amount   -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
                       'transaction_email    -> Option(transaction.email).getOrElse(""),

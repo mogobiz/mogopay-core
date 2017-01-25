@@ -46,7 +46,8 @@ function ReturnCtrl($scope, $location, $rootScope, $route) {
 // Merchant Functions
 function acceptReturn(scope, location, rootScope, route, index){
 	if(validateRetunForm(scope, location, rootScope, route, index)){
-		if(rootScope.returnDetails.returnedItems[index].boReturns[0].status == "RETURN_SUBMITTED")
+		var boReturns = rootScope.returnDetails.returnedItems[index].boReturns
+		if(boReturns[boReturns.length - 1].status == "RETURN_SUBMITTED")
 			updateReturnItem(scope, location, rootScope, route, index, "RETURN_TO_BE_RECEIVED");
 		else
 			updateReturnItem(scope, location, rootScope, route, index, "RETURN_ACCEPTED");

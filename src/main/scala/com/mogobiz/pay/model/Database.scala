@@ -101,18 +101,6 @@ object TransactionStatus extends Enumeration {
   val REFUNDED             = Value("REFUNDED")
   val REFUNDED_FAILED      = Value("REFUNDED_FAILED")
   val SHIPMENT_ERROR       = Value("SHIPMENT_ERROR")
-  /*
-  val VERIFICATION_THREEDS = Value("VERIFICATION_THREEDS")
-  val THREEDS_TESTED       = Value("THREEDS_TESTED")
-  val PAYMENT_REQUESTED    = Value("PAYMENT_REQUESTED")
-  val PAYMENT_AUTHORIZED   = Value("PAYMENT_AUTHORIZED")
-  val PAYMENT_REFUSED      = Value("PAYMENT_REFUSED")
-  val PAYMENT_FAILED        = Value("PAYMENT_FAILED")
-  val CANCEL_REQUESTED     = Value("CANCEL_REQUESTED")
-  val CANCEL_FAILED        = Value("CANCEL_FAILED")
-  val CANCEL_CONFIRMED     = Value("CANCEL_CONFIRMED")
-  val LITIGATION           = Value("LITIGATION")
-  */
 }
 
   class TransactionStatusRef extends TypeReference[TransactionStatus.type]
