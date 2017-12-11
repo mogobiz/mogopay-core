@@ -5,21 +5,23 @@
 package com.mogobiz.pay.handlers
 
 import java.io.File
-import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.config.MogopayHandlers.handlers._
+
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model._
+import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.typesafe.scalalogging.LazyLogging
 import org.elasticsearch.index.query.TermQueryBuilder
 
 import scala.util.control.NonFatal
 
 class CountryImportHandler {
   private def findCountryAdmin(code: String, level: Int): Option[CountryAdmin] = {
-    val req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter {
-      and(
-          termFilter("code", code),
-          termFilter("level", level)
+    val req = search(Settings.Mogopay.EsIndex -> "CountryAdmin") query {
+      boolQuery().must(
+          termQuery("code", code),
+          termQuery("level", level)
       )
     }
     EsClient.search[CountryAdmin](req)
@@ -29,19 +31,14 @@ class CountryImportHandler {
     assert(currenciesFile.exists(), s"${currenciesFile.getAbsolutePath} does not exist.")
     assert(countriesFile.exists(), s"${countriesFile.getAbsolutePath} does not exist.")
 
-    val req = search in Settings.Mogopay.EsIndex -> "Country" aggs {
-      aggregation max "agg" field "lastUpdated"
+    val req = search(Settings.Mogopay.EsIndex -> "Country") query matchAllQuery() aggregations {
+      maxAggregation("agg") field "lastUpdated"
     }
 
     EsClient.search[Country](req) map (_.lastUpdated.getTime) orElse Some(countriesFile.lastModified) map {
       lastUpdated =>
         if (lastUpdated <= countriesFile.lastModified) {
-          import EsClient.secureActionRequest
-          secureActionRequest(
-              EsClient().client
-                .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-                .setQuery(new TermQueryBuilder("_type", "Country"))).execute.actionGet
-
+          EsClient.delIndex(Settings.Mogopay.EsIndex, "Country")
           val currencyMap: Map[String, String] = scala.io.Source
             .fromFile(currenciesFile, "utf-8")
             .getLines()
@@ -215,22 +212,18 @@ class CountryImportHandler {
             }
           } else {
             val cityFullCode = s"$countryCode.$a1code.$a2code.$cityCode"
-            val findCityReq = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter {
-              and(
-                  termFilter("code"  -> cityFullCode),
-                  termFilter("level" -> 3)
+            val findCityReq = search(Settings.Mogopay.EsIndex -> "CountryAdmin") query boolQuery().must(
+                  termQuery("code"  -> cityFullCode),
+                  termQuery("level" -> 3)
               )
-            }
             val city = EsClient.search[CountryAdmin](findCityReq)
 
             if (city.isEmpty) {
               val admin2Code = s"$countryCode.$a1code.$a2code"
-              val findAdmin2Req = search in Settings.Mogopay.EsIndex -> "CountryAdmin" postFilter {
-                and(
-                    termFilter("code"  -> admin2Code),
-                    termFilter("level" -> 2)
+              val findAdmin2Req = search(Settings.Mogopay.EsIndex -> "CountryAdmin") query boolQuery().must(
+                    termQuery("code"  -> admin2Code),
+                    termQuery("level" -> 2)
                 )
-              }
 
               EsClient.search[CountryAdmin](findAdmin2Req) map { admin2: CountryAdmin =>
                 val city = CountryAdmin(java.util.UUID.randomUUID().toString,
@@ -251,27 +244,12 @@ class CountryImportHandler {
 }
 
 import com.mogobiz.system.{ActorSystemLocator, BootedMogobizSystem}
-object CountryImportMain extends App with BootedMogobizSystem {
-  ActorSystemLocator(system)
-  println("Start...\n")
-  import EsClient.secureActionRequest
-  secureActionRequest(
-      EsClient().client
-        .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-        .setQuery(new TermQueryBuilder("_type", "Country"))).execute.actionGet
-  secureActionRequest(
-      EsClient().client
-        .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-        .setQuery(new TermQueryBuilder("_type", "CountryAdmin"))).execute.actionGet
-  secureActionRequest(
-      EsClient().client
-        .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-        .setQuery(new TermQueryBuilder("_type", "Account"))).execute.actionGet
-  secureActionRequest(
-      EsClient().client
-        .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-        .setQuery(new TermQueryBuilder("_type", "BOTransaction"))).execute.actionGet
 
+object CountryImportMain extends App with BootedMogobizSystem with LazyLogging {
+  ActorSystemLocator(system)
+  logger.info("Start Country Admin Import")
+  EsClient.delIndex(Settings.Mogopay.EsIndex, "Country")
+  EsClient.delIndex(Settings.Mogopay.EsIndex, "CountryAdmin")
   countryImportHandler.importCountries(Settings.Import.CountriesFile, Settings.Import.CurrenciesFile)
   countryImportHandler.importAdmins1(Settings.Import.Admins1File)
   countryImportHandler.importAdmins2(Settings.Import.Admins2File)

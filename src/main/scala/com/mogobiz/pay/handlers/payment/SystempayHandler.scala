@@ -41,7 +41,7 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   implicit val formats = new org.json4s.DefaultFormats {}
   //val systempayClient  = new SystempayClient
-  val paymentType      = PaymentType.CREDIT_CARD
+  val paymentType = PaymentType.CREDIT_CARD
 
   /**
     * Right for a redirect, Left for a complete
@@ -436,9 +436,10 @@ class SystempayHandler(handlerName: String) extends PaymentHandler {
     val status = if (response.getErrorCode == 0) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, response.getErrorCode.toString, SystempayClient.extendedErrorCodes.get(response.getErrorCode))
   }
-  */
+   */
 
-  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] =
+    throw new Exception("Not implemented")
 
 }
 /*
@@ -992,4 +993,4 @@ object SystempayClient {
       99 -> "Autre erreur"
   )
 }
-*/
+ */

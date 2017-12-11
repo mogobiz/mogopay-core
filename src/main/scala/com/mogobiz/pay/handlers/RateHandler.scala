@@ -6,14 +6,14 @@ package com.mogobiz.pay.handlers
 
 import java.text.NumberFormat
 import java.util.{Currency, Locale}
-import com.mogobiz.pay.config.Settings
 
-import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Rate
+import com.sksamuel.elastic4s.http.ElasticDsl._
 
 class RateHandler {
-  def list = EsClient.searchAll[Rate](search in Settings.Mogopay.EsIndex -> "Rate" from 0 size EsClient.MAX_SIZE)
+  def list = EsClient.searchAll[Rate](search(Settings.Mogopay.EsIndex -> "Rate") from 0 size EsClient.MaxSize)
 
   def format(amount: Long, currency: String, country: String): Option[String] =
     format(amount.toFloat, currency, country)
@@ -31,16 +31,11 @@ class RateHandler {
 
   def findByCurrencyCode(currency: String): Option[Rate] = {
     import java.util.Calendar
-    import org.elasticsearch.search.sort.SortOrder._
 
-    val req = search in Settings.Mogopay.EsIndex -> "Rate" postFilter {
-      termFilter("currencyCode", currency)
-    } query {
-      range("activationDate") from 0 to Calendar.getInstance.getTime.getTime
-    } sort {
-      by.field("activationDate").order(DESC)
-    }
-
+    val req = search(Settings.Mogopay.EsIndex -> "Rate") query {
+      boolQuery().must(termQuery("currencyCode", currency),
+                       rangeQuery("activationDate") gt 0 lte Calendar.getInstance.getTime.getTime)
+    } sortByFieldDesc "activationDate"
     EsClient.search[Rate](req)
   }
 

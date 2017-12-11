@@ -5,35 +5,32 @@
 package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
-import com.mogobiz.pay.config.{Settings, Mapping}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.config.{Mapping, Settings}
 import com.mogobiz.pay.model._
-import com.mogobiz.pay.config.Settings
-import org.specs2.mutable._
-import org.specs2.specification.BeforeExample
+import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers}
 
-class TransactionSequenceHandlerSpec extends Specification with BeforeExample {
-  sequential
+class TransactionSequenceHandlerSpec extends FlatSpec with Matchers with BeforeAndAfter {
 
-  def before = {
+  before {
     Mapping.clear
     Mapping.set
   }
 
-  "getNextTransactionId" should {
-    "generate a new ID if there is none" in {
-      val id = transactionSequenceHandler.nextTransactionId("123123")
-      id must_== 1
-    }
+  "getNextTransactionId" should "generate a new ID if there is none" in {
+    val id = transactionSequenceHandler.nextTransactionId("123123")
+    id should be
+    1L
+  }
 
-    "increment the ID" in {
-      val vendorId = "789"
+  it should "increment the ID" in {
+    val vendorId = "789"
 
-      val txReq = TransactionSequence(vendorId, 1)
-      EsClient.index(Settings.Mogopay.EsIndex, txReq, true)
+    val txReq = TransactionSequence(vendorId, 1)
+    EsClient.index(Settings.Mogopay.EsIndex, txReq, true)
 
-      val id = transactionSequenceHandler.nextTransactionId(vendorId)
-      id must_== 2
-    }
+    val id = transactionSequenceHandler.nextTransactionId(vendorId)
+    id should be
+    2L
   }
 }

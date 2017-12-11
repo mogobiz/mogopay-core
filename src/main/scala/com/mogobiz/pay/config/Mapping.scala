@@ -5,7 +5,7 @@
 package com.mogobiz.pay.config
 
 import com.mogobiz.es.EsClient
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import spray.client.pipelining._
 import spray.http._
 
@@ -25,11 +25,11 @@ object Mapping {
          "TransactionRequest",
          "TransactionSequence")
 
-  import EsClient.secureRequest
-  def clear = EsClient().execute(secureRequest(delete index Settings.Mogopay.EsIndex)).await
+  def clear = EsClient().execute(deleteIndex(Settings.Mogopay.EsIndex)).await
 
   def set() {
-    def route(url: String)       = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
+    def route(url: String) = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
+
     def mappingFor(name: String) = getClass().getResourceAsStream(s"/es/pay/mappings/$name.json")
 
     implicit val system                                                = akka.actor.ActorSystem("mogopay-boot")

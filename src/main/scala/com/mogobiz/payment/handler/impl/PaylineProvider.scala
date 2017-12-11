@@ -3,10 +3,9 @@ package com.mogobiz.payment.handler.impl
 /**
   * Created by yoannbaudy on 22/11/2016.
   */
-class PaylineProvider {
-}
+class PaylineProvider {}
 
-  /*
+/*
   val PROVIDER_PAYLINE = "PAYLINE"
   val STEP_START_EXTERNAL_PAYMENT = "START_EXTERNAL_PAYMENT"
   val STEP_PROCESS_PAYMENT_RETURN = "PROCESS_PAYMENT_RETURN"
@@ -707,9 +706,9 @@ object PaylineProviderTest extends App with BootedMogobizSystem {
   cal.add(Calendar.YEAR, 1)
   val params3DS = AuthorizedPaymentParamImpl("4970101122334455", CreditCardType.CB, cal.getTime, "123")
   val params2DS = AuthorizedPaymentParamImpl("1111222233334444", CreditCardType.CB, cal.getTime, "123")
-*/
+ */
 
-  /*
+/*
     println("TEST payment externe")
     println(paylineProvider.startExternalPayment(config3DSRequis, ref, amount, currency))
 
@@ -748,7 +747,7 @@ object PaylineProviderTest extends App with BootedMogobizSystem {
     case Left(r : AuthorizedPaymentResult) => println(r.status)
     case Right(r : ThreeDSRedirection) => println(r.html)
   }
-*/
+ */
 /*
   println("TEST Remboursement")
   paylineProvider.authorizedPayment(configNo3DS, ref, amount, currency, params3DS) match {
@@ -757,12 +756,12 @@ object PaylineProviderTest extends App with BootedMogobizSystem {
       println(paylineProvider.refundPayment(configNo3DS, r.paymentUuid, amount, currency))
     case Right(r : ThreeDSRedirection) => println(r.html)
   }
-  */
+ */
 /*
   println("TEST annulation")
   paylineProvider.authorizedPayment(configNo3DS, ref, amount, currency, params3DS) match {
     case Left(r : AuthorizedPaymentResult) => println(paylineProvider.cancelPayment(configNo3DS, r.paymentUuid))
     case Right(r : ThreeDSRedirection) => println(r.html)
   }
-  */
+ */
 //}

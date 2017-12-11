@@ -23,17 +23,17 @@ class KialaShippingHandler extends ShippingHandler {
 
   override def computePrice(shippingAddress: ShippingAddress, cart: Cart): ShippingDataList = {
     cart.shopCarts.find(_.shopId == MogopayConstant.SHOP_MOGOBIZ).map { mogobizShop =>
-
       val shippingContent = extractShippingContent(mogobizShop)
 
       def computePrice(list: List[ShippingWithQuantity]): Option[(Long, Long)] = {
         if (list.isEmpty) None
         else {
           val prixFixeAndKiala = computePrice(list.tail).getOrElse((0L, 0L))
-          val elt = list.head;
+          val elt              = list.head;
           if (elt.shipping.free) Some(prixFixeAndKiala)
           else if (elt.shipping.amount > 0)
-            Some(convertStorePrice(elt.shipping.amount, cart) * elt.quantity + prixFixeAndKiala._1, prixFixeAndKiala._2)
+            Some(convertStorePrice(elt.shipping.amount, cart) * elt.quantity + prixFixeAndKiala._1,
+                 prixFixeAndKiala._2)
           else Some(prixFixeAndKiala._1, rateHandler.convert(KIALA_PRICE, "EUR", cart.rate.code).getOrElse(0L))
         }
       }
@@ -41,25 +41,27 @@ class KialaShippingHandler extends ShippingHandler {
       computePrice(shippingContent).map { prixFixeAndKiala =>
         cart.shippingRulePrice.map { shippingPriceRule =>
           val price = convertStorePrice(shippingPriceRule, cart)
-          ShippingDataList(None, List(
-            createShippingData(shippingAddress.address,
-              KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString,
-              UUID.randomUUID().toString,
-              "KIALA",
-              "KIALA",
-              "KIALA",
-              price,
-              cart.rate.code)))
+          ShippingDataList(None,
+                           List(
+                               createShippingData(shippingAddress.address,
+                                                  KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString,
+                                                  UUID.randomUUID().toString,
+                                                  "KIALA",
+                                                  "KIALA",
+                                                  "KIALA",
+                                                  price,
+                                                  cart.rate.code)))
         } getOrElse {
-          ShippingDataList(None, List(
-            createShippingData(shippingAddress.address,
-              KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString,
-              UUID.randomUUID().toString,
-              "KIALA",
-              "KIALA",
-              "KIALA",
-              prixFixeAndKiala._1 + prixFixeAndKiala._2,
-              cart.rate.code)))
+          ShippingDataList(None,
+                           List(
+                               createShippingData(shippingAddress.address,
+                                                  KIALA_SHIPPING_PREFIX + UUID.randomUUID().toString,
+                                                  UUID.randomUUID().toString,
+                                                  "KIALA",
+                                                  "KIALA",
+                                                  "KIALA",
+                                                  prixFixeAndKiala._1 + prixFixeAndKiala._2,
+                                                  cart.rate.code)))
         }
       } getOrElse (ShippingDataList(None, Nil))
     } getOrElse (ShippingDataList(None, Nil))

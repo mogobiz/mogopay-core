@@ -6,41 +6,41 @@ package com.mogobiz.pay.handlers
 
 import java.io.File
 import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.{Calendar, UUID}
 
 import com.atosorigin.services.cad.common.util.FileParamReader
-import com.mogobiz.es.{EsClient, _}
+import com.mogobiz.es.{Es4Json, EsClient}
 import com.mogobiz.json.JacksonConverter
 import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
+import com.mogobiz.pay.config.Settings.Mail.Smtp.MailSettings
 import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.EmailType.EmailType
 import com.mogobiz.pay.handlers.Token.TokenType.TokenType
 import com.mogobiz.pay.handlers.Token.{Token, TokenType}
+import com.mogobiz.pay.model.RoleName.RoleName
 import com.mogobiz.pay.model.TokenValidity.TokenValidity
 import com.mogobiz.pay.model._
 import com.mogobiz.pay.sql.BOAccountDAO
 import com.mogobiz.utils.EmailHandler.Mail
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{EmailHandler, SymmetricCrypt}
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.SearchDefinition
+import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.http.search.SearchHit
+import com.sksamuel.elastic4s.searches.SearchDefinition
 import org.apache.shiro.crypto.hash.Sha256Hash
-import org.elasticsearch.search.SearchHit
 import org.json4s.JsonAST.{JString, JValue}
 import org.json4s.jackson.Serialization.{read, write}
-import spray.http.StatusCodes
-import spray.http.StatusCodes.ClientError
 
 import scala.util._
 import scala.util.control.NonFatal
 import scala.util.parsing.json.JSON
-import Settings.Mail.Smtp.MailSettings
-import com.mogobiz.pay.model.RoleName.RoleName
 
 class LoginException(msg: String) extends Exception(msg)
 
@@ -293,7 +293,9 @@ class AccountHandler {
   }
 
   def find(uuid: String): Option[Account] = {
-    val req = search in Settings.Mogopay.EsIndex types "Account" postFilter termFilter("uuid", uuid)
+    val req = search(Settings.Mogopay.EsIndex -> "Account") query {
+      boolQuery().must(termQuery("uuid", uuid))
+    }
     EsClient.search[Account](req)
   }
 
@@ -308,17 +310,17 @@ class AccountHandler {
 
   private def buildFindAccountRequest(email: String, merchantId: Option[String]): SearchDefinition = {
     if (!Settings.sharedCustomers && merchantId.nonEmpty) {
-      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-        and(
-            termFilter("email", email),
-            termFilter("owner", merchantId.get)
+      search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+        boolQuery().must(
+            termQuery("email", email),
+            termQuery("owner", merchantId.get)
         )
       }
     } else {
-      search in Settings.Mogopay.EsIndex types "Account" postFilter {
-        and(
-            termFilter("email", email),
-            missingFilter("owner") existence true includeNull true
+      search(Settings.Mogopay.EsIndex -> "Account") query {
+        boolQuery().must(
+            termQuery("email", email)
+            //missingFilter("owner") existence true includeNull true
         )
       }
     }
@@ -326,30 +328,28 @@ class AccountHandler {
 
   def alreadyExistEmail(email: String, merchantId: Option[String]): Boolean = {
     val req = buildFindAccountRequest(email, merchantId)
-    import EsClient.secureRequest
-    val res = EsClient().execute(secureRequest(req)).await
-    res.getHits.totalHits() == 1
+    val res = EsClient().execute(req).await
+    res.hits.total == 1
   }
 
   def alreadyExistCompany(company: String, merchantId: Option[String]): Boolean = {
     val req =
-      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-        and(
-            termFilter("company", company),
-            missingFilter("company") includeNull false
+      search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+        boolQuery().must(
+            termQuery("company", company)
+            //missingFilter("company") includeNull false
         )
       }
-    import EsClient.secureRequest
-    val res = EsClient().execute(secureRequest(req)).await
-    res.getHits.totalHits() == 1
+    val res = EsClient().execute(req).await
+    res.hits.total == 1
   }
 
   def login(secret: String): Account = {
     val email = SymmetricCrypt.decrypt(secret, Settings.Mogopay.Secret, "AES")
-    val userAccountRequest = search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-      and(
-          termFilter("email", email.toLowerCase),
-          missingFilter("owner") existence true includeNull true
+    val userAccountRequest = search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+      boolQuery().must(
+          termQuery("email", email.toLowerCase) //,
+          //missingFilter("owner") existence true includeNull true
       )
     }
     EsClient
@@ -376,17 +376,17 @@ class AccountHandler {
     val lowerCaseEmail = email.toLowerCase
     val userAccountRequest = if (isCustomer) {
       val merchantReq = if (merchantId.isDefined) {
-        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-          and(
-              termFilter("uuid", merchantId.get),
-              missingFilter("owner") existence true includeNull true
+        search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+          boolQuery().must(
+              termQuery("uuid", merchantId.get)
+              //missingFilter("owner") existence true includeNull true
           )
         }
       } else {
-        search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-          and(
-              termFilter("email", Settings.AccountValidateMerchantDefault),
-              missingFilter("owner") existence true includeNull true
+        search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+          boolQuery().must(
+              termQuery("email", Settings.AccountValidateMerchantDefault)
+              //missingFilter("owner") existence true includeNull true
           )
         }
       }
@@ -402,17 +402,17 @@ class AccountHandler {
         throw InactiveMerchantException("")
       }
 
-      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-        and(
-            termFilter("email", lowerCaseEmail),
-            termFilter("owner", merchant.uuid)
+      search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+        boolQuery().must(
+            termQuery("email", lowerCaseEmail),
+            termQuery("owner", merchant.uuid)
         )
       }
     } else {
-      search in Settings.Mogopay.EsIndex -> "Account" limit 1 from 0 postFilter {
-        and(
-            termFilter("email", lowerCaseEmail),
-            missingFilter("owner") existence true includeNull true
+      search(Settings.Mogopay.EsIndex -> "Account") limit 1 from 0 query {
+        boolQuery().must(
+            termQuery("email", lowerCaseEmail)
+            //missingFilter("owner") existence true includeNull true
         )
       }
     }
@@ -460,7 +460,7 @@ class AccountHandler {
   }
 
   def findBySecret(secret: String): Option[Account] = {
-    val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter termFilter("secret", secret)
+    val req = search(Settings.Mogopay.EsIndex -> "Account") query termQuery("secret", secret)
     EsClient.search[Account](req)
   }
 
@@ -562,7 +562,7 @@ class AccountHandler {
     //    val jaccount = Extraction.decompose(account)
     //    val jvendor = Extraction.decompose(vendor.get)
     //    val json = jaccount merge jvendor
-    //    val jsonString = compact(render(json))
+    //    val jsonString = JacksonConverter.asString(json)
 
     val data = s"""
          |{
@@ -607,6 +607,7 @@ class AccountHandler {
     accountHandler.update(acc.copy(address = acc.address.map(_.copy(telephone = Option(newTelephone)))), false)
 
     def message = "Your 3 digits code is: " + plainTextPinCode
+
     smsHandler.sendSms(message, phoneNumber.phone)
   }
 
@@ -895,9 +896,8 @@ class AccountHandler {
                       .getOrElse("")
                       .length > 0 && params.sipsMerchantParcomFileName.getOrElse("").length > 0) {
                   parcomTargetFile.delete()
-                  scala.tools.nsc.io
-                    .File(parcomTargetFile.getAbsolutePath)
-                    .writeAll(params.sipsMerchantParcomFileContent.get)
+                  Files.write(parcomTargetFile.toPath,
+                              params.sipsMerchantParcomFileContent.get.getBytes(StandardCharsets.UTF_8))
                 }
               } else {
                 try {
@@ -919,58 +919,53 @@ class AccountHandler {
                 }
               }
 
-              if (params.sipsMerchantCertificateFileName.isDefined && params.sipsMerchantCertificateFileName != Some(
-                      "")) {
-                val certificateTargetFile =
-                  new File(dir, "certif." + params.sipsMerchantCountry + "." + params.sipsMerchantId)
-                if (params.sipsMerchantCertificateFileContent
-                      .getOrElse("")
-                      .length > 0 && params.sipsMerchantCertificateFileName.getOrElse("").length > 0) {
-                  certificateTargetFile.delete()
-                  scala.tools.nsc.io
-                    .File(certificateTargetFile.getAbsolutePath)
-                    .writeAll(params.sipsMerchantCertificateFileContent.get)
-                }
+              params.sipsMerchantCertificateFileName match {
+                case Some(a) if a.length > 0 =>
+                  val certificateTargetFile =
+                    new File(dir, "certif." + params.sipsMerchantCountry + "." + params.sipsMerchantId)
+                  if (params.sipsMerchantCertificateFileContent
+                        .getOrElse("")
+                        .length > 0 && params.sipsMerchantCertificateFileName.getOrElse("").length > 0) {
+                    certificateTargetFile.delete()
+                    Files.write(certificateTargetFile.toPath,
+                                params.sipsMerchantCertificateFileContent.get.getBytes(StandardCharsets.UTF_8))
+                  }
 
-                val targetFile = new File(dir, "pathfile")
-                val isJSP = params.sipsMerchantCertificateFileContent.map(_.indexOf("!jsp") > 0).getOrElse(false) ||
-                    (targetFile
-                          .exists() && (new FileParamReader(targetFile.getAbsolutePath)).getParam("F_CTYPE") == "jsp")
-                targetFile.delete()
-                scala.tools.nsc.io
-                  .File(targetFile.getAbsolutePath)
-                  .writeAll(
-                      s"""
-                     |D_LOGO!${Settings.Mogopay.BaseEndPoint}${Settings.ImagesPath}sips/logo/!
-                     |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parcom.default!
-                     |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
-                     |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
-                     |${if (isJSP) "F_CTYPE!jsp!" else ""}"
-           """.stripMargin.trim
-                  )
+                  val targetFile = new File(dir, "pathfile")
+                  val isJSP = params.sipsMerchantCertificateFileContent.exists(_.indexOf("!jsp") > 0) ||
+                      (targetFile.exists() && (new FileParamReader(targetFile.getAbsolutePath))
+                            .getParam("F_CTYPE") == "jsp")
+                  targetFile.delete()
+                  val content = s"""
+                       |D_LOGO!${Settings.Mogopay.BaseEndPoint}${Settings.ImagesPath}sips/logo/!
+                       |F_DEFAULT!${Settings.Sips.CertifDir}${File.separator}parcom.default!
+                       |F_PARAM!${new File(dir, "parcom").getAbsolutePath}!
+                       |F_CERTIFICATE!${new File(dir, "certif").getAbsolutePath}!
+                       |${if (isJSP) "F_CTYPE!jsp!" else ""}
+                  """.stripMargin.trim
+                  Files.write(targetFile.toPath, content.getBytes(StandardCharsets.UTF_8))
 
-                if (isJSP)
-                  certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
-              } else {
-                try {
-                  val oldSIPSMerchantCertificateFileContent: Option[String] = (for {
-                    pc  <- account.paymentConfig
-                    cbp <- pc.cbParam
-                  } yield read[SIPSParams](cbp).sipsMerchantCertificateFileContent).flatten
-                  val oldSIPSMerchantCertificateFileName: Option[String] = (for {
-                    pc  <- account.paymentConfig
-                    cbp <- pc.cbParam
-                  } yield read[SIPSParams](cbp).sipsMerchantCertificateFileName).flatten
+                  if (isJSP)
+                    certificateTargetFile.renameTo(new File(certificateTargetFile.getAbsolutePath + ".jsp"))
+                case _ =>
+                  try {
+                    val oldSIPSMerchantCertificateFileContent: Option[String] = (for {
+                      pc  <- account.paymentConfig
+                      cbp <- pc.cbParam
+                    } yield read[SIPSParams](cbp).sipsMerchantCertificateFileContent).flatten
+                    val oldSIPSMerchantCertificateFileName: Option[String] = (for {
+                      pc  <- account.paymentConfig
+                      cbp <- pc.cbParam
+                    } yield read[SIPSParams](cbp).sipsMerchantCertificateFileName).flatten
 
-                  params = params.copy(
-                      sipsMerchantCertificateFileContent = oldSIPSMerchantCertificateFileContent,
-                      sipsMerchantCertificateFileName = oldSIPSMerchantCertificateFileName
-                  )
-                } catch {
-                  case _: Throwable => params
-                }
+                    params = params.copy(
+                        sipsMerchantCertificateFileContent = oldSIPSMerchantCertificateFileContent,
+                        sipsMerchantCertificateFileName = oldSIPSMerchantCertificateFileName
+                    )
+                  } catch {
+                    case _: Throwable => params
+                  }
               }
-
               Option(params)
             } else {
               cbParam
@@ -1046,7 +1041,7 @@ class AccountHandler {
     }
 
     load(profile.id) match {
-      case None => Failure(new AccountAddressDoesNotExistException(""))
+      case None => Failure(AccountAddressDoesNotExistException(""))
       case Some(account) =>
         lazy val birthDate = try {
           Some(getBirthDayDate(profile.birthDate))
@@ -1069,13 +1064,13 @@ class AccountHandler {
   }
 
   def recycle() {
-    val req = select in Settings.Mogopay.EsIndex -> "Account" postFilter {
-      and(
-          termFilter("status", AccountStatus.WAITING_ENROLLMENT),
-          rangeFilter("waitingEmailSince") from 0 to (System.currentTimeMillis() - Settings.AccountRecycleDuration)
+    val req = search(Settings.Mogopay.EsIndex -> "Account") query {
+      boolQuery().must(
+          termQuery("status", AccountStatus.WAITING_ENROLLMENT),
+          rangeQuery("waitingEmailSince") gt 0 lte (System.currentTimeMillis() - Settings.AccountRecycleDuration)
       )
     }
-    val ids = (EsClient searchAllRaw req).getHits map (_.getId) foreach delete
+    (EsClient searchAllRaw req).hits map (_.id) foreach delete
   }
 
   def delete(id: String) = {
@@ -1265,14 +1260,16 @@ class AccountHandler {
     }.getOrElse(throw new UnauthorizedException("user not logged"))
 
     if (account.isCustomer) {
-      val req = search in Settings.Mogopay.EsIndex limit Integer.MAX_VALUE types "BOTransaction" sourceInclude "vendor.company" postFilter termFilter(
-            "customer.uuid",
-            account.uuid)
-      (EsClient.searchAllRaw(req) hits () map { hit: SearchHit =>
-            val json: JValue     = hit
-            val JString(company) = json \ "vendor" \ "company"
-            company
-          }).toList.distinct.sorted
+      val req = search(Settings.Mogopay.EsIndex) limit Int.MaxValue types "BOTransaction" sourceInclude "vendor.company" query
+          termQuery("customer.uuid", account.uuid)
+      val hits: Array[SearchHit] = EsClient.searchAllRaw(req).hits
+      val res = hits map { hit =>
+        val json: JValue     = Es4Json.searchHit2JValue(hit)
+        val JString(company) = json \ "vendor" \ "company"
+        company
+
+      }
+      res.toList.distinct.sorted
     } else {
       account.company.map { company =>
         List(company)
@@ -1282,8 +1279,9 @@ class AccountHandler {
 
   def listMerchants(): Seq[(String, String)] = {
     val req: SearchDefinition =
-      search in Settings.Mogopay.EsIndex limit Integer.MAX_VALUE types "Account" postFilter {
-        missingFilter("owner") existence true includeNull true
+      search(Settings.Mogopay.EsIndex -> "Account") limit Int.MaxValue query {
+        boolQuery()
+          .not(existsQuery("owner")) // won't return field with owner == null. Same as missingQuery("owner") existence true includeNull true
       }
     EsClient
       .searchAll[Account](req)

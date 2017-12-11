@@ -75,9 +75,9 @@ object MogopayConstant {
   val PaymentNotConfirmed         = "error.payment.not.confirmed"
   val TransactionAlreadyConfirmed = "error.transaction.already.confirmed"
 
-  val ERROR_PAYMENT_REQUEST_NOT_FOUND = "error.payment.request.not.found"
+  val ERROR_PAYMENT_REQUEST_NOT_FOUND                    = "error.payment.request.not.found"
   val ERROR_EXTERNAL_PAYMENT_NOT_ALLOWED_WITH_MANY_SHOPS = "error.external.payment.not.allowed.with.many.shops"
-  val ERROR_THREEDS_NOT_ALLOWED_WITH_MANY_SHOPS = "error.3DS.not.allowed.with.many.shops"
-  val ERROR_THREEDS_REQUIRED = "error.3DS.required"
-  val ERROR_CONFIRM_SHIPPING = "error.confirm.shipping"
+  val ERROR_THREEDS_NOT_ALLOWED_WITH_MANY_SHOPS          = "error.3DS.not.allowed.with.many.shops"
+  val ERROR_THREEDS_REQUIRED                             = "error.3DS.required"
+  val ERROR_CONFIRM_SHIPPING                             = "error.confirm.shipping"
 }

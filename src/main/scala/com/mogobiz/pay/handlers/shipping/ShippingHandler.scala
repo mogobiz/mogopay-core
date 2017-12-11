@@ -73,17 +73,19 @@ object ShippingHandler {
     mergeShippingDataList(list)
   }
 
-  def mergeShippingDataList(list: List[ShippingDataList]) : ShippingDataList = {
+  def mergeShippingDataList(list: List[ShippingDataList]): ShippingDataList = {
     if (list.isEmpty) ShippingDataList(None, Nil)
     else {
       val shippingData1 = list.head
       val shippingData2 = mergeShippingDataList(list.tail)
-      ShippingDataList(mergeError(shippingData1.error, shippingData2.error), shippingData1.shippingPrices ::: shippingData2.shippingPrices)
+      ShippingDataList(mergeError(shippingData1.error, shippingData2.error),
+                       shippingData1.shippingPrices ::: shippingData2.shippingPrices)
     }
   }
 
-  def mergeError(error1: Option[ShippingPriceError.ShippingPriceError], error2: Option[ShippingPriceError.ShippingPriceError]) = (error1, error2) match {
-    case (None, None) => None
+  def mergeError(error1: Option[ShippingPriceError.ShippingPriceError],
+                 error2: Option[ShippingPriceError.ShippingPriceError]) = (error1, error2) match {
+    case (None, None)     => None
     case (Some(er), None) => Some(er)
     case (None, Some(er)) => Some(er)
     case (Some(er1), Some(er2)) => {
@@ -94,9 +96,9 @@ object ShippingHandler {
 
   def getErrorValue(er: ShippingPriceError.ShippingPriceError) = er match {
     case ShippingPriceError.INTERNATIONAL_SHIPPING_NOT_ALLOWED => 1
-    case ShippingPriceError.SHIPPING_ZONE_NOT_ALLOWED => 2
-    case ShippingPriceError.SHIPPING_TYPE_NOT_ALLOWED => 3
-    case _ => 99
+    case ShippingPriceError.SHIPPING_ZONE_NOT_ALLOWED          => 2
+    case ShippingPriceError.SHIPPING_TYPE_NOT_ALLOWED          => 3
+    case _                                                     => 99
   }
 
   def confirmShippingPrice(shippingPrice: Option[ShippingData]): Option[ShippingData] = {
@@ -110,4 +112,3 @@ object ShippingHandler {
     }.getOrElse(None)
   }
 }
-

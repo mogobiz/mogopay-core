@@ -70,7 +70,7 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
   val paymentType      = PaymentType.CREDIT_CARD
 
   import SipsHandler._
-/*
+  /*
   def computeTransactionStatus(paymentStatus: PaymentStatus): TransactionStatus = {
     paymentStatus match {
       case PaymentStatus.CANCEL_FAILED => TransactionStatus.CANCEL_FAILED
@@ -797,9 +797,10 @@ class SipsHandler(handlerName: String) extends PaymentHandler {
     val status       = if (responseCode == "00") PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, responseCode.toString, errorMessages.get(responseCode))
   }
-  */
+   */
 
-  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] =
+    throw new Exception("Not implemented")
 
 }
 

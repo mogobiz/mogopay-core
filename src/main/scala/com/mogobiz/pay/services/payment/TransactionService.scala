@@ -91,30 +91,30 @@ class TransactionService(implicit executionContext: ExecutionContext)
     get {
       val params = parameters('merchant_secret, 'transaction_amount.?.as[Option[Long]], 'transaction_id)
       params { (secret, amount, transactionUUID) =>
-        handleCall(
-            transactionHandler.verify(secret, amount, transactionUUID),
-            (result: (BOTransaction, TransactionStatus.TransactionStatus)) => {
-              val transaction = result._1
-              val expectedSuccessStatus = result._2
-              complete(
-                  StatusCodes.OK -> Map(
-                      'result -> (if (transaction.status == expectedSuccessStatus) "success" else "error"),
-                      'transaction_id       -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
-                      'transaction_amount   -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
-                      'transaction_email    -> Option(transaction.email).getOrElse(""),
-                      'transaction_status   -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
-                      'transaction_start -> URLEncoder
-                        .encode(new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated), "UTF-8"),
-                      'transaction_end -> URLEncoder.encode(
-                          new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated),
-                          "UTF-8"),
-                      'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
-                      'transaction_type       -> URLEncoder.encode(transaction.paymentType.toString, "UTF-8"),
-                      'error                  -> transaction.error.getOrElse(""),
-                      'msgError               -> transaction.error.getOrElse("")
-                  )
-              )
-            })
+        handleCall(transactionHandler.verify(secret, amount, transactionUUID),
+                   (result: (BOTransaction, TransactionStatus.TransactionStatus)) => {
+                     val transaction           = result._1
+                     val expectedSuccessStatus = result._2
+                     complete(
+                         StatusCodes.OK -> Map(
+                             'result             -> (if (transaction.status == expectedSuccessStatus) "success" else "error"),
+                             'transaction_id     -> URLEncoder.encode(transaction.transactionUUID, "UTF-8"),
+                             'transaction_amount -> URLEncoder.encode(transaction.amount.toString, "UTF-8"),
+                             'transaction_email  -> Option(transaction.email).getOrElse(""),
+                             'transaction_status -> URLEncoder.encode(transaction.status.toString, "UTF-8"),
+                             'transaction_start -> URLEncoder.encode(
+                                 new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated),
+                                 "UTF-8"),
+                             'transaction_end -> URLEncoder.encode(
+                                 new SimpleDateFormat("yyyyMMddHHmmss").format(transaction.dateCreated),
+                                 "UTF-8"),
+                             'transaction_providerid -> URLEncoder.encode(transaction.uuid, "UTF-8"),
+                             'transaction_type       -> URLEncoder.encode(transaction.paymentType.toString, "UTF-8"),
+                             'error                  -> transaction.error.getOrElse(""),
+                             'msgError               -> transaction.error.getOrElse("")
+                         )
+                     )
+                   })
       }
     }
   }

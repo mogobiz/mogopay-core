@@ -5,6 +5,8 @@
 package com.mogobiz.pay.boot
 
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.util.{Calendar, Currency, Date, UUID}
 
 import com.mogobiz.es.EsClient
@@ -17,11 +19,9 @@ import com.mogobiz.pay.model.CBPaymentMethod.CBPaymentMethod
 import com.mogobiz.pay.model.CBPaymentProvider.CBPaymentProvider
 import com.mogobiz.pay.model.TelephoneStatus.TelephoneStatus
 import com.mogobiz.pay.model.{PaymentConfig, _}
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.IndexAndType
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.shiro.crypto.hash.Sha256Hash
-import org.elasticsearch.index.query.TermQueryBuilder
-import org.elasticsearch.indices.IndexAlreadyExistsException
-import org.elasticsearch.transport.RemoteTransportException
 
 import scala.util.Random
 import scala.util.control.NonFatal
@@ -30,7 +30,6 @@ import scala.util.parsing.json.JSONObject
 object DBInitializer {
   def apply(fillWithFixtures: Boolean) = {
     try {
-      import EsClient.secureRequest
       //EsClient().execute(secureRequest(delete index Settings.Mogopay.EsIndex)).await
       if (Settings.DerbySequence.length > 0) {
         import scalikejdbc._
@@ -44,13 +43,14 @@ object DBInitializer {
           }
         }
       }
-      EsClient().execute(secureRequest(create index Settings.Mogopay.EsIndex)).await
-      Mapping.set
-      if (fillWithFixtures) fillDB()
+      if (!EsClient.exists(Settings.Mogopay.EsIndex)) {
+        EsClient().execute(createIndex(Settings.Mogopay.EsIndex)).await
+        Mapping.set
+        if (fillWithFixtures) fillDB()
+      }
     } catch {
-      case e: RemoteTransportException if e.getCause().isInstanceOf[IndexAlreadyExistsException] =>
-        println(s"Index ${Settings.Mogopay.EsIndex} was not created because it already exists.")
-      case e: Throwable => println("*****" + e.getClass.getName()); e.printStackTrace()
+      case e: Throwable =>
+        e.printStackTrace()
     }
   }
 
@@ -356,7 +356,7 @@ object DBInitializer {
         client1Account,
         merchantAccount7,
         "{\"uuid\":\"4c7a5788-0079-4781-b823-047cbef84198\",\"transactionUUID\":\"4c7a5788-0079-4781-b823-047cbef84198\",\"authorizationId\":\"\",\"transactionDate\":1424351055148,\"amount\":2560,\"currency\":{\"code\":\"EUR\",\"numericCode\":978,\"rate\":0.01,\"fractionDigits\":2},\"status\":\"PAYMENT_CONFIRMED\",\"endDate\":1424351055164,\"paymentData\":{\"paymentType\":\"CREDIT_CARD\",\"cbProvider\":\"SYSTEMPAY\",\"transactionSequence\":\"140258\",\"orderDate\":1424351046248,\"status3DS\":null,\"transactionId\":null,\"authorizationId\":null},\"merchantConfirmation\":true,\"email\":\"client@merchant.com\",\"errorCodeOrigin\":\"00\",\"errorMessageOrigin\":\"\",\"extra\":\"{\\\"boCartUuid\\\":\\\"6faede3a-744e-426f-b7a3-e79ef4228293\\\",\\\"cartItemVOs\\\":[{\\\"registeredCartItemVOs\\\":[],\\\"formatedPrice\\\":\\\"18,00 €\\\",\\\"saleTotalEndPrice\\\":2160,\\\"skuName\\\":\\\"XL\\\",\\\"productId\\\":32689,\\\"formatedTotalPrice\\\":\\\"18,00 €\\\",\\\"id\\\":\\\"ca3ee296-e79a-4c31-a9c1-8c196693103b\\\",\\\"calendarType\\\":\\\"NO_DATE\\\",\\\"shipping\\\":{\\\"amount\\\":0,\\\"id\\\":0,\\\"free\\\":false,\\\"height\\\":0,\\\"weight\\\":0,\\\"weightUnit\\\":null,\\\"width\\\":0,\\\"linearUnit\\\":null,\\\"depth\\\":0},\\\"formatedEndPrice\\\":\\\"21,60 €\\\",\\\"price\\\":1800,\\\"saleEndPrice\\\":2160,\\\"tax\\\":20,\\\"formatedTotalEndPrice\\\":\\\"21,60 €\\\",\\\"saleTotalPrice\\\":1800,\\\"xtype\\\":\\\"PRODUCT\\\",\\\"skuId\\\":214957,\\\"endPrice\\\":2160,\\\"salePrice\\\":1800,\\\"quantity\\\":1,\\\"productName\\\":\\\"Womens Pink Gym T-Shirt\\\",\\\"totalEndPrice\\\":2160,\\\"totalPrice\\\":1800}],\\\"count\\\":1,\\\"formatedPrice\\\":\\\"18,00 €\\\",\\\"transactionUuid\\\":\\\"\\\",\\\"finalPrice\\\":2560,\\\"coupons\\\":[],\\\"formatedEndPrice\\\":\\\"21,60 €\\\",\\\"price\\\":1800,\\\"endPrice\\\":2160,\\\"formatedFinalPrice\\\":\\\"21,60 €\\\",\\\"reduction\\\":0,\\\"formatedReduction\\\":\\\"0,00 €\\\",\\\"shipping\\\":400}\",\"description\":\"\",\"creditCard\":{\"number\":\"497010XXXXXX0000\",\"holder\":null,\"expiryDate\":1464732000000,\"cardType\":\"CB\"},\"vendor\":{\"uuid\":\"d7b864c8-4567-4603-abd4-5f85e9ff56e6\",\"email\":\"seller7@merchant.com\",\"company\":\"acmesport\",\"website\":null,\"password\":\"03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4\",\"civility\":\"MR\",\"firstName\":\"Merchant7\",\"lastName\":\"TEST\",\"birthDate\":null,\"address\":{\"road\":\"road\",\"road2\":\"road2\",\"city\":\"Paris\",\"zipCode\":\"75000\",\"extra\":\"extra\",\"civility\":\"MR\",\"firstName\":\"Merchant7\",\"lastName\":\"TEST\",\"telephone\":{\"phone\":\"+33123456789\",\"lphone\":\"0123456789\",\"isoCode\":\"FR\",\"pinCode3\":\"000\",\"status\":\"ACTIVE\"},\"country\":\"FR\",\"admin1\":\"FR.A8\",\"admin2\":\"FR.A8.75\"},\"status\":\"ACTIVE\",\"loginFailedCount\":0,\"waitingPhoneSince\":-1,\"waitingEmailSince\":-1,\"extra\":null,\"lastLogin\":null,\"paymentConfig\":{\"kwixoParam\":null,\"paypalParam\":\"{\\\"paypalUser\\\" : \\\"hayssams-facilitator_api1.yahoo.com\\\", \\\"paypalPassword\\\" : \\\"1365940711\\\", \\\"paypalSignature\\\" : \\\"An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG\\\"}\",\"cbParam\":\"{\\\"systempayShopId\\\" : \\\"34889127\\\", \\\"systempayContractNumber\\\" : \\\"5028717\\\", \\\"systempayCertificate\\\" : \\\"7736291283331938\\\"}\",\"cbProvider\":\"SYSTEMPAY\",\"paymentMethod\":\"EXTERNAL\",\"emailField\":\"user_email\",\"passwordField\":\"user_password\",\"pwdEmailContent\":null,\"pwdEmailSubject\":null,\"callbackPrefix\":null,\"passwordPattern\":\"\",\"dateCreated\":1424350358357,\"lastUpdated\":1424350358357},\"country\":null,\"roles\":[\"MERCHANT\"],\"owner\":null,\"emailingToken\":null,\"shippingAddresses\":[],\"secret\":\"d7b864c8-4567-4603-abd4-5f85e9ff56e6\",\"creditCards\":[],\"walletId\":null,\"dateCreated\":1424350358373,\"lastUpdated\":1424350358373},\"customer\":null,\"modifications\":[{\"uuid\":\"f092b37a-583c-4c32-9aee-61c3029294e1\",\"xdate\":1424351046406,\"ipAddr\":null,\"oldStatus\":\"INITIATED\",\"newStatus\":\"PAYMENT_REQUESTED\",\"comment\":null,\"dateCreated\":1424351046406,\"lastUpdated\":1424351046406},{\"uuid\":\"56c2ea83-a49a-4883-86bb-8dcea9fa4e4a\",\"xdate\":1424351055164,\"ipAddr\":null,\"oldStatus\":\"PAYMENT_REQUESTED\",\"newStatus\":\"PAYMENT_CONFIRMED\",\"comment\":\"00\",\"dateCreated\":1424351055164,\"lastUpdated\":1424351055164}],\"dateCreated\":1424351046352,\"lastUpdated\":1424351055176}",
-      paylineCustomConfig)
+        paylineCustomConfig)
     createTransaction(
         "f9f71371-17f3-4dcd-bf8f-5d313470ccdf",
         "f9f71371-17f3-4dcd-bf8f-5d313470ccdf",
@@ -364,7 +364,7 @@ object DBInitializer {
         client1Account,
         merchantAccount7,
         "{\"uuid\":\"f9f71371-17f3-4dcd-bf8f-5d313470ccdf\",\"transactionUUID\":\"f9f71371-17f3-4dcd-bf8f-5d313470ccdf\",\"authorizationId\":\"\",\"transactionDate\":1424351129173,\"amount\":2080,\"currency\":{\"code\":\"EUR\",\"numericCode\":978,\"rate\":0.01,\"fractionDigits\":2},\"status\":\"PAYMENT_CONFIRMED\",\"endDate\":1424351129185,\"paymentData\":{\"paymentType\":\"CREDIT_CARD\",\"cbProvider\":\"SYSTEMPAY\",\"transactionSequence\":\"140259\",\"orderDate\":1424351121747,\"status3DS\":null,\"transactionId\":null,\"authorizationId\":null},\"merchantConfirmation\":true,\"email\":\"client@merchant.com\",\"errorCodeOrigin\":\"00\",\"errorMessageOrigin\":\"\",\"extra\":\"{\\\"boCartUuid\\\":\\\"3429ca0e-0e8e-4749-99c2-0822d91b4b3a\\\",\\\"cartItemVOs\\\":[{\\\"registeredCartItemVOs\\\":[],\\\"formatedPrice\\\":\\\"14,00 €\\\",\\\"saleTotalEndPrice\\\":1680,\\\"skuName\\\":\\\"L\\\",\\\"productId\\\":32709,\\\"formatedTotalPrice\\\":\\\"14,00 €\\\",\\\"id\\\":\\\"30aced5e-5688-424f-9f65-50c1367cc65c\\\",\\\"calendarType\\\":\\\"NO_DATE\\\",\\\"shipping\\\":{\\\"amount\\\":0,\\\"id\\\":0,\\\"free\\\":false,\\\"height\\\":0,\\\"weight\\\":0,\\\"weightUnit\\\":null,\\\"width\\\":0,\\\"linearUnit\\\":null,\\\"depth\\\":0},\\\"formatedEndPrice\\\":\\\"16,80 €\\\",\\\"price\\\":1400,\\\"saleEndPrice\\\":1680,\\\"tax\\\":20,\\\"formatedTotalEndPrice\\\":\\\"16,80 €\\\",\\\"saleTotalPrice\\\":1400,\\\"xtype\\\":\\\"PRODUCT\\\",\\\"skuId\\\":214942,\\\"endPrice\\\":1680,\\\"salePrice\\\":1400,\\\"quantity\\\":1,\\\"productName\\\":\\\"Mens Olive Gym T-Shirt\\\",\\\"totalEndPrice\\\":1680,\\\"totalPrice\\\":1400}],\\\"count\\\":1,\\\"formatedPrice\\\":\\\"14,00 €\\\",\\\"transactionUuid\\\":\\\"\\\",\\\"finalPrice\\\":2080,\\\"coupons\\\":[],\\\"formatedEndPrice\\\":\\\"16,80 €\\\",\\\"price\\\":1400,\\\"endPrice\\\":1680,\\\"formatedFinalPrice\\\":\\\"16,80 €\\\",\\\"reduction\\\":0,\\\"formatedReduction\\\":\\\"0,00 €\\\",\\\"shipping\\\":400}\",\"description\":\"\",\"creditCard\":{\"number\":\"497010XXXXXX0000\",\"holder\":null,\"expiryDate\":1464732000000,\"cardType\":\"CB\"},\"vendor\":{\"uuid\":\"d7b864c8-4567-4603-abd4-5f85e9ff56e6\",\"email\":\"seller7@merchant.com\",\"company\":\"acmesport\",\"website\":null,\"password\":\"03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4\",\"civility\":\"MR\",\"firstName\":\"Merchant7\",\"lastName\":\"TEST\",\"birthDate\":null,\"address\":{\"road\":\"road\",\"road2\":\"road2\",\"city\":\"Paris\",\"zipCode\":\"75000\",\"extra\":\"extra\",\"civility\":\"MR\",\"firstName\":\"Merchant7\",\"lastName\":\"TEST\",\"telephone\":{\"phone\":\"+33123456789\",\"lphone\":\"0123456789\",\"isoCode\":\"FR\",\"pinCode3\":\"000\",\"status\":\"ACTIVE\"},\"country\":\"FR\",\"admin1\":\"FR.A8\",\"admin2\":\"FR.A8.75\"},\"status\":\"ACTIVE\",\"loginFailedCount\":0,\"waitingPhoneSince\":-1,\"waitingEmailSince\":-1,\"extra\":null,\"lastLogin\":null,\"paymentConfig\":{\"kwixoParam\":null,\"paypalParam\":\"{\\\"paypalUser\\\" : \\\"hayssams-facilitator_api1.yahoo.com\\\", \\\"paypalPassword\\\" : \\\"1365940711\\\", \\\"paypalSignature\\\" : \\\"An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG\\\"}\",\"cbParam\":\"{\\\"systempayShopId\\\" : \\\"34889127\\\", \\\"systempayContractNumber\\\" : \\\"5028717\\\", \\\"systempayCertificate\\\" : \\\"7736291283331938\\\"}\",\"cbProvider\":\"SYSTEMPAY\",\"paymentMethod\":\"EXTERNAL\",\"emailField\":\"user_email\",\"passwordField\":\"user_password\",\"pwdEmailContent\":null,\"pwdEmailSubject\":null,\"callbackPrefix\":null,\"passwordPattern\":\"\",\"dateCreated\":1424350358357,\"lastUpdated\":1424350358357},\"country\":null,\"roles\":[\"MERCHANT\"],\"owner\":null,\"emailingToken\":null,\"shippingAddresses\":[],\"secret\":\"d7b864c8-4567-4603-abd4-5f85e9ff56e6\",\"creditCards\":[],\"walletId\":null,\"dateCreated\":1424350358373,\"lastUpdated\":1424350358373},\"customer\":null,\"modifications\":[{\"uuid\":\"76398031-755b-43c0-b0be-070efbb63bde\",\"xdate\":1424351121767,\"ipAddr\":null,\"oldStatus\":\"INITIATED\",\"newStatus\":\"PAYMENT_REQUESTED\",\"comment\":null,\"dateCreated\":1424351121767,\"lastUpdated\":1424351121767},{\"uuid\":\"ec7fde59-fd5a-4e13-b0bc-3fc896dfbc7e\",\"xdate\":1424351129185,\"ipAddr\":null,\"oldStatus\":\"PAYMENT_REQUESTED\",\"newStatus\":\"PAYMENT_CONFIRMED\",\"comment\":\"00\",\"dateCreated\":1424351129185,\"lastUpdated\":1424351129185}],\"dateCreated\":1424351121764,\"lastUpdated\":1424351129194}",
-      paylineCustomConfig)
+        paylineCustomConfig)
     createTransaction(
         "931eedc2-a4cd-431f-ba9c-aba4ed68806c",
         "931eedc2-a4cd-431f-ba9c-aba4ed68806c",
@@ -372,7 +372,7 @@ object DBInitializer {
         client1Account,
         merchantAccount7,
         "{\"uuid\":\"931eedc2-a4cd-431f-ba9c-aba4ed68806c\",\"transactionUUID\":\"931eedc2-a4cd-431f-ba9c-aba4ed68806c\",\"authorizationId\":\"\",\"transactionDate\":1424351179994,\"amount\":1188000,\"currency\":{\"code\":\"EUR\",\"numericCode\":978,\"rate\":0.01,\"fractionDigits\":2},\"status\":\"PAYMENT_CONFIRMED\",\"endDate\":1424351180006,\"paymentData\":{\"paymentType\":\"CREDIT_CARD\",\"cbProvider\":\"SYSTEMPAY\",\"transactionSequence\":\"140260\",\"orderDate\":1424351173247,\"status3DS\":null,\"transactionId\":null,\"authorizationId\":null},\"merchantConfirmation\":true,\"email\":\"client@merchant.com\",\"errorCodeOrigin\":\"00\",\"errorMessageOrigin\":\"\",\"extra\":\"{\\\"boCartUuid\\\":\\\"c133b2a8-682d-4a4e-b349-13e3ef7c6f57\\\",\\\"cartItemVOs\\\":[{\\\"registeredCartItemVOs\\\":[{\\\"id\\\":\\\"4c406b47-2007-4326-bac8-c88e4f91533c\\\",\\\"phone\\\":\\\"0123456789\\\",\\\"cartItemId\\\":\\\"6461c756-2dc5-4641-a9b4-79f90cd7ad8d\\\",\\\"email\\\":\\\"client@merchant.com\\\",\\\"birthdate\\\":\\\"2000-01-01T00:00:00Z\\\",\\\"lastname\\\":\\\"Client 1\\\",\\\"firstname\\\":\\\"TEST\\\"}],\\\"formatedPrice\\\":\\\"9 900,00 €\\\",\\\"saleTotalEndPrice\\\":1188000,\\\"skuName\\\":\\\"VIP Seat\\\",\\\"productId\\\":31938,\\\"formatedTotalPrice\\\":\\\"9 900,00 €\\\",\\\"id\\\":\\\"6461c756-2dc5-4641-a9b4-79f90cd7ad8d\\\",\\\"calendarType\\\":\\\"NO_DATE\\\",\\\"formatedEndPrice\\\":\\\"11 880,00 €\\\",\\\"price\\\":990000,\\\"saleEndPrice\\\":1188000,\\\"tax\\\":20,\\\"formatedTotalEndPrice\\\":\\\"11 880,00 €\\\",\\\"saleTotalPrice\\\":990000,\\\"xtype\\\":\\\"SERVICE\\\",\\\"skuId\\\":214707,\\\"endPrice\\\":1188000,\\\"salePrice\\\":990000,\\\"quantity\\\":1,\\\"productName\\\":\\\"Play Golf on the Moon\\\",\\\"totalEndPrice\\\":1188000,\\\"totalPrice\\\":990000}],\\\"count\\\":1,\\\"formatedPrice\\\":\\\"9 900,00 €\\\",\\\"transactionUuid\\\":\\\"\\\",\\\"finalPrice\\\":1188000,\\\"coupons\\\":[],\\\"formatedEndPrice\\\":\\\"11 880,00 €\\\",\\\"price\\\":990000,\\\"endPrice\\\":1188000,\\\"formatedFinalPrice\\\":\\\"11 880,00 €\\\",\\\"reduction\\\":0,\\\"formatedReduction\\\":\\\"0,00 €\\\",\\\"shipping\\\":0}\",\"description\":\"\",\"creditCard\":{\"number\":\"497010XXXXXX0000\",\"holder\":null,\"expiryDate\":1464732000000,\"cardType\":\"CB\"},\"vendor\":{\"uuid\":\"d7b864c8-4567-4603-abd4-5f85e9ff56e6\",\"email\":\"seller7@merchant.com\",\"company\":\"acmesport\",\"website\":null,\"password\":\"03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4\",\"civility\":\"MR\",\"firstName\":\"Merchant7\",\"lastName\":\"TEST\",\"birthDate\":null,\"address\":{\"road\":\"road\",\"road2\":\"road2\",\"city\":\"Paris\",\"zipCode\":\"75000\",\"extra\":\"extra\",\"civility\":\"MR\",\"firstName\":\"Merchant7\",\"lastName\":\"TEST\",\"telephone\":{\"phone\":\"+33123456789\",\"lphone\":\"0123456789\",\"isoCode\":\"FR\",\"pinCode3\":\"000\",\"status\":\"ACTIVE\"},\"country\":\"FR\",\"admin1\":\"FR.A8\",\"admin2\":\"FR.A8.75\"},\"status\":\"ACTIVE\",\"loginFailedCount\":0,\"waitingPhoneSince\":-1,\"waitingEmailSince\":-1,\"extra\":null,\"lastLogin\":null,\"paymentConfig\":{\"kwixoParam\":null,\"paypalParam\":\"{\\\"paypalUser\\\" : \\\"hayssams-facilitator_api1.yahoo.com\\\", \\\"paypalPassword\\\" : \\\"1365940711\\\", \\\"paypalSignature\\\" : \\\"An5ns1Kso7MWUdW4ErQKJJJ4qi4-AIvKXMZ8RRQl6BBiVO5ISM9ECdEG\\\"}\",\"cbParam\":\"{\\\"systempayShopId\\\" : \\\"34889127\\\", \\\"systempayContractNumber\\\" : \\\"5028717\\\", \\\"systempayCertificate\\\" : \\\"7736291283331938\\\"}\",\"cbProvider\":\"SYSTEMPAY\",\"paymentMethod\":\"EXTERNAL\",\"emailField\":\"user_email\",\"passwordField\":\"user_password\",\"pwdEmailContent\":null,\"pwdEmailSubject\":null,\"callbackPrefix\":null,\"passwordPattern\":\"\",\"dateCreated\":1424350358357,\"lastUpdated\":1424350358357},\"country\":null,\"roles\":[\"MERCHANT\"],\"owner\":null,\"emailingToken\":null,\"shippingAddresses\":[],\"secret\":\"d7b864c8-4567-4603-abd4-5f85e9ff56e6\",\"creditCards\":[],\"walletId\":null,\"dateCreated\":1424350358373,\"lastUpdated\":1424350358373},\"customer\":null,\"modifications\":[{\"uuid\":\"31854cb1-fec1-4142-a74b-527796c9abb9\",\"xdate\":1424351173264,\"ipAddr\":null,\"oldStatus\":\"INITIATED\",\"newStatus\":\"PAYMENT_REQUESTED\",\"comment\":null,\"dateCreated\":1424351173264,\"lastUpdated\":1424351173264},{\"uuid\":\"39d7ba26-35a7-447b-b857-773bc29ad10a\",\"xdate\":1424351180006,\"ipAddr\":null,\"oldStatus\":\"PAYMENT_REQUESTED\",\"newStatus\":\"PAYMENT_CONFIRMED\",\"comment\":\"00\",\"dateCreated\":1424351180006,\"lastUpdated\":1424351180006}],\"dateCreated\":1424351173261,\"lastUpdated\":1424351180015}",
-      paylineCustomConfig)
+        paylineCustomConfig)
 
     val APPLEPAY: Map[String, String] = Map()
     val applePayConfig = createPaymentConfig(CBPaymentProvider.NONE,
@@ -396,7 +396,8 @@ object DBInitializer {
                                              geoCoords = Option("48.871806,2.297987"))
   }
 
-  val franceCountry = Country(UUID.randomUUID.toString, "FR", "FRA", "250", "France", false, false, None, None, None, None, None)
+  val franceCountry =
+    Country(UUID.randomUUID.toString, "FR", "FRA", "250", "France", false, false, None, None, None, None, None)
 
   private def createMerchantAccount(uuid: String,
                                     email: String,
@@ -431,28 +432,28 @@ object DBInitializer {
                                   geoCoords: Option[String] = None): Account = {
     val birthDate = Calendar.getInstance()
     birthDate.set(2000, 0, 1)
-    val account = Account(
-        uuid = uuid,
-        email = email,
-        password = new Sha256Hash("1234").toString,
-        civility = Some(Civility.MR),
-        firstName = Some(firstname),
-        lastName = Some(lastname),
-        birthDate = Some(birthDate.getTime),
-        address = Some(
-            createAddress(firstname = firstname,
-                          lastname = lastname,
-                          telephoneStatus = telephoneStatus,
-                          geoCoords = geoCoords)),
-        status = status,
-        roles = List(RoleName.CUSTOMER),
-        owner = Some(owner.uuid),
-        shippingAddresses =
-          if (withShippingAddress)
-            List(createShippingAddress(firstname, lastname, true), createShippingAddress(firstname, lastname, false))
-          else List(),
-        secret = uuid,
-        country = Some(franceCountry))
+    val account = Account(uuid = uuid,
+                          email = email,
+                          password = new Sha256Hash("1234").toString,
+                          civility = Some(Civility.MR),
+                          firstName = Some(firstname),
+                          lastName = Some(lastname),
+                          birthDate = Some(birthDate.getTime),
+                          address = Some(
+                              createAddress(firstname = firstname,
+                                            lastname = lastname,
+                                            telephoneStatus = telephoneStatus,
+                                            geoCoords = geoCoords)),
+                          status = status,
+                          roles = List(RoleName.CUSTOMER),
+                          owner = Some(owner.uuid),
+                          shippingAddresses =
+                            if (withShippingAddress)
+                              List(createShippingAddress(firstname, lastname, active = true),
+                                   createShippingAddress(firstname, lastname, active = false))
+                            else List(),
+                          secret = uuid,
+                          country = Some(franceCountry))
     accountHandler.save(account)
     account
   }
@@ -557,17 +558,17 @@ object DBInitializer {
     boTransactionHandler.create(transaction)
 
     val shopTransaction = BOShopTransaction(UUID.randomUUID().toString,
-      MogopayConstant.SHOP_MOGOBIZ,
-      transaction.uuid,
-      amount,
-      currency,
-      ShopTransactionStatus.AUTHORIZED,
-      None,
-      paymentConfig,
-      extra,
-      "",
-      Nil,
-      None)
+                                            MogopayConstant.SHOP_MOGOBIZ,
+                                            transaction.uuid,
+                                            amount,
+                                            currency,
+                                            ShopTransactionStatus.AUTHORIZED,
+                                            None,
+                                            paymentConfig,
+                                            extra,
+                                            "",
+                                            Nil,
+                                            None)
     boShopTransactionHandler.create(shopTransaction)
 
     boTransactionLogHandler.save(
@@ -576,7 +577,7 @@ object DBInitializer {
                          "m",
                          "SYSTEMPAY",
                          transaction.uuid,
-                          shopTransaction.uuid,
+                         shopTransaction.uuid,
                          TransactionShopStep.START_PAYMENT))
     boTransactionLogHandler.save(
         BOTransactionLog(UUID.randomUUID().toString,
@@ -584,8 +585,8 @@ object DBInitializer {
                          "o",
                          "SYSTEMPAY",
                          transaction.uuid,
-          shopTransaction.uuid,
-          TransactionShopStep.START_PAYMENT))
+                         shopTransaction.uuid,
+                         TransactionShopStep.START_PAYMENT))
   }
 
   private def randomDate(): Date = {
@@ -646,13 +647,13 @@ BOUTIQUE DE TEST REXT,23/02/2006,V4,SIPS,RCPR+++++++++++++++++++++
 
     val certifTargetFile = new File(certifDir, "certif.fr.011223344553333")
     certifTargetFile.delete()
-    scala.tools.nsc.io.File(certifTargetFile.getAbsolutePath).writeAll(content1)
+    Files.write(certifTargetFile.toPath, content1.getBytes(StandardCharsets.UTF_8))
 
     val content2 = "F_CERTIFICATE!" +
         new File(certifDir, "certif").getAbsolutePath + "!\n"
     val targetFile = new File(certifDir, "pathfile")
     targetFile.delete()
-    scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(content2)
+    Files.write(targetFile.toPath, content2.getBytes(StandardCharsets.UTF_8))
   }
 
   private def createParcom(merchant: Account) = {
@@ -744,29 +745,25 @@ __FIN__*/
 
     val parcomTargetFile = new File(certifDir, "parcom.011223344551112")
     parcomTargetFile.delete()
-    scala.tools.nsc.io.File(parcomTargetFile.getAbsolutePath).writeAll(parcomContent)
+    Files.write(parcomTargetFile.toPath, parcomContent.getBytes(StandardCharsets.UTF_8))
 
     val parcomDefaultTargetFile = new File(certifDir, "parcom.default")
     parcomDefaultTargetFile.delete()
-    scala.tools.nsc.io.File(parcomDefaultTargetFile.getAbsolutePath).writeAll(parcomDefaultContent)
+    Files.write(parcomDefaultTargetFile.toPath, parcomDefaultContent.getBytes(StandardCharsets.UTF_8))
 
     var certifTargetFile = new File(certifDir, "certif.fr.011223344551112.jsp")
     certifTargetFile.delete()
-    scala.tools.nsc.io.File(certifTargetFile.getAbsolutePath).writeAll(certifContent)
+    Files.write(certifTargetFile.toPath, certifContent.getBytes(StandardCharsets.UTF_8))
 
     val targetFile = new File(certifDir, "pathfile")
     targetFile.delete()
     val targetContent = s"""D_LOGO!${Settings.ImagesPath + "sips/logo/"}!
-                                                        |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
-                                                                                                                             |F_PARAM!${new File(
-                               certifDir,
-                               "parcom").getAbsolutePath}!
-                                                                                                                                                                                        |F_CERTIFICATE!${new File(
-                               certifDir,
-                               "certif").getAbsolutePath}!
-                                                                                                                                                                                                                                                         |F_CTYPE!jsp!
-                                                                                                                                                                                                                                                         |""".stripMargin
-    scala.tools.nsc.io.File(targetFile.getAbsolutePath).writeAll(targetContent)
+         |F_DEFAULT!${new File(certifDir, "parcom.default").getAbsolutePath}!
+         |F_PARAM!${new File(certifDir, "parcom").getAbsolutePath}!
+         |F_CERTIFICATE!${new File(certifDir, "certif").getAbsolutePath}!
+         |F_CTYPE!jsp!
+         |""".stripMargin
+    Files.write(targetFile.toPath, targetContent.getBytes(StandardCharsets.UTF_8))
   }
 
   private def getCertifDir(merchant: Account): File = {
@@ -776,33 +773,15 @@ __FIN__*/
 
 object DbInitMain extends App {
   try {
-    import EsClient.secureActionRequest
-    secureActionRequest(
-        EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "Account"))).execute.actionGet
-    secureActionRequest(
-        EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "BOTransaction"))).execute.actionGet
-    secureActionRequest(
-        EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "BOTransactionLog"))).execute.actionGet
-    secureActionRequest(
-        EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "ESSession"))).execute.actionGet
-    secureActionRequest(
-        EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "TransactionSequence"))).execute.actionGet
-    secureActionRequest(
-        EsClient().client
-          .prepareDeleteByQuery(Settings.Mogopay.EsIndex)
-          .setQuery(new TermQueryBuilder("_type", "TransactionRequest"))).execute.actionGet
+    val req = search(Settings.Mogopay.EsIndex)
+    EsClient().execute(deleteIndex(Settings.Mogopay.EsIndex))
+    EsClient().execute(deleteIn(IndexAndType(s"${Settings.Mogopay.EsIndex}/BOTransaction")).by("*"))
+    EsClient().execute(deleteIn(IndexAndType(s"${Settings.Mogopay.EsIndex}/BOTransactionLog")).by("*"))
+    EsClient().execute(deleteIn(IndexAndType(s"${Settings.Mogopay.EsIndex}/ESSession")).by("*"))
+    EsClient().execute(deleteIn(IndexAndType(s"${Settings.Mogopay.EsIndex}/TransactionSequence")).by("*"))
+    EsClient().execute(deleteIn(IndexAndType(s"${Settings.Mogopay.EsIndex}/TransactionRequest")).by("*"))
   } catch {
     case NonFatal(_) => println()
   }
-  DBInitializer(false)
+  DBInitializer(fillWithFixtures = false)
 }

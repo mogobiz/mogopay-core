@@ -28,7 +28,7 @@ class PayPalService extends Directives with DefaultComplete {
 
   lazy val startPayment = path("start" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
@@ -48,7 +48,7 @@ class PayPalService extends Directives with DefaultComplete {
 
   lazy val fail = path("fail" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     get {
       parameters("token") { token =>
         val session = SessionESDirectives.load(xtoken).get
@@ -63,7 +63,7 @@ class PayPalService extends Directives with DefaultComplete {
 
   lazy val success = path("success" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     get {
       parameters("token") { token =>
         val session = SessionESDirectives.load(xtoken).get

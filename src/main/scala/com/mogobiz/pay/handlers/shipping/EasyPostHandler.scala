@@ -12,17 +12,14 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.common.{Cart, CompanyAddress, ShippingWithQuantity, ShopCart}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.exceptions.Exceptions.ShippingException
 import com.mogobiz.pay.model.{Rate => PayRate, _}
-import com.typesafe.scalalogging.StrictLogging
-import com.typesafe.scalalogging.Logger
-import org.apache.commons.lang.StringUtils
+import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 object EasyPostHandler {
 
@@ -38,24 +35,27 @@ class EasyPostHandler extends ShippingHandler {
 
   override def computePrice(shippingAddress: ShippingAddress, cart: Cart): ShippingDataList = {
     cart.compagnyAddress.map { compagnyAddress =>
-      cart.shopCarts.find(_.shopId == MogopayConstant.SHOP_MOGOBIZ).map { mogobizShop =>
-        val shippingContent = extractShippingContent(mogobizShop)
-        computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
-          val fixPrice = cart.shippingRulePrice.map { price =>
-            Some(convertStorePrice(price, cart))
-          }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
-          val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
-          val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
+      cart.shopCarts
+        .find(_.shopId == MogopayConstant.SHOP_MOGOBIZ)
+        .map { mogobizShop =>
+          val shippingContent = extractShippingContent(mogobizShop)
+          computeShippingParcelAndFixAmount(cart, shippingContent).map { parcelPrice =>
+            val fixPrice = cart.shippingRulePrice.map { price =>
+              Some(convertStorePrice(price, cart))
+            }.getOrElse(if (parcelPrice.parcel.isEmpty) Some(parcelPrice.amount) else None)
+            val amount = if (parcelPrice.parcel.isEmpty) 0 else parcelPrice.amount
+            val parcel = parcelPrice.parcel.getOrElse(parcelPrice.fixParcel.get)
 
-          Try(computeRate(compagnyAddress, shippingAddress, cart, mogobizShop, parcel, fixPrice, amount)) match {
-            case Success(r) => r
-            case Failure(ex) => {
-              logger.info(ex.getMessage, ex)
-              ShippingDataList(Some(ShippingPriceError.UNKNOWN), Nil)
+            Try(computeRate(compagnyAddress, shippingAddress, cart, mogobizShop, parcel, fixPrice, amount)) match {
+              case Success(r) => r
+              case Failure(ex) => {
+                logger.info(ex.getMessage, ex)
+                ShippingDataList(Some(ShippingPriceError.UNKNOWN), Nil)
+              }
             }
-          }
-        }.getOrElse(ShippingDataList(None, Nil))
-      }.getOrElse(ShippingDataList(None, Nil))
+          }.getOrElse(ShippingDataList(None, Nil))
+        }
+        .getOrElse(ShippingDataList(None, Nil))
     }.getOrElse(ShippingDataList(Some(ShippingPriceError.NO_COMPAGNY_ADDRESS), Nil))
   }
 
@@ -82,8 +82,7 @@ class EasyPostHandler extends ShippingHandler {
       }, ", ")
       logger.info("EasyPost Messages : " + message)
       ShippingDataList(Some(ShippingPriceError.SHIPPING_TYPE_NOT_ALLOWED), Nil)
-    }
-    else {
+    } else {
       ShippingDataList(None, easyPostRates.map { easyPostRate =>
         val rate: Option[PayRate] = rateHandler.findByCurrencyCode(cart.rate.code)
         val currencyFractionDigits: Integer = rate.map {
@@ -91,16 +90,18 @@ class EasyPostHandler extends ShippingHandler {
         }.getOrElse(2)
         val price = easyPostRate.getRate * Math.pow(10, currencyFractionDigits.doubleValue())
         val finalPrice = fixPrice.getOrElse(
-          amount + rateHandler.convert(price.toLong, easyPostRate.getCurrency, cart.rate.code).getOrElse(price.toLong))
+            amount + rateHandler
+              .convert(price.toLong, easyPostRate.getCurrency, cart.rate.code)
+              .getOrElse(price.toLong))
 
         createShippingData(shippingAddress.address,
-          EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId,
-          easyPostRate.getId,
-          easyPostRate.getCarrier,
-          easyPostRate.getService,
-          easyPostRate.getServiceCode,
-          finalPrice,
-          cart.rate.code)
+                           EASYPOST_SHIPPING_PREFIX + easyPostRate.getShipmentId,
+                           easyPostRate.getId,
+                           easyPostRate.getCarrier,
+                           easyPostRate.getService,
+                           easyPostRate.getServiceCode,
+                           finalPrice,
+                           cart.rate.code)
       })
     }
   }
@@ -195,7 +196,11 @@ class EasyPostHandler extends ShippingHandler {
                                         fixParcel: Option[ShippingParcel],
                                         parcel: Option[ShippingParcel])
 
-  def rate(from: CompanyAddress, to: AccountAddress, parcel: ShippingParcel, cart: Cart, shopCart: ShopCart): Shipment = {
+  def rate(from: CompanyAddress,
+           to: AccountAddress,
+           parcel: ShippingParcel,
+           cart: Cart,
+           shopCart: ShopCart): Shipment = {
     val parcelMap = mutable.HashMap[String, AnyRef]("height" -> parcel.height.asInstanceOf[AnyRef],
                                                     "width"  -> parcel.width.asInstanceOf[AnyRef],
                                                     "length" -> parcel.length.asInstanceOf[AnyRef],

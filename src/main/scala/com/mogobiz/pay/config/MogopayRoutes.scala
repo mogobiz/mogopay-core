@@ -42,48 +42,48 @@ trait MogopayRoutes extends Directives {
   }
 
   def routes =
-    logRequest(forMessageFromFullShow{debugRequest _}) {
+    logRequest(forMessageFromFullShow { debugRequest _ }) {
       logRequestResponse(showRequest _) {
         path("static" / "admin") {
           //compressResponse() {
           redirect(s"${Settings.Mogopay.BaseEndPoint}/static/admin/html/index.html", StatusCodes.PermanentRedirect)
           //}
         } ~
-          pathPrefix("static") {
-            //compressResponse() {
-            if (Settings.IsResourcesLocal) {
-              getFromResourceDirectory("static")
-            } else if (Settings.isResourcesPathAbsolute) {
-              getFromBrowseableDirectory(Settings.ResourcesPath)
-            } else {
-              getFromResourceDirectory(Settings.ResourcesPath)
-            }
-            //}
-          } ~
-          pathPrefix(("api" / "pay") | "pay") {
-            new AccountService().route ~
-              new AccountServiceJsonless().route ~
-              new AuthorizeNetService().route ~
-              new BackofficeService().route ~
-              new CountryService().route ~
-              new RateService().route ~
-              new TransactionService().route ~
-              new TwitterService().route ~
-              new LinkedInService().route ~
-              new GoogleService().route ~
-              new FacebookService().route ~
-              new GithubService().route ~
-              new SystempayService().route ~
-              new PayPalService().route ~
-              new ApplePayService().route ~
-              new PayboxService().route ~
-              new PaylineService().route ~
-              new MogopayService().route ~
-              new SipsService().route ~
-              new UserService().route ~
-              new PdfService().route ~
-              new MiraklService().route
+        pathPrefix("static") {
+          //compressResponse() {
+          if (Settings.IsResourcesLocal) {
+            getFromResourceDirectory("static")
+          } else if (Settings.isResourcesPathAbsolute) {
+            getFromBrowseableDirectory(Settings.ResourcesPath)
+          } else {
+            getFromResourceDirectory(Settings.ResourcesPath)
           }
+          //}
+        } ~
+        pathPrefix(("api" / "pay") | "pay") {
+          new AccountService().route ~
+          new AccountServiceJsonless().route ~
+          new AuthorizeNetService().route ~
+          new BackofficeService().route ~
+          new CountryService().route ~
+          new RateService().route ~
+          new TransactionService().route ~
+          new TwitterService().route ~
+          new LinkedInService().route ~
+          new GoogleService().route ~
+          new FacebookService().route ~
+          new GithubService().route ~
+          new SystempayService().route ~
+          new PayPalService().route ~
+          new ApplePayService().route ~
+          new PayboxService().route ~
+          new PaylineService().route ~
+          new MogopayService().route ~
+          new SipsService().route ~
+          new UserService().route ~
+          new PdfService().route ~
+          new MiraklService().route
+        }
       }
     }
 

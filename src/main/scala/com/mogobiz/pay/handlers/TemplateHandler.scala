@@ -11,7 +11,7 @@ import javax.script.{ScriptEngineFactory, Invocable, ScriptEngine, ScriptEngineM
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.Account
 import com.mogobiz.template.Mustache
-import org.apache.commons.lang.LocaleUtils
+import org.apache.commons.lang3.LocaleUtils
 
 class TemplateHandler {
   def mustache(vendor: Option[Account],

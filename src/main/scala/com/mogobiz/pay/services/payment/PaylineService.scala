@@ -53,14 +53,13 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
         import Implicits._
         val session = SessionESDirectives.load(xtoken)
         handleCall(paylineHandler.done(boShopTransaction, params), (data: Uri) =>
-          session.map { session =>
+              session.map { session =>
             setSession(session) {
               redirect(data, StatusCodes.TemporaryRedirect)
             }
           }.getOrElse {
             redirect(data, StatusCodes.TemporaryRedirect)
-          }
-        )
+        })
       }
     }
   }
@@ -71,14 +70,13 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
         import Implicits._
         val session = SessionESDirectives.load(xtoken)
         handleCall(paylineHandler.callbackPayment(boShopTransaction, params), (pr: Unit) =>
-          session.map { session =>
+              session.map { session =>
             setSession(session) {
               complete(StatusCodes.OK)
             }
           }.getOrElse {
             complete(StatusCodes.OK)
-          }
-        )
+        })
       }
     }
   }
@@ -87,17 +85,17 @@ class PaylineService extends Directives with DefaultComplete with StrictLogging 
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
-        val session = SessionESDirectives.load(xtoken)
-        val sessionData = session.map{_.sessionData}
-        handleCall(paylineHandler.threeDSCallback(sessionData, boTransactionUuid, formData.fields.toMap), (data: Uri) =>
-          session.map { session =>
-            setSession(session) {
-              redirect(data, StatusCodes.TemporaryRedirect)
-            }
-          }.getOrElse {
-            redirect(data, StatusCodes.TemporaryRedirect)
-          }
-        )
+        val session     = SessionESDirectives.load(xtoken)
+        val sessionData = session.map { _.sessionData }
+        handleCall(paylineHandler.threeDSCallback(sessionData, boTransactionUuid, formData.fields.toMap),
+                   (data: Uri) =>
+                     session.map { session =>
+                       setSession(session) {
+                         redirect(data, StatusCodes.TemporaryRedirect)
+                       }
+                     }.getOrElse {
+                       redirect(data, StatusCodes.TemporaryRedirect)
+                   })
       }
     }
   }

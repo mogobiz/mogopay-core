@@ -18,11 +18,10 @@ import scala.util.{Success, Try}
 class MiraklService extends Directives with DefaultComplete {
 
   val route = {
-    logRequestResponse("REST API", Logging.InfoLevel)
-    {
+    logRequestResponse("REST API", Logging.InfoLevel) {
       pathPrefix("mirakl") {
         debitCustomer ~
-          refundCustomer
+        refundCustomer
       }
     }
   }
@@ -30,14 +29,15 @@ class MiraklService extends Directives with DefaultComplete {
   lazy val debitCustomer = path("debitCustomer") {
     post {
       entity(as[DebitOrderList]) { orders =>
-        handleCall(Try{
-          val system = ActorSystemLocator()
+        handleCall(Try {
+          val system      = ActorSystemLocator()
           val miraklActor = system.actorOf(Props[MiraklActor])
           miraklActor ! DebitCustomerMessage(orders)
           true
-        }, (res: Try[Boolean]) => res match {
-          case Success(_) => complete(StatusCodes.NoContent)
-          case _ => complete(StatusCodes.NotImplemented)
+        }, (res: Try[Boolean]) =>
+              res match {
+            case Success(_) => complete(StatusCodes.NoContent)
+            case _          => complete(StatusCodes.NotImplemented)
         })
       }
     }
@@ -46,14 +46,15 @@ class MiraklService extends Directives with DefaultComplete {
   lazy val refundCustomer = path("refundCustomer") {
     post {
       entity(as[RefundOrderList]) { orders =>
-        handleCall(Try{
-          val system = ActorSystemLocator()
+        handleCall(Try {
+          val system      = ActorSystemLocator()
           val miraklActor = system.actorOf(Props[MiraklActor])
           miraklActor ! RefundCustomerMessage(orders)
           true
-        }, (res: Try[Boolean]) => res match {
-          case Success(_) => complete(StatusCodes.NoContent)
-          case _ => complete(StatusCodes.NotImplemented)
+        }, (res: Try[Boolean]) =>
+              res match {
+            case Success(_) => complete(StatusCodes.NoContent)
+            case _          => complete(StatusCodes.NotImplemented)
         })
       }
     }

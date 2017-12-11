@@ -1,4 +1,7 @@
-<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions name="MNOPServicePayment" targetNamespace="urn:mnop:acceptor:contract" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="urn:mnop:acceptor:contract" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<?xml version='1.0' encoding='UTF-8'?>
+<wsdl:definitions name="MNOPServicePayment" targetNamespace="urn:mnop:acceptor:contract"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="urn:mnop:acceptor:contract"
+                  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
   <wsdl:types>
 <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="urn:mnop:acceptor:contract" xmlns="urn:mnop:acceptor:contract" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 <xs:complexType name="authenticationHeader">

@@ -29,20 +29,20 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
   def create(transaction: model.BOTransaction): BOTransaction = {
     DB localTx { implicit session =>
       val newBoCart = new BOTransaction(newId(),
-        UUID.fromString(transaction.uuid),
-        JacksonConverter.serialize(transaction),
-        new Date,
-        new Date)
+                                        UUID.fromString(transaction.uuid),
+                                        JacksonConverter.serialize(transaction),
+                                        new Date,
+                                        new Date)
 
       applyUpdate {
         insert
           .into(BOTransactionDAO)
           .namedValues(
-            BOTransactionDAO.column.id -> newBoCart.id,
-            BOTransactionDAO.column.uuid -> newBoCart.uuid.toString,
-            BOTransactionDAO.column.extra -> newBoCart.extra,
-            BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
-            BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
+              BOTransactionDAO.column.id          -> newBoCart.id,
+              BOTransactionDAO.column.uuid        -> newBoCart.uuid.toString,
+              BOTransactionDAO.column.extra       -> newBoCart.extra,
+              BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
+              BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
           )
       }
       newBoCart

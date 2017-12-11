@@ -24,7 +24,10 @@ import com.mogobiz.pay.model._
 import com.mogobiz.utils.GlobalUtil._
 
 class TraceHandler extends SOAPHandler[SOAPMessageContext] {
-  def this(transactionUuid: String, transactionShopUuid: String, provider: String, step: TransactionShopStep.TransactionShopStep) {
+  def this(transactionUuid: String,
+           transactionShopUuid: String,
+           provider: String,
+           step: TransactionShopStep.TransactionShopStep) {
     this()
     this.transactionUuid = transactionUuid
     this.transactionShopUuid = transactionShopUuid
@@ -127,9 +130,9 @@ class TraceHandler extends SOAPHandler[SOAPMessageContext] {
     headers
   }
 
-  private var transactionUuid: String = null
-  private var transactionShopUuid: String = null
-  private var provider: String           = null
+  private var transactionUuid: String                       = null
+  private var transactionShopUuid: String                   = null
+  private var provider: String                              = null
   private var step: TransactionShopStep.TransactionShopStep = null
   private final val headers: Set[QName] = null
 }

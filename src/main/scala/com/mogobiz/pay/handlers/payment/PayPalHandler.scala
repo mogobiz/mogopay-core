@@ -19,6 +19,7 @@ import com.mogobiz.pay.model._
 import com.mogobiz.system.ActorSystemLocator
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{CustomSslConfiguration, GlobalUtil}
+import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods._
 import spray.client.pipelining._
 import spray.http.Uri.Query
@@ -37,7 +38,7 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
 
-  implicit val formats = new org.json4s.DefaultFormats {}
+  implicit val formats = DefaultFormats
 
   val paymentType = PaymentType.PAYPAL
 
@@ -365,9 +366,10 @@ class PayPalHandler(handlerName: String) extends PaymentHandler with CustomSslCo
     val status = if (result.isDefined) PaymentStatus.REFUNDED else PaymentStatus.REFUND_FAILED
     RefundResult(status, result.getOrElse(""), None)
   }
-  */
+   */
 
-  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] =
+    throw new Exception("Not implemented")
 
 }
 

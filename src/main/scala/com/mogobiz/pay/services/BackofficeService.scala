@@ -86,7 +86,7 @@ class BackofficeService extends Directives with DefaultComplete {
     get {
       session { session =>
         handleCall(backofficeHandler.listShopTransactions(transactionId),
-          (r: List[BOShopTransaction]) => complete(StatusCodes.OK -> r))
+                   (r: List[BOShopTransaction]) => complete(StatusCodes.OK -> r))
       }
     }
   }

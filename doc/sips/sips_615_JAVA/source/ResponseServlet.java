@@ -1,25 +1,18 @@
 
 /*----------------------------------------------------------------------
-  Topic		: Exemple SERVLET de traitement de la réponse
+  Topic		: Exemple SERVLET de traitement de la rï¿½ponse
   Version 	: P615
  *---------------------------------------------------------------------*/
-
-import java.io.*;
-import java.util.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import com.atosorigin.services.cad.apipayment.*;
-import com.atosorigin.services.cad.apipayment.web.*;
-import com.atosorigin.services.cad.common.*;
-
 /*
  |======================================================================
  |
- |   	main programm 	: traitement de la réponse manuelle
- |			  Dans cet exemple, les données de la transaction
- |			  sont décryptées et affichées sur le navigateur
+ |   	main programm 	: traitement de la rï¿½ponse manuelle
+ |			  Dans cet exemple, les donnï¿½es de la transaction
+ |			  sont dï¿½cryptï¿½es et affichï¿½es sur le navigateur
  |			  de l'internaute.
  |
  |======================================================================
@@ -33,7 +26,7 @@ public class ResponseServlet extends HttpServlet {
     try{
 
 	/* 	Redirection de la sortie DEBUG vers le navigateur. 
-		Par défaut le mode DEBUG est redirigé vers la sortie standard du serveur d'application.
+		Par dï¿½faut le mode DEBUG est redirigï¿½ vers la sortie standard du serveur d'application.
 	*/
 	//DebugOutputStream.setOut(response.getOutputStream());
 	
@@ -46,7 +39,7 @@ public class ResponseServlet extends HttpServlet {
 			out.println ("<Font color=#000000>");
 			out.println ("<center><H1>Test de l'API JAVA SIPS</H1></center><br><br>");
 
-       /* Initialisation du chemin du fichier pathfile (à modifier)
+       /* Initialisation du chemin du fichier pathfile (ï¿½ modifier)
            ex :
             -> Windows : SIPSApiWeb api = new SIPSApiWeb("c:\\repertoire\\pathfile");
             -> Unix    : SIPSApiWeb api = new SIPSApiWeb("/home/repertoire/pathfile");
@@ -54,16 +47,16 @@ public class ResponseServlet extends HttpServlet {
       SIPSApiWeb api = new SIPSApiWeb("chemin complet du pathfile");
 
 
-      // Initialisation de l'objet réponse
+      // Initialisation de l'objet rï¿½ponse
       SIPSDataObject resp = (SIPSDataObject) new SIPSResponseParm();
 
-      // Récupération de la variable cryptée postée
+      // Rï¿½cupï¿½ration de la variable cryptï¿½e postï¿½e
       String cypheredtxt = request.getParameter("DATA");
 
-      // Décryptage de la réponse
+      // Dï¿½cryptage de la rï¿½ponse
       resp = api.sipsPaymentResponseFunc(cypheredtxt);
 
-      // Affichage des données de la réponse du serveur
+      // Affichage des donnï¿½es de la rï¿½ponse du serveur
 
 	  out.println("<center>\n");
 	  out.println("<H3>R&eacute;ponse manuelle du serveur SIPS</H3>\n");

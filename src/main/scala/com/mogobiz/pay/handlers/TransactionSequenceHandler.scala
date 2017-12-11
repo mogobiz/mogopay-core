@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import com.mogobiz.pay.config.{Environment, Settings}
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model._
 import org.joda.time.{DateTime, DateTimeComparator}
@@ -17,7 +17,7 @@ import scala.util._
 
 class TransactionSequenceHandler {
   def findByVendorId(uuid: String): Option[TransactionSequence] = {
-    val req = search in Settings.Mogopay.EsIndex -> "TransactionSequence" postFilter termFilter("vendorId" -> uuid)
+    val req = search(Settings.Mogopay.EsIndex -> "TransactionSequence") query termQuery("vendorId" -> uuid)
     EsClient.search[TransactionSequence](req)
   }
 

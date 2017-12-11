@@ -17,20 +17,20 @@ object BOShopTransactionDAO extends SQLSyntaxSupport[BOShopTransaction] with BOS
   def create(transaction: model.BOShopTransaction): BOShopTransaction = {
     DB localTx { implicit session =>
       val newBo = new BOShopTransaction(newId(),
-        UUID.fromString(transaction.uuid),
-        JacksonConverter.serialize(transaction),
-        new Date,
-        new Date)
+                                        UUID.fromString(transaction.uuid),
+                                        JacksonConverter.serialize(transaction),
+                                        new Date,
+                                        new Date)
 
       applyUpdate {
         insert
           .into(BOShopTransactionDAO)
           .namedValues(
-            BOShopTransactionDAO.column.id -> newBo.id,
-            BOShopTransactionDAO.column.uuid -> newBo.uuid.toString,
-            BOShopTransactionDAO.column.extra -> newBo.extra,
-            BOShopTransactionDAO.column.dateCreated -> newBo.dateCreated,
-            BOShopTransactionDAO.column.lastUpdated -> newBo.lastUpdated
+              BOShopTransactionDAO.column.id          -> newBo.id,
+              BOShopTransactionDAO.column.uuid        -> newBo.uuid.toString,
+              BOShopTransactionDAO.column.extra       -> newBo.extra,
+              BOShopTransactionDAO.column.dateCreated -> newBo.dateCreated,
+              BOShopTransactionDAO.column.lastUpdated -> newBo.lastUpdated
           )
       }
 
@@ -44,8 +44,8 @@ object BOShopTransactionDAO extends SQLSyntaxSupport[BOShopTransaction] with BOS
         QueryDSL
           .update(BOShopTransactionDAO)
           .set(
-            BOShopTransactionDAO.column.extra       -> JacksonConverter.serialize(transaction),
-            BOShopTransactionDAO.column.lastUpdated -> new Date
+              BOShopTransactionDAO.column.extra       -> JacksonConverter.serialize(transaction),
+              BOShopTransactionDAO.column.lastUpdated -> new Date
           )
           .where
           .eq(BOShopTransactionDAO.column.uuid, transaction.uuid)

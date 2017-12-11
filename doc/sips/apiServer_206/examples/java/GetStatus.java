@@ -1,5 +1,5 @@
 /*
-	Exemple d'envoi d'une requête de commande getStatus vers l'API Server.
+	Exemple d'envoi d'une requï¿½te de commande getStatus vers l'API Server.
 
 	Exemple of a sending of a getStatus request to the API Server
 
@@ -7,15 +7,11 @@
 
 // Imports
 
-import java.io.*;
-import java.net.*;
-
-
 public class GetStatus {
 
   public static void main(String args[])
   {
-   /**** INDIQUER LE PORT UTILISE PAR LE SERVEUR D'API (7181 par défaut) ***/
+   /**** INDIQUER LE PORT UTILISE PAR LE SERVEUR D'API (7181 par dï¿½faut) ***/
    /**** INDICATE THE API SERVER PORT USED (7181 by default) ***/
    int port = 7181;
    
@@ -26,11 +22,11 @@ public class GetStatus {
 
 
    try {
-	    // création de la socket
+	    // crï¿½ation de la socket
         // creation of the socket
            sock = new Socket("*** INDICATE HERE THE API SERVER IP USED ***",port);
 
-        //création des flux d'entrée et de sortie
+        //crï¿½ation des flux d'entrï¿½e et de sortie
         //creation of out and in flow
            in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
            serverStream = new PrintWriter(sock.getOutputStream(), true);
@@ -42,7 +38,7 @@ public class GetStatus {
             }catch (Exception e)
             {throw new Exception("the sending of the message failed");}
 
-	    // la réception de la réponse
+	    // la rï¿½ception de la rï¿½ponse
         // the receipt of the response
         try {
             result = in.readLine();

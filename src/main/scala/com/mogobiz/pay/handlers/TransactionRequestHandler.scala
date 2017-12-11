@@ -6,10 +6,10 @@ package com.mogobiz.pay.handlers
 
 import java.util.Calendar
 
-import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl.{delete => del, _}
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model.TransactionRequest
+import com.sksamuel.elastic4s.http.ElasticDsl._
 
 class TransactionRequestHandler {
   def save(txRequest: TransactionRequest, refresh: Boolean = false) =
@@ -21,9 +21,8 @@ class TransactionRequestHandler {
   def find(uuid: String) = EsClient.load[TransactionRequest](Settings.Mogopay.EsIndex, uuid)
 
   def findByGroupTxUUID(uuid: String): Seq[TransactionRequest] = {
-    val req = search in Settings.Mogopay.EsIndex -> "TransactionRequest" postFilter termFilter(
-          "groupTransactionUUID",
-          uuid) from 0 size EsClient.MAX_SIZE
+    val req = search(Settings.Mogopay.EsIndex -> "TransactionRequest") query
+        termQuery("groupTransactionUUID", uuid) from 0 size EsClient.MaxSize
     EsClient.searchAll[TransactionRequest](req)
   }
 
@@ -35,10 +34,8 @@ class TransactionRequestHandler {
     cal.add(Calendar.MILLISECOND, -1 * Settings.TransactionRequestDuration * 60 * 1000)
     val xMillisAgo = cal.getTime
 
-    val req = del from Settings.Mogopay.EsIndex -> "TransactionRequest" where {
-      range("dateCreated") from 0 to xMillisAgo.getTime
-    }
-    import EsClient.secureRequest
-    EsClient().execute(secureRequest(req))
+    val req = deleteIn(Settings.Mogopay.EsIndex -> "TransactionRequest")
+      .by(rangeQuery("dateCreated") gte 0 lte xMillisAgo.getTime)
+    EsClient().execute(req)
   }
 }

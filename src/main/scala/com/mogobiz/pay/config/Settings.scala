@@ -5,9 +5,8 @@
 package com.mogobiz.pay.config
 
 import java.io.{File, StringReader}
-import java.security.{KeyFactory, PublicKey}
-import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.security.{KeyFactory, PublicKey}
 
 import com.mogobiz.utils.EmailHandler.MailConfig
 import com.typesafe.config.{Config, ConfigFactory}

@@ -7,13 +7,13 @@ package com.mogobiz.pay.handlers
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl._
 import com.mogobiz.es.EsClient
+import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.exceptions.Exceptions.InvalidContextException
 import com.mogobiz.pay.model._
-import org.elasticsearch.search.sort.SortOrder._
-import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import com.sksamuel.elastic4s.http.ElasticDsl.{termQuery, _}
+import com.sksamuel.elastic4s.searches.sort.FieldSortDefinition
 
 class BackofficeHandler {
 
@@ -21,17 +21,18 @@ class BackofficeHandler {
     if (!sessionData.isMerchant)
       throw InvalidContextException("User not a merchant")
     val merchantId = sessionData.accountId.getOrElse(throw InvalidContextException("No logged merchant found"))
-    val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter {
-      termFilter("owner", merchantId)
+    val req = search(Settings.Mogopay.EsIndex -> "Account") query {
+      boolQuery().must(termQuery("owner", merchantId))
     } start page * max limit max
     EsClient.searchAll[Account](req)
   }
 
   def listTransactionLogs(transactionId: String): Seq[BOTransactionLog] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransactionLog" query must(matchQuery("transactionUuid", transactionId)) sort (
-      by field "transactionShopUuid" order DESC,
-      by field "dateCreated" order DESC
-    ) start 0 limit Settings.MaxQueryResults
+    val req = search(Settings.Mogopay.EsIndex -> "BOTransactionLog") query boolQuery().must(
+          termQuery("transactionUuid", transactionId)) sortBy (
+          FieldSortDefinition("transactionShopUuid").desc(),
+          FieldSortDefinition("dateCreated").desc()
+      ) start 0 limit Settings.MaxQueryResults
     EsClient.searchAll[BOTransactionLog](req)
   }
 
@@ -61,34 +62,32 @@ class BackofficeHandler {
 
     val accountFilter = if (sessionData.isMerchant) {
       val accountId = sessionData.accountId.getOrElse(throw InvalidContextException("No logged user found"))
-      List(Some(termFilter("vendor.uuid", accountId)), email.map(termFilter("email", _))).flatten
+      List(Some(termQuery("vendor.uuid", accountId)), email.map(termQuery("email", _))).flatten
     } else {
       val accountEmail = sessionData.email.getOrElse(throw InvalidContextException("No logged user found"))
-      List(termFilter("email", accountEmail))
+      List(termQuery("email", accountEmail))
     }
 
     val filters = accountFilter ++
-        transactionUUID.map(uuid => termFilter("transactionUUID", uuid)) ++
-        amount.map(x => termFilter("amount", x)) ++
-        transactionStatus.map(x => termFilter("status", x)) ++
-        deliveryStatus.map(x => termFilter("delivery.status", x))
+        transactionUUID.map(uuid => termQuery("transactionUUID", uuid)) ++
+        amount.map(x => termQuery("amount", x)) ++
+        transactionStatus.map(x => termQuery("status", x)) ++
+        deliveryStatus.map(x => termQuery("delivery.status", x))
 
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
-      and(filters: _*)
+    val req = search(Settings.Mogopay.EsIndex -> "BOTransaction") postFilter {
+      boolQuery().must(filters: _*)
     } query {
-      rangeQuery("transactionDate") from parsedStartDatetime.map(_.getTime).orNull to parsedEndDatetime
+      rangeQuery("transactionDate") gte parsedStartDatetime.map(_.getTime).getOrElse(0L) lt parsedEndDatetime
         .map(_.getTime)
-        .orNull
-    } sort {
-      field sort "transactionDate" order DESC
-    } start 0 limit Settings.MaxQueryResults
+        .getOrElse(Long.MaxValue)
+    } sortByFieldDesc "transactionDate" start 0 limit Settings.MaxQueryResults
 
     EsClient.searchAll[BOTransaction](req)
   }
 
   def getTransaction(uuid: String): Option[BOTransaction] =
-    EsClient.search[BOTransaction](search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter {
-      termFilter("uuid", uuid)
+    EsClient.search[BOTransaction](search(Settings.Mogopay.EsIndex -> "BOTransaction") query {
+      termQuery("uuid", uuid)
     })
 
   def listShopTransactions(transactionId: String): List[BOShopTransaction] = {

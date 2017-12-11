@@ -8,20 +8,17 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
 import com.mogobiz.pay.model._
 import com.mogobiz.pay.sql.BOTransactionDAO
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 
 class BOTransactionHandler {
   def find(uuid: String): Option[BOTransaction] = {
     EsClient.load[BOTransaction](Settings.Mogopay.EsIndex, uuid)
   }
 
-  def findByGroupTxUUID(uuid: String): Seq[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" postFilter termFilter("groupTransactionUUID", uuid) from 0 size EsClient.MAX_SIZE
-    EsClient.searchAll[BOTransaction](req)
-  }
-
   def findByShipmentId(shipmentId: String): Option[BOTransaction] = {
-    val req = search in Settings.Mogopay.EsIndex -> "BOTransaction" query must(matchQuery("shippingData.shipmentId", shipmentId))
+    val req = search(Settings.Mogopay.EsIndex -> "BOTransaction") query {
+      boolQuery().must(termQuery("shippingData.shipmentId", shipmentId))
+    }
     EsClient.search[BOTransaction](req)
   }
 
@@ -32,7 +29,7 @@ class BOTransactionHandler {
   }
 
   def update(transaction: BOTransaction): Boolean = {
-    val refresh = true
+    val refresh      = true
     val updateResult = BOTransactionDAO.update(transaction)
     EsClient.update[BOTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
   }

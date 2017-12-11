@@ -7,7 +7,7 @@ package com.mogobiz.pay.handlers
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.google.i18n.phonenumbers.PhoneNumberUtil.{PhoneNumberFormat, PhoneNumberType}
 import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model._
 
@@ -18,18 +18,18 @@ case class PhoneVerification(isValid: Boolean,
 
 class CountryHandler {
   def findCountriesForShipping(): Seq[Country] = {
-    // (Integer.MAX_VALUE / 2) because Lucene says us `Caused by: java.lang.IllegalArgumentException: maxSize must be <= 2147483391; got: 2147483647`
-    val req = search in Settings.Mogopay.EsIndex -> "Country" postFilter termFilter("shipping" -> true) size (Integer.MAX_VALUE / 2)
+    // (Int.MaxValue / 2) because Lucene says us `Caused by: java.lang.IllegalArgumentException: maxSize must be <= 2147483391; got: 2147483647`
+    val req = search(Settings.Mogopay.EsIndex -> "Country") query termQuery("shipping" -> true) size (Int.MaxValue / 2)
     EsClient.searchAll[Country](req) sortBy (_.name)
   }
 
   def findCountriesForBilling(): Seq[Country] = {
-    val req = search in Settings.Mogopay.EsIndex -> "Country" postFilter termFilter("billing" -> true) size (Integer.MAX_VALUE / 2)
+    val req = search(Settings.Mogopay.EsIndex -> "Country") query termQuery("billing" -> true) size (Int.MaxValue / 2)
     EsClient.searchAll[Country](req) sortBy (_.name)
   }
 
   def findByCode(code: String): Option[Country] = {
-    val req = search in Settings.Mogopay.EsIndex types "Country" postFilter termFilter("code", code) size (Integer.MAX_VALUE / 2)
+    val req = search(Settings.Mogopay.EsIndex -> "Country") query termQuery("code", code) size (Int.MaxValue / 2)
     EsClient.search[Country](req)
   }
 

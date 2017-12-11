@@ -75,7 +75,7 @@ trait MogopayCake {
 
   def customPaymentHandler: PaymentHandler = null
 
-  def miraklHandler : MiraklHandler
+  def miraklHandler: MiraklHandler
 }
 
 class DefaultMogopayCake extends MogopayCake {
@@ -115,6 +115,6 @@ class DefaultMogopayCake extends MogopayCake {
   val paylineHandler      = new PaylineHandler("payline")
   val mogopayHandler      = new MogopayHandler("mogopay")
 
-  val miraklHandler       = new MiraklHandler
+  val miraklHandler = new MiraklHandler
 
 }

@@ -1,25 +1,18 @@
 
 /*----------------------------------------------------------------------
-  Topic		: Exemple SERVLET de traitement de la réponse automatique
+  Topic		: Exemple SERVLET de traitement de la rï¿½ponse automatique
   Version 	: P615
  *---------------------------------------------------------------------*/
-
-import java.io.*;
-import java.util.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 
-import com.atosorigin.services.cad.apipayment.*;
-import com.atosorigin.services.cad.apipayment.web.*;
-import com.atosorigin.services.cad.common.*;
-
 /*
  |======================================================================
  |
- |   	main programm 	: traitement de la réponse automatique
- |			  Dans cet exemple, les données de la transaction
- |			  sont décryptées et sauvegardées dans un fichier log.
+ |   	main programm 	: traitement de la rï¿½ponse automatique
+ |			  Dans cet exemple, les donnï¿½es de la transaction
+ |			  sont dï¿½cryptï¿½es et sauvegardï¿½es dans un fichier log.
  |
  |======================================================================
  */
@@ -31,26 +24,26 @@ public class AutoResponseServlet extends HttpServlet {
 
     try{
 
-       /* Initialisation du chemin du fichier pathfile (à modifier)
+       /* Initialisation du chemin du fichier pathfile (ï¿½ modifier)
            ex :
             -> Windows : SIPSApiWeb api = new SIPSApiWeb("c:\\repertoire\\pathfile");
             -> Unix    : SIPSApiWeb api = new SIPSApiWeb("/home/repertoire/pathfile");
         */
       SIPSApiWeb api = new SIPSApiWeb("chemin complet du pathfile");
 
-      // Initialisation de l'objet réponse
+      // Initialisation de l'objet rï¿½ponse
       SIPSDataObject resp = (SIPSDataObject) new SIPSResponseParm();
 
-      // Récupération de la variable cryptée postée
+      // Rï¿½cupï¿½ration de la variable cryptï¿½e postï¿½e
       String cypheredtxt = request.getParameter("DATA");
 
-      // Décryptage de la réponse
+      // Dï¿½cryptage de la rï¿½ponse
       resp = api.sipsPaymentResponseFunc(cypheredtxt);
 
-      // Sauvegarde des données dans un fichier
-      // à modifier pour mettre à jour une base de données, etc...
+      // Sauvegarde des donnï¿½es dans un fichier
+      // ï¿½ modifier pour mettre ï¿½ jour une base de donnï¿½es, etc...
       // ...
-	  /* Initialisation du chemin du fichier de log (à modifier)
+	  /* Initialisation du chemin du fichier de log (ï¿½ modifier)
 	  	   ex :
 	  	-> Windows : String log_file = new String("c:\\repertoire\\logfile");
 	        -> Unix    : String log_file = new String("/home/repertoire/logfile");
@@ -102,7 +95,7 @@ public class AutoResponseServlet extends HttpServlet {
     	out.close();
 
     } catch(Exception e){
-	/* Initialisation du chemin du fichier de log (à modifier)
+	/* Initialisation du chemin du fichier de log (ï¿½ modifier)
 		ex :
 		-> Windows : "c:\\repertoire\\logfile"
 		-> Unix    : "/home/repertoire/logfile"

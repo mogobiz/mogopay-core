@@ -4,13 +4,12 @@
 
 package com.mogobiz.pay.handlers
 
-import java.util.{UUID, Calendar}
+import java.util.{Calendar, UUID}
 
-import com.mogobiz.es.EsClient
 import com.mogobiz.pay.model._
-import org.specs2.mutable._
+import org.scalatest.{FlatSpec, Matchers}
 
-class EsClientSpec extends Specification {
+class EsClientSpec extends FlatSpec with Matchers {
   val Uuid = "a7d60bc3-8bf3-43bc-bd1d-fac7d5c539bd"
   val account = Account(
     Uuid,

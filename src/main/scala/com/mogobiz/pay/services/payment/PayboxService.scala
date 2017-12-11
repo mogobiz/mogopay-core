@@ -31,7 +31,7 @@ class PayboxService extends Directives with DefaultComplete with StrictLogging {
 
   lazy val startPayment = path("start" / Segment) { (xtoken) =>
     complete(StatusCodes.OK)
-    /*
+  /*
     import Implicits._
     get {
       parameterMap { params =>
@@ -54,7 +54,7 @@ class PayboxService extends Directives with DefaultComplete with StrictLogging {
 
   lazy val done = path("done" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     import Implicits._
     get {
       parameterMap { params =>
@@ -71,7 +71,7 @@ class PayboxService extends Directives with DefaultComplete with StrictLogging {
 
   lazy val callbackPayment = path("callback" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     import Implicits.MogopaySession
 
     get {
@@ -87,7 +87,7 @@ class PayboxService extends Directives with DefaultComplete with StrictLogging {
 
   lazy val done3DSecureCheck = path("done-3ds" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     post {
       entity(as[FormData]) { formData =>
         import Implicits._
@@ -102,7 +102,7 @@ class PayboxService extends Directives with DefaultComplete with StrictLogging {
 
   lazy val callback3DSecureCheck = path("callback-3ds" / Segment) { xtoken =>
     complete(StatusCodes.OK)
-/*
+  /*
     import Implicits.MogopaySession
     get {
       parameterMap { params =>

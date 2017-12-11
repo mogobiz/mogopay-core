@@ -4,12 +4,13 @@
 
 package com.mogobiz.pay.services
 
-import com.mogobiz.pay.config.{Settings, DefaultComplete}
+import com.mogobiz.pay.config.{DefaultComplete, Settings}
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
+import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.pay.model._
-import com.mogobiz.pay.model.TokenValidity._
+import com.mogobiz.pay.model.TokenValidity.TokenValidity
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
 import shapeless.HNil
@@ -558,14 +559,9 @@ class AccountService extends Directives with DefaultComplete {
   lazy val deleteMerchantTestAccount = path("delete-test-account") {
     get {
       complete {
-
-        import com.sksamuel.elastic4s.ElasticDsl._
-
-        val req = com.sksamuel.elastic4s.ElasticDsl.delete
-          .from(Settings.Mogopay.EsIndex -> "Account")
-          .where(regexQuery("email", "newuser"))
-        import com.mogobiz.es.EsClient.secureRequest
-        com.mogobiz.es.EsClient().execute(secureRequest(req)).await
+        import com.sksamuel.elastic4s.http.ElasticDsl._
+        val req = deleteIn(Settings.Mogopay.EsIndex -> "Account").by(termQuery("email", "newuser"))
+        com.mogobiz.es.EsClient().execute(req).await
 
         StatusCodes.OK -> Map()
       }

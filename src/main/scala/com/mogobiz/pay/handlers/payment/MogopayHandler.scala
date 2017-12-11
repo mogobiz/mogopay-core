@@ -4,36 +4,28 @@
 
 package com.mogobiz.pay.handlers.payment
 
-import java.text.SimpleDateFormat
-
-import com.mogobiz.pay.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.mogobiz.pay.codes.MogopayConstant
-import com.mogobiz.es.EsClient
-import com.mogobiz.pay.exceptions.Exceptions.InvalidTransactionTypeException
 import com.mogobiz.pay.model._
-import org.apache.shiro.crypto.hash.Sha256Hash
 import spray.http.Uri
 
-import scala.util.{Either, Left}
+import scala.util.Either
 
 class MogopayHandler(handlerName: String) extends PaymentHandler {
   PaymentHandler.register(handlerName, this)
   val paymentType = PaymentType.CREDIT_CARD
-/*
+  /*
   def authenticate(sessionData: SessionData): Left[String, Nothing] = {
     val ownerFilter =
       sessionData.merchantId.map { vendorId =>
-        termFilter("owner", vendorId)
+        termQuery("owner", vendorId)
       } getOrElse {
         missingFilter("owner") existence true includeNull true
       }
 
     val req = search in Settings.Mogopay.EsIndex -> "Account" postFilter {
       and(
-          termFilter("status", AccountStatus.ACTIVE),
-          termFilter("email", sessionData.email.get),
-          termFilter("password", new Sha256Hash(sessionData.password.get)),
+          termQuery("status", AccountStatus.ACTIVE),
+          termQuery("email", sessionData.email.get),
+          termQuery("password", new Sha256Hash(sessionData.password.get)),
           ownerFilter
       ) cache (false)
     }
@@ -130,8 +122,9 @@ class MogopayHandler(handlerName: String) extends PaymentHandler {
                       boTx: BOTransaction,
                       amount: Long,
                       paymentResult: PaymentResult): RefundResult = ???
-                      */
+   */
 
-  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] = throw new Exception("Not implemented")
+  override def startPayment(sessionData: SessionData): Either[FormRedirection, Uri] =
+    throw new Exception("Not implemented")
 
 }
