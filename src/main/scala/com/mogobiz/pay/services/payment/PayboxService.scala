@@ -4,16 +4,15 @@
 
 package com.mogobiz.pay.services.payment
 
-import akka.actor.ActorRef
+import akka.http.scaladsl.model.headers.`Content-Type`
+import akka.http.scaladsl.model.{ContentTypes, StatusCodes, Uri}
+import akka.http.scaladsl.server.{Directive1, Directives}
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
 import com.typesafe.scalalogging.StrictLogging
-import spray.http.HttpHeaders.`Content-Type`
-import spray.http._
-import spray.routing._
 
 import scala.util._
 
@@ -22,51 +21,56 @@ class PayboxService extends Directives with DefaultComplete with StrictLogging {
   val route = {
     pathPrefix("paybox") {
       startPayment ~
-      done ~
-      callbackPayment ~
-      callback3DSecureCheck ~
-      done3DSecureCheck
+        done ~
+        callbackPayment ~
+        callback3DSecureCheck ~
+        done3DSecureCheck
     }
   }
 
   lazy val startPayment = path("start" / Segment) { (xtoken) =>
-    complete(StatusCodes.OK)
-  /*
     import Implicits._
     get {
       parameterMap { params =>
         val session = SessionESDirectives.load(xtoken).get
-        handleCall(payboxHandler.startPayment(session.sessionData), (data: Either[String, Uri]) =>
-              setSession(session) {
-            data match {
-              case Left(content) =>
-                complete(HttpResponse(entity = content).withHeaders(List(`Content-Type`(MediaTypes.`text/html`))))
-              case Right(url) =>
-                logger.debug(url.toString())
-                redirect(url, StatusCodes.TemporaryRedirect)
-            }
-        })
+        handleCall(
+          payboxHandler.startPayment(session.sessionData),
+          (data: Either[String, Uri]) =>
+            setSession(session) {
+              data match {
+                case Left(content) =>
+                  complete(
+                    StatusCodes.OK,
+                    List(`Content-Type`(ContentTypes.`text/html(UTF-8)`)),
+                    content)
+                case Right(url) =>
+                  logger.debug(url.toString())
+                  redirect(url, StatusCodes.TemporaryRedirect)
+              }
+          }
+        )
       }
-    }*/
+    }
   }
 
   def queryString: Directive1[String] = extract(_.request.uri.toString())
 
   lazy val done = path("done" / Segment) { xtoken =>
-    complete(StatusCodes.OK)
-  /*
     import Implicits._
     get {
       parameterMap { params =>
         queryString { uri =>
           val session = SessionESDirectives.load(xtoken).get
-          handleCall(payboxHandler.donePayment(session.sessionData, params, uri), (data: Uri) =>
-                setSession(session) {
-              redirect(data, StatusCodes.TemporaryRedirect)
-          })
+          handleCall(payboxHandler.donePayment(session.sessionData,
+                                               params,
+                                               uri),
+                     (data: Uri) =>
+                       setSession(session) {
+                         redirect(data, StatusCodes.TemporaryRedirect)
+                     })
         }
       }
-    }*/
+    }
   }
 
   lazy val callbackPayment = path("callback" / Segment) { xtoken =>

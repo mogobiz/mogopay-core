@@ -4,19 +4,19 @@
 
 package com.mogobiz.pay.services.payment
 
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.{Directive1, Directives}
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
-import spray.http.HttpHeaders.`Content-Type`
-import spray.http._
-import spray.routing._
 
 import scala.concurrent.ExecutionContext
-import scala.util._
 
-class AuthorizeNetService(implicit executionContext: ExecutionContext) extends Directives with DefaultComplete {
+class AuthorizeNetService(implicit executionContext: ExecutionContext)
+    extends Directives
+    with DefaultComplete {
 
   import akka.util.Timeout
 
@@ -27,9 +27,9 @@ class AuthorizeNetService(implicit executionContext: ExecutionContext) extends D
   val route = {
     pathPrefix("authorizenet") {
       startPayment ~
-      cancel ~
-      done ~
-      relay
+        cancel ~
+        done ~
+        relay
       //      callbackPayment ~
       //      callback3DSecureCheck ~
       //      done3DSecureCheck ~

@@ -4,13 +4,11 @@
 package com.mogobiz.pay.services
 
 import akka.actor.{Actor, Props}
-import akka.event.Logging
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives
 import com.mogobiz.mirakl.PaymentModel.{DebitOrderList, RefundOrderList}
 import com.mogobiz.pay.config.DefaultComplete
-import spray.http.StatusCodes
-import spray.routing.Directives
 import com.mogobiz.pay.config.MogopayHandlers.handlers.miraklHandler
-import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.system.ActorSystemLocator
 
 import scala.util.{Success, Try}
@@ -18,27 +16,28 @@ import scala.util.{Success, Try}
 class MiraklService extends Directives with DefaultComplete {
 
   val route = {
-    logRequestResponse("REST API", Logging.InfoLevel) {
-      pathPrefix("mirakl") {
-        debitCustomer ~
+    pathPrefix("mirakl") {
+      debitCustomer ~
         refundCustomer
-      }
     }
   }
 
   lazy val debitCustomer = path("debitCustomer") {
     post {
       entity(as[DebitOrderList]) { orders =>
-        handleCall(Try {
-          val system      = ActorSystemLocator()
-          val miraklActor = system.actorOf(Props[MiraklActor])
-          miraklActor ! DebitCustomerMessage(orders)
-          true
-        }, (res: Try[Boolean]) =>
-              res match {
-            case Success(_) => complete(StatusCodes.NoContent)
-            case _          => complete(StatusCodes.NotImplemented)
-        })
+        handleCall(
+          Try {
+            val system = ActorSystemLocator()
+            val miraklActor = system.actorOf(Props[MiraklActor])
+            miraklActor ! DebitCustomerMessage(orders)
+            true
+          },
+          (res: Try[Boolean]) =>
+            res match {
+              case Success(_) => complete(StatusCodes.NoContent)
+              case _          => complete(StatusCodes.NotImplemented)
+          }
+        )
       }
     }
   }
@@ -46,16 +45,19 @@ class MiraklService extends Directives with DefaultComplete {
   lazy val refundCustomer = path("refundCustomer") {
     post {
       entity(as[RefundOrderList]) { orders =>
-        handleCall(Try {
-          val system      = ActorSystemLocator()
-          val miraklActor = system.actorOf(Props[MiraklActor])
-          miraklActor ! RefundCustomerMessage(orders)
-          true
-        }, (res: Try[Boolean]) =>
-              res match {
-            case Success(_) => complete(StatusCodes.NoContent)
-            case _          => complete(StatusCodes.NotImplemented)
-        })
+        handleCall(
+          Try {
+            val system = ActorSystemLocator()
+            val miraklActor = system.actorOf(Props[MiraklActor])
+            miraklActor ! RefundCustomerMessage(orders)
+            true
+          },
+          (res: Try[Boolean]) =>
+            res match {
+              case Success(_) => complete(StatusCodes.NoContent)
+              case _          => complete(StatusCodes.NotImplemented)
+          }
+        )
       }
     }
   }
