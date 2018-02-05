@@ -4,6 +4,8 @@
 
 package com.mogobiz.pay.services.payment
 
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
@@ -11,9 +13,6 @@ import com.mogobiz.pay.model._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
 import com.typesafe.scalalogging.StrictLogging
-import spray.http.HttpHeaders.`Content-Type`
-import spray.http._
-import spray.routing.Directives
 
 import scala.util._
 
@@ -22,9 +21,9 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
   val route = {
     pathPrefix("sips") {
       startPayment ~
-      done ~
-      callback ~
-      threeDSCallback
+        done ~
+        callback ~
+        threeDSCallback
     }
   }
 
@@ -73,9 +72,10 @@ class SipsService extends Directives with DefaultComplete with StrictLogging {
     }*/
   }
 
-  lazy val callback = path("callback" / Segment / Segment) { (vendorUuid, xtoken) =>
-    complete(StatusCodes.OK)
-  /*
+  lazy val callback = path("callback" / Segment / Segment) {
+    (vendorUuid, xtoken) =>
+      complete(StatusCodes.OK)
+    /*
     post {
       entity(as[FormData]) { formData =>
         import Implicits._

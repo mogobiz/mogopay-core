@@ -9,9 +9,8 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import com.mogobiz.pay.handlers.PhoneVerification
-import com.mogobiz.pay.model.{Country, CountryAdmin}
+import com.mogobiz.pay.model.Mogopay.{Country, CountryAdmin}
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-import com.mogobiz.json.JacksonConverter._
 
 class CountryService extends Directives with DefaultComplete {
 

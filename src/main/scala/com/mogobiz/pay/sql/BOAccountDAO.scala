@@ -7,8 +7,8 @@ package com.mogobiz.pay.sql
 import java.util.{Date, UUID}
 
 import com.mogobiz.json.JacksonConverter
-import com.mogobiz.pay.model.Account
 import Sql.BOAccount
+import com.mogobiz.pay.model.Mogopay.Account
 import scalikejdbc._
 
 object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
@@ -41,13 +41,15 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
       insert
         .into(BOAccountDAO)
         .namedValues(
-            BOAccountDAO.column.id          -> newBoAccount.id,
-            BOAccountDAO.column.uuid        -> newBoAccount.uuid.toString,
-            BOAccountDAO.column.extra       -> newBoAccount.extra,
-            BOAccountDAO.column.email       -> newBoAccount.email,
-            BOAccountDAO.column.company     -> newBoAccount.company,
-            BOAccountDAO.column.dateCreated -> new java.sql.Timestamp(newBoAccount.dateCreated.getTime()),
-            BOAccountDAO.column.lastUpdated -> new java.sql.Timestamp(newBoAccount.lastUpdated.getTime())
+          BOAccountDAO.column.id -> newBoAccount.id,
+          BOAccountDAO.column.uuid -> newBoAccount.uuid.toString,
+          BOAccountDAO.column.extra -> newBoAccount.extra,
+          BOAccountDAO.column.email -> newBoAccount.email,
+          BOAccountDAO.column.company -> newBoAccount.company,
+          BOAccountDAO.column.dateCreated -> new java.sql.Timestamp(
+            newBoAccount.dateCreated.getTime()),
+          BOAccountDAO.column.lastUpdated -> new java.sql.Timestamp(
+            newBoAccount.lastUpdated.getTime())
         )
     }
   }
@@ -65,10 +67,10 @@ object BOAccountDAO extends SQLSyntaxSupport[BOAccount] with BOService {
         QueryDSL
           .update(BOAccountDAO)
           .set(
-              BOAccountDAO.column.extra       -> JacksonConverter.serialize(account),
-              BOAccountDAO.column.email       -> account.email,
-              BOAccountDAO.column.company     -> account.company.orNull,
-              BOAccountDAO.column.lastUpdated -> new Date
+            BOAccountDAO.column.extra -> JacksonConverter.serialize(account),
+            BOAccountDAO.column.email -> account.email,
+            BOAccountDAO.column.company -> account.company.orNull,
+            BOAccountDAO.column.lastUpdated -> new Date
           )
           .where
           .eq(BOAccountDAO.column.uuid, account.uuid)

@@ -21,8 +21,8 @@ import com.mogobiz.pay.codes.MogopayConstant
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{Environment, Settings}
 import com.mogobiz.pay.exceptions.Exceptions._
-import com.mogobiz.pay.model.TransactionStatus._
-import com.mogobiz.pay.model._
+import com.mogobiz.pay.model.Mogopay.TransactionStatus._
+import com.mogobiz.pay.model.Mogopay._
 import com.mogobiz.utils.GlobalUtil
 import com.mogobiz.utils.GlobalUtil._
 import com.typesafe.scalalogging.StrictLogging
@@ -30,7 +30,6 @@ import com.typesafe.scalalogging.Logger
 import org.json4s.jackson.JsonMethods._
 import org.json4s.{DefaultFormats, StringInput}
 import org.slf4j.LoggerFactory
-import spray.http.Uri
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap

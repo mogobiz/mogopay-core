@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model._
+import com.mogobiz.pay.model.Mogopay.BOTransaction
 import com.mogobiz.pay.sql.BOTransactionDAO
 import com.sksamuel.elastic4s.http.ElasticDsl._
 
@@ -29,8 +29,11 @@ class BOTransactionHandler {
   }
 
   def update(transaction: BOTransaction): Boolean = {
-    val refresh      = true
+    val refresh = true
     val updateResult = BOTransactionDAO.update(transaction)
-    EsClient.update[BOTransaction](Settings.Mogopay.EsIndex, transaction, false, refresh)
+    EsClient.update[BOTransaction](Settings.Mogopay.EsIndex,
+                                   transaction,
+                                   false,
+                                   refresh)
   }
 }

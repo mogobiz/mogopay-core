@@ -4,14 +4,11 @@
 
 package com.mogobiz.pay.services
 
-import com.mogobiz.pay.config.DefaultComplete
-import com.mogobiz.pay.config.MogopayHandlers.handlers._
-import com.mogobiz.pay.implicits.Implicits
-import Implicits._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
+import com.mogobiz.pay.config.DefaultComplete
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-import com.mogobiz.json.JacksonConverter._
+import com.mogobiz.pay.config.MogopayHandlers.handlers.userHandler
 
 class UserService extends Directives with DefaultComplete {
 

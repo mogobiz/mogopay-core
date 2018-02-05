@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.services.payment
 
-import com.mogobiz.pay.model.{Account, CreditCard}
+import com.mogobiz.pay.model.Mogopay.{Account, CreditCard}
 
 trait WalletService {
   def getCards(walletId: String): List[CreditCard]

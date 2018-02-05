@@ -4,7 +4,7 @@
 
 package com.mogobiz.pay.services
 
-import com.mogobiz.pay.model.Account
+import com.mogobiz.pay.model.Mogopay.Account
 import com.mogobiz.session.Session
 
 object ServicesUtil {

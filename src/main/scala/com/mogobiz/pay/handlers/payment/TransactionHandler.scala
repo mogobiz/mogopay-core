@@ -19,15 +19,11 @@ import com.mogobiz.pay.exceptions.Exceptions._
 import com.mogobiz.pay.handlers.UtilHandler
 import com.mogobiz.pay.handlers.shipping.ShippingHandler
 import com.mogobiz.pay.implicits.Implicits._
-import com.mogobiz.pay.model.CBPaymentProvider.CBPaymentProvider
-import com.mogobiz.pay.model.CreditCardType.CreditCardType
-import com.mogobiz.pay.model.TransactionStatus.TransactionStatus
-import com.mogobiz.pay.model.{
-  CBPaymentProvider,
-  ParamRequest,
-  TransactionStatus,
-  _
-}
+import com.mogobiz.pay.model.Mogopay.CBPaymentProvider.CBPaymentProvider
+import com.mogobiz.pay.model.Mogopay.ResponseCode3DS.ResponseCode3DS
+import com.mogobiz.pay.model.Mogopay.TransactionStatus.TransactionStatus
+import com.mogobiz.pay.model.Mogopay._
+import com.mogobiz.pay.model.ParamRequest
 import com.mogobiz.utils.EmailHandler.{Attachment, Mail}
 import com.mogobiz.utils.GlobalUtil._
 import com.mogobiz.utils.{EmailHandler, GlobalUtil, SymmetricCrypt}
@@ -425,7 +421,6 @@ class TransactionHandler {
   }
 
   protected def toCardType(xtype: String): CreditCardType = {
-    import com.mogobiz.pay.model.CreditCardType._
     val `type`: String = if (xtype == null) "CB" else xtype.toUpperCase
     `type` match {
       case "CB"                            => CB

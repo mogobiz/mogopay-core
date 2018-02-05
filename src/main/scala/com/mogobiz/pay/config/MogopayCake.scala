@@ -74,46 +74,44 @@ trait MogopayCake {
   def templateHandler: TemplateHandler
 
   def customPaymentHandler: PaymentHandler = null
-
-  def miraklHandler: MiraklHandler
 }
 
 class DefaultMogopayCake extends MogopayCake {
-  val accountAddressHandler            = new AccountAddressHandler
-  val accountHandler                   = new AccountHandler
-  val backofficeHandler                = new BackofficeHandler
-  val boCreditCardHandler              = new BOCreditCardHandler
-  val boTransactionHandler             = new BOTransactionHandler
-  val boShopTransactionHandler         = new BOShopTransactionHandler
-  val boTransactionLogHandler          = new BOTransactionLogHandler
-  val countryAdminHandler              = new CountryAdminHandler
-  val countryImportHandler             = new CountryImportHandler
-  val rateImportHandler                = new RateImportHandler
-  val countryHandler                   = new CountryHandler
-  val creditCardHandler                = new CreditCardHandler
-  val rateHandler                      = new RateHandler
-  val roleHandler                      = new RoleHandler
-  val shippingAddressHandler           = new ShippingAddressHandler
+  val accountAddressHandler = new AccountAddressHandler
+  val accountHandler = new AccountHandler
+  val backofficeHandler = new BackofficeHandler
+  val boCreditCardHandler = new BOCreditCardHandler
+  val boTransactionHandler = new BOTransactionHandler
+  val boShopTransactionHandler = new BOShopTransactionHandler
+  val boTransactionLogHandler = new BOTransactionLogHandler
+  val countryAdminHandler = new CountryAdminHandler
+  val countryImportHandler = new CountryImportHandler
+  val rateImportHandler = new RateImportHandler
+  val countryHandler = new CountryHandler
+  val creditCardHandler = new CreditCardHandler
+  val rateHandler = new RateHandler
+  val roleHandler = new RoleHandler
+  val shippingAddressHandler = new ShippingAddressHandler
   val smsHandler: ClickatellSMSHandler = new ClickatellSMSHandler {}
-  val telephoneHandler                 = new TelephoneHandler
-  val transactionRequestHandler        = new TransactionRequestHandler
-  val transactionSequenceHandler       = new TransactionSequenceHandler
+  val telephoneHandler = new TelephoneHandler
+  val transactionRequestHandler = new TransactionRequestHandler
+  val transactionSequenceHandler = new TransactionSequenceHandler
 
   val kialaShippingHandler = new KialaShippingHandler
-  val easyPostHandler      = new EasyPostHandler
-  val userHandler          = new UserHandler
-  val pdfHandler           = new PdfHandler
-  val templateHandler      = new TemplateHandler
+  val easyPostHandler = new EasyPostHandler
+  val userHandler = new UserHandler
+  val pdfHandler = new PdfHandler
+  val templateHandler = new TemplateHandler
 
-  val transactionHandler  = new TransactionHandler
+  val transactionHandler = new TransactionHandler
   val authorizeNetHandler = new AuthorizeNetHandler("authorizenet")
-  val payboxHandler       = new PayboxHandler("paybox")
-  val systempayHandler    = new SystempayHandler("systempay")
-  val sipsHandler         = new SipsHandler("sips")
-  val payPalHandler       = new PayPalHandler("paypal")
-  val applePayHandler     = new ApplePayHandler("applepay")
-  val paylineHandler      = new PaylineHandler("payline")
-  val mogopayHandler      = new MogopayHandler("mogopay")
+  val payboxHandler = new PayboxHandler("paybox")
+  val systempayHandler = new SystempayHandler("systempay")
+  val sipsHandler = new SipsHandler("sips")
+  val payPalHandler = new PayPalHandler("paypal")
+  val applePayHandler = new ApplePayHandler("applepay")
+  val paylineHandler = new PaylineHandler("payline")
+  val mogopayHandler = new MogopayHandler("mogopay")
 
   val miraklHandler = new MiraklHandler
 

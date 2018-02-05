@@ -10,7 +10,7 @@ import com.mogobiz.pay.implicits.Implicits
 import Implicits._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
-import com.mogobiz.pay.model.{
+import com.mogobiz.pay.model.Mogopay.{
   Account,
   BOShopTransaction,
   BOTransaction,
@@ -18,7 +18,6 @@ import com.mogobiz.pay.model.{
 }
 import com.mogobiz.session.SessionESDirectives._
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-import com.mogobiz.json.JacksonConverter._
 
 class BackofficeService extends Directives with DefaultComplete {
 

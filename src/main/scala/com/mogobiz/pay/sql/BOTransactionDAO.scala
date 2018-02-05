@@ -19,14 +19,15 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
   //    def apply(rs: ResultSet, index: Int): UUID = UUID.fromString(rs.getString(index))
   //  }
 
-  def apply(rn: ResultName[BOTransaction])(rs: WrappedResultSet): BOTransaction =
+  def apply(rn: ResultName[BOTransaction])(
+      rs: WrappedResultSet): BOTransaction =
     BOTransaction(rs.get(rn.id),
                   UUID.fromString(rs.get(rn.uuid)),
                   rs.get(rn.extra),
                   rs.date(rn.dateCreated),
                   rs.date(rn.lastUpdated))
 
-  def create(transaction: model.BOTransaction): BOTransaction = {
+  def create(transaction: model.Mogopay.BOTransaction): BOTransaction = {
     DB localTx { implicit session =>
       val newBoCart = new BOTransaction(newId(),
                                         UUID.fromString(transaction.uuid),
@@ -38,25 +39,26 @@ object BOTransactionDAO extends SQLSyntaxSupport[BOTransaction] with BOService {
         insert
           .into(BOTransactionDAO)
           .namedValues(
-              BOTransactionDAO.column.id          -> newBoCart.id,
-              BOTransactionDAO.column.uuid        -> newBoCart.uuid.toString,
-              BOTransactionDAO.column.extra       -> newBoCart.extra,
-              BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
-              BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
+            BOTransactionDAO.column.id -> newBoCart.id,
+            BOTransactionDAO.column.uuid -> newBoCart.uuid.toString,
+            BOTransactionDAO.column.extra -> newBoCart.extra,
+            BOTransactionDAO.column.dateCreated -> newBoCart.dateCreated,
+            BOTransactionDAO.column.lastUpdated -> newBoCart.lastUpdated
           )
       }
       newBoCart
     }
   }
 
-  def update(transaction: model.BOTransaction): Int = {
+  def update(transaction: model.Mogopay.BOTransaction): Int = {
     DB localTx { implicit session =>
       applyUpdate {
         QueryDSL
           .update(BOTransactionDAO)
           .set(
-              BOTransactionDAO.column.extra       -> JacksonConverter.serialize(transaction),
-              BOTransactionDAO.column.lastUpdated -> new Date
+            BOTransactionDAO.column.extra -> JacksonConverter.serialize(
+              transaction),
+            BOTransactionDAO.column.lastUpdated -> new Date
           )
           .where
           .eq(BOTransactionDAO.column.uuid, transaction.uuid)

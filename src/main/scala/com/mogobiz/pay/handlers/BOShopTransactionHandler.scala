@@ -6,7 +6,7 @@ package com.mogobiz.pay.handlers
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.pay.config.Settings
-import com.mogobiz.pay.model._
+import com.mogobiz.pay.model.Mogopay.BOShopTransaction
 import com.mogobiz.pay.sql.BOShopTransactionDAO
 import com.sksamuel.elastic4s.http.ElasticDsl._
 
@@ -43,16 +43,20 @@ class BOShopTransactionHandler {
     EsClient.searchAll[BOTransaction](req)
   }*/
 
-  def findByTransactionUuid(transactionUuid: String): List[BOShopTransaction] = {
+  def findByTransactionUuid(
+      transactionUuid: String): List[BOShopTransaction] = {
     val query = search(Settings.Mogopay.EsIndex -> "BOShopTransaction") query {
       boolQuery().must(termQuery("transactionUUID", transactionUuid))
     }
     EsClient.searchAll[BOShopTransaction](query).toList
   }
 
-  def findByShopIdAndTransactionUuid(shopId: String, transactionUuid: String): Option[BOShopTransaction] = {
+  def findByShopIdAndTransactionUuid(
+      shopId: String,
+      transactionUuid: String): Option[BOShopTransaction] = {
     val query = search(Settings.Mogopay.EsIndex -> "BOShopTransaction") query {
-      boolQuery().must(termQuery("shopId", shopId), termQuery("transactionUUID", transactionUuid))
+      boolQuery().must(termQuery("shopId", shopId),
+                       termQuery("transactionUUID", transactionUuid))
     }
     val list = EsClient.searchAll[BOShopTransaction](query).toList
     list.headOption
@@ -65,8 +69,11 @@ class BOShopTransactionHandler {
   }
 
   def update(transaction: BOShopTransaction): Boolean = {
-    val refresh      = true
+    val refresh = true
     val updateResult = BOShopTransactionDAO.update(transaction)
-    EsClient.update[BOShopTransaction](Settings.Mogopay.EsIndex, transaction, upsert = false, refresh = refresh)
+    EsClient.update[BOShopTransaction](Settings.Mogopay.EsIndex,
+                                       transaction,
+                                       upsert = false,
+                                       refresh = refresh)
   }
 }

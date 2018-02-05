@@ -8,11 +8,10 @@ import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits
 import Implicits._
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
-import spray.http.HttpHeaders.`Content-Type`
-import spray.http.{MediaTypes, HttpResponse, StatusCodes, Uri}
-import spray.routing.Directives
 
 import scala.util._
 
@@ -21,8 +20,8 @@ class PayPalService extends Directives with DefaultComplete {
   val route = {
     pathPrefix("paypal") {
       startPayment ~
-      fail ~
-      success
+        fail ~
+        success
     }
   }
 

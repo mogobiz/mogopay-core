@@ -19,9 +19,10 @@ import com.mogobiz.pay.exceptions.Exceptions.{
 import com.mogobiz.pay.services._
 import com.mogobiz.pay.services.payment._
 import com.mogobiz.system.MogobizSystem
+import com.mogobiz.json.JacksonConverter._
+import com.mogobiz.utils.HttpComplete
 
 import scala.util.{Failure, Success, Try}
-import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 
 trait MogopayRoutes extends Directives {
   this: MogobizSystem =>
@@ -88,16 +89,9 @@ trait MogopayRoutes extends Directives {
     }
 }
 
-trait DefaultComplete {
+trait DefaultComplete extends HttpComplete {
   this: Directives =>
-  def handleCall[T](call: => T, handler: T => Route): Route = {
-    Try(call) match {
-      case Success(res) => handler(res)
-      case Failure(t)   => completeException(t)
-    }
-  }
-
-  def completeException(t: Throwable): Route = {
+  override def completeException(t: Throwable): Route = {
     t match {
       case (ex: MogopayException) =>
         if (ex.printTrace) ex.printStackTrace()
@@ -110,28 +104,8 @@ trait DefaultComplete {
         complete(
           ex.code -> Map('type -> ex.getClass.getSimpleName,
                          'error -> ex.getMessage))
-      case (ex: UnknownHostException) =>
-        ex.printStackTrace()
-        complete(
-          StatusCodes.NotFound -> Map('type -> ex.getClass.getSimpleName,
-                                      'error -> ex.getMessage))
       case (_) =>
-        t.printStackTrace()
-        complete(
-          StatusCodes.InternalServerError -> Map(
-            'type -> t.getClass.getSimpleName,
-            'error -> t.getMessage))
-    }
-  }
-
-  def handleComplete[T](call: Try[Try[T]], handler: T => Route): Route = {
-    call match {
-      case Failure(t) => completeException(t)
-      case Success(res) =>
-        res match {
-          case Success(id) => handler(id)
-          case Failure(t)  => completeException(t)
-        }
+        super.completeException(t)
     }
   }
 }

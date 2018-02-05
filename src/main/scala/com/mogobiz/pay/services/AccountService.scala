@@ -15,12 +15,12 @@ import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.config.{DefaultComplete, Settings}
 import com.mogobiz.pay.handlers._
 import com.mogobiz.pay.implicits.Implicits
-import com.mogobiz.pay.model.TokenValidity.TokenValidity
 import com.mogobiz.pay.model._
 import com.mogobiz.session.Session
 import com.mogobiz.session.SessionESDirectives._
-import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 import com.mogobiz.json.JacksonConverter._
+import com.mogobiz.pay.model.Mogopay.{RoleName, TokenValidity}
+import com.mogobiz.pay.model.Mogopay.TokenValidity.TokenValidity
 
 class AccountService extends Directives with DefaultComplete {
 
@@ -67,7 +67,7 @@ class AccountService extends Directives with DefaultComplete {
         (isValid: Boolean) =>
           complete(
             HttpResponse(StatusCodes.OK,
-                         HttpEntity(ContentType(`text/plain`),
+                         HttpEntity(ContentTypes.`text/plain(UTF-8)`,
                                     isValid.toString)))
       )
     }

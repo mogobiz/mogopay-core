@@ -4,24 +4,26 @@
 
 package com.mogobiz.pay.services.payment
 
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
 import com.mogobiz.pay.implicits.Implicits._
 import com.mogobiz.session.SessionESDirectives
 import com.mogobiz.session.SessionESDirectives._
 import com.typesafe.scalalogging.StrictLogging
-import spray.http.HttpHeaders.`Content-Type`
-import spray.http.{HttpResponse, MediaTypes, StatusCodes, Uri}
-import spray.routing.Directives
 
 import scala.util._
 
-class MogopayService extends Directives with DefaultComplete with StrictLogging {
+class MogopayService
+    extends Directives
+    with DefaultComplete
+    with StrictLogging {
 
   val route = {
     pathPrefix("mogopay") {
       authenticate ~
-      startPayment
+        startPayment
     }
   }
 

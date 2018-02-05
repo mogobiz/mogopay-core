@@ -10,6 +10,7 @@ import akka.http.scaladsl.model.{ContentType, HttpEntity, MediaTypes}
 import akka.http.scaladsl.server.Directives
 import com.mogobiz.pay.config.DefaultComplete
 import com.mogobiz.pay.config.MogopayHandlers.handlers._
+import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 
 class PdfService extends Directives with DefaultComplete {
   val route = pathPrefix("pdf") {
